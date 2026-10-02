@@ -119,6 +119,9 @@ while Talk captures the same input. Everything the machine plays can be turned d
 the length of a recording, to a share of where it already was, and put back at the stop
 rather than after the transcription.
 
+**The interface is in English and French**, follows the language of the system, and can be
+set to either one on the Preferences page.
+
 **It updates itself from the releases page.** Shortly after launch, then once an hour
 for a window left open, it asks GitHub what the newest release is. A strip under the
 titlebar offers to install it, and installing runs the same installer you would have
