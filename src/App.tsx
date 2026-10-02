@@ -97,6 +97,7 @@ interface SavedSettings {
   duck_audio_on_record: boolean;
   duck_volume_percent: number;
   preserve_clipboard: boolean;
+  confirm_engine_switch: boolean;
 }
 
 interface HotkeyConfig {
@@ -148,6 +149,7 @@ function App() {
   // isLoading so that changing card does not make the backend tile above it
   // look like it is being decided again.
   const [switchingDevice, setSwitchingDevice] = useState<number | null>(null);
+  const [confirmEngineSwitch, setConfirmEngineSwitch] = useState(true);
   const [vocabulary, setVocabulary] = useState<string[]>([]);
   const [transcriptionMode, setTranscriptionMode] = useState<TranscriptionMode>("local");
   const [serverUrl, setServerUrl] = useState("");
@@ -388,6 +390,7 @@ function App() {
     setDuckAudioOnRecord(savedSettings.duck_audio_on_record || false);
     setDuckVolumePercent(savedSettings.duck_volume_percent ?? 20);
     setPreserveClipboard(savedSettings.preserve_clipboard || false);
+    setConfirmEngineSwitch(savedSettings.confirm_engine_switch !== false);
     setOverlayTheme(savedSettings.overlay_theme || "frost");
     setOverlaySize(savedSettings.overlay_size || "small");
 
@@ -764,6 +767,11 @@ function App() {
               } finally {
                 setSwitchingDevice(null);
               }
+            }}
+            confirmEngineSwitch={confirmEngineSwitch}
+            onConfirmEngineSwitchChange={async (enabled) => {
+              setConfirmEngineSwitch(enabled);
+              await invoke("set_confirm_engine_switch", { enabled });
             }}
             transcriptionMode={transcriptionMode}
             onTranscriptionModeChange={async (mode) => {

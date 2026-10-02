@@ -248,7 +248,12 @@
       "integrated": "Integrated",
       "gigabytes": "{{size}} GB",
       "megabytes": "{{size}} MB",
-      "runningOn": "Running on {{name}} ({{details}})"
+      "runningOn": "Running on {{name}} ({{details}})",
+      "askBeforeSwitching": "Ask before switching",
+      "switchTitle": "Reload the model on the new device?",
+      "switchDescription": "{{model}} will be reloaded on the new device. With a large model this can take a minute or more, and dictation is unavailable until it is done.",
+      "switch": "Switch",
+      "dontAskAgain": "Don't ask again"
     },
     "server": {
       "status": {
