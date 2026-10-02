@@ -15,6 +15,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // The theme test reads the stylesheets as text, and vitest empties CSS
+    // imports unless told otherwise.
+    css: { include: [/\.css\?raw$/] },
     setupFiles: ["./src/test/setup.ts"],
     // Anchored at src so a git worktree under .claude/worktrees, which carries
     // its own copy of the tree, does not get its tests collected a second time.
