@@ -84,6 +84,8 @@ pub enum AppTheme {
     VscodeLight,
     Dracula,
     Nord,
+    CatppuccinMocha,
+    GithubLight,
 }
 
 impl Default for AppTheme {

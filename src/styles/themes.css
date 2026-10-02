@@ -249,3 +249,85 @@
   --color-hybrid: oklch(0.70 0.12 280);
   --color-hybrid-glow: oklch(0.70 0.14 280 / 0.25);
 }
+
+/* --- Catppuccin Mocha ---------------------------------------------------- */
+[data-theme="catppuccin-mocha"] {
+  --color-background: oklch(0.24 0.030 284);
+  --color-foreground: oklch(0.88 0.043 272);
+  --color-card: oklch(0.28 0.031 284);
+  --color-card-foreground: oklch(0.88 0.043 272);
+  --color-popover: oklch(0.30 0.031 282);
+  --color-popover-foreground: oklch(0.88 0.043 272);
+  --color-primary: oklch(0.88 0.043 272);
+  --color-primary-foreground: oklch(0.24 0.030 284);
+  --color-secondary: oklch(0.32 0.032 282);
+  --color-secondary-foreground: oklch(0.88 0.043 272);
+  --color-muted: oklch(0.32 0.032 282);
+  --color-muted-foreground: oklch(0.75 0.040 274);
+  --color-accent: oklch(0.40 0.032 280);
+  --color-accent-foreground: oklch(0.88 0.043 272);
+  --color-recording: oklch(0.82 0.101 53);
+  --color-recording-glow: oklch(0.82 0.101 53 / 0.35);
+  --color-active: oklch(0.79 0.119 305);
+  --color-active-glow: oklch(0.79 0.119 305 / 0.3);
+  --color-success: oklch(0.86 0.109 143);
+  --color-warning: oklch(0.92 0.070 87);
+  --color-destructive: oklch(0.76 0.130 3);
+  --color-destructive-foreground: oklch(0.18 0.020 284);
+  --color-border: oklch(0.40 0.032 280);
+  --color-input: oklch(0.32 0.032 282);
+  --color-ring: oklch(0.79 0.119 305);
+  --color-surface-deep: oklch(0.22 0.025 284);
+  --color-surface-inset: oklch(0.21 0.025 284);
+  --color-surface-raised: oklch(0.28 0.031 284);
+  --color-surface-elevated: oklch(0.32 0.032 282);
+  --color-surface-active: oklch(0.36 0.032 281);
+  --color-border-subtle: oklch(0.32 0.032 282);
+  --color-border-card: oklch(0.36 0.032 281);
+  --color-border-hover: oklch(0.48 0.034 279);
+  --color-server: oklch(0.77 0.111 260);
+  --color-server-glow: oklch(0.77 0.111 260 / 0.3);
+  --color-hybrid: oklch(0.79 0.119 305);
+  --color-hybrid-glow: oklch(0.79 0.119 305 / 0.3);
+}
+
+/* --- GitHub Light -------------------------------------------------------- */
+[data-theme="github-light"] {
+  --color-background: oklch(1.0 0 0);
+  --color-foreground: oklch(0.25 0.011 254);
+  --color-card: oklch(0.98 0.003 248);
+  --color-card-foreground: oklch(0.25 0.011 254);
+  --color-popover: oklch(1.0 0 0);
+  --color-popover-foreground: oklch(0.25 0.011 254);
+  --color-primary: oklch(0.25 0.011 254);
+  --color-primary-foreground: oklch(1.0 0 0);
+  --color-secondary: oklch(0.95 0.007 248);
+  --color-secondary-foreground: oklch(0.25 0.011 254);
+  --color-muted: oklch(0.95 0.007 248);
+  --color-muted-foreground: oklch(0.50 0.022 251);
+  --color-accent: oklch(0.93 0.008 248);
+  --color-accent-foreground: oklch(0.25 0.011 254);
+  --color-recording: oklch(0.56 0.160 45);
+  --color-recording-glow: oklch(0.56 0.160 45 / 0.25);
+  --color-active: oklch(0.54 0.191 257);
+  --color-active-glow: oklch(0.54 0.191 257 / 0.2);
+  --color-success: oklch(0.52 0.140 148);
+  --color-warning: oklch(0.55 0.117 75);
+  --color-destructive: oklch(0.55 0.205 25);
+  --color-destructive-foreground: oklch(1.0 0 0);
+  --color-border: oklch(0.88 0.012 248);
+  --color-input: oklch(0.95 0.007 248);
+  --color-ring: oklch(0.54 0.191 257);
+  --color-surface-deep: oklch(0.97 0.004 248);
+  --color-surface-inset: oklch(0.96 0.005 248);
+  --color-surface-raised: oklch(0.99 0.002 248);
+  --color-surface-elevated: oklch(1.0 0 0);
+  --color-surface-active: oklch(0.93 0.008 248);
+  --color-border-subtle: oklch(0.92 0.008 248);
+  --color-border-card: oklch(0.90 0.010 248);
+  --color-border-hover: oklch(0.78 0.016 248);
+  --color-server: oklch(0.54 0.191 257);
+  --color-server-glow: oklch(0.54 0.191 257 / 0.2);
+  --color-hybrid: oklch(0.56 0.207 295);
+  --color-hybrid-glow: oklch(0.56 0.207 295 / 0.2);
+}

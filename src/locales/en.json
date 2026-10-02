@@ -473,7 +473,9 @@
       "vscode-dark": "VS Code Dark",
       "vscode-light": "VS Code Light",
       "dracula": "Dracula",
-      "nord": "Nord"
+      "nord": "Nord",
+      "catppuccin-mocha": "Catppuccin Mocha",
+      "github-light": "GitHub Light"
     },
     "overlayThemes": {
       "aurora": "Aurora",

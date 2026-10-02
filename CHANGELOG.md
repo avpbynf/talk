@@ -17,6 +17,10 @@ Skip as prominent as the button. Either one is asked only once: signing in, skip
 settles the question for good, and neither shows when the build cannot sign in or when you are
 already signed in.
 
+- (preferences) Two more app themes: Catppuccin Mocha and GitHub Light
+
+Appearance now offers six dark themes and three light ones, so each group fills its rows evenly.
+
 - (dashboard) Switch the dashboard between all your devices and this one
 
 Once another machine has synced, the dashboard shows an All devices / This device toggle. All
