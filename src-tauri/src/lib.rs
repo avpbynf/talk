@@ -1019,6 +1019,18 @@ fn set_start_minimized(enabled: bool) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn get_confirm_engine_switch() -> bool {
+    settings::load_settings().confirm_engine_switch
+}
+
+#[tauri::command]
+fn set_confirm_engine_switch(enabled: bool) -> Result<(), String> {
+    let mut app_settings = settings::load_settings();
+    app_settings.confirm_engine_switch = enabled;
+    settings::save_settings(&app_settings)
+}
+
+#[tauri::command]
 fn get_sound_feedback() -> bool {
     settings::load_settings().sound_feedback
 }
@@ -1332,6 +1344,8 @@ pub fn run() {
             set_autostart_enabled,
             get_start_minimized,
             set_start_minimized,
+            get_confirm_engine_switch,
+            set_confirm_engine_switch,
             show_main_window,
             get_duck_audio_on_record,
             set_duck_audio_on_record,
