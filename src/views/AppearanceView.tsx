@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { OverlaySize } from "@/App";
 import type { OverlayThemeId } from "@/lib/overlay-themes";
 import type { AppThemeId } from "@/lib/app-themes";
@@ -22,6 +23,7 @@ export default function AppearanceView({
   appTheme,
   onAppThemeChange,
 }: AppearanceViewProps) {
+  const { t } = useTranslation();
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <ScrollArea className="flex-1 min-h-0">
@@ -29,9 +31,9 @@ export default function AppearanceView({
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Page title */}
             <div>
-              <h1 className="text-xl font-semibold tracking-tight">Appearance</h1>
+              <h1 className="text-xl font-semibold tracking-tight">{t("appearance.title")}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                How the application looks
+                {t("appearance.subtitle")}
               </p>
             </div>
 

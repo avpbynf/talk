@@ -1,3 +1,5 @@
+import i18n from "@/i18n";
+
 export type OverlayThemeId =
   | "aurora"
   | "sunset"
@@ -23,7 +25,6 @@ interface ThemeUI {
 }
 
 interface ThemeConfig {
-  readonly label: string;
   readonly arcs: readonly [ArcConfig, ArcConfig, ArcConfig];
   readonly ui: ThemeUI;
 }
@@ -36,7 +37,6 @@ const ARC_POSITIONS = [
 
 const THEMES: Record<OverlayThemeId, ThemeConfig> = {
   aurora: {
-    label: "Aurora",
     arcs: [
       { hues: [350, 30, 55], chroma: 0.17, lightness: 0.76 },
       { hues: [195, 220, 260], chroma: 0.16, lightness: 0.74 },
@@ -45,7 +45,6 @@ const THEMES: Record<OverlayThemeId, ThemeConfig> = {
     ui: { accentHue: 195, accentChroma: 0.12, barHueRange: [260, 190] },
   },
   sunset: {
-    label: "Sunset",
     arcs: [
       { hues: [340, 355, 10], chroma: 0.19, lightness: 0.72 },
       { hues: [40, 55, 70], chroma: 0.18, lightness: 0.78 },
@@ -54,7 +53,6 @@ const THEMES: Record<OverlayThemeId, ThemeConfig> = {
     ui: { accentHue: 50, accentChroma: 0.14, barHueRange: [355, 80] },
   },
   ocean: {
-    label: "Ocean",
     arcs: [
       { hues: [170, 185, 195], chroma: 0.15, lightness: 0.75 },
       { hues: [230, 245, 255], chroma: 0.16, lightness: 0.72 },
@@ -63,7 +61,6 @@ const THEMES: Record<OverlayThemeId, ThemeConfig> = {
     ui: { accentHue: 210, accentChroma: 0.12, barHueRange: [260, 190] },
   },
   neon: {
-    label: "Neon",
     arcs: [
       { hues: [310, 325, 340], chroma: 0.22, lightness: 0.75 },
       { hues: [215, 230, 245], chroma: 0.20, lightness: 0.73 },
@@ -72,7 +69,6 @@ const THEMES: Record<OverlayThemeId, ThemeConfig> = {
     ui: { accentHue: 280, accentChroma: 0.16, barHueRange: [320, 230] },
   },
   frost: {
-    label: "Frost",
     arcs: [
       { hues: [185, 195, 210], chroma: 0.06, lightness: 0.84 },
       { hues: [250, 265, 275], chroma: 0.05, lightness: 0.78 },
@@ -81,7 +77,6 @@ const THEMES: Record<OverlayThemeId, ThemeConfig> = {
     ui: { accentHue: 230, accentChroma: 0.04, barHueRange: [250, 210] },
   },
   neutral: {
-    label: "Neutral",
     arcs: [
       { hues: [260, 260, 260], chroma: 0.01, lightness: 0.85 },
       { hues: [260, 260, 260], chroma: 0.01, lightness: 0.78 },
@@ -156,7 +151,7 @@ export function getThemeGradients(themeId: OverlayThemeId): ThemeGradients {
 }
 
 export function getThemeLabel(themeId: OverlayThemeId): string {
-  return THEMES[themeId].label;
+  return i18n.t(`appearance.overlayThemes.${themeId}`);
 }
 
 export const THEME_IDS: readonly OverlayThemeId[] = Object.keys(THEMES) as OverlayThemeId[];
