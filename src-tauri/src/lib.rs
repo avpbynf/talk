@@ -2,6 +2,7 @@ mod audio;
 mod audio_encoder;
 mod clipboard;
 mod database;
+mod dictation_queue;
 mod ducking;
 mod hotkeys;
 mod keystroke;
@@ -80,6 +81,10 @@ pub struct AppState {
     /// window shared by all of them, and this is what tells the last one out
     /// to turn the light off.
     pub jobs_in_flight: AtomicUsize,
+    /// Dictations chained while earlier ones are still being transcribed
+    pub dictation_queue: Mutex<dictation_queue::DictationQueue>,
+    /// How chained dictations are pasted, recalled and cancelled
+    pub queue_settings: Mutex<dictation_queue::QueueSettings>,
 }
 
 impl Default for AppState {
@@ -113,6 +118,8 @@ impl Default for AppState {
             history_limit: Mutex::new(100),
             show_main_window_pending: Mutex::new(false),
             jobs_in_flight: AtomicUsize::new(0),
+            dictation_queue: Mutex::new(dictation_queue::DictationQueue::default()),
+            queue_settings: Mutex::new(dictation_queue::QueueSettings::default()),
         }
     }
 }
@@ -283,8 +290,13 @@ fn db_get_transcription_count(
 #[tauri::command]
 fn db_clear_transcriptions(
     db: tauri::State<'_, database::Database>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    db.clear_transcriptions().map_err(|e| e.to_string())
+    db.clear_transcriptions().map_err(|e| e.to_string())?;
+    // The paste shortcut answers with what the history shows, and a batch
+    // kept in memory would outlive the clear.
+    state.dictation_queue.lock().forget_latest();
+    Ok(())
 }
 
 #[tauri::command]
@@ -525,7 +537,7 @@ fn enable_shortcuts(app: tauri::AppHandle) {
 
 #[tauri::command]
 fn cancel_recording(app: tauri::AppHandle) {
-    hotkeys::cancel_recording(&app)
+    hotkeys::cancel(&app)
 }
 
 #[tauri::command]
@@ -792,6 +804,21 @@ fn set_duck_volume_percent(percent: u8, state: tauri::State<'_, AppState>) -> Re
     let mut app_settings = settings::load_settings();
     app_settings.duck_volume_percent = percent;
     settings::save_settings(&app_settings)
+}
+
+#[tauri::command]
+fn get_queue_settings(state: tauri::State<'_, AppState>) -> dictation_queue::QueueSettings {
+    *state.queue_settings.lock()
+}
+
+#[tauri::command]
+fn set_queue_settings(settings: dictation_queue::QueueSettings, state: tauri::State<'_, AppState>) {
+    *state.queue_settings.lock() = settings;
+    let mut app_settings = settings::load_settings();
+    app_settings.queue = settings;
+    if let Err(e) = settings::save_settings(&app_settings) {
+        eprintln!("Failed to save settings: {}", e);
+    }
 }
 
 #[tauri::command]
@@ -1074,7 +1101,7 @@ pub fn run() {
                     if is_main {
                         hotkeys::handle_shortcut_event(app, event.state);
                     } else if is_cancel && matches!(event.state, ShortcutState::Pressed) {
-                        hotkeys::cancel_recording(app);
+                        hotkeys::cancel(app);
                     } else if is_paste && matches!(event.state, ShortcutState::Pressed) {
                         hotkeys::paste_last_transcription(app);
                     }
@@ -1163,6 +1190,8 @@ pub fn run() {
             set_duck_volume_percent,
             get_preserve_clipboard,
             set_preserve_clipboard,
+            get_queue_settings,
+            set_queue_settings,
             get_sound_feedback,
             set_sound_feedback,
             get_start_sound,
@@ -1228,6 +1257,7 @@ pub fn run() {
                 *state.input_device_name.lock() = app_settings.input_device_name.clone();
                 *state.output_device_name.lock() = app_settings.output_device_name.clone();
                 *state.history_limit.lock() = app_settings.history_limit;
+                *state.queue_settings.lock() = app_settings.queue;
 
                 // Auto-start meeting mode if previously enabled
                 if app_settings.meeting_mode_enabled {

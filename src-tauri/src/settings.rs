@@ -189,6 +189,9 @@ pub struct AppSettings {
     /// history page asked for, which hid the growth rather than bounding it.
     #[serde(default = "default_history_limit")]
     pub history_limit: usize,
+    /// How dictations chained while others are transcribing get pasted
+    #[serde(default)]
+    pub queue: crate::dictation_queue::QueueSettings,
 }
 
 fn default_true() -> bool {
@@ -255,6 +258,7 @@ impl Default for AppSettings {
             input_device_name: None,
             output_device_name: None,
             history_limit: default_history_limit(),
+            queue: Default::default(),
         }
     }
 }
