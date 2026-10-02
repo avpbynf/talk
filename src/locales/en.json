@@ -276,7 +276,7 @@
       "inUse": "In use"
     },
     "pair": {
-      "title": "Pair with {{label}}",
+      "title": "Pair with <label>{{label}}</label>",
       "subtitle": "The server shows a 6 digit code in its log and on its admin page.",
       "requesting": "Asking the server for a code...",
       "validFor_one": "The code is valid for about {{count}} minute.",
@@ -335,6 +335,7 @@
     },
     "shortcuts": {
       "title": "Shortcuts",
+      "edit": "Edit {{name}}",
       "main": {
         "label": "Main shortcut",
         "toggleDescription": "Starts a recording, and stops it",

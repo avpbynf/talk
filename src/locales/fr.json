@@ -276,7 +276,7 @@
       "inUse": "Utilisé"
     },
     "pair": {
-      "title": "Appairer avec {{label}}",
+      "title": "Appairer avec <label>{{label}}</label>",
       "subtitle": "Le serveur affiche un code à 6 chiffres dans son journal et sur sa page d'administration.",
       "requesting": "Demande d'un code au serveur...",
       "validFor_one": "Le code est valable environ {{count}} minute.",
@@ -335,6 +335,7 @@
     },
     "shortcuts": {
       "title": "Raccourcis",
+      "edit": "Modifier {{name}}",
       "main": {
         "label": "Raccourci principal",
         "toggleDescription": "Démarre un enregistrement, puis l'arrête",

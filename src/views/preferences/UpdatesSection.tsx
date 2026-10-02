@@ -36,7 +36,6 @@ export default function UpdatesSection({ updater }: UpdatesSectionProps) {
   return (
     <SectionCard icon={ArrowDownToLine} title={t("updates.title")}>
       <SettingRow
-        guarded
         label={
           updater.currentVersion
             ? t("updates.versionNumber", { version: updater.currentVersion })

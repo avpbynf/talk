@@ -67,7 +67,6 @@ export function GpuSelector({
 
   return (
     <SectionCard
-      variant="tile"
       accent="warning"
       icon={Zap}
       title={t("transcription.gpu.title")}

@@ -3,6 +3,7 @@ import { AlertCircle, Check, Loader2, Share2, Trash2 } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
@@ -74,8 +75,8 @@ export function SharePanel({ currentModel }: SharePanelProps) {
 
   return (
     <SectionCard
-      variant="tile"
       icon={Share2}
+      accent="active"
       title={t("transcription.share.title")}
       description={t("transcription.share.subtitle")}
       action={
@@ -164,13 +165,15 @@ export function SharePanel({ currentModel }: SharePanelProps) {
                     <p className="truncate text-sm">{device.name}</p>
                     <p className="text-xs text-muted-foreground">{formatWhen(device.lastUsedAt, t)}</p>
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => void revoke(device.id)}
-                    className="cursor-pointer flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-surface-active hover:text-[var(--color-destructive)]"
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 />
                     {t("transcription.share.revoke")}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>

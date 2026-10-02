@@ -81,14 +81,13 @@ export default function ThemeSection({
   );
 
   return (
-    <SectionCard icon={Palette} title={t("appearance.theme.title")}>
-
-      <p className="text-sm text-muted-foreground">
-        {t("appearance.theme.description")}
-      </p>
-
+    <SectionCard
+      icon={Palette}
+      title={t("appearance.theme.title")}
+      description={t("appearance.theme.description")}
+    >
       {/* Dark themes */}
-      <div className="space-y-2 pt-2 border-t border-border-subtle">
+      <div className="space-y-2 pt-4 border-t border-border-subtle">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {t("appearance.theme.dark")}
         </span>

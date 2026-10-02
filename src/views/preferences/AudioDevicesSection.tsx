@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Mic, RefreshCw, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -73,7 +74,7 @@ export default function AudioDevicesSection() {
   };
 
   return (
-    <SectionCard icon={Volume2} title={t("preferences.audio.title")} className="gap-5">
+    <SectionCard icon={Volume2} title={t("preferences.audio.title")}>
       <DeviceRow
         icon={<Mic className="h-4 w-4 text-[var(--color-active)]" />}
         label={t("preferences.audio.microphone")}
@@ -170,14 +171,17 @@ function DeviceRow({
             ))}
           </SelectContent>
         </Select>
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="cursor-pointer h-9 w-9 shrink-0 rounded-lg border border-border-card bg-surface-inset flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0"
           title={t("preferences.audio.refresh")}
+          aria-label={t("preferences.audio.refresh")}
         >
-          <RefreshCw className={`h-3.5 w-3.5 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
-        </button>
+          <RefreshCw className={isRefreshing ? "animate-spin" : undefined} />
+        </Button>
       </div>
     </div>
   );

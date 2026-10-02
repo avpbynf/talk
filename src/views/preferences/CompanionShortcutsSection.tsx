@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { CompanionShortcut } from "@/App";
-import { ChevronRight, Keyboard, Plus, X, GripVertical } from "lucide-react";
+import { Keyboard, Plus, X, GripVertical } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { SectionCard } from "@/components/SectionCard";
 import KeyCaptureField from "@/components/KeyCaptureField";
 import { cn } from "@/lib/utils";
 import {
@@ -177,28 +179,23 @@ export default function CompanionShortcutsSection({
   };
 
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setOpen(!open)}
-          className="cursor-pointer flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide group"
-        >
-          <ChevronRight
-            size={14}
-            className={cn(
-              "text-muted-foreground/60 transition-transform duration-200 group-hover:text-foreground",
-              open && "rotate-90"
-            )}
-          />
-          <Keyboard className="h-4 w-4" />
+    <SectionCard
+      icon={Keyboard}
+      fold={{ open, onToggle: () => setOpen(!open) }}
+      title={
+        <>
           {t("preferences.companion.title")}
           {companionShortcuts.length > 0 && (
             <span className="text-[11px] font-mono normal-case text-muted-foreground/60">
               {companionShortcuts.length}
             </span>
           )}
-        </button>
-        <button
+        </>
+      }
+      action={
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => {
             setOpen(true);
             onCompanionShortcutsChange([
@@ -211,15 +208,14 @@ export default function CompanionShortcutsSection({
               },
             ]);
           }}
-          className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border-card text-muted-foreground hover:text-foreground hover:border-border-hover transition-colors"
         >
-          <Plus size={14} className="inline mr-1" />
+          <Plus />
           {t("preferences.companion.add")}
-        </button>
-      </div>
-
+        </Button>
+      }
+    >
       {open && (
-        <div className="mt-4 space-y-4 slide-enter">
+        <div className="space-y-4 slide-enter">
           <p className="text-sm text-muted-foreground">
             {t("preferences.companion.description")}
           </p>
@@ -256,6 +252,6 @@ export default function CompanionShortcutsSection({
           )}
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

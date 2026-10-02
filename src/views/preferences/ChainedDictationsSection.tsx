@@ -41,7 +41,6 @@ export default function ChainedDictationsSection() {
       icon={ListOrdered}
       title={t("preferences.chained.title")}
       description={t("preferences.chained.description")}
-      className="gap-5"
     >
       <ChoiceRow
         label={t("preferences.chained.pasting.label")}

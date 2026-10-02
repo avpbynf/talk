@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { RotateCcw, Check, Keyboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getRandomSentence, calculateWpm, saveUserWpm } from "@/lib/analytics";
 
@@ -62,34 +63,27 @@ export function TypingGame({ onWpmMeasured }: TypingGameProps) {
   }
 
   return (
-    <Card className="bg-surface-raised border-border-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium">
-              {t("dashboard.typingGame.title")}
-            </CardTitle>
-            <CardDescription className="text-xs mt-0.5">
-              {t("dashboard.typingGame.subtitle")}
-            </CardDescription>
-          </div>
-          {/* Live WPM indicator */}
-          {startTime !== null && (
-            <div className="text-right">
-              <div
-                className="text-2xl font-bold font-mono text-[var(--color-active)]"
-                style={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                {finished ? finalWpm : liveWpm}
-              </div>
-              <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">
-                {t("dashboard.typingGame.wordsPerMinute")}
-              </span>
+    <SectionCard
+      icon={Keyboard}
+      title={t("dashboard.typingGame.title")}
+      description={t("dashboard.typingGame.subtitle")}
+      action={
+        /* Live WPM indicator */
+        startTime !== null && (
+          <div className="text-right">
+            <div
+              className="text-2xl font-bold font-mono text-[var(--color-active)]"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {finished ? finalWpm : liveWpm}
             </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+            <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">
+              {t("dashboard.typingGame.wordsPerMinute")}
+            </span>
+          </div>
+        )
+      }
+    >
         {/* Sentence display with character coloring */}
         <div>
           <div className="font-mono text-sm leading-relaxed p-4 rounded-lg bg-surface-active border border-border-subtle select-none">
@@ -142,9 +136,9 @@ export function TypingGame({ onWpmMeasured }: TypingGameProps) {
         </div>
 
         {/* Input */}
-        <input
+        <Input
           ref={inputRef}
-          className="w-full px-4 py-3 rounded-xl bg-surface-inset border border-border-card text-sm font-mono focus:outline-none input-glow disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full py-3 font-mono disabled:opacity-40 disabled:cursor-not-allowed"
           placeholder={t("dashboard.typingGame.placeholder")}
           value={input}
           onChange={handleInput}
@@ -179,7 +173,6 @@ export function TypingGame({ onWpmMeasured }: TypingGameProps) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }

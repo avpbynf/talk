@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Timer } from "lucide-react";
+import { SectionCard } from "@/components/SectionCard";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { formatNumber } from "@/i18n";
@@ -30,12 +31,9 @@ function formatTime(minutes: number, t: TFunction): string {
 export function TimeSaved({ summary, userWpm, onRecalibrate }: TimeSavedProps) {
   const { t } = useTranslation();
   return (
-    <Card className="bg-surface-raised border-border-card">
-      <CardHeader className="pb-0">
-        <CardTitle className="text-sm font-medium">{t("dashboard.timeSaved.title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-center py-4">
+    <SectionCard icon={Timer} title={t("dashboard.timeSaved.title")}>
+      <div>
+        <div className="text-center py-2">
           <div
             className="text-4xl font-bold tracking-tight text-[var(--color-warning)]"
             style={{ fontVariantNumeric: "tabular-nums" }}
@@ -65,7 +63,7 @@ export function TimeSaved({ summary, userWpm, onRecalibrate }: TimeSavedProps) {
             {t("dashboard.timeSaved.minutes", { m: formatNumber(summary.estimatedAudioMinutes) })}
           </span>
         </Row>
-      </CardContent>
-    </Card>
+      </div>
+    </SectionCard>
   );
 }

@@ -34,7 +34,6 @@ export default function LanguageSection() {
   return (
     <SectionCard icon={Languages} title={t("preferences.language.title")}>
       <SettingRow
-        guarded
         label={t("preferences.language.label")}
         hint={t("preferences.language.description")}
       >
