@@ -71,6 +71,11 @@ that is allowed. Dictating on this PC always goes first: a request from another 
 until your dictation is done, is stopped if you start recording while it runs, and the other
 machine is told to retry shortly.
 
+- (preferences) Play any feedback sound again from its own button
+
+Hearing the sound already picked meant choosing another one and coming back. Each sound on the
+Preferences page now has a play button beside it, the refusal sound included.
+
 ### Bug Fixes
 
 - (server) Send the server token, so server mode transcribes on the server again
