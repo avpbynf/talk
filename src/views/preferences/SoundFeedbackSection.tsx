@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Volume2 } from "lucide-react";
@@ -24,26 +25,27 @@ export default function SoundFeedbackSection({
   stopSound,
   onStopSoundChange,
 }: SoundFeedbackSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
           <Volume2 className="h-4 w-4" />
-          Feedback sounds
+          {t("preferences.sound.title")}
         </div>
         <Switch checked={soundFeedback} onCheckedChange={onSoundFeedbackChange} />
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Play a sound when recording starts, when it stops, and when it cannot start. Which
-        device they come out of sits with the microphone, under Audio devices.
+        {t("preferences.sound.description")}
       </p>
 
       {soundFeedback && (
         <div className="space-y-4 pt-2 border-t border-border-subtle slide-enter">
           <div className="grid grid-cols-2 gap-4">
             <SoundRow
-              label="When it starts"
+              label={t("preferences.sound.whenStarts")}
+              playLabel={t("preferences.sound.playStart")}
               value={startSound}
               onChange={(value) => {
                 onStartSoundChange(value);
@@ -52,7 +54,8 @@ export default function SoundFeedbackSection({
               onPlay={() => preview("start", startSound)}
             />
             <SoundRow
-              label="When it stops"
+              label={t("preferences.sound.whenStops")}
+              playLabel={t("preferences.sound.playStop")}
               value={stopSound}
               onChange={(value) => {
                 onStopSoundChange(value);
@@ -64,12 +67,12 @@ export default function SoundFeedbackSection({
 
           {/* Fixed on purpose: a refusal has to sound like one whatever the presets are */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">When it refuses</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("preferences.sound.whenRefuses")}</label>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-9 px-3 flex items-center rounded-md border border-border-card bg-surface-deep text-sm text-muted-foreground">
-                Two low notes, when there is no model to dictate with
+                {t("preferences.sound.refusedHint")}
               </div>
-              <PlayButton label="Play the refusal sound" onClick={() => preview("refused", "")} />
+              <PlayButton label={t("preferences.sound.playRefused")} onClick={() => preview("refused", "")} />
             </div>
           </div>
         </div>
@@ -80,12 +83,14 @@ export default function SoundFeedbackSection({
 
 interface SoundRowProps {
   label: string;
+  playLabel: string;
   value: string;
   onChange: (value: string) => void;
   onPlay: () => void;
 }
 
-function SoundRow({ label, value, onChange, onPlay }: SoundRowProps) {
+function SoundRow({ label, playLabel, value, onChange, onPlay }: SoundRowProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
@@ -95,13 +100,13 @@ function SoundRow({ label, value, onChange, onPlay }: SoundRowProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            <SelectItem value="beep">Beep</SelectItem>
-            <SelectItem value="click">Click</SelectItem>
-            <SelectItem value="chime">Chime</SelectItem>
+            <SelectItem value="none">{t("preferences.sound.options.none")}</SelectItem>
+            <SelectItem value="beep">{t("preferences.sound.options.beep")}</SelectItem>
+            <SelectItem value="click">{t("preferences.sound.options.click")}</SelectItem>
+            <SelectItem value="chime">{t("preferences.sound.options.chime")}</SelectItem>
           </SelectContent>
         </Select>
-        <PlayButton label={`Play the sound ${label.toLowerCase()}`} onClick={onPlay} disabled={value === "none"} />
+        <PlayButton label={playLabel} onClick={onPlay} disabled={value === "none"} />
       </div>
     </div>
   );

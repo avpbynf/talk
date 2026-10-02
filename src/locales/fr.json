@@ -311,9 +311,14 @@
     },
     "sound": {
       "title": "Sons de retour",
-      "description": "Joue un son quand l'enregistrement démarre et quand il s'arrête. Le périphérique de sortie se choisit avec le microphone, sous Périphériques audio.",
+      "description": "Joue un son quand l'enregistrement démarre, quand il s'arrête et quand il ne peut pas démarrer. Le périphérique de sortie se choisit avec le microphone, sous Périphériques audio.",
       "whenStarts": "Au démarrage",
       "whenStops": "À l'arrêt",
+      "playStart": "Jouer le son du démarrage",
+      "playStop": "Jouer le son de l'arrêt",
+      "whenRefuses": "Au refus",
+      "refusedHint": "Deux notes graves, quand il n'y a aucun modèle pour dicter",
+      "playRefused": "Jouer le son de refus",
       "options": {
         "none": "Aucun",
         "beep": "Bip",

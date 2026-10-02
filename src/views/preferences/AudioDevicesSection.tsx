@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Mic, RefreshCw, Volume2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectContent,
@@ -12,6 +13,7 @@ import {
 const SYSTEM_DEFAULT = "__default__";
 
 export default function AudioDevicesSection() {
+  const { t } = useTranslation();
   const [inputs, setInputs] = useState<string[]>([]);
   const [outputs, setOutputs] = useState<string[]>([]);
   const [selectedInput, setSelectedInput] = useState<string | null>(null);
@@ -73,13 +75,13 @@ export default function AudioDevicesSection() {
     <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-5">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
         <Volume2 className="h-4 w-4" />
-        Audio devices
+        {t("preferences.audio.title")}
       </div>
 
       <DeviceRow
         icon={<Mic className="h-4 w-4 text-[var(--color-active)]" />}
-        label="Microphone"
-        hint="What it listens to"
+        label={t("preferences.audio.microphone")}
+        hint={t("preferences.audio.microphoneHint")}
         devices={inputs}
         selected={selectedInput}
         defaultName={defaultInput}
@@ -91,8 +93,8 @@ export default function AudioDevicesSection() {
 
       <DeviceRow
         icon={<Volume2 className="h-4 w-4 text-[var(--color-active)]" />}
-        label="Output"
-        hint="Where the feedback sounds play"
+        label={t("preferences.audio.output")}
+        hint={t("preferences.audio.outputHint")}
         devices={outputs}
         selected={selectedOutput}
         defaultName={defaultOutput}
@@ -130,6 +132,7 @@ function DeviceRow({
   onChange,
   onRefresh,
 }: DeviceRowProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-3">
@@ -138,7 +141,7 @@ function DeviceRow({
           <span className="text-xs text-muted-foreground truncate">{hint}</span>
         </div>
         <span className="text-[11px] text-muted-foreground/60 font-mono shrink-0">
-          {devices.length} device{devices.length !== 1 ? "s" : ""}
+          {t("preferences.audio.devices", { count: devices.length })}
         </span>
       </div>
 
@@ -156,11 +159,13 @@ function DeviceRow({
           }}
         >
           <SelectTrigger className="w-full bg-surface-inset border-border-card">
-            <SelectValue placeholder="System default" />
+            <SelectValue placeholder={t("preferences.audio.systemDefault")} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={SYSTEM_DEFAULT}>
-              System default{defaultName ? ` (${defaultName})` : ""}
+              {defaultName
+                ? t("preferences.audio.systemDefaultNamed", { name: defaultName })
+                : t("preferences.audio.systemDefault")}
             </SelectItem>
             {devices.map((name) => (
               <SelectItem key={name} value={name}>
@@ -173,7 +178,7 @@ function DeviceRow({
           onClick={onRefresh}
           disabled={isRefreshing}
           className="cursor-pointer h-9 w-9 shrink-0 rounded-lg border border-border-card bg-surface-inset flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Look for devices again"
+          title={t("preferences.audio.refresh")}
         >
           <RefreshCw className={`h-3.5 w-3.5 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
         </button>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import { Keyboard, Edit3, Check, X, ClipboardPaste } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ export default function ShortcutsSection({
   onPasteShortcutChange,
   recordingMode,
 }: ShortcutsSectionProps) {
+  const { t } = useTranslation();
   const [editingShortcut, setEditingShortcut] = useState<ShortcutKind | null>(null);
   const [pendingShortcut, setPendingShortcut] = useState<string[]>([]);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export default function ShortcutsSection({
 
   const saveShortcut = async () => {
     if (pendingShortcut.length < 2) {
-      setShortcutError("Use at least one modifier plus a key");
+      setShortcutError(t("preferences.shortcuts.errors.needModifier"));
       return;
     }
 
@@ -129,7 +131,7 @@ export default function ShortcutsSection({
     const hasKey = pendingShortcut.some((k) => !["Ctrl", "Shift", "Alt", "Win"].includes(k));
 
     if (!hasModifier || !hasKey) {
-      setShortcutError("Use at least one modifier plus a key");
+      setShortcutError(t("preferences.shortcuts.errors.needModifier"));
       return;
     }
 
@@ -147,7 +149,7 @@ export default function ShortcutsSection({
       setPendingShortcut([]);
       await invoke("enable_shortcuts");
     } catch {
-      setShortcutError("That combination is invalid or already taken");
+      setShortcutError(t("preferences.shortcuts.errors.invalid"));
       await invoke("enable_shortcuts");
     }
   };
@@ -205,7 +207,7 @@ export default function ShortcutsSection({
                   <kbd key={i}>{key}</kbd>
                 ))
               ) : (
-                <span className="text-sm text-muted-foreground">Press the keys...</span>
+                <span className="text-sm text-muted-foreground">{t("preferences.shortcuts.pressKeys")}</span>
               )}
             </div>
 
@@ -221,14 +223,14 @@ export default function ShortcutsSection({
                 )}
               >
                 <Check className="h-4 w-4" />
-                Save
+                {t("preferences.shortcuts.save")}
               </button>
               <button
                 onClick={cancelEdit}
                 className="cursor-pointer flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-active transition-colors"
               >
                 <X className="h-4 w-4" />
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -247,26 +249,26 @@ export default function ShortcutsSection({
     <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
         <Keyboard className="h-4 w-4" />
-        Shortcuts
+        {t("preferences.shortcuts.title")}
       </div>
       <div className="grid grid-cols-2 gap-4">
       {renderShortcutCard(
         "main",
         shortcut,
-        "Main shortcut",
-        recordingMode === "toggle" ? "Starts and stops" : "Hold it down to record"
+        t("preferences.shortcuts.main.label"),
+        recordingMode === "toggle" ? t("preferences.shortcuts.main.toggleDescription") : t("preferences.shortcuts.main.holdDescription")
       )}
       {renderShortcutCard(
         "cancel",
         cancelShortcut,
-        "Cancel",
-        "Stops the recording and throws it away"
+        t("preferences.shortcuts.cancel.label"),
+        t("preferences.shortcuts.cancel.description")
       )}
       {renderShortcutCard(
         "paste",
         pasteShortcut,
-        "Paste the last one",
-        "Puts the last transcription back in, wherever you are typing",
+        t("preferences.shortcuts.paste.label"),
+        t("preferences.shortcuts.paste.description"),
         "col-span-2"
       )}
       </div>

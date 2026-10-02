@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 const KEY_MAP: Record<string, string> = {
@@ -66,9 +67,10 @@ export default function KeyCaptureField({
   value,
   onChange,
   accentColor = "var(--color-active)",
-  placeholder = "Not set",
+  placeholder,
   className,
 }: KeyCaptureFieldProps) {
+  const { t } = useTranslation();
   const [capturing, setCapturing] = useState(false);
   const [pendingKeys, setPendingKeys] = useState<string[]>([]);
   const captureRef = useRef<HTMLDivElement>(null);
@@ -129,7 +131,7 @@ export default function KeyCaptureField({
             ))
           ) : (
             <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap">
-              Press...
+              {t("common.pressKeys")}
             </span>
           )}
         </div>
@@ -139,7 +141,7 @@ export default function KeyCaptureField({
             stopCapture(false);
           }}
           className="cursor-pointer p-0.5 rounded-md text-muted-foreground/40 hover:text-foreground transition-colors"
-          title="Cancel"
+          title={t("common.cancel")}
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -167,7 +169,7 @@ export default function KeyCaptureField({
         ))
       ) : (
         <span className="text-[11px] text-muted-foreground/40 italic">
-          {placeholder}
+          {placeholder ?? t("common.notSet")}
         </span>
       )}
     </div>

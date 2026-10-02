@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { CompanionShortcut } from "@/App";
 import { ChevronRight, Keyboard, Plus, X, GripVertical } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,6 +58,7 @@ function SortableRow({
   onUpdate: (id: string, patch: Partial<CompanionShortcut>) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -98,7 +100,7 @@ function SortableRow({
         type="text"
         value={companion.label}
         onChange={(e) => onUpdate(companion.id, { label: e.target.value })}
-        placeholder="Name"
+        placeholder={t("preferences.companion.name")}
         className="flex-1 px-2 py-0.5 rounded-md bg-transparent border border-transparent hover:border-border-card focus:border-border-card focus:bg-surface-deep text-sm text-foreground/80 placeholder:text-muted-foreground min-w-0 transition-colors focus:outline-none"
       />
 
@@ -109,15 +111,15 @@ function SortableRow({
           onUpdate(companion.id, { trigger: v as "start" | "stop" | "both" })
         }
       >
-        <SelectTrigger className="cursor-pointer w-[110px] shrink-0 bg-transparent border-transparent hover:border-border-card hover:bg-surface-deep text-foreground h-7 text-xs transition-colors">
+        <SelectTrigger className="cursor-pointer w-[150px] shrink-0 bg-transparent border-transparent hover:border-border-card hover:bg-surface-deep text-foreground h-7 text-xs transition-colors">
           <span className={cn("text-[11px] font-semibold uppercase tracking-wider", meta.color)}>
             <SelectValue />
           </span>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="start">On start</SelectItem>
-          <SelectItem value="stop">On stop</SelectItem>
-          <SelectItem value="both">Both</SelectItem>
+          <SelectItem value="start">{t("preferences.companion.onStart")}</SelectItem>
+          <SelectItem value="stop">{t("preferences.companion.onStop")}</SelectItem>
+          <SelectItem value="both">{t("preferences.companion.both")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -131,7 +133,7 @@ function SortableRow({
       <button
         onClick={() => onDelete(companion.id)}
         className="cursor-pointer p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-        title="Remove"
+        title={t("preferences.companion.remove")}
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -143,6 +145,7 @@ export default function CompanionShortcutsSection({
   companionShortcuts,
   onCompanionShortcutsChange,
 }: CompanionShortcutsSectionProps) {
+  const { t } = useTranslation();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -188,7 +191,7 @@ export default function CompanionShortcutsSection({
             )}
           />
           <Keyboard className="h-4 w-4" />
-          Companion shortcuts
+          {t("preferences.companion.title")}
           {companionShortcuts.length > 0 && (
             <span className="text-[11px] font-mono normal-case text-muted-foreground/60">
               {companionShortcuts.length}
@@ -211,22 +214,21 @@ export default function CompanionShortcutsSection({
           className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border-card text-muted-foreground hover:text-foreground hover:border-border-hover transition-colors"
         >
           <Plus size={14} className="inline mr-1" />
-          Add
+          {t("preferences.companion.add")}
         </button>
       </div>
 
       {open && (
         <div className="mt-4 space-y-4 slide-enter">
           <p className="text-sm text-muted-foreground">
-            Send a keystroke to another application when recording starts or stops,
-            to mute yourself in Discord or Teams without leaving what you are doing.
+            {t("preferences.companion.description")}
           </p>
 
           {companionShortcuts.length === 0 ? (
             <div className="py-8 rounded-lg border border-dashed border-border-card text-center">
               <Keyboard className="h-5 w-5 text-muted-foreground/40 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">
-                No companion shortcuts yet
+                {t("preferences.companion.empty")}
               </p>
             </div>
           ) : (
