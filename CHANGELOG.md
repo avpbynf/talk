@@ -142,6 +142,12 @@ ring.
 
 ### Bug Fixes
 
+- (preferences) Show a readable sync error on the Account card
+
+A failed sync used to print Google's whole answer, thirty lines of it. It now shows the message
+Google gave, cut to a sentence, on at most three lines with the full text on hover, and an address
+in it opens in your browser.
+
 - (preferences) A proper page after Google sign-in
 
 The browser tab that opens when you sign in with Google was a bare line of black text on white. It is
