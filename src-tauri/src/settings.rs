@@ -116,6 +116,9 @@ pub struct AppSettings {
     pub overlay_theme: OverlayTheme,
     #[serde(default)]
     pub app_theme: AppTheme,
+    /// Interface language, "en" or "fr". None follows the system language.
+    #[serde(default)]
+    pub language: Option<String>,
     /// Custom vocabulary words to help Whisper recognize specific terms
     #[serde(default = "default_vocabulary")]
     pub vocabulary: Vec<String>,
@@ -255,6 +258,7 @@ impl Default for AppSettings {
             overlay_size: OverlaySize::default(),
             overlay_theme: OverlayTheme::default(),
             app_theme: AppTheme::default(),
+            language: None,
             vocabulary: default_vocabulary(),
             transcription_mode: TranscriptionMode::default(),
             server_url: default_server_url(),
@@ -431,6 +435,12 @@ mod tests {
         assert_eq!(parse(r#"{"app_theme": "t4lk-dark"}"#).app_theme, AppTheme::TalkDark);
         assert_eq!(parse(r#"{"app_theme": "t4lk-light"}"#).app_theme, AppTheme::TalkLight);
         assert_eq!(parse(r#"{"app_theme": "talk-dark"}"#).app_theme, AppTheme::TalkDark);
+    }
+
+    #[test]
+    fn a_file_without_a_language_follows_the_system() {
+        assert_eq!(parse("{}").language, None);
+        assert_eq!(parse(r#"{"language": "fr"}"#).language.as_deref(), Some("fr"));
     }
 
     #[test]
