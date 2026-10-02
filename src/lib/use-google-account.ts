@@ -8,6 +8,7 @@ export interface GoogleStatus {
   syncing: boolean;
   lastSyncMs: number | null;
   lastError: string | null;
+  settingsUploadBlocked?: boolean;
 }
 
 export type GoogleAction = "signIn" | "sync";

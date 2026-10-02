@@ -86,6 +86,9 @@ export default function AccountSection() {
             >
               {showsError ? withLinks(line) : line}
             </p>
+            {status.settingsUploadBlocked && (
+              <p className="text-sm text-destructive mt-0.5">{t("account.settingsNotUploaded")}</p>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button

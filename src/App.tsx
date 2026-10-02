@@ -98,6 +98,8 @@ interface SavedSettings {
   duck_volume_percent: number;
   preserve_clipboard: boolean;
   confirm_engine_switch: boolean;
+  autostart_enabled: boolean;
+  start_minimized: boolean;
 }
 
 interface HotkeyConfig {
@@ -391,6 +393,8 @@ function App() {
     setDuckVolumePercent(savedSettings.duck_volume_percent ?? 20);
     setPreserveClipboard(savedSettings.preserve_clipboard || false);
     setConfirmEngineSwitch(savedSettings.confirm_engine_switch !== false);
+    setAutostartEnabled(savedSettings.autostart_enabled === true);
+    setStartMinimized(savedSettings.start_minimized === true);
     setOverlayTheme(savedSettings.overlay_theme || "frost");
     setOverlaySize(savedSettings.overlay_size || "small");
 

@@ -678,15 +678,21 @@ fn get_vocabulary(state: tauri::State<'_, AppState>) -> Vec<String> {
     state.vocabulary.lock().clone()
 }
 
+/// The vocabulary lock covers the whole read, change and write of the list, so
+/// a sync applying another machine's terms cannot interleave with an edit.
+/// Setting the list records the terms it holds as added and never removes one:
+/// a removal is only ever made by name, through the two commands below.
 #[tauri::command]
 fn set_vocabulary(words: Vec<String>, state: tauri::State<'_, AppState>) {
-    *state.vocabulary.lock() = words.clone();
+    let mut vocab = state.vocabulary.lock();
+    *vocab = words.clone();
     // Save to settings
     let mut app_settings = settings::load_settings();
-    app_settings.vocabulary = words;
+    app_settings.vocabulary = words.clone();
     if let Err(e) = settings::save_settings(&app_settings) {
         eprintln!("Failed to save settings: {}", e);
     }
+    sync::note_vocabulary_added(&words);
 }
 
 #[tauri::command]
@@ -698,8 +704,9 @@ fn add_vocabulary_word(word: String, state: tauri::State<'_, AppState>) {
         let mut app_settings = settings::load_settings();
         app_settings.vocabulary = vocab.clone();
         if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+            eprintln!("Failed to save settings: {}", e);
+        }
+        sync::note_vocabulary_added(&vocab);
     }
 }
 
@@ -713,6 +720,21 @@ fn remove_vocabulary_word(word: String, state: tauri::State<'_, AppState>) {
     if let Err(e) = settings::save_settings(&app_settings) {
         eprintln!("Failed to save settings: {}", e);
     }
+    sync::note_vocabulary_removed(&[word]);
+}
+
+/// Remove exactly the terms the page was showing. A term another machine
+/// brought in since stays.
+#[tauri::command]
+fn clear_vocabulary(terms: Vec<String>, state: tauri::State<'_, AppState>) {
+    let mut vocab = state.vocabulary.lock();
+    vocab.retain(|w| !terms.contains(w));
+    let mut app_settings = settings::load_settings();
+    app_settings.vocabulary = vocab.clone();
+    if let Err(e) = settings::save_settings(&app_settings) {
+        eprintln!("Failed to save settings: {}", e);
+    }
+    sync::note_vocabulary_removed(&terms);
 }
 
 #[tauri::command]
@@ -969,8 +991,9 @@ fn get_autostart_enabled() -> bool {
     settings::load_settings().autostart_enabled
 }
 
-#[tauri::command]
-async fn set_autostart_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+/// Register or remove the Windows autostart entry. The Preferences switch and a
+/// settings sync both go through here.
+fn apply_autostart(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
     use tauri_plugin_autostart::ManagerExt;
 
     let autostart = app.autolaunch();
@@ -979,6 +1002,12 @@ async fn set_autostart_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(
     } else {
         autostart.disable().map_err(|e| e.to_string())?;
     }
+    Ok(())
+}
+
+#[tauri::command]
+async fn set_autostart_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    apply_autostart(&app, enabled)?;
 
     let mut app_settings = settings::load_settings();
     app_settings.autostart_enabled = enabled;
@@ -1130,12 +1159,9 @@ fn get_meeting_mode(state: tauri::State<'_, AppState>) -> bool {
     state.virtual_mic.lock().is_active()
 }
 
-#[tauri::command]
-fn set_meeting_mode(
-    enabled: bool,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+/// Start or stop routing through the virtual cable and tell the page. The
+/// Preferences switch and a settings sync both go through here.
+fn apply_meeting_mode(app: &tauri::AppHandle, state: &AppState, enabled: bool) -> Result<(), String> {
     let mut vm = state.virtual_mic.lock();
 
     if enabled {
@@ -1143,6 +1169,17 @@ fn set_meeting_mode(
     } else {
         vm.disable();
     }
+    let _ = app.emit("meeting-mode-changed", enabled);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_meeting_mode(
+    enabled: bool,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    apply_meeting_mode(&app, &state, enabled)?;
 
     // Save to settings
     let mut app_settings = settings::load_settings();
@@ -1150,9 +1187,6 @@ fn set_meeting_mode(
     if let Err(e) = settings::save_settings(&app_settings) {
         eprintln!("Failed to save settings: {}", e);
     }
-
-    // Emit event to frontend
-    let _ = app.emit("meeting-mode-changed", enabled);
 
     Ok(())
 }
@@ -1328,6 +1362,7 @@ pub fn run() {
             set_vocabulary,
             add_vocabulary_word,
             remove_vocabulary_word,
+            clear_vocabulary,
             get_transcription_mode,
             set_transcription_mode,
             get_server_url,
@@ -1530,11 +1565,14 @@ pub fn run() {
             // Handle window close -> minimize to tray
             if let Some(window) = app.get_webview_window("main") {
                 let window_clone = window.clone();
-                window.on_window_event(move |event| {
-                    if let WindowEvent::CloseRequested { api, .. } = event {
+                let app_handle = app.handle().clone();
+                window.on_window_event(move |event| match event {
+                    WindowEvent::CloseRequested { api, .. } => {
                         api.prevent_close();
                         let _ = window_clone.hide();
                     }
+                    WindowEvent::Focused(true) => sync::window_focused(&app_handle),
+                    _ => {}
                 });
             }
 

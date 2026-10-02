@@ -85,6 +85,13 @@ describe("AccountSection", () => {
     expect(await screen.findByText("Last sync failed: offline")).toBeInTheDocument();
   });
 
+  it("says when the settings are not uploaded because the file could not be read", async () => {
+    answer({ ...signedOut, email: "me@example.com", settingsUploadBlocked: true });
+    render(<AccountSection />);
+
+    expect(await screen.findByText(/settings are not being uploaded/)).toBeInTheDocument();
+  });
+
   it("signing in asks the backend and then shows the account", async () => {
     answer(signedOut, { google_sign_in: { ...signedOut, email: "me@example.com" } });
     render(<AccountSection />);
