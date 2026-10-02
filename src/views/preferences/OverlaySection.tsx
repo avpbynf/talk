@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { OverlaySize } from "@/App";
 import { type OverlayThemeId, THEME_IDS, getThemeLabel, getThemePreviewColors } from "@/lib/overlay-themes";
 import { cn } from "@/lib/utils";
@@ -10,11 +11,11 @@ interface OverlaySectionProps {
   onOverlaySizeChange: (size: OverlaySize) => void;
 }
 
-/** Mirrors OverlaySize::dimensions() on the Rust side, which does the resizing. */
+/** Mirrors OverlaySize::dimensions() on the Rust side, which does the resizing. `label` is a translation key. */
 const SIZES: { id: OverlaySize; label: string; dimensions: string }[] = [
-  { id: "small", label: "Small", dimensions: "160 x 44" },
-  { id: "medium", label: "Medium", dimensions: "220 x 60" },
-  { id: "large", label: "Large", dimensions: "280 x 76" },
+  { id: "small", label: "appearance.overlay.sizes.small", dimensions: "160 x 44" },
+  { id: "medium", label: "appearance.overlay.sizes.medium", dimensions: "220 x 60" },
+  { id: "large", label: "appearance.overlay.sizes.large", dimensions: "280 x 76" },
 ];
 
 const optionClasses = (isActive: boolean) =>
@@ -31,15 +32,16 @@ export default function OverlaySection({
   overlaySize,
   onOverlaySizeChange,
 }: OverlaySectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
         <Sparkles className="h-4 w-4" />
-        Overlay
+        {t("appearance.overlay.title")}
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Size of the window shown while recording.
+        {t("appearance.overlay.sizeDescription")}
       </p>
 
       <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border-subtle">
@@ -49,7 +51,7 @@ export default function OverlaySection({
           return (
             <button key={id} onClick={() => onOverlaySizeChange(id)} className={optionClasses(isActive)}>
               <span className={cn("text-xs font-medium", isActive ? "text-foreground" : "text-muted-foreground")}>
-                {label}
+                {t(label)}
               </span>
               <span className="text-[11px] text-muted-foreground tabular-nums">{dimensions}</span>
             </button>
@@ -58,7 +60,7 @@ export default function OverlaySection({
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Colour of the glow around it while recording.
+        {t("appearance.overlay.colorDescription")}
       </p>
 
       <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border-subtle">

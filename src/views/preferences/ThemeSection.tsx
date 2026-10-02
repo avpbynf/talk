@@ -1,4 +1,5 @@
 import { Palette } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   type AppThemeId,
   APP_THEME_IDS,
@@ -70,6 +71,7 @@ export default function ThemeSection({
   appTheme,
   onAppThemeChange,
 }: ThemeSectionProps) {
+  const { t } = useTranslation();
   const darkThemes = APP_THEME_IDS.filter(
     (id) => getAppThemeCategory(id) === "dark",
   );
@@ -81,17 +83,17 @@ export default function ThemeSection({
     <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
         <Palette className="h-4 w-4" />
-        Theme
+        {t("appearance.theme.title")}
       </div>
 
       <p className="text-sm text-muted-foreground">
-        The colour scheme the application is drawn in.
+        {t("appearance.theme.description")}
       </p>
 
       {/* Dark themes */}
       <div className="space-y-2 pt-2 border-t border-border-subtle">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Dark
+          {t("appearance.theme.dark")}
         </span>
         <div className="grid grid-cols-3 gap-3">
           {darkThemes.map((id) => (
@@ -108,7 +110,7 @@ export default function ThemeSection({
       {/* Light themes */}
       <div className="space-y-2">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Light
+          {t("appearance.theme.light")}
         </span>
         <div className="grid grid-cols-3 gap-3">
           {lightThemes.map((id) => (

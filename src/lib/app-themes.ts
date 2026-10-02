@@ -1,3 +1,5 @@
+import i18n from "@/i18n";
+
 export type AppThemeId =
   | "talk-dark"
   | "talk-light"
@@ -10,7 +12,6 @@ export type AppThemeId =
 export type ThemeCategory = "dark" | "light";
 
 interface AppThemeConfig {
-  readonly label: string;
   readonly category: ThemeCategory;
   /** Preview colors: [background, accent, surface] */
   readonly preview: readonly [string, string, string];
@@ -18,7 +19,6 @@ interface AppThemeConfig {
 
 const THEMES: Record<AppThemeId, AppThemeConfig> = {
   "talk-dark": {
-    label: "Talk Dark",
     category: "dark",
     preview: [
       "oklch(0.13 0.01 260)",
@@ -27,7 +27,6 @@ const THEMES: Record<AppThemeId, AppThemeConfig> = {
     ],
   },
   "talk-light": {
-    label: "Talk Light",
     category: "light",
     preview: [
       "oklch(0.97 0.005 260)",
@@ -36,7 +35,6 @@ const THEMES: Record<AppThemeId, AppThemeConfig> = {
     ],
   },
   zed: {
-    label: "Zed",
     category: "dark",
     preview: [
       "oklch(0.22 0.02 250)",
@@ -45,7 +43,6 @@ const THEMES: Record<AppThemeId, AppThemeConfig> = {
     ],
   },
   "vscode-dark": {
-    label: "VS Code Dark",
     category: "dark",
     preview: [
       "oklch(0.17 0.005 250)",
@@ -54,7 +51,6 @@ const THEMES: Record<AppThemeId, AppThemeConfig> = {
     ],
   },
   "vscode-light": {
-    label: "VS Code Light",
     category: "light",
     preview: [
       "oklch(0.99 0 0)",
@@ -63,7 +59,6 @@ const THEMES: Record<AppThemeId, AppThemeConfig> = {
     ],
   },
   dracula: {
-    label: "Dracula",
     category: "dark",
     preview: [
       "oklch(0.22 0.02 280)",
@@ -72,7 +67,6 @@ const THEMES: Record<AppThemeId, AppThemeConfig> = {
     ],
   },
   nord: {
-    label: "Nord",
     category: "dark",
     preview: [
       "oklch(0.25 0.02 240)",
@@ -87,7 +81,7 @@ export const APP_THEME_IDS: readonly AppThemeId[] = Object.keys(
 ) as AppThemeId[];
 
 export function getAppThemeLabel(id: AppThemeId): string {
-  return THEMES[id].label;
+  return i18n.t(`appearance.appThemes.${id}`);
 }
 
 export function getAppThemeCategory(id: AppThemeId): ThemeCategory {
