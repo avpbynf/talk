@@ -148,6 +148,12 @@ A failed sync used to print Google's whole answer, thirty lines of it. It now sh
 Google gave, cut to a sentence, on at most three lines with the full text on hover, and an address
 in it opens in your browser.
 
+- (dashboard) Show the full labels on the dashboard cards
+
+Labels and sub-lines on the four figures at the top and on the hosted API and subscription cards
+were cut with an ellipsis at the default window width, and the typing speed row wrapped onto three
+lines. They now wrap instead.
+
 - (preferences) A proper page after Google sign-in
 
 The browser tab that opens when you sign in with Google was a bare line of black text on white. It is

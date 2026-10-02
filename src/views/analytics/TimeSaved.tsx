@@ -13,9 +13,9 @@ interface TimeSavedProps {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm">{children}</span>
+    <div className="flex items-center justify-between gap-3 py-2">
+      <span className="text-sm text-muted-foreground min-w-0">{label}</span>
+      <span className="text-sm shrink-0 whitespace-nowrap">{children}</span>
     </div>
   );
 }
@@ -50,7 +50,7 @@ export function TimeSaved({ summary, userWpm, onRecalibrate }: TimeSavedProps) {
             <span>{t("dashboard.wpm", { wpm: userWpm })}</span>
             <button
               onClick={onRecalibrate}
-              className="text-[11px] text-[var(--color-active)] hover:underline"
+              className="text-[11px] text-[var(--color-active)] hover:underline whitespace-nowrap"
             >
               {t("dashboard.timeSaved.retest")}
             </button>
