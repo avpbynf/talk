@@ -309,17 +309,6 @@ impl WhisperEngine {
         self.backend
     }
 
-    pub fn transcribe_with_progress<F>(
-        &self,
-        audio_data: &[f32],
-        on_progress: F,
-    ) -> Result<String, TranscriptionError>
-    where
-        F: FnMut(i32) + 'static,
-    {
-        self.transcribe_with_options(audio_data, None, on_progress)
-    }
-
     /// Transcribe audio with optional vocabulary hints (initial_prompt)
     /// The vocabulary string helps Whisper recognize specific terms
     pub fn transcribe_with_options<F>(
@@ -381,10 +370,6 @@ impl WhisperEngine {
         }
 
         Ok(result.trim().to_string())
-    }
-
-    pub fn transcribe(&self, audio_data: &[f32]) -> Result<String, TranscriptionError> {
-        self.transcribe_with_progress(audio_data, |_| {})
     }
 }
 
