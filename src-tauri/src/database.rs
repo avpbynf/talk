@@ -243,6 +243,16 @@ pub fn default_db_path() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("t4lk.db"))
 }
 
+/// The tables an analytics query reads: this machine's own, or those with the
+/// other devices' rows added.
+fn analytics_tables(include_remote: bool) -> (&'static str, &'static str) {
+    if include_remote {
+        ("all_daily_stats", "all_transcriptions")
+    } else {
+        ("daily_stats", "transcriptions")
+    }
+}
+
 /// Days in a row up to `today`, from dates sorted newest first.
 ///
 /// A day still open does not break the count: a streak that stopped yesterday
@@ -609,8 +619,10 @@ impl Database {
         &self,
         user_wpm: f64,
         period_days: Option<i64>,
+        include_remote: bool,
     ) -> Result<AnalyticsSummary> {
         let conn = self.conn.lock();
+        let (stats_table, history_table) = analytics_tables(include_remote);
 
         // SQLite has no placeholder for a modifier, so the offset is built
         // here. It comes from an i64 the caller clamps, never from a string.
@@ -640,8 +652,8 @@ impl Database {
                 COALESCE(SUM(char_count), 0),
                 COALESCE(SUM(local_count), 0),
                 COALESCE(SUM(server_count), 0)
-             FROM all_daily_stats {}",
-                window
+             FROM {} {}",
+                stats_table, window
             ),
             [],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
@@ -649,16 +661,22 @@ impl Database {
 
         // Today count
         let today_count: i64 = conn.query_row(
-            "SELECT COALESCE(transcription_count, 0) FROM all_daily_stats
-             WHERE date = date('now', 'localtime')",
+            &format!(
+                "SELECT COALESCE(transcription_count, 0) FROM {}
+                 WHERE date = date('now', 'localtime')",
+                stats_table
+            ),
             [],
             |row| row.get(0),
         ).unwrap_or(0);
 
         // Week count
         let week_count: i64 = conn.query_row(
-            "SELECT COALESCE(SUM(transcription_count), 0) FROM all_daily_stats
-             WHERE date >= date('now', '-7 days', 'localtime')",
+            &format!(
+                "SELECT COALESCE(SUM(transcription_count), 0) FROM {}
+                 WHERE date >= date('now', '-7 days', 'localtime')",
+                stats_table
+            ),
             [],
             |row| row.get(0),
         )?;
@@ -676,8 +694,9 @@ impl Database {
                     COALESCE(SUM(word_count), 0),
                     COALESCE(SUM(audio_duration_ms), 0),
                     COALESCE(SUM(processing_time_ms), 0)
-                 FROM all_transcriptions
+                 FROM {}
                  WHERE audio_duration_ms > 0 AND processing_time_ms > 0{}",
+                    history_table,
                     match &period_start {
                         Some(start) => format!(" AND date(timestamp, 'localtime') >= '{}'", start),
                         None => String::new(),
@@ -697,9 +716,9 @@ impl Database {
         let (best_day, best_day_count): (Option<String>, i64) = conn
             .query_row(
                 &format!(
-                    "SELECT date, transcription_count FROM all_daily_stats {}
+                    "SELECT date, transcription_count FROM {} {}
                      ORDER BY transcription_count DESC, date DESC LIMIT 1",
-                    day_window
+                    stats_table, day_window
                 ),
                 [],
                 |row| Ok((row.get(0)?, row.get(1)?)),
@@ -708,7 +727,7 @@ impl Database {
 
         let active_days: i64 = conn
             .query_row(
-                &format!("SELECT COUNT(*) FROM all_daily_stats {}", day_window),
+                &format!("SELECT COUNT(*) FROM {} {}", stats_table, day_window),
                 [],
                 |row| row.get(0),
             )
@@ -716,9 +735,10 @@ impl Database {
 
         // The streak is a fact about the habit rather than about the window, so
         // it is counted over everything however the page is filtered.
-        let mut stmt = conn.prepare(
-            "SELECT date FROM all_daily_stats WHERE transcription_count > 0 ORDER BY date DESC",
-        )?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT date FROM {} WHERE transcription_count > 0 ORDER BY date DESC",
+            stats_table
+        ))?;
         let active_dates = stmt
             .query_map([], |row| row.get::<_, String>(0))?
             .collect::<Result<Vec<_>>>()?;
@@ -729,11 +749,15 @@ impl Database {
         // clear, so this is the real start of use rather than the oldest
         // transcription still kept.
         let first_day: Option<String> = conn
-            .query_row("SELECT MIN(date) FROM all_daily_stats", [], |row| row.get(0))
+            .query_row(
+                &format!("SELECT MIN(date) FROM {}", stats_table),
+                [],
+                |row| row.get(0),
+            )
             .unwrap_or(None);
 
         // Daily chart for last 7 days (zero-filled via CTE, reads from daily_stats)
-        let mut stmt = conn.prepare(
+        let mut stmt = conn.prepare(&format!(
             "WITH dates(d) AS (
                 SELECT date('now', '-6 days', 'localtime')
                 UNION ALL SELECT date('now', '-5 days', 'localtime')
@@ -748,9 +772,10 @@ impl Database {
                    COALESCE(ds.transcription_count, 0),
                    COALESCE(ds.word_count, 0)
             FROM dates
-            LEFT JOIN all_daily_stats ds ON dates.d = ds.date
+            LEFT JOIN {} ds ON dates.d = ds.date
             ORDER BY dates.d",
-        )?;
+            stats_table
+        ))?;
 
         let daily_stats = stmt
             .query_map([], |row| {
@@ -802,14 +827,16 @@ impl Database {
         })
     }
 
-    pub fn get_yearly_activity(&self) -> Result<Vec<YearlyDayActivity>> {
+    pub fn get_yearly_activity(&self, include_remote: bool) -> Result<Vec<YearlyDayActivity>> {
         let conn = self.conn.lock();
-        let mut stmt = conn.prepare(
+        let (stats_table, _) = analytics_tables(include_remote);
+        let mut stmt = conn.prepare(&format!(
             "SELECT date, transcription_count
-             FROM all_daily_stats
+             FROM {}
              WHERE date >= date('now', '-364 days', 'localtime')
              ORDER BY date",
-        )?;
+            stats_table
+        ))?;
 
         let rows = stmt
             .query_map([], |row| {
@@ -821,6 +848,18 @@ impl Database {
             .collect::<Result<Vec<_>>>()?;
 
         Ok(rows)
+    }
+
+    /// True once another device has synced anything, which is when the
+    /// dashboard has two scopes to choose between.
+    pub fn has_remote_data(&self) -> Result<bool> {
+        let conn = self.conn.lock();
+        conn.query_row(
+            "SELECT EXISTS (SELECT 1 FROM remote_daily_stats)
+                 OR EXISTS (SELECT 1 FROM remote_transcriptions)",
+            [],
+            |row| row.get(0),
+        )
     }
 
     /// Drop one transcription, and say whether it was there.
@@ -1139,10 +1178,10 @@ mod tests {
         for day in 1..=5 {
             add(&db, &format!("t{}", day), day);
         }
-        let before = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let before = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         db.prune_transcriptions(1).expect("should prune");
-        let after = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let after = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(after.total_transcriptions, before.total_transcriptions);
         assert_eq!(after.total_words, before.total_words);
@@ -1180,10 +1219,10 @@ mod tests {
         let db = in_memory();
         add(&db, "t1", 1);
         add(&db, "t2", 2);
-        let before = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let before = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         db.delete_transcription("t1").expect("should delete");
-        let after = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let after = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(after.total_transcriptions, before.total_transcriptions);
     }
@@ -1210,7 +1249,7 @@ mod tests {
         add(&db, "old", 1);
         add_measured(&db, "new", 2, 30_000, 5_000);
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(summary.measured_count, 1, "the older row has no timings");
         assert_eq!(summary.measured_words, 5);
@@ -1223,7 +1262,7 @@ mod tests {
         let db = in_memory();
         add(&db, "t1", 1);
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         // The page reads the count before it divides, which is what keeps a
         // fresh install from showing an infinite speaking rate.
@@ -1240,7 +1279,7 @@ mod tests {
         add(&db, "t2", 2);
         add(&db, "t3", 2);
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(summary.best_day_count, 2);
         assert_eq!(summary.best_day.as_deref(), Some("2026-08-02"));
@@ -1298,11 +1337,58 @@ mod tests {
         db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50), stats_row("2026-08-02", 3, 30)])
             .expect("should store");
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(summary.total_transcriptions, 2 + 5 + 3);
         assert_eq!(summary.first_day.as_deref(), Some("2026-08-01"));
         assert_eq!(summary.active_days, 2);
+    }
+
+    #[test]
+    fn this_device_leaves_the_other_devices_out() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        add_measured(&db, "t2", 2, 30_000, 5_000);
+        db.replace_remote_stats("laptop", &[stats_row("2026-07-01", 5, 50)]).expect("should store");
+        db.replace_remote_history(
+            "laptop",
+            &[TranscriptionRow {
+                id: "r1".to_string(),
+                text: "remote".to_string(),
+                timestamp: "2026-08-03T10:00:00Z".to_string(),
+                model: None,
+                source: "local".to_string(),
+                enhanced: false,
+                audio_duration_ms: Some(60_000),
+                processing_time_ms: Some(10_000),
+                word_count: 1,
+                char_count: 6,
+            }],
+        )
+        .expect("should store");
+
+        let all = db.get_analytics_summary(40.0, None, true).expect("should summarise");
+        let local = db.get_analytics_summary(40.0, None, false).expect("should summarise");
+
+        assert_eq!(all.total_transcriptions, 2 + 5);
+        assert_eq!(all.first_day.as_deref(), Some("2026-07-01"));
+        assert_eq!(all.measured_count, 2);
+        assert_eq!(local.total_transcriptions, 2);
+        assert_ne!(local.first_day.as_deref(), Some("2026-07-01"));
+        assert_eq!(local.measured_count, 1);
+        assert!((local.measured_audio_minutes - 0.5).abs() < 1e-9);
+        assert!(db.get_yearly_activity(false).expect("should read").iter().all(|d| d.date != "2026-07-01"));
+    }
+
+    #[test]
+    fn remote_data_is_reported_only_once_another_device_synced() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        assert!(!db.has_remote_data().expect("should read"));
+
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50)]).expect("should store");
+
+        assert!(db.has_remote_data().expect("should read"));
     }
 
     #[test]
@@ -1311,7 +1397,7 @@ mod tests {
         db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50)]).expect("should store");
         db.replace_remote_stats("tower", &[stats_row("2026-08-01", 7, 70)]).expect("should store");
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(summary.total_transcriptions, 12);
         assert_eq!(summary.total_words, 120);
@@ -1325,13 +1411,13 @@ mod tests {
         db.replace_remote_stats("laptop", &rows).expect("should store");
         db.replace_remote_stats("laptop", &rows).expect("should store");
         assert_eq!(
-            db.get_analytics_summary(40.0, None).expect("should summarise").total_transcriptions,
+            db.get_analytics_summary(40.0, None, true).expect("should summarise").total_transcriptions,
             5
         );
 
         db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 6, 60)]).expect("should store");
         assert_eq!(
-            db.get_analytics_summary(40.0, None).expect("should summarise").total_transcriptions,
+            db.get_analytics_summary(40.0, None, true).expect("should summarise").total_transcriptions,
             6
         );
     }
@@ -1343,7 +1429,7 @@ mod tests {
             .expect("should store");
         db.replace_remote_stats("laptop", &[stats_row("2026-08-02", 4, 40)]).expect("should store");
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(summary.total_transcriptions, 4);
         assert_eq!(summary.first_day.as_deref(), Some("2026-08-02"));
@@ -1358,7 +1444,7 @@ mod tests {
         db.reset_stats().expect("should reset");
 
         assert!(db.local_daily_stats().expect("should read").is_empty());
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
         assert_eq!(summary.total_transcriptions, 5);
     }
 
@@ -1370,7 +1456,7 @@ mod tests {
 
         db.clear_remote_stats().expect("should clear");
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
         assert_eq!(summary.total_transcriptions, 1);
         assert_eq!(db.local_daily_stats().expect("should read").len(), 1);
     }
@@ -1523,7 +1609,7 @@ mod tests {
         far.processing_time_ms = Some(1_000);
         db.replace_remote_history("laptop", &[far]).expect("should store");
 
-        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        let summary = db.get_analytics_summary(40.0, None, true).expect("should summarise");
 
         assert_eq!(summary.measured_count, 2);
         assert!((summary.measured_audio_minutes - 1.5).abs() < 1e-9);
