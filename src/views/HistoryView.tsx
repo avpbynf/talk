@@ -182,10 +182,9 @@ export default function HistoryView({
             exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
             whileTap={{ scale: 0.97 }}
-            whileHover={{ backgroundColor: "var(--color-surface-active)" }}
             layout
             onClick={() => copyToClipboard(t.text, t.id)}
-            className="group p-4 rounded-xl border border-border-card bg-surface-raised overflow-hidden cursor-pointer relative"
+            className="group p-4 rounded-xl border border-border-card bg-surface-raised hover:bg-surface-active transition-colors overflow-hidden cursor-pointer relative"
           >
             {/* Copy feedback — floating ghost label */}
             <AnimatePresence>

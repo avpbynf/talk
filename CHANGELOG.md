@@ -142,6 +142,11 @@ ring.
 
 ### Bug Fixes
 
+- (history) Stop the history cards turning grey, or black, under a quick mouse
+
+In a light theme, sweeping the mouse across the history left cards grey after it had moved on, and
+sometimes flashed them almost black. The highlight now simply follows the pointer.
+
 - (preferences) Line up the shortcut cards, and say what Cancel throws away now
 
 The keys of the main shortcut and of Cancel sat at different heights whenever one description ran
