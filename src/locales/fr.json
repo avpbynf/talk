@@ -542,6 +542,11 @@
       "title": "Démarrage",
       "subtitle": "Ce qui se passe à l'ouverture de la session"
     },
+    "google": {
+      "title": "Synchroniser vos machines",
+      "subtitle": "Facultatif, et vous pourrez le faire plus tard dans les Préférences",
+      "skip": "Passer"
+    },
     "complete": {
       "title": "Tout est prêt",
       "subtitle": "Talk est prêt",
@@ -603,6 +608,10 @@
     "title": "Aucun modèle chargé",
     "hint": "La dictée ne fonctionnera pas tant qu'il n'y en a pas un",
     "choose": "Choisir un modèle"
+  },
+  "googleInvite": {
+    "text": "Connectez-vous avec Google pour synchroniser vos réglages et vos statistiques entre vos ordinateurs",
+    "dismiss": "Fermer"
   },
   "serverOffer": {
     "found": "Serveur trouvé : {{name}}",

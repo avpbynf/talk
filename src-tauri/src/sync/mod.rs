@@ -483,6 +483,22 @@ pub async fn google_sign_in(app: tauri::AppHandle) -> Result<GoogleStatus, Strin
     Ok(status())
 }
 
+/// Whether the invitation to sign in was already shown and answered.
+#[tauri::command]
+pub fn google_invite_offered() -> bool {
+    crate::settings::load_settings().google_invite_offered
+}
+
+#[tauri::command]
+pub fn google_invite_answered() -> Result<(), String> {
+    let mut app_settings = crate::settings::load_settings();
+    if app_settings.google_invite_offered {
+        return Ok(());
+    }
+    app_settings.google_invite_offered = true;
+    crate::settings::save_settings(&app_settings)
+}
+
 #[tauri::command]
 pub async fn google_sync_now(app: tauri::AppHandle) -> Result<GoogleStatus, String> {
     run_sync(&app).await;

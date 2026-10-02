@@ -181,6 +181,10 @@ pub struct AppSettings {
     /// load_settings drops the whole file.
     #[serde(default)]
     pub offered_servers: Vec<String>,
+    /// Set once the invitation to sign in with Google has been shown and
+    /// answered, in the setup wizard or in the strip, so it is never made twice.
+    #[serde(default)]
+    pub google_invite_offered: bool,
     /// Companion shortcuts to simulate on recording start/stop
     #[serde(default)]
     pub companion_shortcuts: Vec<CompanionShortcut>,
@@ -277,6 +281,7 @@ impl Default for AppSettings {
             server_token: String::new(),
             server_model: None,
             offered_servers: Vec::new(),
+            google_invite_offered: false,
             companion_shortcuts: Vec::new(),
             meeting_mode_enabled: false,
             input_device_name: None,
@@ -420,6 +425,13 @@ mod tests {
         let s = parse(r#"{"server_url": "http://localhost:4060", "setup_completed": true}"#);
         assert!(s.offered_servers.is_empty());
         assert_eq!(s.server_url, "http://localhost:4060");
+        assert!(s.setup_completed);
+    }
+
+    #[test]
+    fn a_file_written_before_the_google_invitation_existed_still_parses() {
+        let s = parse(r#"{"server_url": "http://localhost:4060", "setup_completed": true}"#);
+        assert!(!s.google_invite_offered);
         assert!(s.setup_completed);
     }
 

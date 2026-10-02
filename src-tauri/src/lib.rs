@@ -1355,6 +1355,8 @@ pub fn run() {
             sync::google_status,
             sync::google_sign_in,
             sync::google_sync_now,
+            sync::google_invite_offered,
+            sync::google_invite_answered,
             sync::google_sign_out,
             get_companion_shortcuts,
             set_companion_shortcuts,

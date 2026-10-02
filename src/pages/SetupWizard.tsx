@@ -22,8 +22,12 @@ import {
   Rocket,
   Settings2,
   Sparkles,
+  UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SectionCard } from "@/components/SectionCard";
+import { useGoogleAccount } from "@/lib/use-google-account";
+import { answerGoogleInvite } from "@/lib/use-google-invite";
 import { formatNumber } from "@/i18n";
 
 const DEFAULT_SERVER_URL = "";
@@ -87,6 +91,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   // Completion state
   const [isCompleting, setIsCompleting] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const google = useGoogleAccount();
 
   // Load initial data
   useEffect(() => {
@@ -192,25 +197,22 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   }
 
   // Calculate steps based on mode
-  const getStepCount = () => (mode === "local" ? 5 : 4);
-  const totalSteps = getStepCount();
+  // The Google step only exists in a build that can sign in
+  const googleStepOffered = google.status?.available === true;
+  const steps: string[] = [
+    "mode",
+    ...(mode === "local" ? ["hardware", "model"] : ["server"]),
+    "options",
+    ...(googleStepOffered ? ["google"] : []),
+    "complete",
+  ];
+  const totalSteps = steps.length;
+  const stepContent = steps[currentStep - 1] ?? "complete";
 
-  // Determine actual step content based on mode
-  const getStepContent = () => {
-    if (currentStep === 1) return "mode";
-    if (mode === "local") {
-      if (currentStep === 2) return "hardware";
-      if (currentStep === 3) return "model";
-      if (currentStep === 4) return "options";
-      return "complete";
-    } else {
-      if (currentStep === 2) return "server";
-      if (currentStep === 3) return "options";
-      return "complete";
-    }
-  };
-
-  const stepContent = getStepContent();
+  // Reaching the end settles the invitation, whichever way the step was left
+  useEffect(() => {
+    if (googleStepOffered && stepContent === "complete") answerGoogleInvite();
+  }, [googleStepOffered, stepContent]);
 
   // Filter models by family
   const filteredModels = models.filter((m) => {
@@ -257,6 +259,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       case "model":
         return selectedModel && downloadedModels.includes(selectedModel);
       case "options":
+        return true;
+      case "google":
         return true;
       case "complete":
         return true;
@@ -622,6 +626,45 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Optional: sign in with Google, only in a build that can */}
+        {stepContent === "google" && (
+          <div className="max-w-lg mx-auto space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-semibold mb-2">{t("setup.google.title")}</h2>
+              <p className="text-muted-foreground">{t("setup.google.subtitle")}</p>
+            </div>
+
+            <SectionCard icon={UserRound} title={t("account.title")} description={t("googleInvite.text")}>
+              {google.status?.email ? (
+                <p className="text-sm font-medium truncate">
+                  {t("account.signedInAs", { email: google.status.email })}
+                </p>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    disabled={google.busy !== null}
+                    onClick={async () => {
+                      await answerGoogleInvite();
+                      await google.run("signIn");
+                    }}
+                  >
+                    {google.busy === "signIn" ? t("account.signingIn") : t("account.signIn")}
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={google.busy !== null}
+                    onClick={() => setCurrentStep((s) => s + 1)}
+                  >
+                    {t("setup.google.skip")}
+                  </Button>
+                </div>
+              )}
+              {google.failure && <p className="text-sm text-destructive">{google.failure}</p>}
+            </SectionCard>
           </div>
         )}
 
