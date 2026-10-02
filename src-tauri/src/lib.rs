@@ -620,6 +620,45 @@ fn set_app_theme(theme: settings::AppTheme) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn get_language() -> Option<String> {
+    settings::load_settings().language
+}
+
+#[tauri::command]
+fn set_language(app: tauri::AppHandle, language: Option<String>) -> Result<(), String> {
+    if let Some(code) = language.as_deref() {
+        if !matches!(code, "en" | "fr") {
+            return Err(format!("Unsupported language: {}", code));
+        }
+    }
+    let mut app_settings = settings::load_settings();
+    app_settings.language = language.clone();
+    settings::save_settings(&app_settings)?;
+    let _ = app.emit("language-changed", language);
+    Ok(())
+}
+
+/// The webview resolves "follow the system" to a concrete language, which only it can
+/// read, and reports it here so the tray speaks the same one.
+#[tauri::command]
+fn sync_tray_language(app: tauri::AppHandle, resolved: String) {
+    if let Some(labels) = app.try_state::<TrayLabels>() {
+        let _ = labels.quit.set_text(tray_quit_label(&resolved));
+    }
+}
+
+fn tray_quit_label(language: &str) -> &'static str {
+    match language {
+        "fr" => "Quitter",
+        _ => "Quit",
+    }
+}
+
+struct TrayLabels {
+    quit: tauri::menu::MenuItem<tauri::Wry>,
+}
+
+#[tauri::command]
 fn get_vocabulary(state: tauri::State<'_, AppState>) -> Vec<String> {
     state.vocabulary.lock().clone()
 }
@@ -1252,6 +1291,9 @@ pub fn run() {
             set_overlay_theme,
             get_app_theme,
             set_app_theme,
+            get_language,
+            set_language,
+            sync_tray_language,
             get_vocabulary,
             set_vocabulary,
             add_vocabulary_word,
@@ -1406,7 +1448,12 @@ pub fn run() {
             }
 
             // Setup tray menu
-            let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+            let quit_item = MenuItemBuilder::with_id(
+                "quit",
+                tray_quit_label(app_settings.language.as_deref().unwrap_or("en")),
+            )
+            .build(app)?;
+            app.manage(TrayLabels { quit: quit_item.clone() });
             let menu = MenuBuilder::new(app)
                 .item(&quit_item)
                 .build()?;
