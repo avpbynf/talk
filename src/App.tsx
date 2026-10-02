@@ -586,6 +586,7 @@ function App() {
           busy={googleInvite.busy}
           failure={googleInvite.failure}
           onSignIn={googleInvite.signIn}
+          onCancel={googleInvite.cancelSignIn}
           onDismiss={googleInvite.dismiss}
         />
       )}

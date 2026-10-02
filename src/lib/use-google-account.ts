@@ -65,5 +65,14 @@ export function useGoogleAccount() {
     }
   }, []);
 
-  return { status, busy, failure, run, signOut };
+  // The pending sign-in call resolves on its own once the backend gives up.
+  const cancelSignIn = useCallback(async () => {
+    try {
+      await invoke("google_sign_in_cancel");
+    } catch (error) {
+      console.error("Failed to cancel the sign-in:", error);
+    }
+  }, []);
+
+  return { status, busy, failure, run, signOut, cancelSignIn };
 }

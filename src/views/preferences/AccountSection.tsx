@@ -9,7 +9,7 @@ export type { GoogleStatus };
 
 export default function AccountSection() {
   const { t } = useTranslation();
-  const { status, busy, failure, run, signOut } = useGoogleAccount();
+  const { status, busy, failure, run, signOut, cancelSignIn } = useGoogleAccount();
 
   function syncLine(current: GoogleStatus): string {
     if (busy === "sync" || current.syncing) return t("account.syncing");
@@ -27,9 +27,16 @@ export default function AccountSection() {
       {status && status.available && !status.email && (
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground min-w-0">{t("account.hint")}</p>
-          <Button size="sm" onClick={() => run("signIn")} disabled={busy !== null}>
-            {busy === "signIn" ? t("account.signingIn") : t("account.signIn")}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button size="sm" onClick={() => run("signIn")} disabled={busy !== null}>
+              {busy === "signIn" ? t("account.signingIn") : t("account.signIn")}
+            </Button>
+            {busy === "signIn" && (
+              <Button variant="outline" size="sm" onClick={cancelSignIn}>
+                {t("account.cancelSignIn")}
+              </Button>
+            )}
+          </div>
         </div>
       )}
 

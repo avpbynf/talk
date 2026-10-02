@@ -31,6 +31,7 @@ function Strip({ enabled = true }: { enabled?: boolean }) {
       busy={invite.busy}
       failure={invite.failure}
       onSignIn={invite.signIn}
+      onCancel={invite.cancelSignIn}
       onDismiss={invite.dismiss}
     />
   );

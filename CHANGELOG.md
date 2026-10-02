@@ -147,6 +147,14 @@ ring.
 In a light theme, sweeping the mouse across the history left cards grey after it had moved on, and
 sometimes flashed them almost black. The highlight now simply follows the pointer.
 
+- (preferences) Cancel a Google sign-in that went nowhere
+
+When Google refuses a sign-in on its own page and never sends you back, Talk used to sit on
+Waiting for the browser with every button disabled until the wait ran out. A Cancel button now
+sits next to it on the Account card, on the strip under the title bar and in the setup wizard, and
+puts things back as they were without an error. The wait itself now gives up after three minutes
+instead of five.
+
 - (preferences) Line up the shortcut cards, and say what Cancel throws away now
 
 The keys of the main shortcut and of Cancel sat at different heights whenever one description ran

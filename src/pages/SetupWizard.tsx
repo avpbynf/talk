@@ -654,6 +654,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   >
                     {google.busy === "signIn" ? t("account.signingIn") : t("account.signIn")}
                   </Button>
+                  {google.busy === "signIn" && (
+                    <Button variant="outline" className="flex-1" onClick={google.cancelSignIn}>
+                      {t("account.cancelSignIn")}
+                    </Button>
+                  )}
                   <Button
                     className="flex-1"
                     disabled={google.busy !== null}
