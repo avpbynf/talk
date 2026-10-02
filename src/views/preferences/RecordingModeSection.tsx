@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import { Keyboard, Hand, ToggleLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,11 +12,12 @@ export default function RecordingModeSection({
   recordingMode,
   onRecordingModeChange,
 }: RecordingModeSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
         <Keyboard className="h-4 w-4" />
-        Recording mode
+        {t("preferences.recordingMode.title")}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -33,8 +35,8 @@ export default function RecordingModeSection({
             recordingMode === "push_to_talk" ? "text-[var(--color-active)]" : "text-muted-foreground"
           )} />
           <div>
-            <div className="font-medium text-sm">Hold</div>
-            <div className="text-xs text-muted-foreground">Push-to-talk</div>
+            <div className="font-medium text-sm">{t("preferences.recordingMode.hold")}</div>
+            <div className="text-xs text-muted-foreground">{t("preferences.recordingMode.holdHint")}</div>
           </div>
         </button>
 
@@ -52,8 +54,8 @@ export default function RecordingModeSection({
             recordingMode === "toggle" ? "text-[var(--color-active)]" : "text-muted-foreground"
           )} />
           <div>
-            <div className="font-medium text-sm">Toggle</div>
-            <div className="text-xs text-muted-foreground">Click on, click off</div>
+            <div className="font-medium text-sm">{t("preferences.recordingMode.toggle")}</div>
+            <div className="text-xs text-muted-foreground">{t("preferences.recordingMode.toggleHint")}</div>
           </div>
         </button>
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import type { CompanionShortcut } from "@/App";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +10,7 @@ import CompanionShortcutsSection from "./preferences/CompanionShortcutsSection";
 import MeetingModeSection from "./preferences/MeetingModeSection";
 import SoundFeedbackSection from "./preferences/SoundFeedbackSection";
 import SystemSection from "./preferences/SystemSection";
+import LanguageSection from "./preferences/LanguageSection";
 import UpdatesSection from "./preferences/UpdatesSection";
 import type { Updater } from "@/lib/use-updater";
 
@@ -71,6 +73,7 @@ export default function PreferencesView({
   onStopSoundChange,
   updater,
 }: PreferencesViewProps) {
+  const { t } = useTranslation();
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <ScrollArea className="flex-1 min-h-0">
@@ -78,9 +81,9 @@ export default function PreferencesView({
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Page title */}
             <div>
-              <h1 className="text-xl font-semibold tracking-tight">Preferences</h1>
+              <h1 className="text-xl font-semibold tracking-tight">{t("preferences.title")}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Recording, shortcuts and how it behaves on the system
+                {t("preferences.subtitle")}
               </p>
             </div>
 
@@ -123,6 +126,7 @@ export default function PreferencesView({
               preserveClipboard={preserveClipboard}
               onPreserveClipboardChange={onPreserveClipboardChange}
             />
+            <LanguageSection />
             <CompanionShortcutsSection
               companionShortcuts={companionShortcuts}
               onCompanionShortcutsChange={onCompanionShortcutsChange}

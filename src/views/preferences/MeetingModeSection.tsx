@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import { Switch } from "@/components/ui/switch";
 import { Radio } from "lucide-react";
 
@@ -10,6 +11,7 @@ interface VBCableStatus {
 }
 
 export default function MeetingModeSection() {
+  const { t } = useTranslation();
   const [vbCableStatus, setVbCableStatus] = useState<VBCableStatus>({
     installed: false,
     device_name: null,
@@ -47,7 +49,7 @@ export default function MeetingModeSection() {
       <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
           <Radio className="h-4 w-4" />
-          Meeting mode
+          {t("preferences.meeting.title")}
         </div>
 
         {/* VB-Cable status indicator */}
@@ -59,8 +61,8 @@ export default function MeetingModeSection() {
           />
           <span className="text-xs text-muted-foreground">
             {vbCableStatus.installed
-              ? `VB-Cable detecte (${vbCableStatus.device_name})`
-              : "VB-Cable non installe"}
+              ? t("preferences.meeting.detected", { device: vbCableStatus.device_name })
+              : t("preferences.meeting.notInstalled")}
           </span>
         </div>
 
@@ -70,10 +72,10 @@ export default function MeetingModeSection() {
             <label
               className={`text-sm font-medium ${!vbCableStatus.installed ? "opacity-50" : ""}`}
             >
-              Meeting mode
+              {t("preferences.meeting.title")}
             </label>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Routes the mic through VB-Cable so a meeting hears nothing
+              {t("preferences.meeting.hint")}
             </p>
           </div>
           <Switch
@@ -85,8 +87,7 @@ export default function MeetingModeSection() {
 
         {vbCableStatus.installed && (
           <p className="text-xs text-muted-foreground border-t border-border-subtle pt-3">
-            Set Teams or Discord to use "CABLE Output" as their microphone.
-            While you dictate, the other participants hear nothing.
+            {t("preferences.meeting.setup")}
           </p>
         )}
       </div>

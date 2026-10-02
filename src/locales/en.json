@@ -311,9 +311,14 @@
     },
     "sound": {
       "title": "Feedback sounds",
-      "description": "Play a sound when recording starts and when it stops. Which device they come out of sits with the microphone, under Audio devices.",
+      "description": "Play a sound when recording starts, when it stops, and when it cannot start. Which device they come out of sits with the microphone, under Audio devices.",
       "whenStarts": "When it starts",
       "whenStops": "When it stops",
+      "playStart": "Play the sound for when it starts",
+      "playStop": "Play the sound for when it stops",
+      "whenRefuses": "When it refuses",
+      "refusedHint": "Two low notes, when there is no model to dictate with",
+      "playRefused": "Play the refusal sound",
       "options": {
         "none": "None",
         "beep": "Beep",
