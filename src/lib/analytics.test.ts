@@ -6,7 +6,6 @@ import {
   COMPETITORS,
   PERIOD_DAYS,
   PERIOD_LABELS,
-  TYPING_SENTENCES,
   billingStart,
   calculateWpm,
   formatMonth,
@@ -17,6 +16,7 @@ import {
   saveUserWpm,
   speakingRate,
 } from "./analytics";
+import en from "@/locales/en.json";
 import type { AnalyticsSummary } from "./analytics";
 
 describe("monthsSince", () => {
@@ -70,7 +70,7 @@ describe("billingStart", () => {
 describe("formatMonth", () => {
   it("follows the interface locale and not the machine", () => {
     // On a French Windows the system locale printed "aout 2026" inside an
-    // English page. UI_LOCALE is what stops that.
+    // English page. The locale() helper is what stops that.
     expect(formatMonth("2026-08-26")).toBe("August 2026");
   });
 
@@ -231,7 +231,7 @@ describe("the measured figures", () => {
 describe("getRandomSentence", () => {
   it("only ever returns one of the typing sentences", () => {
     for (let i = 0; i < 50; i++) {
-      expect(TYPING_SENTENCES).toContain(getRandomSentence());
+      expect(en.dashboard.typingGame.sentences).toContain(getRandomSentence());
     }
   });
 });

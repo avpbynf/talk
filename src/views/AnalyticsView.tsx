@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Keyboard, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +37,7 @@ export default function AnalyticsView({
   currentModel,
   shortcut,
 }: AnalyticsViewProps) {
+  const { t } = useTranslation();
   const [userWpm, setUserWpm] = useState<number>(() => loadUserWpm());
   const [showGame, setShowGame] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
@@ -110,8 +112,8 @@ export default function AnalyticsView({
                 variant="ghost"
                 size="icon"
                 onClick={() => setConfirmReset(true)}
-                aria-label="Reset stats"
-                title="Reset stats"
+                aria-label={t("dashboard.reset.label")}
+                title={t("dashboard.reset.label")}
                 className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <Trash2 className="h-4 w-4" />
@@ -156,16 +158,16 @@ export default function AnalyticsView({
                         size={16}
                         className="text-muted-foreground/60 group-hover:text-[var(--color-active)] transition-colors"
                       />
-                      <span>Test your typing speed</span>
+                      <span>{t("dashboard.testTypingSpeed")}</span>
                     </div>
                     <span className="text-xs text-muted-foreground/80 bg-surface-active px-2.5 py-1 rounded-md">
-                      {userWpm} wpm
+                      {t("dashboard.wpm", { wpm: userWpm })}
                     </span>
                   </button>
                 )}
               </>
             ) : (
-              <div className="py-16 text-center text-muted-foreground">Loading...</div>
+              <div className="py-16 text-center text-muted-foreground">{t("common.loading")}</div>
             )}
           </div>
         </div>
@@ -173,8 +175,8 @@ export default function AnalyticsView({
 
       <ConfirmDialog
         open={confirmReset}
-        title="Reset the statistics?"
-        description="Every count goes back to zero and does not come back. The transcriptions themselves stay in the history."
+        title={t("dashboard.reset.title")}
+        description={t("dashboard.reset.description")}
         confirmIcon={<Trash2 className="h-4 w-4 mr-2" />}
         onCancel={() => setConfirmReset(false)}
         onConfirm={handleResetStats}

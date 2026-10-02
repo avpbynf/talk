@@ -1,4 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatMonth } from "@/lib/analytics";
+import { formatNumber, formatUsd } from "@/i18n";
 import { HOSTED_APIS, PRICES_CHECKED, apiCost } from "@/lib/analytics";
 import type { AnalyticsSummary } from "@/lib/analytics";
 
@@ -7,22 +10,23 @@ interface CostComparisonProps {
 }
 
 export function CostComparison({ summary }: CostComparisonProps) {
+  const { t } = useTranslation();
   const minutes = summary.estimatedAudioMinutes;
 
   return (
     <Card className="bg-surface-raised border-border-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Against a hosted API</CardTitle>
+        <CardTitle className="text-sm font-medium">{t("dashboard.cost.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         {minutes < 1 ? (
           <p className="text-sm text-muted-foreground py-2">
-            Nothing dictated yet. This starts counting on the first one.
+            {t("dashboard.empty")}
           </p>
         ) : (
           <>
             <p className="text-xs text-muted-foreground/70 -mt-1 mb-3">
-              ~{minutes.toFixed(0)} min of audio, had it been sent away
+              {t("dashboard.cost.audio", { minutes: formatNumber(minutes) })}
             </p>
 
             {HOSTED_APIS.map((api) => (
@@ -30,20 +34,20 @@ export function CostComparison({ summary }: CostComparisonProps) {
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-sm min-w-0 truncate">{api.name}</span>
                   <span className="text-sm shrink-0 text-[var(--color-destructive)]">
-                    ${apiCost(minutes, api).toFixed(2)}
+                    {formatUsd(apiCost(minutes, api))}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 text-[11px] text-muted-foreground/50">
-                  <span className="min-w-0 truncate">{api.note}</span>
-                  <span className="shrink-0">${api.usdPerMin.toFixed(4)}/min</span>
+                  <span className="min-w-0 truncate">{t(api.note)}</span>
+                  <span className="shrink-0">{t("dashboard.cost.perMinute", { price: formatUsd(api.usdPerMin, 4) })}</span>
                 </div>
               </div>
             ))}
 
             <p className="text-[10px] text-muted-foreground/40 mt-3 leading-tight">
-              Prices as published, {PRICES_CHECKED}. Per minute of audio.
+              {t("dashboard.cost.footer", { date: formatMonth(PRICES_CHECKED) })}
               {summary.serverCount > 0 &&
-                ` ${summary.serverCount} of these went through your server, which costs whatever that server costs.`}
+                ` ${t("dashboard.cost.serverNote", { count: summary.serverCount, number: formatNumber(summary.serverCount) })}`}
             </p>
           </>
         )}

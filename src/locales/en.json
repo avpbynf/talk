@@ -47,6 +47,8 @@
       "checkingServer": "Checking the server",
       "unreachableLocal": "Server unreachable, running local",
       "unreachable": "Server unreachable",
+      "refusedLocal": "Server refused the token, running local",
+      "refused": "Server refused the token",
       "toTalk": "to talk",
       "server": "Server",
       "local": "Local",

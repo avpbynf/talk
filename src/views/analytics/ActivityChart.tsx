@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { locale } from "@/i18n";
 import { cn } from "@/lib/utils";
 import type { YearlyDayActivity } from "@/lib/analytics";
 
@@ -35,12 +37,16 @@ const LEVEL_BG: Record<number, string> = {
   4: "var(--color-active)",
 };
 
-const MONTH_LABELS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+function monthLabel(month: number): string {
+  return new Date(2021, month, 1).toLocaleDateString(locale(), { month: "short" });
+}
 
-const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+// 1 August 2021 is a Sunday, so offsets 1, 3 and 5 are Monday, Wednesday and Friday.
+function dayLabels(): string[] {
+  return [0, 1, 2, 3, 4, 5, 6].map((d) =>
+    d % 2 === 1 ? new Date(2021, 7, 1 + d).toLocaleDateString(locale(), { weekday: "short" }) : ""
+  );
+}
 
 interface DayCell {
   date: string;
@@ -97,7 +103,7 @@ function buildGrid(yearlyActivity: YearlyDayActivity[]): {
 
   const monthPositions = Array.from(monthWeeks.entries()).map(
     ([key, wIdx]) => ({
-      label: MONTH_LABELS[parseInt(key.split("-")[1])],
+      label: monthLabel(parseInt(key.split("-")[1])),
       weekIndex: wIdx,
     })
   );
@@ -106,6 +112,7 @@ function buildGrid(yearlyActivity: YearlyDayActivity[]): {
 }
 
 export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
+  const { t } = useTranslation();
   // Shut by default. A young history is a year of empty squares, and the
   // graph answers a question nobody has on opening the app.
   const [open, setOpen] = useState(false);
@@ -133,7 +140,7 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
               open && "rotate-90"
             )}
           />
-          <span className="text-sm font-medium">Activity</span>
+          <span className="text-sm font-medium">{t("dashboard.activity.title")}</span>
         </span>
         <div className="flex items-center gap-1">
           {[0, 1, 2, 3, 4].map((lvl) => (
@@ -171,7 +178,7 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
         })}
 
         {/* Day labels (Lun, Mer, Ven) */}
-        {DAY_LABELS.map((label, dow) =>
+        {dayLabels().map((label, dow) =>
           label ? (
             <text
               key={dow}
@@ -199,7 +206,7 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
               fill={LEVEL_BG[level]}
             >
               <title>
-                {cell.date}: {cell.count} transcription{cell.count !== 1 ? "s" : ""}
+                {t("dashboard.activity.cell", { date: cell.date, count: cell.count })}
               </title>
             </rect>
           );

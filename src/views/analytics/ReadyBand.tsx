@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { TranscriptionMode } from "@/App";
 import type { ServerStatus } from "@/views/transcription/TranscriptionView";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ interface ReadyBandProps {
   shortcut: string;
 }
 
+/** `label` is a translation key. */
 type Readiness = { tone: "success" | "warning" | "destructive"; label: string };
 
 /**
@@ -28,16 +30,22 @@ function readiness(
 ): Readiness {
   if (mode === "local") {
     return currentModel
-      ? { tone: "success", label: "Ready" }
-      : { tone: "destructive", label: "No model loaded" };
+      ? { tone: "success", label: "dashboard.ready.ready" }
+      : { tone: "destructive", label: "dashboard.ready.noModelLoaded" };
   }
-  if (serverStatus === "online") return { tone: "success", label: "Ready" };
-  if (serverStatus === "checking") return { tone: "warning", label: "Checking the server" };
-  const problem = serverStatus === "unauthorized" ? "Server refused the token" : "Server unreachable";
+  if (serverStatus === "online") return { tone: "success", label: "dashboard.ready.ready" };
+  if (serverStatus === "checking") return { tone: "warning", label: "dashboard.ready.checkingServer" };
+  const refused = serverStatus === "unauthorized";
   if (serverFallback && currentModel) {
-    return { tone: "warning", label: `${problem}, running local` };
+    return {
+      tone: "warning",
+      label: refused ? "dashboard.ready.refusedLocal" : "dashboard.ready.unreachableLocal",
+    };
   }
-  return { tone: "destructive", label: problem };
+  return {
+    tone: "destructive",
+    label: refused ? "dashboard.ready.refused" : "dashboard.ready.unreachable",
+  };
 }
 
 const DOT_CLASS: Record<Readiness["tone"], string> = {
@@ -81,6 +89,7 @@ export function ReadyBand({
   currentModel,
   shortcut,
 }: ReadyBandProps) {
+  const { t } = useTranslation();
   const state = readiness(transcriptionMode, serverStatus, serverFallback, currentModel);
   const keys = shortcut.split("+");
 
@@ -89,7 +98,7 @@ export function ReadyBand({
         <div className="flex items-center gap-2 shrink-0">
           <span className={cn("h-[7px] w-[7px] rounded-full", DOT_CLASS[state.tone])} />
           <span className={cn("text-[13px] font-semibold", TEXT_CLASS[state.tone])}>
-            {state.label}
+            {t(state.label)}
           </span>
         </div>
 
@@ -102,7 +111,7 @@ export function ReadyBand({
               <Key>{key}</Key>
             </span>
           ))}
-          <span className="text-[13px] text-muted-foreground ml-1">to talk</span>
+          <span className="text-[13px] text-muted-foreground ml-1">{t("dashboard.ready.toTalk")}</span>
         </div>
 
         <div className="flex-1" />
@@ -111,24 +120,24 @@ export function ReadyBand({
           {transcriptionMode === "server" ? (
             <>
               <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-[var(--color-server)]/15 text-[var(--color-server)]">
-                Server
+                {t("dashboard.ready.server")}
               </span>
               <span className="text-[11px] text-muted-foreground">
                 {shortUrl(serverUrl)}
               </span>
               {serverFallback && (
                 <span className="text-xs text-muted-foreground">
-                  {currentModel ? "fallback ready" : "no fallback model"}
+                  {currentModel ? t("dashboard.ready.fallbackReady") : t("dashboard.ready.noFallback")}
                 </span>
               )}
             </>
           ) : (
             <>
               <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-[var(--color-active)]/15 text-[var(--color-active)]">
-                Local
+                {t("dashboard.ready.local")}
               </span>
               <span className="text-[11px] text-muted-foreground">
-                {currentModel ?? "no model"}
+                {currentModel ?? t("dashboard.ready.noModel")}
               </span>
             </>
           )}
