@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import AudioDevicesSection from "./preferences/AudioDevicesSection";
 import RecordingModeSection from "./preferences/RecordingModeSection";
 import ShortcutsSection from "./preferences/ShortcutsSection";
+import ChainedDictationsSection from "./preferences/ChainedDictationsSection";
 import CompanionShortcutsSection from "./preferences/CompanionShortcutsSection";
 import MeetingModeSection from "./preferences/MeetingModeSection";
 import SoundFeedbackSection from "./preferences/SoundFeedbackSection";
@@ -100,6 +101,7 @@ export default function PreferencesView({
               onPasteShortcutChange={onPasteShortcutChange}
               recordingMode={recordingMode}
             />
+            <ChainedDictationsSection />
             <SoundFeedbackSection
               soundFeedback={soundFeedback}
               onSoundFeedbackChange={onSoundFeedbackChange}

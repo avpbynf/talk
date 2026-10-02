@@ -154,6 +154,9 @@ function OverlayPage() {
 
     const unlistenProcessing = listen<string>("processing-state", (event) => {
       setState(event.payload as ProcessingState);
+      // A recording cancelled in front of a queued dictation hides the
+      // overlay, and the dictation still transcribing brings it back.
+      setVisible(event.payload !== "idle");
       if (event.payload !== "transcribing") {
         setProgress(0);
       }

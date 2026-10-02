@@ -75,6 +75,11 @@ applications that refuse synthetic input.
 mean coming back to Talk to copy the card. Ctrl+Shift+Space pastes it wherever the caret is,
 whether it was dictated a minute ago or before the last restart.
 
+**Dictations chain without waiting for each other.** Recording again while a long one is still
+transcribing puts the new one in line, and the texts come out in the order they were spoken,
+either one by one or held and pasted as a single paragraph. The cancel shortcut drops the
+recording in progress, and once there is none, what is still transcribing.
+
 **A vocabulary biases the model toward your words.** Product names, colleagues,
 libraries, anything Whisper would otherwise turn into the nearest common word. It is a
 plain list, typed once.

@@ -3,7 +3,9 @@ use crate::settings::TranscriptionMode;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::atomic::Ordering;
+use crate::dictation_queue::{PasteTarget, Release, Transcript};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, EventTarget, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use thiserror::Error;
@@ -391,9 +393,11 @@ async fn transcribe_locally(
     app: &AppHandle,
     audio: Vec<f32>,
     vocabulary: Option<String>,
+    cancel: Arc<AtomicBool>,
 ) -> Result<Option<String>, String> {
     let app_for_job = app.clone();
     let app_for_progress = app.clone();
+    let cancel_for_progress = cancel.clone();
 
     tauri::async_runtime::spawn_blocking(move || {
         let state = app_for_job.state::<AppState>();
@@ -402,14 +406,29 @@ async fn transcribe_locally(
             return Ok(None);
         };
 
+        // Cancelled while it waited for the engine: nothing to start.
+        if cancel.load(Ordering::SeqCst) {
+            return Err("Cancelled".to_string());
+        }
+
         engine
-            .transcribe_with_options(&audio, vocabulary.as_deref(), move |progress| {
-                let _ = app_for_progress.emit_to(
-                    EventTarget::webview_window("overlay"),
-                    "transcription-progress",
-                    progress,
-                );
-            })
+            .transcribe_with_options(
+                &audio,
+                vocabulary.as_deref(),
+                move |progress| {
+                    // A cancelled run keeps going until whisper next looks,
+                    // and its progress would be drawn over the next one's.
+                    if cancel_for_progress.load(Ordering::SeqCst) {
+                        return;
+                    }
+                    let _ = app_for_progress.emit_to(
+                        EventTarget::webview_window("overlay"),
+                        "transcription-progress",
+                        progress,
+                    );
+                },
+                move || cancel.load(Ordering::SeqCst),
+            )
             .map(Some)
             .map_err(|e| e.to_string())
     })
@@ -456,7 +475,59 @@ pub fn handle_shortcut_event(app: &AppHandle, state: ShortcutState) {
     }
 }
 
-pub fn cancel_recording(app: &AppHandle) {
+/// Drop the recording if one is running, otherwise what is being transcribed.
+///
+/// The recording goes first because it is what the user is in the middle of,
+/// and a second press then reaches the transcriptions behind it.
+///
+/// Either can paste, when a held paragraph completes or the next dictation in
+/// line is let through, so like the paste shortcut it stays off the thread the
+/// shortcut handler runs on.
+pub fn cancel(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        if *app.state::<AppState>().is_recording.lock() {
+            cancel_recording(&app);
+        } else {
+            cancel_transcriptions(&app);
+        }
+    });
+}
+
+fn cancel_transcriptions(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let settings = *state.queue_settings.lock();
+
+    let mut queue = state.dictation_queue.lock();
+    let (any, release) = queue.cancel(settings.cancel_scope, settings.delivery, false);
+    if !any {
+        return;
+    }
+    hand_out(app, release);
+    let idle = queue.is_idle();
+    drop(queue);
+
+    // The transcriptions themselves end when whisper or the server next
+    // notices, which can be a second away. The user asked for it gone now.
+    if idle {
+        hide_overlay(app);
+    }
+
+    play_sound_feedback(app, "stop");
+}
+
+fn hide_overlay(app: &AppHandle) {
+    let _ = app.emit_to(
+        EventTarget::webview_window("overlay"),
+        "processing-state",
+        "idle",
+    );
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        let _ = overlay.hide();
+    }
+}
+
+fn cancel_recording(app: &AppHandle) {
     let state = app.state::<AppState>();
 
     // Only cancel if we're actually recording
@@ -483,13 +554,29 @@ pub fn cancel_recording(app: &AppHandle) {
     // A cancelled recording still ducked the machine on its way in.
     restore_audio();
 
-    // Hide overlay
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        let _ = overlay.hide();
-    }
-
     // Emit cancelled event
     let _ = app.emit("recording-cancelled", ());
+
+    // The dictation this recording would have added to a held paragraph
+    // never comes, so the paragraph may be complete now.
+    let delivery = state.queue_settings.lock().delivery;
+    let mut queue = state.dictation_queue.lock();
+    let release = queue.settle(delivery, false);
+    hand_out(app, release);
+    let idle = queue.is_idle();
+    drop(queue);
+
+    // Earlier dictations still transcribing keep the overlay, which goes
+    // back to showing them.
+    if idle {
+        hide_overlay(app);
+    } else {
+        let _ = app.emit_to(
+            EventTarget::webview_window("overlay"),
+            "processing-state",
+            "transcribing",
+        );
+    }
 
     // Sound feedback: cancellation counts as stop
     play_sound_feedback(app, "stop");
@@ -511,20 +598,33 @@ pub fn paste_last_transcription(app: &AppHandle) {
     // up and sleeps either side of the paste, so it does not belong on the
     // thread the shortcut handler runs on.
     std::thread::spawn(move || {
-        let last = match app.state::<database::Database>().get_transcriptions(1, 0) {
-            Ok(rows) => rows.into_iter().next(),
-            Err(e) => {
-                eprintln!("Failed to read the last transcription: {}", e);
-                return;
-            }
+        let state = app.state::<AppState>();
+
+        // The batch lives in memory only, so after a restart this falls back
+        // to the last row, which is all a single dictation ever was anyway.
+        let batch = match state.queue_settings.lock().paste_target {
+            PasteTarget::Batch => state.dictation_queue.lock().latest_batch(),
+            PasteTarget::Last => None,
         };
 
-        // Nothing has been dictated yet, or the history was cleared. Pasting
-        // an empty string would wipe a selection for nothing.
-        let Some(last) = last else { return };
+        let text = match batch {
+            Some(text) => text,
+            None => match app.state::<database::Database>().get_transcriptions(1, 0) {
+                // Nothing has been dictated yet, or the history was cleared.
+                // Pasting an empty string would wipe a selection for nothing.
+                Ok(rows) => match rows.into_iter().next() {
+                    Some(last) => last.text,
+                    None => return,
+                },
+                Err(e) => {
+                    eprintln!("Failed to read the last transcription: {}", e);
+                    return;
+                }
+            },
+        };
 
-        let preserve = *app.state::<AppState>().preserve_clipboard.lock();
-        if let Err(e) = crate::clipboard::type_text(&last.text, preserve) {
+        let preserve = *state.preserve_clipboard.lock();
+        if let Err(e) = crate::clipboard::type_text(&text, preserve) {
             eprintln!("Failed to paste the last transcription: {}", e);
         }
     });
@@ -628,6 +728,16 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
         }
     };
 
+    // Take a place in line before anything can finish, so the order the
+    // dictations were spoken in is the order they come out in. And before the
+    // recording flag drops: an earlier dictation finishing in between would
+    // find nothing recording and nothing queued, and close the run without
+    // this one. The overlay lease is taken for the same reason.
+    let (seq, cancel) = state.dictation_queue.lock().enqueue();
+    // The lease keeps the overlay up for as long as this transcription runs,
+    // whichever way it ends.
+    let _overlay_lease = OverlayLease::take(app);
+
     // Stop audio capture - dropping the handle signals the stream thread to exit
     *state.audio_capture_handle.lock() = None;
     *state.is_recording.lock() = false;
@@ -650,14 +760,6 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
     // Sound feedback (instant, from a pre-computed PCM buffer)
     play_sound_feedback(app, "stop");
 
-    // Helper to emit to overlay window
-    let emit_to_overlay = |app: &AppHandle, processing_state: &str| {
-        let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", processing_state);
-    };
-
-    // Emit transcribing state. The lease keeps the overlay up for as long as
-    // this transcription runs, whichever way it ends.
-    let _overlay_lease = OverlayLease::take(app);
     emit_to_overlay(app, "transcribing");
 
     // Both figures the history has always stored as null, because the frontend
@@ -666,7 +768,56 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
     let audio_duration_ms = (audio_data.len() as f64 / 16_000.0 * 1000.0) as i64;
     let started = std::time::Instant::now();
 
-    // Get transcription mode settings
+    let outcome = transcribe(app, audio_data, cancel).await;
+
+    // Nothing was said, or nothing came back. Whisper answers an empty string
+    // for a recording with no speech in it, and a server can answer with
+    // nothing at all while still answering. Going on would paste nothing, put a
+    // blank card at the top of the history, and count a dictation that never
+    // happened: the counters are permanent, so that last one is the one that
+    // cannot be taken back from the interface.
+    //
+    // A failure still has to settle its place in line, or everything spoken
+    // after it would wait for it forever.
+    let transcript = match &outcome {
+        Ok((text, source)) if !text.trim().is_empty() => Some(Transcript {
+            text: text.clone(),
+            source: *source,
+            audio_duration_ms,
+            processing_time_ms: started.elapsed().as_millis() as i64,
+        }),
+        Ok(_) => None,
+        Err(e) => {
+            eprintln!("Transcription failed: {}", e);
+            None
+        }
+    };
+
+    let delivery = state.queue_settings.lock().delivery;
+    let recording = *state.is_recording.lock();
+    let mut queue = state.dictation_queue.lock();
+    let release = queue.finish(seq, transcript, delivery, recording);
+    // Handed out under the lock: two transcriptions finishing together would
+    // otherwise paste over each other in whatever order the threads ran.
+    hand_out(app, release);
+    drop(queue);
+
+    // The overlay goes down when the lease is dropped, and only if nothing else
+    // still wants it.
+    outcome.map(|(text, _)| text)
+}
+
+/// Run one dictation through whichever engine the mode says.
+///
+/// The source travels with the text: in server mode a fallback may have
+/// quietly run this locally, and the history badge would otherwise lie about it.
+async fn transcribe(
+    app: &AppHandle,
+    audio_data: Vec<f32>,
+    cancel: Arc<AtomicBool>,
+) -> Result<(String, &'static str), String> {
+    let state = app.state::<AppState>();
+
     let transcription_mode = *state.transcription_mode.lock();
     let server_url = state.server_url.lock().clone();
     let server_fallback = *state.server_fallback.lock();
@@ -680,21 +831,19 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
         Some(user_vocabulary.join(", "))
     };
 
-    // Transcribe based on mode. The source travels with the text: in server
-    // mode a fallback may have quietly run this locally, and the history
-    // badge would otherwise lie about it.
-    let (transcription, source) = match transcription_mode {
+    match transcription_mode {
         TranscriptionMode::Server => {
-            // Try server transcription
             emit_to_overlay(app, "streaming");
 
-            // Encode audio to WAV
             let wav_data = audio_encoder::encode_wav(&audio_data, 16000, 1)
                 .map_err(|e| format!("Failed to encode WAV: {}", e))?;
 
-            // Create callback for streaming segments
             let app_for_stream = app.clone();
+            let cancel_for_stream = cancel.clone();
             let on_segment = move |segment: server_transcription::TranscriptionSegment| {
+                if cancel_for_stream.load(Ordering::SeqCst) {
+                    return;
+                }
                 let _ = app_for_stream.emit_to(
                     EventTarget::webview_window("overlay"),
                     "transcription-segment",
@@ -702,91 +851,115 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
                 );
             };
 
-            // Try server transcription
             // Note: detected_context.language is a programming language name (e.g. "rust",
             // "generic_dev"), NOT a Whisper language code. Pass None to let the server use
             // its configured DEFAULT_LANGUAGE.
-            match server_transcription::transcribe_stream(&server_url, &wav_data, server_timeout, None, vocabulary_prompt.as_deref(), on_segment, |_| {}).await {
-                Ok(text) => (text, "server"),
+            let request = server_transcription::transcribe_stream(
+                &server_url,
+                &wav_data,
+                server_timeout,
+                None,
+                vocabulary_prompt.as_deref(),
+                on_segment,
+                |_| {},
+            );
+
+            // Dropping the request closes the connection, which is the only
+            // way to tell the server to stop.
+            let result = tokio::select! {
+                result = request => result,
+                _ = cancelled(&cancel) => return Err("Cancelled".to_string()),
+            };
+
+            match result {
+                Ok(text) => Ok((text, "server")),
                 Err(e) => {
                     eprintln!("Server transcription failed: {}", e);
 
-                    // Fallback to local if enabled
-                    if server_fallback {
-                        eprintln!("Falling back to local Whisper transcription");
-                        emit_to_overlay(app, "transcribing");
-
-                        match transcribe_locally(app, audio_data, vocabulary_prompt.clone()).await? {
-                            Some(text) => (text, "local"),
-                            None => {
-                                return Err(format!(
-                                    "Server failed: {}. No local model loaded for fallback.",
-                                    e
-                                ))
-                            }
-                        }
-                    } else {
+                    if !server_fallback {
                         return Err(format!("Server transcription failed: {}", e));
+                    }
+
+                    eprintln!("Falling back to local Whisper transcription");
+                    emit_to_overlay(app, "transcribing");
+
+                    match transcribe_locally(app, audio_data, vocabulary_prompt, cancel).await? {
+                        Some(text) => Ok((text, "local")),
+                        None => Err(format!(
+                            "Server failed: {}. No local model loaded for fallback.",
+                            e
+                        )),
                     }
                 }
             }
         }
         TranscriptionMode::Local => {
-            match transcribe_locally(app, audio_data, vocabulary_prompt).await? {
-                Some(text) => (text, "local"),
-                None => return Err("No model loaded".to_string()),
+            match transcribe_locally(app, audio_data, vocabulary_prompt, cancel).await? {
+                Some(text) => Ok((text, "local")),
+                None => Err("No model loaded".to_string()),
             }
         }
-    };
-
-    // The overlay goes down when the lease is dropped, and only if nothing else
-    // still wants it.
-
-    // Nothing was said, or nothing came back. Whisper answers an empty string
-    // for a recording with no speech in it, and a server can answer with
-    // nothing at all while still answering. Going on would paste nothing, put a
-    // blank card at the top of the history, and count a dictation that never
-    // happened: the counters are permanent, so that last one is the one that
-    // cannot be taken back from the interface.
-    if transcription.trim().is_empty() {
-        return Ok(String::new());
     }
+}
 
-    // Copy to clipboard and simulate paste
+/// Resolve once the flag is raised.
+async fn cancelled(flag: &AtomicBool) {
+    while !flag.load(Ordering::SeqCst) {
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+}
+
+/// Tell the overlay what this transcription is doing, unless a newer
+/// recording has it. A transcription running behind a recording would
+/// otherwise pull the overlay off the microphone while the user still talks.
+fn emit_to_overlay(app: &AppHandle, processing_state: &str) {
+    if *app.state::<AppState>().is_recording.lock() {
+        return;
+    }
+    let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", processing_state);
+}
+
+/// Act on what the queue let go: paste what is due, and record and announce
+/// every dictation whose turn has come.
+fn hand_out(app: &AppHandle, release: Release) {
+    let state = app.state::<AppState>();
+
     #[cfg(windows)]
     {
         let preserve = *state.preserve_clipboard.lock();
-        let _ = crate::clipboard::type_text(&transcription, preserve);
+        for text in &release.paste {
+            let _ = crate::clipboard::type_text(text, preserve);
+        }
     }
 
-    // Save before announcing.
-    //
-    // The frontend used to do this, on the very event this line emits, so its
-    // write raced the dashboard's refetch of the same event and the figures sat
-    // one dictation behind. Saving here means the row is in by the time anyone
-    // hears about it, and the id and the timings come from the side that knows
-    // them.
-    let entry = database::NewTranscription {
-        id: uuid::Uuid::new_v4().to_string(),
-        text: transcription.clone(),
-        timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-        model: state.current_model.lock().clone(),
-        source: source.to_string(),
-        enhanced: false,
-        audio_duration_ms: Some(audio_duration_ms),
-        processing_time_ms: Some(started.elapsed().as_millis() as i64),
-    };
+    for transcript in release.delivered {
+        // Save before announcing.
+        //
+        // The frontend used to do this, on the very event this line emits, so its
+        // write raced the dashboard's refetch of the same event and the figures sat
+        // one dictation behind. Saving here means the row is in by the time anyone
+        // hears about it, and the id and the timings come from the side that knows
+        // them.
+        let entry = database::NewTranscription {
+            id: uuid::Uuid::new_v4().to_string(),
+            text: transcript.text,
+            timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+            model: state.current_model.lock().clone(),
+            source: transcript.source.to_string(),
+            enhanced: false,
+            audio_duration_ms: Some(transcript.audio_duration_ms),
+            processing_time_ms: Some(transcript.processing_time_ms),
+        };
 
-    let db = app.state::<database::Database>();
-    if let Err(e) = db.add_transcription(&entry) {
-        eprintln!("Failed to save the transcription: {}", e);
-    } else if let Err(e) = db.prune_transcriptions(*state.history_limit.lock()) {
-        eprintln!("Failed to prune the history: {}", e);
+        let db = app.state::<database::Database>();
+        if let Err(e) = db.add_transcription(&entry) {
+            eprintln!("Failed to save the transcription: {}", e);
+        } else if let Err(e) = db.prune_transcriptions(*state.history_limit.lock()) {
+            eprintln!("Failed to prune the history: {}", e);
+        }
+
+        let _ = app.emit("transcription-complete", &entry);
     }
-
-    let _ = app.emit("transcription-complete", &entry);
-
-    Ok(transcription)
 }
 
 #[cfg(test)]

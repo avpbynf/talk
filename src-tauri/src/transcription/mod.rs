@@ -311,14 +311,20 @@ impl WhisperEngine {
 
     /// Transcribe audio with optional vocabulary hints (initial_prompt)
     /// The vocabulary string helps Whisper recognize specific terms
-    pub fn transcribe_with_options<F>(
+    ///
+    /// `should_abort` is polled by whisper between its steps of work, so a
+    /// cancelled run still finishes the step it is in, which on a slow card is
+    /// a second or two.
+    pub fn transcribe_with_options<F, A>(
         &self,
         audio_data: &[f32],
         vocabulary: Option<&str>,
         mut on_progress: F,
+        mut should_abort: A,
     ) -> Result<String, TranscriptionError>
     where
         F: FnMut(i32) + 'static,
+        A: FnMut() -> bool + 'static,
     {
         let mut state = self
             .ctx
@@ -350,6 +356,13 @@ impl WhisperEngine {
         params.set_progress_callback_safe(move |progress| {
             on_progress(progress);
         });
+
+        // Boxed on purpose. whisper-rs 0.16 stores the closure as a boxed
+        // trait object but registers a trampoline that reads it back as the
+        // closure's own type, so a bare closure is called on the wrong data.
+        // When the closure is itself that trait object the two agree.
+        let should_abort: Box<dyn FnMut() -> bool> = Box::new(move || should_abort());
+        params.set_abort_callback_safe(should_abort);
 
         // Run transcription
         state

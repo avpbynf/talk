@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Features
+
+- (recording) Chain dictations while one is still transcribing, and cancel what is transcribing
+
+Recording again while a long dictation is still on its way through the model no longer risks the
+texts landing out of order: they now come out in the order they were spoken. A new Chained
+dictations card in Preferences decides whether each one is pasted as soon as it is ready or the
+whole run is held and pasted once as a single paragraph, and whether the paste shortcut brings back
+the last dictation or the whole last run.
+
+  The cancel shortcut now also works once the recording is over. A first press still drops the
+  recording in progress; with none left, it drops everything waiting, or only the one being
+  transcribed, as chosen on the same card. On a graphics card the transcription itself can take a
+  second or two to let go, but nothing it brings back is pasted.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
