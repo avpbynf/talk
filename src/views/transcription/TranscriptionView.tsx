@@ -1,6 +1,6 @@
 import { Cpu, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageSeparator, PageShell } from "@/components/PageShell";
 import { cn } from "@/lib/utils";
 import type {
   ModelInfo,
@@ -89,51 +89,95 @@ export default function TranscriptionView({
 }: TranscriptionViewProps) {
   const { t } = useTranslation();
   return (
-    <div className="h-full flex flex-col overflow-hidden view-enter">
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-6">
-          <div className="max-w-2xl mx-auto space-y-6">
-            {/* Page title */}
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight">{t("transcription.title")}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {t("transcription.subtitle")}
-              </p>
-            </div>
+    <PageShell
+      title={t("transcription.title")}
+      subtitle={t("transcription.subtitle")}
+      separator={false}
+      className="view-enter"
+    >
+      {/* Mode selector */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => onTranscriptionModeChange("local")}
+          className={cn(
+            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200",
+            transcriptionMode === "local"
+              ? "border-[var(--color-active)] bg-[var(--color-active)]/10 text-[var(--color-active)]"
+              : "border-border-card bg-surface-inset text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
+          )}
+        >
+          <Cpu className="h-4 w-4" />
+          {t("transcription.modes.local")}
+        </button>
+        <button
+          onClick={() => onTranscriptionModeChange("server")}
+          className={cn(
+            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200",
+            transcriptionMode === "server"
+              ? "border-[var(--color-server)] bg-[var(--color-server)]/10 text-[var(--color-server)]"
+              : "border-border-card bg-surface-inset text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
+          )}
+        >
+          <Globe className="h-4 w-4" />
+          {t("transcription.modes.server")}
+        </button>
+      </div>
 
-            {/* Mode selector */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => onTranscriptionModeChange("local")}
-                className={cn(
-                  "flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200",
-                  transcriptionMode === "local"
-                    ? "border-[var(--color-active)] bg-[var(--color-active)]/10 text-[var(--color-active)]"
-                    : "border-border-card bg-surface-inset text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
-                )}
-              >
-                <Cpu className="h-4 w-4" />
-                {t("transcription.modes.local")}
-              </button>
-              <button
-                onClick={() => onTranscriptionModeChange("server")}
-                className={cn(
-                  "flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200",
-                  transcriptionMode === "server"
-                    ? "border-[var(--color-server)] bg-[var(--color-server)]/10 text-[var(--color-server)]"
-                    : "border-border-card bg-surface-inset text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
-                )}
-              >
-                <Globe className="h-4 w-4" />
-                {t("transcription.modes.server")}
-              </button>
-            </div>
+      <PageSeparator />
 
-            {/* Separator */}
-            <div className="h-px bg-border-subtle" />
+      {/* Content */}
+      {transcriptionMode === "local" && (
+        <LocalTab
+          models={models}
+          downloadedModels={downloadedModels}
+          currentModel={currentModel}
+          isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
+          isLoading={isLoading}
+          gpus={gpus}
+          currentGpuVendor={currentGpuVendor}
+          onDownload={onDownload}
+          onLoad={onLoad}
+          onUnload={onUnload}
+          onDelete={onDelete}
+          onCancelDownload={onCancelDownload}
+          onGpuVendorChange={onGpuVendorChange}
+          gpuDevices={gpuDevices}
+          currentGpuDevice={currentGpuDevice}
+          switchingGpuDevice={switchingGpuDevice}
+          onGpuDeviceChange={onGpuDeviceChange}
+        />
+      )}
 
-            {/* Content */}
-            {transcriptionMode === "local" && (
+      {transcriptionMode === "local" && <SharePanel currentModel={currentModel} />}
+
+      {transcriptionMode === "server" && (
+        <>
+          <ServerTab
+            serverUrl={serverUrl}
+            serverTimeout={serverTimeout}
+            serverStatus={serverStatus}
+            onServerUrlChange={onServerUrlChange}
+            onServerTimeoutChange={onServerTimeoutChange}
+            checkServerHealth={checkServerHealth}
+            serverToken={serverToken}
+            onServerTokenChange={onServerTokenChange}
+            serverModel={serverModel}
+            onServerModelChange={onServerModelChange}
+            serverFallback={serverFallback}
+            onServerFallbackChange={onServerFallbackChange}
+          />
+
+          {serverFallback && (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border-subtle" />
+                <span className="text-xs text-muted-foreground font-medium">
+                  {t("transcription.fallbackSettings")}
+                </span>
+                <div className="flex-1 h-px bg-border-subtle" />
+              </div>
+
               <LocalTab
                 models={models}
                 downloadedModels={downloadedModels}
@@ -154,64 +198,10 @@ export default function TranscriptionView({
                 switchingGpuDevice={switchingGpuDevice}
                 onGpuDeviceChange={onGpuDeviceChange}
               />
-            )}
-
-            {transcriptionMode === "local" && <SharePanel currentModel={currentModel} />}
-
-            {transcriptionMode === "server" && (
-              <>
-                <ServerTab
-                  serverUrl={serverUrl}
-                  serverTimeout={serverTimeout}
-                  serverStatus={serverStatus}
-                  onServerUrlChange={onServerUrlChange}
-                  onServerTimeoutChange={onServerTimeoutChange}
-                  checkServerHealth={checkServerHealth}
-                  serverToken={serverToken}
-                  onServerTokenChange={onServerTokenChange}
-                  serverModel={serverModel}
-                  onServerModelChange={onServerModelChange}
-                  serverFallback={serverFallback}
-                  onServerFallbackChange={onServerFallbackChange}
-                />
-
-                {serverFallback && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px bg-border-subtle" />
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {t("transcription.fallbackSettings")}
-                      </span>
-                      <div className="flex-1 h-px bg-border-subtle" />
-                    </div>
-
-                    <LocalTab
-                      models={models}
-                      downloadedModels={downloadedModels}
-                      currentModel={currentModel}
-                      isDownloading={isDownloading}
-                      downloadProgress={downloadProgress}
-                      isLoading={isLoading}
-                      gpus={gpus}
-                      currentGpuVendor={currentGpuVendor}
-                      onDownload={onDownload}
-                      onLoad={onLoad}
-                      onUnload={onUnload}
-                      onDelete={onDelete}
-                      onCancelDownload={onCancelDownload}
-                      onGpuVendorChange={onGpuVendorChange}
-                      gpuDevices={gpuDevices}
-                      currentGpuDevice={currentGpuDevice}
-                      switchingGpuDevice={switchingGpuDevice}
-                      onGpuDeviceChange={onGpuDeviceChange}
-                    />
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </ScrollArea>
-    </div>
+            </>
+          )}
+        </>
+      )}
+    </PageShell>
   );
 }

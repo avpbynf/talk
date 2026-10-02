@@ -2,6 +2,7 @@ import { Check, Cpu, Zap, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { cn } from "@/lib/utils";
+import { SectionCard } from "@/components/SectionCard";
 import type { GpuDevice, GpuInfo, GpuVendor } from "@/App";
 
 interface GpuSelectorProps {
@@ -65,17 +66,13 @@ export function GpuSelector({
   const busy = isLoading || switching;
 
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="h-8 w-8 rounded-lg bg-[var(--color-warning)]/10 flex items-center justify-center">
-          <Zap className="h-4 w-4 text-warning" />
-        </div>
-        <div>
-          <h3 className="font-medium text-sm">{t("transcription.gpu.title")}</h3>
-          <p className="text-xs text-muted-foreground">{t("transcription.gpu.subtitle")}</p>
-        </div>
-      </div>
-
+    <SectionCard
+      variant="tile"
+      accent="warning"
+      icon={Zap}
+      title={t("transcription.gpu.title")}
+      description={t("transcription.gpu.subtitle")}
+    >
       <div className="grid grid-cols-2 gap-2">
         {mergedGpus.map((gpu) => (
           <div key={gpu.vendor} className="relative group">
@@ -124,7 +121,7 @@ export function GpuSelector({
 
       {/* Which card, on a machine carrying more than one */}
       {showDevices && (
-        <div className="mt-4 pt-4 border-t border-border-subtle">
+        <div className="pt-4 border-t border-border-subtle">
           {devices.length > 1 ? (
             <>
               <p className="text-xs text-muted-foreground mb-2">{t("transcription.gpu.graphicsCard")}</p>
@@ -166,6 +163,6 @@ export function GpuSelector({
           )}
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

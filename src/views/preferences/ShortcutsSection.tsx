@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import { Keyboard, Edit3, Check, X, ClipboardPaste } from "lucide-react";
+import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
 
 interface ShortcutsSectionProps {
@@ -246,11 +247,7 @@ export default function ShortcutsSection({
   };
 
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-        <Keyboard className="h-4 w-4" />
-        {t("preferences.shortcuts.title")}
-      </div>
+    <SectionCard icon={Keyboard} title={t("preferences.shortcuts.title")}>
       <div className="grid grid-cols-2 gap-4">
       {renderShortcutCard(
         "main",
@@ -272,6 +269,6 @@ export default function ShortcutsSection({
         "col-span-2"
       )}
       </div>
-    </div>
+    </SectionCard>
   );
 }

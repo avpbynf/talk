@@ -9,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SectionCard } from "@/components/SectionCard";
+import { SettingRow } from "@/components/SettingRow";
 import { setLanguageSetting, type LanguageSetting } from "@/i18n";
 
 const FOLLOW_SYSTEM = "system";
@@ -30,19 +32,12 @@ export default function LanguageSection() {
   };
 
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-        <Languages className="h-4 w-4" />
-        {t("preferences.language.title")}
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <label className="text-sm font-medium">{t("preferences.language.label")}</label>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {t("preferences.language.description")}
-          </p>
-        </div>
+    <SectionCard icon={Languages} title={t("preferences.language.title")}>
+      <SettingRow
+        guarded
+        label={t("preferences.language.label")}
+        hint={t("preferences.language.description")}
+      >
         <Select value={setting ?? FOLLOW_SYSTEM} onValueChange={change}>
           <SelectTrigger className="w-44 shrink-0 bg-surface-inset border-border-card">
             <SelectValue />
@@ -53,7 +48,7 @@ export default function LanguageSection() {
             <SelectItem value="fr">Français</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-    </div>
+      </SettingRow>
+    </SectionCard>
   );
 }

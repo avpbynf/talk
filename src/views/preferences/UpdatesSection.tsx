@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { formatTime } from "@/i18n";
 import { Button } from "@/components/ui/button";
+import { SectionCard } from "@/components/SectionCard";
+import { SettingRow } from "@/components/SettingRow";
 import type { Updater } from "@/lib/use-updater";
 
 interface UpdatesSectionProps {
@@ -32,29 +34,24 @@ export default function UpdatesSection({ updater }: UpdatesSectionProps) {
   const busy = updater.status === "checking" || updater.status === "downloading" || updater.status === "ready";
 
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-        <ArrowDownToLine className="h-4 w-4" />
-        {t("updates.title")}
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <label className="text-sm font-medium">
-            {updater.currentVersion ? t("updates.versionNumber", { version: updater.currentVersion }) : t("updates.version")}
-          </label>
-          <p
-            className={`text-sm mt-0.5 ${
-              updater.status === "error" ? "text-destructive" : "text-muted-foreground"
-            }`}
-          >
+    <SectionCard icon={ArrowDownToLine} title={t("updates.title")}>
+      <SettingRow
+        guarded
+        label={
+          updater.currentVersion
+            ? t("updates.versionNumber", { version: updater.currentVersion })
+            : t("updates.version")
+        }
+        hint={
+          <span className={updater.status === "error" ? "text-destructive" : undefined}>
             {statusLine(updater, t)}
-          </p>
-        </div>
+          </span>
+        }
+      >
         <Button variant="outline" size="sm" onClick={updater.checkNow} disabled={busy}>
           {t("updates.checkNow")}
         </Button>
-      </div>
-    </div>
+      </SettingRow>
+    </SectionCard>
   );
 }

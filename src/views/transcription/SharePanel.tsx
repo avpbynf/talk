@@ -3,6 +3,8 @@ import { AlertCircle, Check, Loader2, Share2, Trash2 } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
 import { describeShare, useShare } from "@/lib/share";
 import { locale } from "@/i18n";
@@ -71,19 +73,12 @@ export function SharePanel({ currentModel }: SharePanelProps) {
       : "text-muted-foreground";
 
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-[var(--color-active)]/15 flex items-center justify-center">
-            <Share2 className="h-4 w-4 text-[var(--color-active)]" />
-          </div>
-          <div>
-            <h3 className="font-medium text-sm">{t("transcription.share.title")}</h3>
-            <p className="text-xs text-muted-foreground">
-              {t("transcription.share.subtitle")}
-            </p>
-          </div>
-        </div>
+    <SectionCard
+      variant="tile"
+      icon={Share2}
+      title={t("transcription.share.title")}
+      description={t("transcription.share.subtitle")}
+      action={
         <div className="flex items-center gap-2">
           {busy && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           <Switch
@@ -93,8 +88,8 @@ export function SharePanel({ currentModel }: SharePanelProps) {
             aria-label={t("transcription.share.title")}
           />
         </div>
-      </div>
-
+      }
+    >
       {info.enabled && (
         <div className="space-y-1.5 text-xs border-t border-border-subtle pt-4">
           <p className={cn("flex items-center gap-1.5 font-medium", statusClass)}>
@@ -133,15 +128,14 @@ export function SharePanel({ currentModel }: SharePanelProps) {
             <label htmlFor="share-port" className="text-xs font-medium text-muted-foreground">
               {t("transcription.share.port")}
             </label>
-            <input
+            <Input
               id="share-port"
-              type="text"
               inputMode="numeric"
               value={portInput}
               onChange={(e) => setPortInput(e.target.value.replace(/\D/g, ""))}
               onBlur={() => void savePort()}
               onKeyDown={(e) => e.key === "Enter" && void savePort()}
-              className="w-24 px-3 py-1.5 text-sm text-right rounded-lg border border-border-card bg-surface-inset focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]/30 focus:border-[var(--color-active)] font-mono"
+              className="w-24 py-1.5 text-right font-mono"
             />
           </div>
           {portError && (
@@ -183,6 +177,6 @@ export function SharePanel({ currentModel }: SharePanelProps) {
           )}
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

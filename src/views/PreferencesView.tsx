@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import type { CompanionShortcut } from "@/App";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageShell } from "@/components/PageShell";
 import AudioDevicesSection from "./preferences/AudioDevicesSection";
 import RecordingModeSection from "./preferences/RecordingModeSection";
 import ShortcutsSection from "./preferences/ShortcutsSection";
@@ -75,67 +75,50 @@ export default function PreferencesView({
 }: PreferencesViewProps) {
   const { t } = useTranslation();
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-6">
-          <div className="max-w-2xl mx-auto space-y-6">
-            {/* Page title */}
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight">{t("preferences.title")}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {t("preferences.subtitle")}
-              </p>
-            </div>
-
-            {/* Separator */}
-            <div className="h-px bg-border-subtle" />
-
-            <AudioDevicesSection />
-            <RecordingModeSection
-              recordingMode={recordingMode}
-              onRecordingModeChange={onRecordingModeChange}
-            />
-            <ShortcutsSection
-              shortcut={shortcut}
-              onShortcutChange={onShortcutChange}
-              cancelShortcut={cancelShortcut}
-              onCancelShortcutChange={onCancelShortcutChange}
-              pasteShortcut={pasteShortcut}
-              onPasteShortcutChange={onPasteShortcutChange}
-              recordingMode={recordingMode}
-            />
-            <ChainedDictationsSection />
-            <SoundFeedbackSection
-              soundFeedback={soundFeedback}
-              onSoundFeedbackChange={onSoundFeedbackChange}
-              startSound={startSound}
-              onStartSoundChange={onStartSoundChange}
-              stopSound={stopSound}
-              onStopSoundChange={onStopSoundChange}
-            />
-            <MeetingModeSection />
-            <SystemSection
-              autostartEnabled={autostartEnabled}
-              onAutostartChange={onAutostartChange}
-              startMinimized={startMinimized}
-              onStartMinimizedChange={onStartMinimizedChange}
-              duckAudioOnRecord={duckAudioOnRecord}
-              onDuckAudioOnRecordChange={onDuckAudioOnRecordChange}
-              duckVolumePercent={duckVolumePercent}
-              onDuckVolumePercentChange={onDuckVolumePercentChange}
-              preserveClipboard={preserveClipboard}
-              onPreserveClipboardChange={onPreserveClipboardChange}
-            />
-            <LanguageSection />
-            <CompanionShortcutsSection
-              companionShortcuts={companionShortcuts}
-              onCompanionShortcutsChange={onCompanionShortcutsChange}
-            />
-            {/* Last on the page, whatever is added above it */}
-            <UpdatesSection updater={updater} />
-          </div>
-        </div>
-      </ScrollArea>
-    </div>
+    <PageShell title={t("preferences.title")} subtitle={t("preferences.subtitle")}>
+      <AudioDevicesSection />
+      <RecordingModeSection
+        recordingMode={recordingMode}
+        onRecordingModeChange={onRecordingModeChange}
+      />
+      <ShortcutsSection
+        shortcut={shortcut}
+        onShortcutChange={onShortcutChange}
+        cancelShortcut={cancelShortcut}
+        onCancelShortcutChange={onCancelShortcutChange}
+        pasteShortcut={pasteShortcut}
+        onPasteShortcutChange={onPasteShortcutChange}
+        recordingMode={recordingMode}
+      />
+      <ChainedDictationsSection />
+      <SoundFeedbackSection
+        soundFeedback={soundFeedback}
+        onSoundFeedbackChange={onSoundFeedbackChange}
+        startSound={startSound}
+        onStartSoundChange={onStartSoundChange}
+        stopSound={stopSound}
+        onStopSoundChange={onStopSoundChange}
+      />
+      <MeetingModeSection />
+      <SystemSection
+        autostartEnabled={autostartEnabled}
+        onAutostartChange={onAutostartChange}
+        startMinimized={startMinimized}
+        onStartMinimizedChange={onStartMinimizedChange}
+        duckAudioOnRecord={duckAudioOnRecord}
+        onDuckAudioOnRecordChange={onDuckAudioOnRecordChange}
+        duckVolumePercent={duckVolumePercent}
+        onDuckVolumePercentChange={onDuckVolumePercentChange}
+        preserveClipboard={preserveClipboard}
+        onPreserveClipboardChange={onPreserveClipboardChange}
+      />
+      <LanguageSection />
+      <CompanionShortcutsSection
+        companionShortcuts={companionShortcuts}
+        onCompanionShortcutsChange={onCompanionShortcutsChange}
+      />
+      {/* Last on the page, whatever is added above it */}
+      <UpdatesSection updater={updater} />
+    </PageShell>
   );
 }
