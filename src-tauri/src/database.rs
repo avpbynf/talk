@@ -80,7 +80,43 @@ FROM (
 GROUP BY date;
 ";
 
+// Other devices' history, replaced per device on every pull. An entry the
+// reader deleted here is hidden rather than removed, since the next pull would
+// bring it back from the device that owns it.
+const SCHEMA_V5: &str = "
+CREATE TABLE IF NOT EXISTS remote_transcriptions (
+    device_id TEXT NOT NULL,
+    id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    model TEXT,
+    source TEXT NOT NULL DEFAULT 'local',
+    enhanced INTEGER NOT NULL DEFAULT 0,
+    audio_duration_ms INTEGER,
+    processing_time_ms INTEGER,
+    word_count INTEGER NOT NULL DEFAULT 0,
+    char_count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (device_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS hidden_transcriptions (
+    id TEXT PRIMARY KEY
+);
+
+CREATE VIEW IF NOT EXISTS all_transcriptions AS
+SELECT id, text, timestamp, model, source, enhanced,
+       audio_duration_ms, processing_time_ms, word_count, char_count
+FROM transcriptions
+UNION ALL
+SELECT id, text, timestamp, model, source, enhanced,
+       audio_duration_ms, processing_time_ms, word_count, char_count
+FROM remote_transcriptions
+WHERE id NOT IN (SELECT id FROM hidden_transcriptions)
+  AND id NOT IN (SELECT id FROM transcriptions);
+";
+
 pub const META_STATS_RESET: &str = "stats_reset";
+pub const META_HISTORY_CLEARED: &str = "history_cleared";
 const META_DEVICE_ID: &str = "device_id";
 
 const AVERAGE_SPEECH_RATE_WPM: f64 = 150.0;
@@ -263,6 +299,21 @@ pub struct YearlyDayActivity {
     pub count: i64,
 }
 
+fn transcription_from_row(row: &rusqlite::Row<'_>) -> Result<TranscriptionRow> {
+    Ok(TranscriptionRow {
+        id: row.get(0)?,
+        text: row.get(1)?,
+        timestamp: row.get(2)?,
+        model: row.get(3)?,
+        source: row.get(4)?,
+        enhanced: row.get::<_, i32>(5)? != 0,
+        audio_duration_ms: row.get(6)?,
+        processing_time_ms: row.get(7)?,
+        word_count: row.get(8)?,
+        char_count: row.get(9)?,
+    })
+}
+
 // ---------------------------------------------------------------------------
 // Database implementation
 // ---------------------------------------------------------------------------
@@ -324,6 +375,11 @@ impl Database {
         if version < 4 {
             conn.execute_batch(SCHEMA_V4)?;
             conn.pragma_update(None, "user_version", 4)?;
+        }
+
+        if version < 5 {
+            conn.execute_batch(SCHEMA_V5)?;
+            conn.pragma_update(None, "user_version", 5)?;
         }
 
         Ok(())
@@ -417,16 +473,131 @@ impl Database {
         Ok(rows)
     }
 
-    pub fn get_transcription_count(&self) -> Result<i64> {
+    /// What the history page shows: this machine's entries and the other
+    /// devices', newest first, each id once.
+    pub fn get_history(&self, limit: i64, offset: i64) -> Result<Vec<TranscriptionRow>> {
         let conn = self.conn.lock();
-        conn.query_row("SELECT COUNT(*) FROM transcriptions", [], |row| {
-            row.get(0)
-        })
+        let mut stmt = conn.prepare(
+            "SELECT id, text, timestamp, model, source, enhanced,
+                    audio_duration_ms, processing_time_ms, word_count, char_count
+             FROM all_transcriptions
+             ORDER BY timestamp DESC
+             LIMIT ?1 OFFSET ?2",
+        )?;
+        let rows = stmt
+            .query_map(params![limit, offset], transcription_from_row)?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(rows)
+    }
+
+    pub fn get_history_count(&self) -> Result<i64> {
+        self.conn
+            .lock()
+            .query_row("SELECT COUNT(*) FROM all_transcriptions", [], |row| row.get(0))
+    }
+
+    /// Every entry this machine made, which is what gets uploaded.
+    pub fn local_transcriptions(&self) -> Result<Vec<TranscriptionRow>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare(
+            "SELECT id, text, timestamp, model, source, enhanced,
+                    audio_duration_ms, processing_time_ms, word_count, char_count
+             FROM transcriptions
+             ORDER BY timestamp DESC",
+        )?;
+        let rows = stmt
+            .query_map([], transcription_from_row)?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(rows)
+    }
+
+    /// Swap everything held for one device with what it just uploaded.
+    pub fn replace_remote_history(&self, device_id: &str, rows: &[TranscriptionRow]) -> Result<()> {
+        let mut conn = self.conn.lock();
+        let tx = conn.transaction()?;
+        tx.execute(
+            "DELETE FROM remote_transcriptions WHERE device_id = ?1",
+            params![device_id],
+        )?;
+        for row in rows {
+            tx.execute(
+                "INSERT OR REPLACE INTO remote_transcriptions
+                    (device_id, id, text, timestamp, model, source, enhanced,
+                     audio_duration_ms, processing_time_ms, word_count, char_count)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    device_id,
+                    row.id,
+                    row.text,
+                    row.timestamp,
+                    row.model,
+                    row.source,
+                    row.enhanced as i32,
+                    row.audio_duration_ms,
+                    row.processing_time_ms,
+                    row.word_count,
+                    row.char_count,
+                ],
+            )?;
+        }
+        tx.commit()
+    }
+
+    pub fn remote_history_devices(&self) -> Result<Vec<String>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare("SELECT DISTINCT device_id FROM remote_transcriptions")?;
+        let ids = stmt
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<String>>>()?;
+        Ok(ids)
+    }
+
+    pub fn delete_remote_history_device(&self, device_id: &str) -> Result<()> {
+        self.conn.lock().execute(
+            "DELETE FROM remote_transcriptions WHERE device_id = ?1",
+            params![device_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn remote_stats_devices(&self) -> Result<Vec<String>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare("SELECT DISTINCT device_id FROM remote_daily_stats")?;
+        let ids = stmt
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<String>>>()?;
+        Ok(ids)
+    }
+
+    pub fn delete_remote_stats_device(&self, device_id: &str) -> Result<()> {
+        self.conn.lock().execute(
+            "DELETE FROM remote_daily_stats WHERE device_id = ?1",
+            params![device_id],
+        )?;
+        Ok(())
+    }
+
+    /// Forget everything other devices uploaded, history and hides included.
+    pub fn clear_remote_history(&self) -> Result<()> {
+        let conn = self.conn.lock();
+        conn.execute("DELETE FROM remote_transcriptions", [])?;
+        conn.execute("DELETE FROM hidden_transcriptions", [])?;
+        Ok(())
     }
 
     pub fn clear_transcriptions(&self) -> Result<()> {
         let conn = self.conn.lock();
         conn.execute("DELETE FROM transcriptions", [])?;
+        // What other devices hold stays theirs, but it leaves this page.
+        conn.execute(
+            "INSERT OR IGNORE INTO hidden_transcriptions (id) SELECT id FROM remote_transcriptions",
+            [],
+        )?;
+        // Only a clear somebody asked for takes this device's uploaded file down.
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, '1')",
+            params![META_HISTORY_CLEARED],
+        )?;
         Ok(())
     }
 
@@ -505,7 +676,7 @@ impl Database {
                     COALESCE(SUM(word_count), 0),
                     COALESCE(SUM(audio_duration_ms), 0),
                     COALESCE(SUM(processing_time_ms), 0)
-                 FROM transcriptions
+                 FROM all_transcriptions
                  WHERE audio_duration_ms > 0 AND processing_time_ms > 0{}",
                     match &period_start {
                         Some(start) => format!(" AND date(timestamp, 'localtime') >= '{}'", start),
@@ -660,7 +831,16 @@ impl Database {
     pub fn delete_transcription(&self, id: &str) -> Result<bool> {
         let conn = self.conn.lock();
         let removed = conn.execute("DELETE FROM transcriptions WHERE id = ?1", params![id])?;
-        Ok(removed > 0)
+        if removed > 0 {
+            return Ok(true);
+        }
+        // Not ours: it belongs to another device, so it is hidden here.
+        let hidden = conn.execute(
+            "INSERT OR IGNORE INTO hidden_transcriptions (id)
+             SELECT id FROM remote_transcriptions WHERE id = ?1",
+            params![id],
+        )?;
+        Ok(hidden > 0)
     }
 
     /// Keep only the newest `keep` transcriptions, and say how many went.
@@ -1231,5 +1411,131 @@ mod tests {
         db.reset_stats().expect("should reset");
 
         assert_eq!(db.get_meta(META_STATS_RESET).expect("should read").as_deref(), Some("1"));
+    }
+
+    fn remote_entry(id: &str, day: u32) -> TranscriptionRow {
+        TranscriptionRow {
+            id: id.to_string(),
+            text: format!("from elsewhere {}", id),
+            timestamp: format!("2026-08-{:02}T12:00:00Z", day),
+            model: None,
+            source: "local".to_string(),
+            enhanced: false,
+            audio_duration_ms: None,
+            processing_time_ms: None,
+            word_count: 3,
+            char_count: 20,
+        }
+    }
+
+    fn history_ids(db: &Database) -> Vec<String> {
+        db.get_history(1000, 0).expect("should read").into_iter().map(|t| t.id).collect()
+    }
+
+    #[test]
+    fn the_history_merges_both_machines_by_date() {
+        let db = in_memory();
+        add(&db, "mine1", 1);
+        add(&db, "mine3", 3);
+        db.replace_remote_history("laptop", &[remote_entry("far2", 2), remote_entry("far4", 4)])
+            .expect("should store");
+
+        assert_eq!(history_ids(&db), vec!["far4", "mine3", "far2", "mine1"]);
+        assert_eq!(db.get_history_count().expect("should count"), 4);
+    }
+
+    #[test]
+    fn pulling_the_history_again_does_not_duplicate_it() {
+        let db = in_memory();
+        let rows = [remote_entry("far1", 1), remote_entry("far2", 2)];
+        db.replace_remote_history("laptop", &rows).expect("should store");
+        db.replace_remote_history("laptop", &rows).expect("should store");
+        db.replace_remote_history("laptop", &rows[..1]).expect("should store");
+
+        assert_eq!(history_ids(&db), vec!["far1"]);
+    }
+
+    #[test]
+    fn an_entry_present_on_both_sides_shows_once() {
+        let db = in_memory();
+        add(&db, "same", 1);
+        db.replace_remote_history("laptop", &[remote_entry("same", 1)]).expect("should store");
+
+        assert_eq!(history_ids(&db), vec!["same"]);
+    }
+
+    #[test]
+    fn deleting_another_devices_entry_hides_it_across_pulls() {
+        let db = in_memory();
+        add(&db, "mine", 1);
+        db.replace_remote_history("laptop", &[remote_entry("far", 2)]).expect("should store");
+
+        assert!(db.delete_transcription("far").expect("should hide"));
+        assert_eq!(history_ids(&db), vec!["mine"]);
+
+        db.replace_remote_history("laptop", &[remote_entry("far", 2)]).expect("should store");
+        assert_eq!(history_ids(&db), vec!["mine"]);
+        assert!(!db.delete_transcription("unknown").expect("should not fail"));
+    }
+
+    #[test]
+    fn clearing_the_history_keeps_what_other_devices_uploaded_out_of_sight() {
+        let db = in_memory();
+        add(&db, "mine", 1);
+        db.replace_remote_history("laptop", &[remote_entry("far", 2)]).expect("should store");
+
+        db.clear_transcriptions().expect("should clear");
+
+        assert!(history_ids(&db).is_empty());
+        assert!(db.local_transcriptions().expect("should read").is_empty());
+    }
+
+    #[test]
+    fn signing_out_brings_the_hidden_entries_back_with_nothing_else_lost() {
+        let db = in_memory();
+        add(&db, "mine", 1);
+        db.replace_remote_history("laptop", &[remote_entry("far", 2)]).expect("should store");
+        db.delete_transcription("far").expect("should hide");
+
+        db.clear_remote_history().expect("should clear");
+
+        assert_eq!(history_ids(&db), vec!["mine"]);
+    }
+
+    #[test]
+    fn the_uploaded_history_is_only_this_machines_own() {
+        let db = in_memory();
+        add(&db, "mine", 1);
+        db.replace_remote_history("laptop", &[remote_entry("far", 2)]).expect("should store");
+
+        let own = db.local_transcriptions().expect("should read");
+
+        assert_eq!(own.len(), 1);
+        assert_eq!(own[0].id, "mine");
+    }
+
+    #[test]
+    fn the_measured_figures_count_what_other_devices_measured_too() {
+        let db = in_memory();
+        add_measured(&db, "mine", 1, 60_000, 2_000);
+        let mut far = remote_entry("far", 2);
+        far.audio_duration_ms = Some(30_000);
+        far.processing_time_ms = Some(1_000);
+        db.replace_remote_history("laptop", &[far]).expect("should store");
+
+        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+
+        assert_eq!(summary.measured_count, 2);
+        assert!((summary.measured_audio_minutes - 1.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_clear_is_recorded_for_the_sync_and_an_empty_history_alone_is_not() {
+        let db = in_memory();
+        assert_eq!(db.get_meta(META_HISTORY_CLEARED).expect("should read"), None);
+
+        db.clear_transcriptions().expect("should clear");
+
+        assert_eq!(db.get_meta(META_HISTORY_CLEARED).expect("should read").as_deref(), Some("1"));
     }
 }

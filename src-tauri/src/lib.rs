@@ -291,14 +291,14 @@ fn db_get_transcriptions(
     offset: i64,
     db: tauri::State<'_, database::Database>,
 ) -> Result<Vec<database::TranscriptionRow>, String> {
-    db.get_transcriptions(limit, offset).map_err(|e| e.to_string())
+    db.get_history(limit, offset).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn db_get_transcription_count(
     db: tauri::State<'_, database::Database>,
 ) -> Result<i64, String> {
-    db.get_transcription_count().map_err(|e| e.to_string())
+    db.get_history_count().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
