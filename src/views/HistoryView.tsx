@@ -1,5 +1,6 @@
 import { Transcription } from "@/App";
-import { UI_LOCALE } from "@/lib/analytics";
+import { useTranslation } from "react-i18next";
+import { locale } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RETENTION_OPTIONS, retentionWouldDelete } from "@/lib/retention";
@@ -31,6 +32,8 @@ export default function HistoryView({
   historyLimit,
   onHistoryLimitChange,
 }: HistoryViewProps) {
+  // Not `t`: the cards below map their rows under that name.
+  const { t: tr } = useTranslation();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   // A retention choice waiting on the reader, set only when applying it
@@ -44,7 +47,7 @@ export default function HistoryView({
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString(UI_LOCALE, {
+    return date.toLocaleTimeString(locale(), {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -56,11 +59,11 @@ export default function HistoryView({
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return "Today";
+      return tr("history.today");
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
+      return tr("history.yesterday");
     }
-    return date.toLocaleDateString(UI_LOCALE, { day: "numeric", month: "short" });
+    return date.toLocaleDateString(locale(), { day: "numeric", month: "short" });
   };
 
   const isEmpty = transcriptions.length === 0;
@@ -73,7 +76,7 @@ export default function HistoryView({
             {/* Header — always visible */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-semibold tracking-tight">History</h1>
+                <h1 className="text-xl font-semibold tracking-tight">{tr("history.title")}</h1>
                 {/*
                   The retention lives behind the count rather than in a control
                   of its own. It is read far more often than it is changed, and
@@ -82,8 +85,8 @@ export default function HistoryView({
                 <div className="flex items-baseline gap-1 mt-0.5">
                   <p className="text-sm text-muted-foreground">
                     {isEmpty
-                      ? "Nothing dictated yet"
-                      : `${transcriptions.length} of ${historyLimit} kept`}
+                      ? tr("history.empty")
+                      : tr("history.kept", { number: transcriptions.length, limit: historyLimit })}
                   </p>
                   <Select
                     value={String(historyLimit)}
@@ -97,14 +100,14 @@ export default function HistoryView({
                     }}
                   >
                     <SelectTrigger
-                      aria-label="How many transcriptions to keep"
-                      title="How many transcriptions to keep"
+                      aria-label={tr("history.keepHowMany")}
+                      title={tr("history.keepHowMany")}
                       className="h-auto w-auto gap-0 border-0 bg-transparent p-0 text-muted-foreground/40 shadow-none hover:text-muted-foreground focus:ring-0 [&>span]:hidden"
                     />
                     <SelectContent>
                       {RETENTION_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={String(option.value)}>
-                          Keep {option.label}
+                          {tr("history.keepOption", { value: option.label })}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -117,8 +120,8 @@ export default function HistoryView({
                   size="icon"
                   onClick={() => setConfirmClear(true)}
                   disabled={isEmpty}
-                  aria-label="Clear the whole history"
-                  title="Clear the whole history"
+                  aria-label={tr("history.clearAll")}
+                  title={tr("history.clearAll")}
                   className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -130,7 +133,7 @@ export default function HistoryView({
 
             {isEmpty ? (
               <p className="text-sm text-muted-foreground text-center leading-relaxed">
-                Press
+                {tr("history.press")}
                 <span className="mx-2 inline-flex items-center gap-1">
                   {shortcut.split("+").map((key, i, arr) => (
                     <span key={key} className="inline-flex items-center">
@@ -141,7 +144,7 @@ export default function HistoryView({
                     </span>
                   ))}
                 </span>
-                and start talking
+                {tr("history.startTalking")}
               </p>
             ) : (
               <div className="space-y-3">
@@ -205,12 +208,12 @@ export default function HistoryView({
                         return source === "server" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-server)]/10 text-[var(--color-server)] border border-[var(--color-server)]/20">
                             <Globe size={10} />
-                            Server
+                            {tr("history.server")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-active)]/10 text-[var(--color-active)] border border-[var(--color-active)]/20">
                             <HardDrive size={10} />
-                            Local
+                            {tr("history.local")}
                           </span>
                         );
                       })()}
@@ -229,8 +232,8 @@ export default function HistoryView({
                           e.stopPropagation();
                           onDelete(t.id);
                         }}
-                        aria-label="Delete this transcription"
-                        title="Delete this transcription"
+                        aria-label={tr("history.delete")}
+                        title={tr("history.delete")}
                         className="cursor-pointer p-1 rounded-md text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -248,8 +251,8 @@ export default function HistoryView({
 
       <ConfirmDialog
         open={confirmClear}
-        title="Clear the whole history?"
-        description={`All ${transcriptions.length} of them go, and they do not come back.`}
+        title={tr("history.clearConfirm.title")}
+        description={tr("history.clearConfirm.description", { number: transcriptions.length })}
         confirmIcon={<Trash2 className="h-4 w-4 mr-2" />}
         onCancel={() => setConfirmClear(false)}
         onConfirm={() => {
@@ -260,8 +263,8 @@ export default function HistoryView({
 
       <ConfirmDialog
         open={pendingLimit !== null}
-        title={`Keep only ${pendingLimit} transcriptions?`}
-        description={`${retentionWouldDelete(transcriptions.length, pendingLimit ?? 0)} older ones go, and they do not come back. The statistics keep counting them.`}
+        title={tr("history.limitConfirm.title", { limit: pendingLimit })}
+        description={tr("history.limitConfirm.description", { number: retentionWouldDelete(transcriptions.length, pendingLimit ?? 0) })}
         confirmIcon={<Trash2 className="h-4 w-4 mr-2" />}
         onCancel={() => setPendingLimit(null)}
         onConfirm={() => {
