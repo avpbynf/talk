@@ -181,7 +181,7 @@ export default function VocabularyView({
         </div>
 
         {/* Word list */}
-        <div className="flex-1 min-h-0 flex flex-col pt-5 px-5 pb-3 rounded-xl border border-border-card bg-surface-raised gap-3">
+        <div className="min-h-0 flex flex-col pt-5 px-5 pb-3 rounded-xl border border-border-card bg-surface-raised gap-3">
           <div className="flex items-center justify-between pb-2">
             <label className="text-sm font-medium">
               {t("vocabulary.yourTerms", { number: vocabulary.length })}
@@ -200,7 +200,7 @@ export default function VocabularyView({
           </div>
 
           {vocabulary.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 text-center text-muted-foreground border border-dashed border-border-card rounded-lg">
+            <div className="py-8 text-center text-muted-foreground border border-dashed border-border-card rounded-lg">
               <BookText className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">{t("vocabulary.emptyTitle")}</p>
               <p className="text-xs mt-1">{t("vocabulary.emptyHint")}</p>
@@ -212,7 +212,7 @@ export default function VocabularyView({
               onDragEnd={handleDragEnd}
             >
               <SortableContext items={vocabulary} strategy={rectSortingStrategy}>
-                <ScrollArea className="flex-1 min-h-0">
+                <ScrollArea className="min-h-0">
                   <div className="flex flex-wrap content-start gap-2 p-0.5 pr-3 pb-2">
                     {vocabulary.map((word) => (
                       <SortableVocabularyItem
