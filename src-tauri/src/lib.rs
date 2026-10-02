@@ -13,6 +13,7 @@ mod server_transcription;
 mod settings;
 mod share;
 mod sound;
+mod sync;
 mod transcription;
 mod virtual_mic;
 
@@ -1342,6 +1343,9 @@ pub fn run() {
             set_server_token,
             get_server_model,
             set_server_model,
+            sync::google_status,
+            sync::google_sign_in,
+            sync::google_sign_out,
             get_companion_shortcuts,
             set_companion_shortcuts,
             simulate_keystroke_cmd,
