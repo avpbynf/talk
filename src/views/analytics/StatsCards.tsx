@@ -28,7 +28,7 @@ function StatCard({ label, value, detail, colorVar }: StatCardProps) {
           className="h-1.5 w-1.5 rounded-full shrink-0"
           style={{ backgroundColor: `var(${colorVar})` }}
         />
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium truncate">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium leading-tight">
           {label}
         </span>
       </div>
@@ -38,7 +38,7 @@ function StatCard({ label, value, detail, colorVar }: StatCardProps) {
       >
         {value}
       </div>
-      <p className="text-[10px] text-muted-foreground/50 mt-1.5 truncate leading-tight">
+      <p className="text-[10px] text-muted-foreground/50 mt-1.5 leading-tight">
         {detail}
       </p>
     </div>

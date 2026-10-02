@@ -28,13 +28,13 @@ export function CostComparison({ summary }: CostComparisonProps) {
             {HOSTED_APIS.map((api) => (
               <div key={api.name} className="py-1.5">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm min-w-0 truncate">{api.name}</span>
+                  <span className="text-sm min-w-0">{api.name}</span>
                   <span className="text-sm shrink-0 text-[var(--color-destructive)]">
                     {formatUsd(apiCost(minutes, api))}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 text-[11px] text-muted-foreground/50">
-                  <span className="min-w-0 truncate">{t(api.note)}</span>
+                  <span className="min-w-0">{t(api.note)}</span>
                   <span className="shrink-0">{t("dashboard.cost.perMinute", { price: formatUsd(api.usdPerMin, 4) })}</span>
                 </div>
               </div>

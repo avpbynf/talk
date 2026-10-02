@@ -38,13 +38,13 @@ export function SubscriptionComparison({ summary }: SubscriptionComparisonProps)
             {COMPETITORS.map((c) => (
               <div key={c.name} className="py-1.5">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm min-w-0 truncate">{c.name}</span>
+                  <span className="text-sm min-w-0">{c.name}</span>
                   <span className="text-sm shrink-0 text-[var(--color-destructive)]">
                     {formatUsd(c.monthlyUsd * months)}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 text-[11px] text-muted-foreground/50">
-                  <span className="min-w-0 truncate">{t(c.note)}</span>
+                  <span className="min-w-0">{t(c.note)}</span>
                   <span className="shrink-0">{t("dashboard.subscription.perMonth", { price: formatUsd(c.monthlyUsd) })}</span>
                 </div>
               </div>
