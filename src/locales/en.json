@@ -37,6 +37,11 @@
       "year": "Year",
       "all": "All time"
     },
+    "scope": {
+      "label": "Device scope",
+      "all": "All devices",
+      "this": "This device"
+    },
     "reset": {
       "label": "Reset stats",
       "title": "Reset the statistics?",

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (dashboard) Switch the dashboard between all your devices and this one
+
+Once another machine has synced, the dashboard shows an All devices / This device toggle. All
+devices is what it showed before, the sum of every machine. This device counts only what was
+dictated on this PC. It opens on All devices every time Talk starts, and nothing shows until a
+second machine has synced.
+
 - (preferences) Sign in with Google to keep several machines in step
 
 A new Account card in Preferences signs in with Google, which is entirely optional: nothing in Talk

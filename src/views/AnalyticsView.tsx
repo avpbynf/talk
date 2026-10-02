@@ -12,6 +12,8 @@ import type { TranscriptionMode } from "@/App";
 import type { ServerStatus } from "@/views/transcription/TranscriptionView";
 import { ReadyBand } from "@/views/analytics/ReadyBand";
 import { PeriodFilter } from "@/views/analytics/PeriodFilter";
+import { DeviceScopeFilter } from "@/views/analytics/DeviceScopeFilter";
+import type { DeviceScope } from "@/views/analytics/DeviceScopeFilter";
 import { StatsCards } from "@/views/analytics/StatsCards";
 import { Facts } from "@/views/analytics/Facts";
 import { ActivityChart } from "@/views/analytics/ActivityChart";
@@ -41,24 +43,33 @@ export default function AnalyticsView({
   const [userWpm, setUserWpm] = useState<number>(() => loadUserWpm());
   const [showGame, setShowGame] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
+  // Not persisted: every start opens on all devices.
+  const [scope, setScope] = useState<DeviceScope>("all");
+  const [hasRemote, setHasRemote] = useState(false);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [yearlyActivity, setYearlyActivity] = useState<YearlyDayActivity[]>([]);
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const fetchAnalytics = useCallback(async (wpm: number, selected: Period) => {
+  // With nothing synced there is one device to look at, whatever was picked.
+  const includeRemote = scope === "all" || !hasRemote;
+
+  const fetchAnalytics = useCallback(async (wpm: number, selected: Period, withRemote: boolean) => {
     try {
-      const [data, yearly] = await Promise.all([
+      const [data, yearly, remote] = await Promise.all([
         invoke<AnalyticsSummary>("db_get_analytics_summary", {
           userWpm: wpm,
           periodDays: PERIOD_DAYS[selected],
+          includeRemote: withRemote,
         }),
         // Deliberately not filtered: the graph is the whole year whatever the
         // stats below are showing, which is what makes the two readable side by
         // side rather than saying the same thing twice.
-        invoke<YearlyDayActivity[]>("db_get_yearly_activity"),
+        invoke<YearlyDayActivity[]>("db_get_yearly_activity", { includeRemote: withRemote }),
+        invoke<boolean>("db_has_remote_data"),
       ]);
       setSummary(data);
       setYearlyActivity(yearly);
+      setHasRemote(remote === true);
     } catch (err) {
       console.error("Failed to fetch analytics:", err);
     }
@@ -68,15 +79,15 @@ export default function AnalyticsView({
     try {
       await invoke("db_reset_stats");
       setConfirmReset(false);
-      fetchAnalytics(userWpm, period);
+      fetchAnalytics(userWpm, period, includeRemote);
     } catch (err) {
       console.error("Failed to reset stats:", err);
     }
-  }, [fetchAnalytics, userWpm, period]);
+  }, [fetchAnalytics, userWpm, period, includeRemote]);
 
   useEffect(() => {
-    fetchAnalytics(userWpm, period);
-  }, [fetchAnalytics, userWpm, period]);
+    fetchAnalytics(userWpm, period, includeRemote);
+  }, [fetchAnalytics, userWpm, period, includeRemote]);
 
   // transcription-complete now means the row is in: Rust saves it before it
   // announces it. There was a stretch where the frontend did the saving on this
@@ -85,13 +96,13 @@ export default function AnalyticsView({
   useEffect(() => {
     // A sync is the other way the figures move: other machines' counts arrive.
     const unlisten = Promise.all([
-      listen("transcription-complete", () => fetchAnalytics(userWpm, period)),
-      listen("sync-finished", () => fetchAnalytics(userWpm, period)),
+      listen("transcription-complete", () => fetchAnalytics(userWpm, period, includeRemote)),
+      listen("sync-finished", () => fetchAnalytics(userWpm, period, includeRemote)),
     ]);
     return () => {
       unlisten.then((fns) => fns.forEach((f) => f()));
     };
-  }, [fetchAnalytics, userWpm, period]);
+  }, [fetchAnalytics, userWpm, period, includeRemote]);
 
   return (
     <PageShell
@@ -120,16 +131,19 @@ export default function AnalyticsView({
       {/* The filter moves everything below it and nothing above. */}
       <div className="flex items-center justify-between pt-1">
         <PeriodFilter value={period} onChange={setPeriod} />
-        <Button
+        <div className="flex items-center gap-2">
+          {hasRemote && <DeviceScopeFilter value={scope} onChange={setScope} />}
+          <Button
           variant="ghost"
           size="icon"
           onClick={() => setConfirmReset(true)}
           aria-label={t("dashboard.reset.label")}
           title={t("dashboard.reset.label")}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {summary ? (
