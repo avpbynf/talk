@@ -10,6 +10,7 @@ const server: DiscoveredServer = {
   url: "http://192.168.1.20:4060",
   version: null,
   model: "large-v3-turbo",
+  pairing: false,
 };
 
 describe("ServerOfferBanner", () => {

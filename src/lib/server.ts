@@ -21,4 +21,18 @@ export interface DiscoveredServer {
   url: string;
   version: string | null;
   model: string | null;
+  pairing: boolean;
+}
+
+/** Why `pair_request` or `pair_confirm` refused. */
+export type PairError = "not_supported" | "busy" | "wrong_code" | "expired" | "unreachable";
+
+export interface PairRequest {
+  request_id: string;
+  expires_in: number;
+}
+
+export interface PairGrant {
+  token: string;
+  name: string;
 }

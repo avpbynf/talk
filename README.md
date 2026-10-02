@@ -83,7 +83,8 @@ recording in progress, and once there is none, what is still transcribing.
 **Servers on the network are found for you.** A Talk-Server announces itself, and the
 Transcription page lists the ones it hears with their model and address, so pointing Talk at
 one is a click. The first time a new server shows up while dictation runs locally, a strip under
-the titlebar offers to switch to it.
+the titlebar offers to switch to it. A server that requires a token can be paired instead of
+copied from: Talk asks for a code, you read it off the server, and the token fills itself in.
 
 **A vocabulary biases the model toward your words.** Product names, colleagues,
 libraries, anything Whisper would otherwise turn into the nearest common word. It is a

@@ -16,6 +16,8 @@ pub struct DiscoveredServer {
     pub url: String,
     pub version: Option<String>,
     pub model: Option<String>,
+    /// Whether the server accepts pairing requests, from the `pairing` TXT key
+    pub pairing: bool,
 }
 
 /// The servers currently on the network, shared with the commands
@@ -76,6 +78,7 @@ pub fn server_from_parts(
         url: format!("http://{}:{}", address, port),
         version: non_empty("version"),
         model: non_empty("model"),
+        pairing: non_empty("pairing").as_deref() == Some("1"),
     })
 }
 
@@ -164,6 +167,7 @@ mod tests {
             url: "http://10.0.0.2:8000".to_string(),
             version: None,
             model: None,
+            pairing: false,
         }
     }
 
@@ -196,6 +200,17 @@ mod tests {
 
         assert_eq!(found.version, None);
         assert_eq!(found.model, None);
+        assert!(!found.pairing);
+    }
+
+    #[test]
+    fn the_pairing_flag_follows_the_txt_key() {
+        let address = [Ipv4Addr::new(10, 0, 0, 5)];
+        let on = server_from_parts(FULLNAME, 8000, &address, props(&[("pairing", "1")]));
+        let off = server_from_parts(FULLNAME, 8000, &address, props(&[("pairing", "0")]));
+
+        assert!(on.unwrap().pairing);
+        assert!(!off.unwrap().pairing);
     }
 
     #[test]

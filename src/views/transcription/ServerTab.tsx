@@ -3,7 +3,8 @@ import { AlertCircle, Check, Clock, KeyRound, Loader2, Radar, RefreshCw, Server,
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { useDiscoveredServers } from "@/lib/use-discovered-servers";
-import type { DiscoveredServer } from "@/lib/server";
+import type { DiscoveredServer, PairGrant } from "@/lib/server";
+import { PairPanel } from "./PairPanel";
 import type { ServerStatus } from "./TranscriptionView";
 
 interface ServerTabProps {
@@ -68,7 +69,29 @@ export function ServerTab({
   const [urlError, setUrlError] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState(serverToken || "");
 
+  const [pairTarget, setPairTarget] = useState<{ url: string; label: string } | null>(null);
+
   const discovered = useDiscoveredServers();
+
+  const pairTyped = () => {
+    try {
+      new URL(urlInput);
+      setUrlError(null);
+      setPairTarget({ url: urlInput, label: urlInput });
+    } catch {
+      setUrlError("URL invalide");
+    }
+  };
+
+  const paired = (grant: PairGrant, url: string) => {
+    setPairTarget(null);
+    setUrlInput(url);
+    setUrlError(null);
+    setTokenInput(grant.token);
+    onServerUrlChange(url);
+    onServerTokenChange(grant.token);
+    checkServerHealth(false);
+  };
 
   const pickServer = (server: DiscoveredServer) => {
     setUrlInput(server.url);
@@ -147,9 +170,17 @@ export function ServerTab({
 
           {/* API token */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              API token <span className="text-xs font-normal">(optional)</span>
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                API token <span className="text-xs font-normal">(optional)</span>
+              </label>
+              <button
+                onClick={pairTyped}
+                className="cursor-pointer text-xs font-medium text-server hover:underline"
+              >
+                Pair with this server
+              </button>
+            </div>
             <input
               type="password"
               value={tokenInput}
@@ -162,6 +193,16 @@ export function ServerTab({
           </div>
         </div>
       </div>
+
+      {pairTarget && (
+        <PairPanel
+          key={pairTarget.url}
+          url={pairTarget.url}
+          label={pairTarget.label}
+          onPaired={paired}
+          onClose={() => setPairTarget(null)}
+        />
+      )}
 
       {/* Servers on this network */}
       <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
@@ -191,13 +232,23 @@ export function ServerTab({
                     <span className="font-mono">{server.url}</span>
                   </p>
                 </div>
-                <button
-                  onClick={() => pickServer(server)}
-                  disabled={server.url === serverUrl}
-                  className="cursor-pointer shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  {server.url === serverUrl ? "In use" : "Use"}
-                </button>
+                <div className="flex shrink-0 gap-2">
+                  {server.pairing && (
+                    <button
+                      onClick={() => setPairTarget({ url: server.url, label: server.name })}
+                      className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active"
+                    >
+                      Pair
+                    </button>
+                  )}
+                  <button
+                    onClick={() => pickServer(server)}
+                    disabled={server.url === serverUrl}
+                    className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
+                  >
+                    {server.url === serverUrl ? "In use" : "Use"}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

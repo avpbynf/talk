@@ -81,6 +81,116 @@ pub async fn check_server(base_url: &str, token: Option<&str>, timeout_ms: u64) 
     }
 }
 
+/// Why a pairing step did not go through, worded by the UI
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PairError {
+    /// The server has pairing off, or predates it
+    NotSupported,
+    /// Too many requests are already waiting on the server
+    Busy,
+    WrongCode,
+    /// Unknown, expired, or dropped after too many wrong codes
+    Expired,
+    Unreachable,
+}
+
+/// What `/pairing/request` hands back
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PairRequest {
+    pub request_id: String,
+    #[serde(default)]
+    pub expires_in: u64,
+}
+
+/// What `/pairing/confirm` hands back
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PairGrant {
+    pub token: String,
+    #[serde(default)]
+    pub name: String,
+}
+
+pub fn request_outcome(status: u16) -> Result<(), PairError> {
+    match status {
+        201 => Ok(()),
+        404 => Err(PairError::NotSupported),
+        429 => Err(PairError::Busy),
+        _ => Err(PairError::Unreachable),
+    }
+}
+
+pub fn confirm_outcome(status: u16) -> Result<(), PairError> {
+    match status {
+        200 => Ok(()),
+        401 => Err(PairError::WrongCode),
+        410 => Err(PairError::Expired),
+        404 => Err(PairError::NotSupported),
+        _ => Err(PairError::Unreachable),
+    }
+}
+
+/// The name the server shows beside the code, so its owner can tell which
+/// machine is asking.
+fn client_name() -> String {
+    std::env::var("COMPUTERNAME")
+        .ok()
+        .map(|n| n.trim().to_string())
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| "Talk".to_string())
+}
+
+async fn pairing_post<B, T>(
+    base_url: &str,
+    route: &str,
+    body: &B,
+    outcome: fn(u16) -> Result<(), PairError>,
+) -> Result<T, PairError>
+where
+    B: Serialize,
+    T: serde::de::DeserializeOwned,
+{
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|_| PairError::Unreachable)?;
+    let url = format!("{}/pairing/{}", base_url.trim_end_matches('/'), route);
+    let response = client
+        .post(&url)
+        .json(body)
+        .send()
+        .await
+        .map_err(|_| PairError::Unreachable)?;
+    outcome(response.status().as_u16())?;
+    response.json().await.map_err(|_| PairError::Unreachable)
+}
+
+/// Ask the server to start a pairing, which makes it show a code to its owner
+pub async fn pair_request(base_url: &str) -> Result<PairRequest, PairError> {
+    #[derive(Serialize)]
+    struct Body {
+        client_name: String,
+    }
+    let body = Body {
+        client_name: client_name(),
+    };
+    pairing_post(base_url, "request", &body, request_outcome).await
+}
+
+/// Trade the code read off the server for a token
+pub async fn pair_confirm(
+    base_url: &str,
+    request_id: &str,
+    code: &str,
+) -> Result<PairGrant, PairError> {
+    #[derive(Serialize)]
+    struct Body<'a> {
+        request_id: &'a str,
+        code: &'a str,
+    }
+    pairing_post(base_url, "confirm", &Body { request_id, code }, confirm_outcome).await
+}
+
 /// Transcribe audio using the server with SSE streaming
 ///
 /// Uses reqwest directly with manual SSE parsing to support multipart uploads.
@@ -298,6 +408,34 @@ mod tests {
         for status in [301, 500, 502, 503] {
             assert_eq!(classify_status(status), ServerCheck::Unreachable, "{}", status);
         }
+    }
+
+    #[test]
+    fn a_pairing_request_maps_each_status_to_its_outcome() {
+        assert_eq!(request_outcome(201), Ok(()));
+        assert_eq!(request_outcome(404), Err(PairError::NotSupported));
+        assert_eq!(request_outcome(429), Err(PairError::Busy));
+        assert_eq!(request_outcome(500), Err(PairError::Unreachable));
+        assert_eq!(request_outcome(200), Err(PairError::Unreachable));
+    }
+
+    #[test]
+    fn a_pairing_confirmation_maps_each_status_to_its_outcome() {
+        assert_eq!(confirm_outcome(200), Ok(()));
+        assert_eq!(confirm_outcome(401), Err(PairError::WrongCode));
+        assert_eq!(confirm_outcome(410), Err(PairError::Expired));
+        assert_eq!(confirm_outcome(404), Err(PairError::NotSupported));
+        assert_eq!(confirm_outcome(502), Err(PairError::Unreachable));
+    }
+
+    #[test]
+    fn pairing_errors_reach_the_frontend_in_snake_case() {
+        let json = |e: PairError| serde_json::to_string(&e).unwrap();
+        assert_eq!(json(PairError::NotSupported), r#""not_supported""#);
+        assert_eq!(json(PairError::WrongCode), r#""wrong_code""#);
+        assert_eq!(json(PairError::Busy), r#""busy""#);
+        assert_eq!(json(PairError::Expired), r#""expired""#);
+        assert_eq!(json(PairError::Unreachable), r#""unreachable""#);
     }
 
     #[test]
