@@ -208,7 +208,7 @@ async fn load_model(
 }
 
 #[tauri::command]
-fn unload_model(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
+async fn unload_model(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
     *state.whisper_engine.lock() = None;
     *state.current_model.lock() = None;
     share::model_changed(&app);
@@ -402,7 +402,7 @@ fn get_current_gpu_vendor(state: tauri::State<'_, AppState>) -> GpuVendor {
 }
 
 #[tauri::command]
-fn set_gpu_vendor(
+async fn set_gpu_vendor(
     vendor: GpuVendor,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
@@ -440,7 +440,7 @@ fn get_gpu_devices(state: tauri::State<'_, AppState>) -> GpuDeviceList {
 }
 
 #[tauri::command]
-fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
+async fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let devices = transcription::list_gpu_devices();
     let device = devices
         .iter()
@@ -476,7 +476,7 @@ fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'_, App
 }
 
 #[tauri::command]
-fn set_accelerator_backend(
+async fn set_accelerator_backend(
     backend: AcceleratorBackend,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
