@@ -1345,6 +1345,7 @@ pub fn run() {
             set_server_model,
             sync::google_status,
             sync::google_sign_in,
+            sync::google_sync_now,
             sync::google_sign_out,
             get_companion_shortcuts,
             set_companion_shortcuts,
@@ -1377,6 +1378,7 @@ pub fn run() {
             let db = database::Database::open(&db_path)
                 .expect("Failed to open database");
             app.manage(db);
+            sync::init(app.handle());
 
             discovery::start(app.handle().clone());
             share::start_at_launch(app.handle());

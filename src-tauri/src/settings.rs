@@ -289,7 +289,7 @@ impl Default for AppSettings {
     }
 }
 
-fn get_config_dir() -> PathBuf {
+pub(crate) fn get_config_dir() -> PathBuf {
     ProjectDirs::from("com", "avpbynf", "t4lk")
         .map(|dirs| dirs.config_dir().to_path_buf())
         .unwrap_or_else(|| PathBuf::from("."))
@@ -299,16 +299,21 @@ fn get_settings_path() -> PathBuf {
     get_config_dir().join("settings.json")
 }
 
-pub fn load_settings() -> AppSettings {
+/// The settings as stored, or an error when the file is there and unreadable.
+///
+/// load_settings turns that error into the defaults, which is fine for
+/// reading and wrong for anything that writes the result back.
+pub fn load_settings_strict() -> Result<AppSettings, String> {
     let path = get_settings_path();
-    if path.exists() {
-        std::fs::read_to_string(&path)
-            .ok()
-            .and_then(|content| serde_json::from_str(&content).ok())
-            .unwrap_or_default()
-    } else {
-        AppSettings::default()
+    if !path.exists() {
+        return Ok(AppSettings::default());
     }
+    let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&content).map_err(|e| e.to_string())
+}
+
+pub fn load_settings() -> AppSettings {
+    load_settings_strict().unwrap_or_default()
 }
 
 pub fn save_settings(settings: &AppSettings) -> Result<(), String> {
@@ -318,6 +323,7 @@ pub fn save_settings(settings: &AppSettings) -> Result<(), String> {
     }
     let content = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
     std::fs::write(&path, content).map_err(|e| e.to_string())?;
+    crate::sync::note_local_change();
     Ok(())
 }
 
@@ -441,6 +447,14 @@ mod tests {
     fn a_file_without_a_language_follows_the_system() {
         assert_eq!(parse("{}").language, None);
         assert_eq!(parse(r#"{"language": "fr"}"#).language.as_deref(), Some("fr"));
+    }
+
+    #[test]
+    fn a_device_id_left_in_an_old_file_is_ignored() {
+        // The id lives in the database now; a file that still carries one
+        // must keep parsing, or load_settings would drop the lot.
+        let s = parse(r#"{"server_url": "http://localhost:4060", "device_id": "abc"}"#);
+        assert_eq!(s.server_url, "http://localhost:4060");
     }
 
     #[test]

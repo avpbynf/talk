@@ -146,6 +146,7 @@ pub fn save_config(config: &HotkeyConfig) -> Result<(), HotkeyError> {
     }
     let content = serde_json::to_string_pretty(config)?;
     std::fs::write(&path, content)?;
+    crate::sync::note_local_change();
     Ok(())
 }
 
