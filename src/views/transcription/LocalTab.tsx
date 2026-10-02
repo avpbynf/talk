@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { HardDrive, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import { GpuSelector } from "@/components/GpuSelector";
@@ -49,6 +50,7 @@ export function LocalTab({
   onGpuVendorChange,
   onGpuDeviceChange,
 }: LocalTabProps) {
+  const { t } = useTranslation();
   const [modelFamily, setModelFamily] = useState<ModelFamily>("quantized");
   // A model is around a gigabyte and comes back over the network, so this asks
   // the same way the history and the statistics ask before they throw anything
@@ -82,8 +84,8 @@ export function LocalTab({
               <HardDrive className="h-4 w-4 text-[var(--color-active)]" />
             </div>
             <div>
-              <h3 className="font-medium text-sm">Whisper models</h3>
-              <p className="text-xs text-muted-foreground">{downloadedModels.length} downloaded</p>
+              <h3 className="font-medium text-sm">{t("transcription.local.title")}</h3>
+              <p className="text-xs text-muted-foreground">{t("transcription.local.downloaded", { count: downloadedModels.length, number: downloadedModels.length })}</p>
             </div>
           </div>
 
@@ -98,7 +100,7 @@ export function LocalTab({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Quantised
+              {t("transcription.local.quantised")}
             </button>
             <button
               onClick={() => setModelFamily("standard")}
@@ -109,7 +111,7 @@ export function LocalTab({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Standard
+              {t("transcription.local.standard")}
             </button>
           </div>
         </div>
@@ -136,14 +138,9 @@ export function LocalTab({
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={`Delete ${pendingDelete?.name ?? ""}?`}
-        description={
-          <>
-            The file goes from the disk, {pendingDelete?.size_mb ?? 0} MB of it, and downloading
-            it again is the only way back. The transcriptions it produced stay where they are.
-          </>
-        }
-        confirmLabel="Delete"
+        title={t("transcription.local.deleteTitle", { name: pendingDelete?.name ?? "" })}
+        description={t("transcription.local.deleteDescription", { size: pendingDelete?.size_mb ?? 0 })}
+        confirmLabel={t("transcription.local.delete")}
         confirmIcon={<Trash2 className="h-4 w-4 mr-2" />}
         onCancel={() => setPendingDelete(null)}
         onConfirm={async () => {
