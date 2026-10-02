@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (preferences) Sign in with Google to keep several machines in step
+
+A new Account card in Preferences signs in with Google, which is entirely optional: nothing in Talk
+needs it. Signed in, each machine keeps its settings, its statistics and its history in the app's
+own hidden folder of your Google Drive, and shows the sum of all your machines: 98 hours saved on
+one PC and 66 on another read 164 on both, and syncing again never counts anything twice. The
+history page lists every machine's dictations by date. Settings follow the most recent change; the
+server token, the audio devices, the graphics card and anything else tied to one machine stay
+where they are. A sync runs at sign-in, at startup, on Sync now and every five minutes, and a
+failed one only shows on the card. Reset stats now resets this machine's counts and removes its
+uploaded statistics from Drive. Signing out keeps everything on this machine and leaves the Drive
+files in place.
+
 - (recording) Chain dictations while one is still transcribing, and cancel what is transcribing
 
 Recording again while a long dictation is still on its way through the model no longer risks the

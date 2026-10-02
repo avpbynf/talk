@@ -287,6 +287,35 @@ function App() {
       setDownloadedModels((prev) => prev.filter((id) => id !== event.payload.model_id));
     });
 
+    // Settings applied from another machine are already on disk and live in the
+    // backend; this is the page catching up.
+    const unlistenSettingsSynced = listen("settings-synced", () => {
+      loadSavedSettings().catch((error) => console.error("Failed to reload the settings:", error));
+    });
+
+    // A sync may have brought other machines' entries into the history.
+    const unlistenSyncFinished = listen("sync-finished", async () => {
+      const limit = historyLimitRef.current;
+      try {
+        const rows = await invoke<SavedTranscription[]>("db_get_transcriptions", {
+          limit: limit === 0 ? 100000 : limit,
+          offset: 0,
+        });
+        setTranscriptions(
+          rows.map((row) => ({
+            id: row.id,
+            text: row.text,
+            timestamp: new Date(row.timestamp),
+            model: row.model,
+            enhanced: row.enhanced,
+            source: (row.source === "server" ? "server" : "local") as "local" | "server",
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to reload the history:", error);
+      }
+    });
+
     return () => {
       hasRegisteredListeners.current = false;
       unlistenProgress.then((f) => f());
@@ -296,6 +325,8 @@ function App() {
       unlistenRecordingStopped.then((f) => f());
       unlistenRecordingCancelled.then((f) => f());
       unlistenModelDeleted.then((f) => f());
+      unlistenSettingsSynced.then((f) => f());
+      unlistenSyncFinished.then((f) => f());
     };
   }, []);
 

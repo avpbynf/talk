@@ -83,11 +83,13 @@ export default function AnalyticsView({
   // same event, so the refetch raced the write and the figures sat one dictation
   // behind.
   useEffect(() => {
-    const unlisten = listen("transcription-complete", () => {
-      fetchAnalytics(userWpm, period);
-    });
+    // A sync is the other way the figures move: other machines' counts arrive.
+    const unlisten = Promise.all([
+      listen("transcription-complete", () => fetchAnalytics(userWpm, period)),
+      listen("sync-finished", () => fetchAnalytics(userWpm, period)),
+    ]);
     return () => {
-      unlisten.then((f) => f());
+      unlisten.then((fns) => fns.forEach((f) => f()));
     };
   }, [fetchAnalytics, userWpm, period]);
 

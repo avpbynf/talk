@@ -40,7 +40,7 @@
     "reset": {
       "label": "Reset stats",
       "title": "Reset the statistics?",
-      "description": "Every count goes back to zero and does not come back. The transcriptions themselves stay in the history."
+      "description": "This machine's counts go back to zero and do not come back. The transcriptions themselves stay in the history. If you are signed in, this machine's uploaded statistics are removed from your Google Drive too, and your other machines keep theirs."
     },
     "ready": {
       "ready": "Ready",
@@ -556,6 +556,20 @@
       "getStarted": "Get started",
       "next": "Next"
     }
+  },
+  "account": {
+    "title": "Account",
+    "hint": "Optional. Signing in only syncs your settings, statistics and history between your machines, through your own Google Drive.",
+    "unavailable": "Sign-in is not available in this build.",
+    "signIn": "Sign in with Google",
+    "signingIn": "Waiting for the browser",
+    "signedInAs": "Signed in as {{email}}",
+    "syncNow": "Sync now",
+    "signOut": "Sign out",
+    "syncing": "Syncing",
+    "lastSync": "Last synced at {{time}}",
+    "neverSynced": "Not synced yet",
+    "syncFailed": "Last sync failed: {{error}}"
   },
   "updates": {
     "title": "Updates",
