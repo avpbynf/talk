@@ -123,11 +123,12 @@ export default function PreferencesView({
               preserveClipboard={preserveClipboard}
               onPreserveClipboardChange={onPreserveClipboardChange}
             />
-            <UpdatesSection updater={updater} />
             <CompanionShortcutsSection
               companionShortcuts={companionShortcuts}
               onCompanionShortcutsChange={onCompanionShortcutsChange}
             />
+            {/* Last on the page, whatever is added above it */}
+            <UpdatesSection updater={updater} />
           </div>
         </div>
       </ScrollArea>
