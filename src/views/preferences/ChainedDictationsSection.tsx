@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ListOrdered } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export interface QueueSettings {
@@ -21,6 +22,7 @@ interface Choice<T extends string> {
 }
 
 export default function ChainedDictationsSection() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<QueueSettings>(DEFAULTS);
 
   useEffect(() => {
@@ -37,41 +39,40 @@ export default function ChainedDictationsSection() {
     <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-5">
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
         <ListOrdered className="h-4 w-4" />
-        Chained dictations
+        {t("preferences.chained.title")}
       </div>
       <p className="text-sm text-muted-foreground -mt-2">
-        Recording again while a dictation is still transcribing queues it behind
-        the others, and they come out in the order they were spoken.
+        {t("preferences.chained.description")}
       </p>
 
       <ChoiceRow
-        label="Pasting"
-        hint="When the queued texts reach the window"
+        label={t("preferences.chained.pasting.label")}
+        hint={t("preferences.chained.pasting.hint")}
         choices={[
-          { value: "each", label: "Each as it is ready" },
-          { value: "paragraph", label: "All at once, as one paragraph" },
+          { value: "each", label: t("preferences.chained.pasting.each") },
+          { value: "paragraph", label: t("preferences.chained.pasting.paragraph") },
         ]}
         value={settings.delivery}
         onChange={(value) => change("delivery", value)}
       />
 
       <ChoiceRow
-        label="Paste shortcut"
-        hint="What it pastes again"
+        label={t("preferences.chained.pasteShortcut.label")}
+        hint={t("preferences.chained.pasteShortcut.hint")}
         choices={[
-          { value: "last", label: "The last dictation" },
-          { value: "batch", label: "The whole last run" },
+          { value: "last", label: t("preferences.chained.pasteShortcut.last") },
+          { value: "batch", label: t("preferences.chained.pasteShortcut.batch") },
         ]}
         value={settings.paste_target}
         onChange={(value) => change("paste_target", value)}
       />
 
       <ChoiceRow
-        label="Cancel shortcut"
-        hint="Once no recording is left to cancel"
+        label={t("preferences.chained.cancelShortcut.label")}
+        hint={t("preferences.chained.cancelShortcut.hint")}
         choices={[
-          { value: "all", label: "Drops everything queued" },
-          { value: "current", label: "Drops the current one" },
+          { value: "all", label: t("preferences.chained.cancelShortcut.all") },
+          { value: "current", label: t("preferences.chained.cancelShortcut.current") },
         ]}
         value={settings.cancel_scope}
         onChange={(value) => change("cancel_scope", value)}

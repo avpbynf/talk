@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AlertTriangle, Mic, Brain, Server } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getThemeGradients, type OverlayThemeId } from "@/lib/overlay-themes";
 
 type ProcessingState =
@@ -24,6 +25,7 @@ const BASE_WIDTH = 220;
 const BASE_HEIGHT = 60;
 
 function OverlayPage() {
+  const { t } = useTranslation();
   const [state, setState] = useState<ProcessingState>("idle");
   // Dictations still transcribing, shown beside a recording started behind them
   const [jobsInFlight, setJobsInFlight] = useState(0);
@@ -306,7 +308,7 @@ function OverlayPage() {
           <>
             <AlertTriangle className="h-4 w-4" style={{ color: "var(--color-destructive)" }} />
             <span className="text-xs font-medium whitespace-nowrap" style={{ color: theme.accentDim }}>
-              {state === "no_model" ? "No model loaded" : "Model still loading"}
+              {state === "no_model" ? t("overlay.noModel") : t("overlay.modelLoading")}
             </span>
           </>
         );
@@ -392,11 +394,12 @@ export default OverlayPage;
  * turns instead of filling.
  */
 function QueueBadge({ count, progress, color }: { count: number; progress: number; color: string }) {
+  const { t } = useTranslation();
   const radius = 7;
   const circumference = 2 * Math.PI * radius;
   const indeterminate = progress === 0;
   return (
-    <div className="relative h-[18px] w-[18px] shrink-0" title={`${count} still transcribing`}>
+    <div className="relative h-[18px] w-[18px] shrink-0" title={t("overlay.queued", { count })}>
       <svg viewBox="0 0 18 18" className={`h-full w-full -rotate-90 ${indeterminate ? "animate-spin" : ""}`}>
         <circle cx="9" cy="9" r={radius} fill="none" stroke={color} strokeOpacity={0.25} strokeWidth="2" />
         <circle

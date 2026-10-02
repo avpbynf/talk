@@ -372,6 +372,28 @@
       "both": "Both",
       "description": "Send a keystroke to another application when recording starts or stops, to mute yourself in Discord or Teams without leaving what you are doing.",
       "empty": "No companion shortcuts yet"
+    },
+    "chained": {
+      "title": "Chained dictations",
+      "description": "Recording again while a dictation is still transcribing queues it behind the others, and they come out in the order they were spoken.",
+      "pasting": {
+        "label": "Pasting",
+        "hint": "When the queued texts reach the window",
+        "each": "Each as it is ready",
+        "paragraph": "All at once, as one paragraph"
+      },
+      "pasteShortcut": {
+        "label": "Paste shortcut",
+        "hint": "What it pastes again",
+        "last": "The last dictation",
+        "batch": "The whole last run"
+      },
+      "cancelShortcut": {
+        "label": "Cancel shortcut",
+        "hint": "Once no recording is left to cancel",
+        "all": "Drops everything queued",
+        "current": "Drops the current one"
+      }
     }
   },
   "appearance": {
@@ -413,7 +435,11 @@
   },
   "overlay": {
     "recording": "Recording...",
-    "minimize": "Minimize"
+    "minimize": "Minimize",
+    "noModel": "No model loaded",
+    "modelLoading": "Model still loading",
+    "queued_one": "{{count}} still transcribing",
+    "queued_other": "{{count}} still transcribing"
   },
   "setup": {
     "subtitle": "First-time setup",
@@ -505,5 +531,10 @@
       "install": "Install and restart",
       "dismiss": "Dismiss"
     }
+  },
+  "noModelBanner": {
+    "title": "No model loaded",
+    "hint": "Dictating will not work until one is",
+    "choose": "Choose a model"
   }
 }
