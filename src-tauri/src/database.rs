@@ -33,6 +33,16 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 );
 ";
 
+const SCHEMA_V3: &str = "
+CREATE TABLE IF NOT EXISTS share_tokens (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT
+);
+";
+
 const AVERAGE_SPEECH_RATE_WPM: f64 = 150.0;
 const OPENAI_WHISPER_COST_PER_MINUTE: f64 = 0.006;
 
@@ -70,6 +80,17 @@ pub struct NewTranscription {
     pub enhanced: bool,
     pub audio_duration_ms: Option<i64>,
     pub processing_time_ms: Option<i64>,
+}
+
+/// A machine paired with the engine this PC shares. The token itself is never
+/// stored, only its hash.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShareDevice {
+    pub id: String,
+    pub name: String,
+    pub created_at: String,
+    pub last_used_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,6 +263,11 @@ impl Database {
                  GROUP BY date(timestamp, 'localtime');",
             )?;
             conn.pragma_update(None, "user_version", 2)?;
+        }
+
+        if version < 3 {
+            conn.execute_batch(SCHEMA_V3)?;
+            conn.pragma_update(None, "user_version", 3)?;
         }
 
         Ok(())
@@ -605,6 +631,62 @@ impl Database {
         let conn = self.conn.lock();
         conn.execute("DELETE FROM daily_stats", [])?;
         Ok(())
+    }
+
+    // -- Shared engine tokens -----------------------------------------------
+
+    pub fn add_share_token(&self, id: &str, name: &str, token_hash: &str, created_at: &str) -> Result<()> {
+        self.conn.lock().execute(
+            "INSERT INTO share_tokens (id, name, token_hash, created_at) VALUES (?1, ?2, ?3, ?4)",
+            params![id, name, token_hash, created_at],
+        )?;
+        Ok(())
+    }
+
+    /// The id of the device holding the token with this hash, if it was not revoked
+    pub fn find_share_token(&self, token_hash: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare("SELECT id FROM share_tokens WHERE token_hash = ?1")?;
+        let mut rows = stmt.query(params![token_hash])?;
+        match rows.next()? {
+            Some(row) => Ok(Some(row.get(0)?)),
+            None => Ok(None),
+        }
+    }
+
+    pub fn touch_share_token(&self, id: &str, used_at: &str) -> Result<()> {
+        self.conn.lock().execute(
+            "UPDATE share_tokens SET last_used_at = ?2 WHERE id = ?1",
+            params![id, used_at],
+        )?;
+        Ok(())
+    }
+
+    pub fn list_share_tokens(&self) -> Result<Vec<ShareDevice>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare(
+            "SELECT id, name, created_at, last_used_at FROM share_tokens ORDER BY created_at DESC",
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(ShareDevice {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    created_at: row.get(2)?,
+                    last_used_at: row.get(3)?,
+                })
+            })?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(rows)
+    }
+
+    /// Returns whether a device was removed
+    pub fn revoke_share_token(&self, id: &str) -> Result<bool> {
+        let removed = self
+            .conn
+            .lock()
+            .execute("DELETE FROM share_tokens WHERE id = ?1", params![id])?;
+        Ok(removed > 0)
     }
 
 }
