@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UI_LOCALE } from "@/lib/analytics";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import { formatNumber } from "@/i18n";
 import type { AnalyticsSummary } from "@/lib/analytics";
 
 interface TimeSavedProps {
@@ -17,19 +19,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function formatTime(minutes: number): string {
-  if (minutes < 1) return "< 1 min";
-  if (minutes < 60) return `~${Math.round(minutes)} min`;
+function formatTime(minutes: number, t: TFunction): string {
+  if (minutes < 1) return t("dashboard.timeSaved.lessThanMinute");
+  if (minutes < 60) return t("dashboard.timeSaved.minutes", { m: Math.round(minutes) });
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
-  return m > 0 ? `~${h}h ${m}m` : `~${h}h`;
+  return m > 0 ? t("dashboard.timeSaved.hoursMinutes", { h, m }) : t("dashboard.timeSaved.hours", { h });
 }
 
 export function TimeSaved({ summary, userWpm, onRecalibrate }: TimeSavedProps) {
+  const { t } = useTranslation();
   return (
     <Card className="bg-surface-raised border-border-card">
       <CardHeader className="pb-0">
-        <CardTitle className="text-sm font-medium">Time won</CardTitle>
+        <CardTitle className="text-sm font-medium">{t("dashboard.timeSaved.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-center py-4">
@@ -37,29 +40,29 @@ export function TimeSaved({ summary, userWpm, onRecalibrate }: TimeSavedProps) {
             className="text-4xl font-bold tracking-tight text-[var(--color-warning)]"
             style={{ fontVariantNumeric: "tabular-nums" }}
           >
-            {formatTime(summary.timeSavedMinutes)}
+            {formatTime(summary.timeSavedMinutes, t)}
           </div>
-          <p className="text-xs text-muted-foreground/60 mt-1.5">against typing it yourself</p>
+          <p className="text-xs text-muted-foreground/60 mt-1.5">{t("dashboard.timeSaved.againstTyping")}</p>
         </div>
 
         <div className="h-px bg-border-subtle" />
 
-        <Row label="Your typing speed">
+        <Row label={t("dashboard.timeSaved.typingSpeed")}>
           <span className="inline-flex items-baseline gap-2.5">
-            <span>{userWpm} wpm</span>
+            <span>{t("dashboard.wpm", { wpm: userWpm })}</span>
             <button
               onClick={onRecalibrate}
               className="text-[11px] text-[var(--color-active)] hover:underline"
             >
-              Retest
+              {t("dashboard.timeSaved.retest")}
             </button>
           </span>
         </Row>
-        <Row label="Words dictated">{summary.totalWords.toLocaleString(UI_LOCALE)}</Row>
-        <Row label="Typing that out">{Math.round(summary.timeSavedMinutes)} min</Row>
-        <Row label="Saying it instead">
+        <Row label={t("dashboard.timeSaved.wordsDictated")}>{formatNumber(summary.totalWords)}</Row>
+        <Row label={t("dashboard.timeSaved.typingThatOut")}>{t("dashboard.timeSaved.plainMinutes", { m: formatNumber(Math.round(summary.timeSavedMinutes)) })}</Row>
+        <Row label={t("dashboard.timeSaved.sayingInstead")}>
           <span className="text-muted-foreground/60">
-            ~{summary.estimatedAudioMinutes.toFixed(0)} min
+            {t("dashboard.timeSaved.minutes", { m: formatNumber(summary.estimatedAudioMinutes) })}
           </span>
         </Row>
       </CardContent>

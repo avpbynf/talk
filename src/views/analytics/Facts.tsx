@@ -1,4 +1,5 @@
-import { UI_LOCALE } from "@/lib/analytics";
+import { useTranslation } from "react-i18next";
+import { formatNumber, locale } from "@/i18n";
 import type { AnalyticsSummary } from "@/lib/analytics";
 
 interface FactsProps {
@@ -8,7 +9,7 @@ interface FactsProps {
 function formatDay(iso: string): string {
   const date = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString(UI_LOCALE, { day: "numeric", month: "short" });
+  return date.toLocaleDateString(locale(), { day: "numeric", month: "short" });
 }
 
 function daysSince(iso: string): number {
@@ -40,6 +41,7 @@ function Fact({ value, label }: { value: string; label: string }) {
  * that gets pruned.
  */
 export function Facts({ summary }: FactsProps) {
+  const { t } = useTranslation();
   if (summary.totalTranscriptions === 0) return null;
 
   const dictated = summary.localCount + summary.serverCount;
@@ -48,23 +50,23 @@ export function Facts({ summary }: FactsProps) {
   return (
     <div className="grid grid-cols-4 gap-3 px-4 py-3 rounded-xl border border-border-card bg-surface-raised/50">
       <Fact
-        value={summary.firstDay ? `${daysSince(summary.firstDay)} days` : "--"}
-        label={summary.firstDay ? `since ${formatDay(summary.firstDay)}` : "dictating"}
+        value={summary.firstDay ? t("dashboard.facts.days", { count: daysSince(summary.firstDay) }) : "--"}
+        label={summary.firstDay ? t("dashboard.facts.since", { date: formatDay(summary.firstDay) }) : t("dashboard.facts.dictating")}
       />
       <Fact
-        value={summary.streak > 0 ? `${summary.streak} in a row` : "--"}
-        label={summary.streak > 0 ? "current streak" : "no streak going"}
+        value={summary.streak > 0 ? t("dashboard.facts.inARow", { count: summary.streak }) : "--"}
+        label={summary.streak > 0 ? t("dashboard.facts.currentStreak") : t("dashboard.facts.noStreak")}
       />
       <Fact
-        value={summary.bestDayCount > 0 ? summary.bestDayCount.toLocaleString(UI_LOCALE) : "--"}
-        label={summary.bestDay ? `best day, ${formatDay(summary.bestDay)}` : "best day"}
+        value={summary.bestDayCount > 0 ? formatNumber(summary.bestDayCount) : "--"}
+        label={summary.bestDay ? t("dashboard.facts.bestDayOn", { date: formatDay(summary.bestDay) }) : t("dashboard.facts.bestDay")}
       />
       <Fact
-        value={`${localShare}% local`}
+        value={t("dashboard.facts.localShare", { percent: localShare })}
         label={
           summary.serverCount > 0
-            ? `${summary.serverCount.toLocaleString(UI_LOCALE)} through the server`
-            : "never left the machine"
+            ? t("dashboard.facts.throughServer", { number: formatNumber(summary.serverCount) })
+            : t("dashboard.facts.neverLeft")
         }
       />
     </div>

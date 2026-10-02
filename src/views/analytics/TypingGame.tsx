@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getRandomSentence, calculateWpm, saveUserWpm } from "@/lib/analytics";
 
 interface TypingGameProps {
@@ -9,6 +10,7 @@ interface TypingGameProps {
 }
 
 export function TypingGame({ onWpmMeasured }: TypingGameProps) {
+  const { t } = useTranslation();
   const [sentence, setSentence] = useState(() => getRandomSentence());
   const [input, setInput] = useState("");
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -65,10 +67,10 @@ export function TypingGame({ onWpmMeasured }: TypingGameProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-sm font-medium">
-              Measure your typing speed
+              {t("dashboard.typingGame.title")}
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">
-              Type the line below as fast as you comfortably can
+              {t("dashboard.typingGame.subtitle")}
             </CardDescription>
           </div>
           {/* Live WPM indicator */}
@@ -81,7 +83,7 @@ export function TypingGame({ onWpmMeasured }: TypingGameProps) {
                 {finished ? finalWpm : liveWpm}
               </div>
               <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">
-                words per minute
+                {t("dashboard.typingGame.wordsPerMinute")}
               </span>
             </div>
           )}
@@ -143,7 +145,7 @@ export function TypingGame({ onWpmMeasured }: TypingGameProps) {
         <input
           ref={inputRef}
           className="w-full px-4 py-3 rounded-xl bg-surface-inset border border-border-card text-sm font-mono focus:outline-none input-glow disabled:opacity-40 disabled:cursor-not-allowed"
-          placeholder="Start typing..."
+          placeholder={t("dashboard.typingGame.placeholder")}
           value={input}
           onChange={handleInput}
           disabled={finished}
@@ -159,20 +161,20 @@ export function TypingGame({ onWpmMeasured }: TypingGameProps) {
             <div className="inline-flex items-center gap-2 bg-[var(--color-success)]/10 border border-[var(--color-success)]/20 rounded-lg px-3 py-1.5">
               <Check size={14} className="text-[var(--color-success)]" />
               <span className="text-sm font-mono font-semibold text-[var(--color-success)]">
-                {finalWpm} words per minute
+                {t("dashboard.typingGame.result", { wpm: finalWpm })}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={reset} className="text-xs gap-1.5">
                 <RotateCcw size={12} />
-                Try again
+                {t("dashboard.typingGame.tryAgain")}
               </Button>
               <Button
                 size="sm"
                 onClick={() => onWpmMeasured(finalWpm)}
                 className="text-xs"
               >
-                Use this result
+                {t("dashboard.typingGame.useResult")}
               </Button>
             </div>
           </div>

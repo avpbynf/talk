@@ -47,6 +47,8 @@
       "checkingServer": "Vérification du serveur",
       "unreachableLocal": "Serveur injoignable, mode local",
       "unreachable": "Serveur injoignable",
+      "refusedLocal": "Jeton refusé par le serveur, mode local",
+      "refused": "Jeton refusé par le serveur",
       "toTalk": "pour dicter",
       "server": "Serveur",
       "local": "Local",

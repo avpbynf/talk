@@ -1,3 +1,5 @@
+import i18n, { locale } from "@/i18n";
+
 export interface DailyStats {
   date: string;
   label: string;
@@ -73,12 +75,13 @@ export const PERIOD_DAYS: Record<Period, number | null> = {
   all: null,
 };
 
+/** Translation keys, one per period. */
 export const PERIOD_LABELS: Record<Period, string> = {
-  today: "Today",
-  week: "7 days",
-  month: "30 days",
-  year: "Year",
-  all: "All time",
+  today: "dashboard.period.today",
+  week: "dashboard.period.week",
+  month: "dashboard.period.month",
+  year: "dashboard.period.year",
+  all: "dashboard.period.all",
 };
 
 /**
@@ -89,7 +92,7 @@ export const PERIOD_LABELS: Record<Period, string> = {
  * a stale figure announces itself instead of quietly misleading. Re-check it
  * before any release that touches this file.
  */
-export const PRICES_CHECKED = "August 2026";
+export const PRICES_CHECKED = "2026-08-01";
 
 export interface Competitor {
   name: string;
@@ -104,19 +107,10 @@ export interface Competitor {
  * flattering and false.
  */
 export const COMPETITORS: readonly Competitor[] = [
-  { name: "Wispr Flow", monthlyUsd: 12, note: "Pro, billed yearly" },
-  { name: "Dragon Professional", monthlyUsd: 15, note: "Anywhere, per user" },
-  { name: "superwhisper", monthlyUsd: 8.49, note: "monthly" },
+  { name: "Wispr Flow", monthlyUsd: 12, note: "dashboard.competitors.wisprFlow" },
+  { name: "Dragon Professional", monthlyUsd: 15, note: "dashboard.competitors.dragon" },
+  { name: "superwhisper", monthlyUsd: 8.49, note: "dashboard.competitors.superwhisper" },
 ];
-
-/**
- * The locale every figure on the page is formatted in.
- *
- * Not the system one: on a French Windows that printed "2 733" with a narrow
- * space and "août 2026" inside an English page. This follows the interface,
- * so translating it later means changing one line.
- */
-export const UI_LOCALE = "en-US";
 
 export interface HostedApi {
   name: string;
@@ -137,9 +131,9 @@ export interface HostedApi {
  * to drift from, which there used to be.
  */
 export const HOSTED_APIS: readonly HostedApi[] = [
-  { name: "Deepgram Nova", usdPerMin: 0.0043, note: "pay as you go" },
-  { name: "OpenAI Whisper", usdPerMin: 0.006, note: "list price" },
-  { name: "Azure Speech to Text", usdPerMin: 0.0167, note: "standard, per hour billed" },
+  { name: "Deepgram Nova", usdPerMin: 0.0043, note: "dashboard.hostedApis.deepgram" },
+  { name: "OpenAI Whisper", usdPerMin: 0.006, note: "dashboard.hostedApis.openai" },
+  { name: "Azure Speech to Text", usdPerMin: 0.0167, note: "dashboard.hostedApis.azure" },
 ];
 
 /** What a run of audio would have cost at one provider's rate. */
@@ -182,27 +176,17 @@ export function billingStart(summary: {
   return periodStart > firstDay ? periodStart : firstDay;
 }
 
-/** "March 2026", in whatever locale the system is set to. */
+/** "March 2026", in the language of the interface and not the machine. */
 export function formatMonth(isoDate: string | null): string {
   if (!isoDate) return "";
   const d = new Date(isoDate + "T00:00:00");
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(UI_LOCALE, { month: "long", year: "numeric" });
+  return d.toLocaleDateString(locale(), { month: "long", year: "numeric" });
 }
 
-export const TYPING_SENTENCES = [
-  "Productivity is the art of doing more with less effort.",
-  "Every minute saved is a minute put back into making something.",
-  "A tool should amplify what you can do, not stand in for it.",
-  "A good tool disappears in the hands of whoever has mastered it.",
-  "Time is the one resource nobody gets back.",
-  "Automating the repetitive parts leaves room for the rest.",
-  "Speech is the most natural way people have of saying anything.",
-  "Writing at the speed you talk changes what you bother to write.",
-];
-
 export function getRandomSentence(): string {
-  return TYPING_SENTENCES[Math.floor(Math.random() * TYPING_SENTENCES.length)];
+  const sentences = i18n.t("dashboard.typingGame.sentences", { returnObjects: true }) as string[];
+  return sentences[Math.floor(Math.random() * sentences.length)];
 }
 
 export function calculateWpm(charCount: number, elapsedMs: number): number {
