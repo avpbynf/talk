@@ -163,3 +163,10 @@ workflows run that same file.
   starts. The pairing store lives in `ShareManager` and
   not in a running server, so ten wrong codes keep pairing off through a switch off and on,
   until Talk restarts, as on Talk-Server.
+- **Google sign-in is compiled in, not configured.** `TALK_GOOGLE_CLIENT_ID` and
+  `TALK_GOOGLE_CLIENT_SECRET` are read through `option_env!` when the Rust side compiles, so a
+  build without them succeeds and the Account card simply says sign-in is not available. A
+  local build needs them in the shell that runs `tauri:build` or `tauri:test-installer`, and
+  release CI reads them from repository secrets of the same names. The client is a Desktop
+  OAuth client in Google Cloud; while its consent screen is in testing, only the test users
+  listed there can sign in.
