@@ -19,7 +19,7 @@ mod virtual_mic;
 use audio::{AudioBuffer, AudioCaptureHandle};
 use parking_lot::Mutex;
 use settings::TranscriptionMode;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -87,6 +87,8 @@ pub struct AppState {
     pub dictation_queue: Mutex<dictation_queue::DictationQueue>,
     /// How chained dictations are pasted, recalled and cancelled
     pub queue_settings: Mutex<dictation_queue::QueueSettings>,
+    /// A model is being read into memory, so its absence is not for long
+    pub model_loading: AtomicBool,
 }
 
 impl Default for AppState {
@@ -122,6 +124,7 @@ impl Default for AppState {
             jobs_in_flight: AtomicUsize::new(0),
             dictation_queue: Mutex::new(dictation_queue::DictationQueue::default()),
             queue_settings: Mutex::new(dictation_queue::QueueSettings::default()),
+            model_loading: AtomicBool::new(false),
         }
     }
 }
@@ -190,8 +193,10 @@ async fn load_model(
     let backend = *state.accelerator_backend.lock();
     let device = current_gpu_device_index(&state, backend);
 
-    let engine = WhisperEngine::new_with_backend(&model_path, backend, device)
-        .map_err(|e| e.to_string())?;
+    state.model_loading.store(true, Ordering::SeqCst);
+    let engine = WhisperEngine::new_with_backend(&model_path, backend, device);
+    state.model_loading.store(false, Ordering::SeqCst);
+    let engine = engine.map_err(|e| e.to_string())?;
 
     *state.whisper_engine.lock() = Some(engine);
     *state.current_model.lock() = Some(model_id.clone());

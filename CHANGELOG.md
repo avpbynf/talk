@@ -88,6 +88,14 @@ says so on the Transcription page, the dashboard and the title bar, and "Server 
 kept for a server that does not answer. A server too old to check the token on still shows as
 connected, as it always did.
 
+- (recording) Say so when there is no model, instead of recording for nothing
+
+In local mode with no model loaded, the shortcut used to start a recording as usual and the text
+simply never came, which looked exactly like a microphone that heard nothing. It now plays a short
+low double note and the overlay says "No model loaded", or "Model still loading" in the seconds
+after launch, and nothing is recorded. The main window also shows a strip saying no model is
+loaded, with a button to the Transcription page, for as long as that stays true.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

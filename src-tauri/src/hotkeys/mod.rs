@@ -648,6 +648,7 @@ fn play_sound_feedback(app: &AppHandle, sound_type: &str) {
     }
     let preset = match sound_type {
         "start" => &settings.start_sound,
+        "refused" => "",
         _ => &settings.stop_sound,
     };
     if preset == "none" {
@@ -660,10 +661,67 @@ fn play_sound_feedback(app: &AppHandle, sound_type: &str) {
     }
 }
 
+/// Turn a dictation away before it starts when nothing could transcribe it.
+///
+/// In local mode without a model the recording used to run as usual and the
+/// text simply never came, which looks exactly like a microphone that heard
+/// nothing. Server mode is left alone: the server does the work, and with the
+/// fallback on, a missing model only matters once the server has failed.
+fn refuse_without_model(app: &AppHandle) -> bool {
+    let state = app.state::<AppState>();
+    if *state.transcription_mode.lock() != TranscriptionMode::Local {
+        return false;
+    }
+    // Never wait on the engine here. A transcription holds that lock for its
+    // whole run, so waiting would hold a new recording back until the previous
+    // dictation is done. A lock held means a model is loaded and working.
+    match state.whisper_engine.try_lock() {
+        None => return false,
+        Some(engine) if engine.is_some() => return false,
+        Some(_) => {}
+    }
+
+    let reason = if state.model_loading.load(Ordering::SeqCst) {
+        "model_loading"
+    } else {
+        "no_model"
+    };
+
+    play_sound_feedback(app, "refused");
+    crate::overlay::show(app);
+    let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", reason);
+
+    // Long enough to be read, and only taken down if nothing else has put
+    // the overlay to use in the meantime.
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(1800));
+        let state = app.state::<AppState>();
+        if *state.is_recording.lock() {
+            return;
+        }
+        // A transcription still running gets its overlay back.
+        if state.jobs_in_flight.load(Ordering::SeqCst) > 0 {
+            let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", "transcribing");
+            return;
+        }
+        let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", "idle");
+        if let Some(overlay) = app.get_webview_window("overlay") {
+            let _ = overlay.hide();
+        }
+    });
+
+    true
+}
+
 fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
 
     if *state.is_recording.lock() {
+        return Ok(());
+    }
+
+    if refuse_without_model(app) {
         return Ok(());
     }
 
