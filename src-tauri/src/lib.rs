@@ -749,6 +749,16 @@ fn set_server_timeout(timeout: u64, state: tauri::State<'_, AppState>) {
 }
 
 #[tauri::command]
+async fn test_server_connection(
+    state: tauri::State<'_, AppState>,
+) -> Result<server_transcription::ServerCheck, String> {
+    let url = state.server_url.lock().clone();
+    let timeout = *state.server_timeout.lock();
+    let token = settings::load_settings().server_token;
+    Ok(server_transcription::check_server(&url, Some(&token), timeout).await)
+}
+
+#[tauri::command]
 async fn check_server_health(state: tauri::State<'_, AppState>) -> Result<bool, String> {
     let url = state.server_url.lock().clone();
     let timeout = *state.server_timeout.lock();
@@ -1171,6 +1181,7 @@ pub fn run() {
             get_server_timeout,
             set_server_timeout,
             check_server_health,
+            test_server_connection,
             is_setup_completed,
             complete_setup,
             get_autostart_enabled,
