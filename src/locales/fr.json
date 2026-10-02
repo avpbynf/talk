@@ -372,6 +372,28 @@
       "both": "Les deux",
       "description": "Envoie une frappe à une autre application quand l'enregistrement démarre ou s'arrête, par exemple pour couper votre micro dans Discord ou Teams sans quitter ce que vous faites.",
       "empty": "Aucun raccourci associé pour le moment"
+    },
+    "chained": {
+      "title": "Dictées enchaînées",
+      "description": "Enregistrer de nouveau pendant qu'une dictée est encore en cours de transcription la met en file derrière les autres, et elles ressortent dans l'ordre où elles ont été dites.",
+      "pasting": {
+        "label": "Collage",
+        "hint": "Quand les textes en file arrivent dans la fenêtre",
+        "each": "Chacune dès qu'elle est prête",
+        "paragraph": "Toutes d'un coup, en un seul paragraphe"
+      },
+      "pasteShortcut": {
+        "label": "Raccourci de collage",
+        "hint": "Ce qu'il recolle",
+        "last": "La dernière dictée",
+        "batch": "Toute la dernière série"
+      },
+      "cancelShortcut": {
+        "label": "Raccourci d'annulation",
+        "hint": "Quand il ne reste aucun enregistrement à annuler",
+        "all": "Abandonne tout ce qui attend",
+        "current": "Abandonne celle en cours"
+      }
     }
   },
   "appearance": {
@@ -413,7 +435,11 @@
   },
   "overlay": {
     "recording": "Enregistrement...",
-    "minimize": "Réduire"
+    "minimize": "Réduire",
+    "noModel": "Aucun modèle chargé",
+    "modelLoading": "Modèle en cours de chargement",
+    "queued_one": "{{count}} en cours de transcription",
+    "queued_other": "{{count}} en cours de transcription"
   },
   "setup": {
     "subtitle": "Première configuration",
@@ -505,5 +531,10 @@
       "install": "Installer et redémarrer",
       "dismiss": "Ignorer"
     }
+  },
+  "noModelBanner": {
+    "title": "Aucun modèle chargé",
+    "hint": "La dictée ne fonctionnera pas tant qu'il n'y en a pas un",
+    "choose": "Choisir un modèle"
   }
 }
