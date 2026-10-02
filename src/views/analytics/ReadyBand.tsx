@@ -33,10 +33,11 @@ function readiness(
   }
   if (serverStatus === "online") return { tone: "success", label: "Ready" };
   if (serverStatus === "checking") return { tone: "warning", label: "Checking the server" };
+  const problem = serverStatus === "unauthorized" ? "Server refused the token" : "Server unreachable";
   if (serverFallback && currentModel) {
-    return { tone: "warning", label: "Server unreachable, running local" };
+    return { tone: "warning", label: `${problem}, running local` };
   }
-  return { tone: "destructive", label: "Server unreachable" };
+  return { tone: "destructive", label: problem };
 }
 
 const DOT_CLASS: Record<Readiness["tone"], string> = {

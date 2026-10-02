@@ -55,6 +55,53 @@ pub async fn check_server_health(base_url: &str, timeout_ms: u64) -> Result<bool
     }
 }
 
+/// What a connection test found out about the configured server
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ServerCheck {
+    Unreachable,
+    Unauthorized,
+    Ok,
+}
+
+/// Turn the status of the `/v1/models` answer into what the user is told.
+///
+/// A 404 is a server released before the route existed. It answered, and its
+/// transcriptions work, so it reads as reachable even though the token could
+/// not be checked. Anything else that is neither a success nor a refusal (a
+/// proxy error page, a server falling over) reads as unreachable.
+pub fn classify_status(status: u16) -> ServerCheck {
+    match status {
+        200..=299 | 404 => ServerCheck::Ok,
+        401 | 403 => ServerCheck::Unauthorized,
+        _ => ServerCheck::Unreachable,
+    }
+}
+
+/// Ask the server for its models with the token, which is the cheapest route
+/// that sits behind the same check the transcription goes through. `/health`
+/// needs no token and so says nothing about whether dictating will work.
+pub async fn check_server(base_url: &str, token: Option<&str>, timeout_ms: u64) -> ServerCheck {
+    let client = match reqwest::Client::builder()
+        .timeout(Duration::from_millis(timeout_ms))
+        .build()
+    {
+        Ok(client) => client,
+        Err(_) => return ServerCheck::Unreachable,
+    };
+
+    let url = format!("{}/v1/models", base_url.trim_end_matches('/'));
+    let mut request = client.get(&url);
+    if let Some(token) = token.filter(|t| !t.is_empty()) {
+        request = request.bearer_auth(token);
+    }
+
+    match request.send().await {
+        Ok(response) => classify_status(response.status().as_u16()),
+        Err(_) => ServerCheck::Unreachable,
+    }
+}
+
 /// Transcribe audio using the server with SSE streaming
 ///
 /// Uses reqwest directly with manual SSE parsing to support multipart uploads.
@@ -244,4 +291,41 @@ where
     }
 
     Ok(full_text.trim().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_server_older_than_the_route_still_reads_as_reachable() {
+        assert_eq!(classify_status(404), ServerCheck::Ok);
+    }
+
+    #[test]
+    fn a_success_is_ok() {
+        assert_eq!(classify_status(200), ServerCheck::Ok);
+        assert_eq!(classify_status(204), ServerCheck::Ok);
+    }
+
+    #[test]
+    fn a_refused_token_is_unauthorized() {
+        assert_eq!(classify_status(401), ServerCheck::Unauthorized);
+        assert_eq!(classify_status(403), ServerCheck::Unauthorized);
+    }
+
+    #[test]
+    fn any_other_answer_is_unreachable() {
+        for status in [301, 500, 502, 503] {
+            assert_eq!(classify_status(status), ServerCheck::Unreachable, "{}", status);
+        }
+    }
+
+    #[test]
+    fn the_states_reach_the_frontend_in_lower_case() {
+        let json = |c: ServerCheck| serde_json::to_string(&c).unwrap();
+        assert_eq!(json(ServerCheck::Ok), r#""ok""#);
+        assert_eq!(json(ServerCheck::Unauthorized), r#""unauthorized""#);
+        assert_eq!(json(ServerCheck::Unreachable), r#""unreachable""#);
+    }
 }

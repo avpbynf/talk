@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { ServerStatus } from "@/views/transcription/TranscriptionView";
+import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/server";
 import { listen } from "@tauri-apps/api/event";
 import { History, Cpu, Settings, BookA, Palette, LayoutDashboard } from "lucide-react";
 import { Titlebar } from "@/components/Titlebar";
@@ -415,8 +415,8 @@ function App() {
     isCheckingServerRef.current = true;
     if (!silent) setServerStatus("checking");
     try {
-      const isHealthy = await invoke<boolean>("check_server_health");
-      setServerStatus(isHealthy ? "online" : "offline");
+      const check = await invoke<ServerCheck>("test_server_connection");
+      setServerStatus(statusFromCheck(check));
     } catch {
       setServerStatus("offline");
     } finally {
@@ -473,7 +473,13 @@ function App() {
           const isServerMode = transcriptionMode === "server" && !serverFallback;
           const isHybridMode = transcriptionMode === "server" && serverFallback;
           if (isServerMode) {
-            return serverStatus === "online" ? "Server connected" : serverStatus === "offline" ? "Server unreachable" : "Server";
+            return serverStatus === "online"
+              ? "Server connected"
+              : serverStatus === "unauthorized"
+              ? "Token refused"
+              : serverStatus === "offline"
+              ? "Server unreachable"
+              : "Server";
           } else if (isHybridMode) {
             return serverStatus === "online" ? "Server connected" : currentModel || "Not ready";
           }

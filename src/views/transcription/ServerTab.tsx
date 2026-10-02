@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Check, Clock, Loader2, RefreshCw, Server, WifiOff } from "lucide-react";
+import { AlertCircle, Check, Clock, KeyRound, Loader2, RefreshCw, Server, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import type { ServerStatus } from "./TranscriptionView";
@@ -31,6 +31,8 @@ function statusIcon(serverStatus: ServerStatus, size: "sm" | "md" = "md") {
       return <Loader2 className={cn(sizeClass, "text-server animate-spin")} />;
     case "online":
       return <Check className={cn(sizeClass, "text-[var(--color-success)]")} />;
+    case "unauthorized":
+      return <KeyRound className={cn(sizeClass, "text-[var(--color-destructive)]")} />;
     case "offline":
       return <WifiOff className={cn(sizeClass, "text-[var(--color-destructive)]")} />;
     default:
@@ -42,7 +44,8 @@ function statusText(serverStatus: ServerStatus) {
   switch (serverStatus) {
     case "checking": return "Checking...";
     case "online": return "Connected";
-    case "offline": return "Indisponible";
+    case "unauthorized": return "Server reached, token refused";
+    case "offline": return "Unreachable";
     default: return "Not tested";
   }
 }
@@ -108,7 +111,7 @@ export function ServerTab({
                   "cursor-pointer px-3 py-2 rounded-lg border transition-all duration-200 disabled:cursor-not-allowed",
                   serverStatus === "online"
                     ? "border-[var(--color-success)]/30 bg-[var(--color-success)]/10 text-[var(--color-success)]"
-                    : serverStatus === "offline"
+                    : serverStatus === "offline" || serverStatus === "unauthorized"
                     ? "border-[var(--color-destructive)]/30 bg-[var(--color-destructive)]/10 text-[var(--color-destructive)]"
                     : "border-border hover:bg-surface-active"
                 )}
@@ -124,7 +127,7 @@ export function ServerTab({
             "flex items-center gap-2 px-3 py-2 rounded-lg",
             serverStatus === "online"
               ? "bg-[var(--color-success)]/10 border border-[var(--color-success)]/20"
-              : serverStatus === "offline"
+              : serverStatus === "offline" || serverStatus === "unauthorized"
               ? "bg-[var(--color-destructive)]/10 border border-[var(--color-destructive)]/20"
               : "bg-surface-inset border border-border-subtle"
           )}>

@@ -12,7 +12,9 @@ import type {
 import { LocalTab } from "./LocalTab";
 import { ServerTab } from "./ServerTab";
 
-export type ServerStatus = "unknown" | "checking" | "online" | "offline";
+import type { ServerStatus } from "@/lib/server";
+
+export type { ServerStatus };
 
 interface TranscriptionViewProps {
   models: ModelInfo[];

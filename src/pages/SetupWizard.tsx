@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/server";
 import {
   Computer,
   Server,
@@ -49,7 +50,6 @@ interface DownloadProgress {
 type TranscriptionMode = "local" | "server";
 type GpuVendor = "vulkan" | "cpu";
 type ModelFamily = "standard" | "quantized";
-type ServerStatus = "unknown" | "checking" | "online" | "offline";
 
 interface SetupWizardProps {
   onComplete: () => void;
@@ -66,6 +66,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
   // Server config
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
+  const [serverToken, setServerToken] = useState("");
   const [serverStatus, setServerStatus] = useState<ServerStatus>("unknown");
 
   // Model config
@@ -134,8 +135,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     try {
       // Temporarily set the server URL to check
       await invoke("set_server_url", { url: serverUrl });
-      const isHealthy = await invoke<boolean>("check_server_health");
-      setServerStatus(isHealthy ? "online" : "offline");
+      await invoke("set_server_token", { token: serverToken });
+      const check = await invoke<ServerCheck>("test_server_connection");
+      setServerStatus(statusFromCheck(check));
     } catch {
       setServerStatus("offline");
     }
@@ -167,6 +169,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         }
       } else {
         await invoke("set_server_url", { url: serverUrl });
+        await invoke("set_server_token", { token: serverToken });
       }
 
       // Save startup options (autostart plugin is handled in set_autostart_enabled)
@@ -416,6 +419,21 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 />
               </div>
 
+              <div>
+                <label className="text-sm font-medium mb-2 block">Token</label>
+                <input
+                  type="password"
+                  value={serverToken}
+                  onChange={(e) => {
+                    setServerToken(e.target.value);
+                    setServerStatus("unknown");
+                  }}
+                  placeholder="The one the server minted for you"
+                  autoComplete="off"
+                  className="w-full h-10 px-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]"
+                />
+              </div>
+
               <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card">
                 {serverStatus === "checking" && (
                   <Loader2 className="h-5 w-5 text-[var(--color-active)] animate-spin" />
@@ -423,7 +441,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 {serverStatus === "online" && (
                   <Wifi className="h-5 w-5 text-[var(--color-success)]" />
                 )}
-                {serverStatus === "offline" && (
+                {(serverStatus === "offline" || serverStatus === "unauthorized") && (
                   <WifiOff className="h-5 w-5 text-[var(--color-destructive)]" />
                 )}
                 {serverStatus === "unknown" && (
@@ -434,6 +452,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   {serverStatus === "checking" && "Checking..."}
                   {serverStatus === "online" && "Server connected"}
                   {serverStatus === "offline" && "Server unreachable"}
+                  {serverStatus === "unauthorized" && "Server reached, token refused"}
                   {serverStatus === "unknown" && "Not checked yet"}
                 </span>
 

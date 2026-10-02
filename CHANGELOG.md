@@ -36,6 +36,14 @@ transcription without one, so each dictation in server mode was turned away and 
 this machine instead, while the connection indicator, which asks a route that needs no token, kept
 showing the server as reachable.
 
+- (server) Tell a refused token from a server that does not answer
+
+The connection test used to ask a route that needs no token, so a wrong token still showed the
+server as connected. It now asks one that does. A server that is there but turns the token away
+says so on the Transcription page, the dashboard and the title bar, and "Server unreachable" is
+kept for a server that does not answer. A server too old to check the token on still shows as
+connected, as it always did.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
