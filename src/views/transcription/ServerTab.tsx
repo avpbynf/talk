@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { AlertCircle, Check, Clock, KeyRound, Loader2, Radar, RefreshCw, Server, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -45,13 +47,13 @@ function statusIcon(serverStatus: ServerStatus, size: "sm" | "md" = "md") {
   }
 }
 
-function statusText(serverStatus: ServerStatus) {
+function statusText(serverStatus: ServerStatus, t: TFunction) {
   switch (serverStatus) {
-    case "checking": return "Checking...";
-    case "online": return "Connected";
-    case "unauthorized": return "Server reached, key or token refused";
-    case "offline": return "Unreachable";
-    default: return "Not tested";
+    case "checking": return t("transcription.server.status.checking");
+    case "online": return t("transcription.server.status.connected");
+    case "unauthorized": return t("transcription.server.status.unauthorized");
+    case "offline": return t("transcription.server.status.unavailable");
+    default: return t("transcription.server.status.notTested");
   }
 }
 
@@ -69,6 +71,7 @@ export function ServerTab({
   serverFallback,
   onServerFallbackChange,
 }: ServerTabProps) {
+  const { t } = useTranslation();
   const [urlInput, setUrlInput] = useState(serverUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState(serverToken || "");
@@ -84,7 +87,7 @@ export function ServerTab({
       setUrlError(null);
       setPairTarget({ url: urlInput, label: urlInput });
     } catch {
-      setUrlError("URL invalide");
+      setUrlError(t("transcription.server.invalidUrl"));
     }
   };
 
@@ -110,7 +113,7 @@ export function ServerTab({
       setUrlError(null);
       onServerUrlChange(urlInput);
     } catch {
-      setUrlError("URL invalide");
+      setUrlError(t("transcription.server.invalidUrl"));
     }
   };
 
@@ -123,15 +126,15 @@ export function ServerTab({
             <Server className="h-4 w-4 text-server" />
           </div>
           <div>
-            <h3 className="font-medium text-sm">Connection</h3>
-            <p className="text-xs text-muted-foreground">Talk server or any OpenAI-compatible endpoint</p>
+            <h3 className="font-medium text-sm">{t("transcription.server.connection")}</h3>
+            <p className="text-xs text-muted-foreground">{t("transcription.server.endpoint")}</p>
           </div>
         </div>
 
         <div className="space-y-4">
           {/* URL + Test */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Server URL</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("transcription.server.url")}</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -170,20 +173,20 @@ export function ServerTab({
               : "bg-surface-inset border border-border-subtle"
           )}>
             {statusIcon(serverStatus)}
-            <span className="text-sm">{statusText(serverStatus)}</span>
+            <span className="text-sm">{statusText(serverStatus, t)}</span>
           </div>
 
           {/* API token */}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-xs font-medium text-muted-foreground">
-                API key or token <span className="text-xs font-normal">(optional)</span>
+                {t("transcription.server.token")} <span className="text-xs font-normal">{t("transcription.server.optional")}</span>
               </label>
               <button
                 onClick={pairTyped}
                 className="cursor-pointer text-xs font-medium text-server hover:underline"
               >
-                Pair with this server
+                {t("transcription.server.pairWith")}
               </button>
             </div>
             <input
@@ -191,18 +194,18 @@ export function ServerTab({
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               onBlur={() => { if (tokenInput !== serverToken) onServerTokenChange(tokenInput); }}
-              placeholder="sk-... or leave empty"
+              placeholder={t("transcription.server.tokenPlaceholder")}
               className="w-full px-3 py-2 rounded-lg bg-surface-inset border border-border-card text-sm font-mono input-glow placeholder:text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground">
-              A Talk server gives one when you pair with it, OpenAI on its dashboard.
+              {t("transcription.server.tokenHint")}
             </p>
           </div>
 
           {/* Model */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">
-              Model <span className="text-xs font-normal">(optional)</span>
+              {t("transcription.server.model")} <span className="text-xs font-normal">{t("transcription.server.optional")}</span>
             </label>
             <input
               type="text"
@@ -213,8 +216,7 @@ export function ServerTab({
               className="w-full px-3 py-2 rounded-lg bg-surface-inset border border-border-card text-sm font-mono input-glow placeholder:text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground">
-              Leave empty to let the server choose, which is right for a Talk server. OpenAI
-              needs one and uses whisper-1 when this is empty.
+              {t("transcription.server.modelHint")}
             </p>
           </div>
         </div>
@@ -237,13 +239,13 @@ export function ServerTab({
             <Radar className="h-4 w-4 text-server" />
           </div>
           <div>
-            <h3 className="font-medium text-sm">Servers on this network</h3>
-            <p className="text-xs text-muted-foreground">Found automatically, nothing to type</p>
+            <h3 className="font-medium text-sm">{t("transcription.server.network")}</h3>
+            <p className="text-xs text-muted-foreground">{t("transcription.server.networkHint")}</p>
           </div>
         </div>
 
         {discovered.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No server found yet.</p>
+          <p className="text-xs text-muted-foreground">{t("transcription.server.noneFound")}</p>
         ) : (
           <ul className="space-y-2">
             {discovered.map((server) => (
@@ -264,7 +266,7 @@ export function ServerTab({
                       onClick={() => setPairTarget({ url: server.url, label: server.name })}
                       className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active"
                     >
-                      Pair
+                      {t("transcription.server.pair")}
                     </button>
                   )}
                   <button
@@ -272,7 +274,7 @@ export function ServerTab({
                     disabled={server.url === serverUrl}
                     className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
                   >
-                    {server.url === serverUrl ? "In use" : "Use"}
+                    {server.url === serverUrl ? t("transcription.server.inUse") : t("transcription.server.use")}
                   </button>
                 </div>
               </li>
@@ -288,8 +290,8 @@ export function ServerTab({
             <Clock className="h-4 w-4 text-server" />
           </div>
           <div>
-            <h3 className="font-medium text-sm">Timeout</h3>
-            <p className="text-xs text-muted-foreground">How long to wait before giving up</p>
+            <h3 className="font-medium text-sm">{t("transcription.server.timeout")}</h3>
+            <p className="text-xs text-muted-foreground">{t("transcription.server.timeoutHint")}</p>
           </div>
         </div>
 
@@ -314,8 +316,8 @@ export function ServerTab({
       {/* Local fallback */}
       <div className="flex items-center justify-between p-4 rounded-xl bg-surface-raised border border-border-card">
         <div className="space-y-0.5">
-          <p className="text-sm font-medium text-foreground">Local fallback</p>
-          <p className="text-xs text-muted-foreground">Fall back to the local model when the server does not answer</p>
+          <p className="text-sm font-medium text-foreground">{t("transcription.server.fallback")}</p>
+          <p className="text-xs text-muted-foreground">{t("transcription.server.fallbackHint")}</p>
         </div>
         <Switch checked={serverFallback} onCheckedChange={onServerFallbackChange} />
       </div>

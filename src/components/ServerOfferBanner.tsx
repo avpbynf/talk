@@ -1,4 +1,5 @@
 import { Radar, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { DiscoveredServer } from "@/lib/server";
 
@@ -14,6 +15,7 @@ interface ServerOfferBannerProps {
  * it, is the only time that server is offered.
  */
 export function ServerOfferBanner({ server, onUse, onDismiss }: ServerOfferBannerProps) {
+  const { t } = useTranslation();
   return (
     <div className="shrink-0 border-b border-border-subtle bg-surface-raised px-4 py-2.5">
       <div className="flex items-center gap-3">
@@ -21,7 +23,7 @@ export function ServerOfferBanner({ server, onUse, onDismiss }: ServerOfferBanne
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm">
-            <span className="font-medium">Server found: {server.name}</span>
+            <span className="font-medium">{t("serverOffer.found", { name: server.name })}</span>
             <span className="ml-2 text-muted-foreground">
               {server.model ? `${server.model}, ` : ""}
               {server.url}
@@ -30,12 +32,12 @@ export function ServerOfferBanner({ server, onUse, onDismiss }: ServerOfferBanne
         </div>
 
         <Button size="sm" onClick={() => onUse(server)}>
-          Use it
+          {t("serverOffer.use")}
         </Button>
         <button
           onClick={onDismiss}
           className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-active hover:text-foreground"
-          aria-label="Dismiss"
+          aria-label={t("serverOffer.dismiss")}
         >
           <X className="h-4 w-4" />
         </button>

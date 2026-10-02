@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import type { TFunction } from "i18next";
 
 export type ShareState = "off" | "serving" | "port_busy" | "error";
 
@@ -33,16 +34,16 @@ export interface PendingPairing {
 }
 
 /** What the card says about the server, in one line. */
-export function describeShare(info: ShareInfo): string {
+export function describeShare(info: ShareInfo, t: TFunction): string {
   switch (info.state) {
     case "serving":
-      return info.model ? "Serving" : "Waiting for a model";
+      return info.model ? t("transcription.share.serving") : t("transcription.share.waitingModel");
     case "port_busy":
-      return "Port already in use";
+      return t("transcription.share.portBusy");
     case "error":
-      return "Could not start";
+      return t("transcription.share.error");
     default:
-      return "Off";
+      return t("transcription.share.off");
   }
 }
 
