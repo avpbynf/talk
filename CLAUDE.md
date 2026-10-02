@@ -146,3 +146,20 @@ workflows run that same file.
   `tauri.conf.json`, so anything published by a path that skips the signing still
   installs by hand and is simply never seen by an installed client. Signing with a
   different key does the same to every installation already out there.
+- **Share this PC takes WAV and nothing else.** The upload must open with RIFF and WAVE and
+  goes straight to symphonia's WAV reader, never the default probe: the probe scans forward
+  for any container, so a junk byte or an ID3 tag slips past a check on byte 0, and its MP4
+  and MKV demuxers panic on a crafted header, which aborts the whole app in a release build.
+  Talk clients send WAV, and another OpenAI client has to as well. The decoding runs after
+  the one remote slot is taken, so a paired device cannot decode several uploads at once.
+- **Share this PC binds `0.0.0.0`, and Windows asks about it.** The first time the server
+  listens, Defender Firewall shows its "allow this app to communicate on these networks" prompt
+  for Talk. Until it is allowed, the card reads Serving and a request from the same machine
+  works, while every other machine times out, which looks like a server bug and is not one.
+  Only a private network is ticked by default. The server and a local dictation also share the
+  one engine behind `AppState.whisper_engine`, and the local one always wins: a remote job
+  waits, one at a time and without holding the engine lock, until no dictation is recording
+  or in flight, and whisper's abort callback stops it with a 503 as soon as a local recording
+  starts. The pairing store lives in `ShareManager` and
+  not in a running server, so ten wrong codes keep pairing off through a switch off and on,
+  until Talk restarts, as on Talk-Server.

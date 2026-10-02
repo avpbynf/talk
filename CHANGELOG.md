@@ -56,6 +56,21 @@ the token field has a Pair with this server link for an address you typed. Talk 
 a code, you read the 6 digit code in the server's log or on its admin page and type it in, and the
 token fills itself in. The connection is tested straight after, so the status reads Connected.
 
+- (server) Share this PC with other machines
+
+A new Share this PC card on the Transcription page lets other computers dictate through the model
+loaded here, with no Docker or Python on this side. Turn the switch on and Talk listens on port
+8000, or the port you pick, and announces itself on the network, so another Talk running in Server
+mode finds it in its list. That machine asks to pair, a strip under the title bar here shows a
+6 digit code, and you read it out; each code is good for two minutes. Paired machines are listed on
+the card and can be revoked, which cuts them off at once. Anything that speaks the OpenAI
+transcription API can use it too, with the token pairing hands out, as long as it uploads WAV:
+that is what Talk sends, and this PC refuses any other format. The first time the port opens,
+Windows may ask whether to let Talk through its firewall, and other machines cannot connect until
+that is allowed. Dictating on this PC always goes first: a request from another machine waits
+until your dictation is done, is stopped if you start recording while it runs, and the other
+machine is told to retry shortly.
+
 ### Bug Fixes
 
 - (server) Send the server token, so server mode transcribes on the server again

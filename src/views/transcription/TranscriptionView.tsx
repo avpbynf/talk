@@ -11,6 +11,7 @@ import type {
 } from "@/App";
 import { LocalTab } from "./LocalTab";
 import { ServerTab } from "./ServerTab";
+import { SharePanel } from "./SharePanel";
 
 import type { ServerStatus } from "@/lib/server";
 
@@ -130,6 +131,8 @@ export default function TranscriptionView({
             <div className="h-px bg-border-subtle" />
 
             {/* Content */}
+            {transcriptionMode === "local" && <SharePanel currentModel={currentModel} />}
+
             {transcriptionMode === "local" && (
               <LocalTab
                 models={models}
