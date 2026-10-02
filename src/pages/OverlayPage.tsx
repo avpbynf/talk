@@ -18,6 +18,8 @@ const BASE_HEIGHT = 60;
 
 function OverlayPage() {
   const [state, setState] = useState<ProcessingState>("idle");
+  // Dictations still transcribing, shown beside a recording started behind them
+  const [jobsInFlight, setJobsInFlight] = useState(0);
   const [progress, setProgress] = useState(0);
   const [scale, setScale] = useState(1);
   const [spectrum, setSpectrum] = useState<number[]>([0, 0, 0, 0, 0, 0, 0, 0]);
@@ -170,6 +172,10 @@ function OverlayPage() {
       setVisible(false);
     });
 
+    const unlistenJobs = listen<number>("jobs-in-flight", (event) => {
+      setJobsInFlight(event.payload);
+    });
+
     const unlistenSpectrum = listen<number[]>("audio-spectrum", (event) => {
       setSpectrum(event.payload);
     });
@@ -189,6 +195,7 @@ function OverlayPage() {
       unlistenProcessing.then((f) => f());
       unlistenProgress.then((f) => f());
       unlistenCancelled.then((f) => f());
+      unlistenJobs.then((f) => f());
       unlistenSpectrum.then((f) => f());
       unlistenMove.then((f) => f());
       if (saveTimeoutRef.current) {
@@ -251,6 +258,8 @@ function OverlayPage() {
             >
               {m}<span className="overlay-colon">:</span>{s}
             </span>
+
+            {jobsInFlight > 0 && <QueueBadge count={jobsInFlight} progress={progress} color={theme.accentDim} />}
           </>
         );
       }
@@ -358,3 +367,39 @@ function OverlayPage() {
 }
 
 export default OverlayPage;
+
+/**
+ * The dictations still transcribing behind a recording: a ring for the one
+ * under way, and how many there are. A server sends no progress, so the ring
+ * turns instead of filling.
+ */
+function QueueBadge({ count, progress, color }: { count: number; progress: number; color: string }) {
+  const radius = 7;
+  const circumference = 2 * Math.PI * radius;
+  const indeterminate = progress === 0;
+  return (
+    <div className="relative h-[18px] w-[18px] shrink-0" title={`${count} still transcribing`}>
+      <svg viewBox="0 0 18 18" className={`h-full w-full -rotate-90 ${indeterminate ? "animate-spin" : ""}`}>
+        <circle cx="9" cy="9" r={radius} fill="none" stroke={color} strokeOpacity={0.25} strokeWidth="2" />
+        <circle
+          cx="9"
+          cy="9"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - (indeterminate ? 0.25 : progress / 100))}
+          className="transition-[stroke-dashoffset] duration-200 ease-out"
+        />
+      </svg>
+      <span
+        className="absolute inset-0 flex items-center justify-center text-[9px] font-mono font-semibold"
+        style={{ color }}
+      >
+        {count}
+      </span>
+    </div>
+  );
+}
