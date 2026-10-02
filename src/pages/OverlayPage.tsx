@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Mic, MicOff, Brain, Server } from "lucide-react";
+import { Mic, Brain, Server } from "lucide-react";
 import { getThemeGradients, type OverlayThemeId } from "@/lib/overlay-themes";
 
 type ProcessingState = "idle" | "recording" | "transcribing" | "streaming" | "server_transcribing";
@@ -24,7 +24,6 @@ function OverlayPage() {
   const [elapsed, setElapsed] = useState(0);
   const [visible, setVisible] = useState(false);
   const [themeId, setThemeId] = useState<OverlayThemeId>("aurora");
-  const [meetingMuted, setMeetingMuted] = useState(false);
   const saveTimeoutRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,10 +174,6 @@ function OverlayPage() {
       setSpectrum(event.payload);
     });
 
-    const unlistenMeetingMuted = listen<boolean>("meeting-mode-muted", (event) => {
-      setMeetingMuted(event.payload);
-    });
-
     const currentWindow = getCurrentWindow();
     const unlistenMove = currentWindow.onMoved(({ payload: position }) => {
       if (saveTimeoutRef.current) {
@@ -195,7 +190,6 @@ function OverlayPage() {
       unlistenProgress.then((f) => f());
       unlistenCancelled.then((f) => f());
       unlistenSpectrum.then((f) => f());
-      unlistenMeetingMuted.then((f) => f());
       unlistenMove.then((f) => f());
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -257,14 +251,6 @@ function OverlayPage() {
             >
               {m}<span className="overlay-colon">:</span>{s}
             </span>
-
-            {/* Meeting mode muted indicator */}
-            {meetingMuted && (
-              <MicOff
-                className="h-3.5 w-3.5"
-                style={{ color: theme.accentDim, opacity: 0.7 }}
-              />
-            )}
           </>
         );
       }

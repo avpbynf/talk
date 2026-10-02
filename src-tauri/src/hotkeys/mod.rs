@@ -547,7 +547,6 @@ fn cancel_recording(app: &AppHandle) {
         let vm = state.virtual_mic.lock();
         if vm.is_active() {
             vm.unmute();
-            let _ = app.emit("meeting-mode-muted", false);
         }
     }
 
@@ -662,7 +661,6 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
         let vm = state.virtual_mic.lock();
         if vm.is_active() {
             vm.mute();
-            let _ = app.emit("meeting-mode-muted", true);
         }
     }
 
@@ -747,7 +745,6 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
         let vm = state.virtual_mic.lock();
         if vm.is_active() {
             vm.unmute();
-            let _ = app.emit("meeting-mode-muted", false);
         }
     }
 
