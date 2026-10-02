@@ -21,6 +21,7 @@ the last dictation or the whole last run.
   recording in progress; with none left, it drops everything waiting, or only the one being
   transcribed, as chosen on the same card. On a graphics card the transcription itself can take a
   second or two to let go, but nothing it brings back is pasted.
+
 - (overlay) Show what is still transcribing behind a new recording
 
 Recording again while a dictation is still on its way used to hide it entirely. A small ring now
@@ -84,6 +85,11 @@ page has a Language setting to pick one of the two whatever Windows is set to, a
 applies at once, without a restart. Dates, times and numbers follow the same language.
 
 ### Bug Fixes
+
+- (preferences) Keep the Updates card at the bottom of Preferences
+
+Cards were added to the page in the order they were written, so Companion shortcuts had landed
+below Updates. Updates is now the last card, whatever comes next.
 
 - (server) Send the server token, so server mode transcribes on the server again
 

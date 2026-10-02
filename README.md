@@ -207,8 +207,9 @@ unpack it there before building an installer. Everything else builds without the
 The two bitmaps the wizard displays are committed next to the icons, and rebuilt by
 `python scripts/make-installer-images.py` whenever the mark or the wordmark changes.
 
-Uninstalling reclaims the model cache, which is the only part worth a gigabyte, and
-leaves `settings.json` and the history where they are so a reinstall finds them.
+Uninstalling leaves the models, `settings.json` and the history where they are, so a
+reinstall or a newer version finds them, unless "Delete the application data" is ticked in the
+uninstaller, which then removes all three.
 
 ### The signing key
 
