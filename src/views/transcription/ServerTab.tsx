@@ -119,6 +119,67 @@ export function ServerTab({
 
   return (
     <div className="space-y-5">
+      {/* Servers on this network */}
+      <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-8 w-8 rounded-lg bg-[var(--color-server)]/15 flex items-center justify-center">
+            <Radar className="h-4 w-4 text-server" />
+          </div>
+          <div>
+            <h3 className="font-medium text-sm">{t("transcription.server.network")}</h3>
+            <p className="text-xs text-muted-foreground">{t("transcription.server.networkHint")}</p>
+          </div>
+        </div>
+
+        {discovered.length === 0 ? (
+          <p className="text-xs text-muted-foreground">{t("transcription.server.noneFound")}</p>
+        ) : (
+          <ul className="space-y-2">
+            {discovered.map((server) => (
+              <li
+                key={server.id}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border-card bg-surface-inset"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{server.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {server.model ? `${server.model}, ` : ""}
+                    <span className="font-mono">{server.url}</span>
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  {server.pairing && (
+                    <button
+                      onClick={() => setPairTarget({ url: server.url, label: server.name })}
+                      className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active"
+                    >
+                      {t("transcription.server.pair")}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => pickServer(server)}
+                    disabled={server.url === serverUrl}
+                    className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
+                  >
+                    {server.url === serverUrl ? t("transcription.server.inUse") : t("transcription.server.use")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {pairTarget && (
+        <PairPanel
+          key={pairTarget.url}
+          url={pairTarget.url}
+          label={pairTarget.label}
+          onPaired={paired}
+          onClose={() => setPairTarget(null)}
+        />
+      )}
+
       {/* Server Connection */}
       <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
         <div className="flex items-center gap-2 mb-4">
@@ -222,67 +283,6 @@ export function ServerTab({
         </div>
       </div>
 
-      {pairTarget && (
-        <PairPanel
-          key={pairTarget.url}
-          url={pairTarget.url}
-          label={pairTarget.label}
-          onPaired={paired}
-          onClose={() => setPairTarget(null)}
-        />
-      )}
-
-      {/* Servers on this network */}
-      <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-[var(--color-server)]/15 flex items-center justify-center">
-            <Radar className="h-4 w-4 text-server" />
-          </div>
-          <div>
-            <h3 className="font-medium text-sm">{t("transcription.server.network")}</h3>
-            <p className="text-xs text-muted-foreground">{t("transcription.server.networkHint")}</p>
-          </div>
-        </div>
-
-        {discovered.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{t("transcription.server.noneFound")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {discovered.map((server) => (
-              <li
-                key={server.id}
-                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border-card bg-surface-inset"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{server.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {server.model ? `${server.model}, ` : ""}
-                    <span className="font-mono">{server.url}</span>
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  {server.pairing && (
-                    <button
-                      onClick={() => setPairTarget({ url: server.url, label: server.name })}
-                      className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active"
-                    >
-                      {t("transcription.server.pair")}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => pickServer(server)}
-                    disabled={server.url === serverUrl}
-                    className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
-                  >
-                    {server.url === serverUrl ? t("transcription.server.inUse") : t("transcription.server.use")}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
       {/* Timeout */}
       <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
         <div className="flex items-center gap-2 mb-4">
@@ -311,17 +311,16 @@ export function ServerTab({
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Local fallback */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-surface-raised border border-border-card">
-        <div className="space-y-0.5">
-          <p className="text-sm font-medium text-foreground">{t("transcription.server.fallback")}</p>
-          <p className="text-xs text-muted-foreground">{t("transcription.server.fallbackHint")}</p>
+        {/* Local fallback */}
+        <div className="flex items-center justify-between gap-4 pt-4 border-t border-border-subtle">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-foreground">{t("transcription.server.fallback")}</p>
+            <p className="text-xs text-muted-foreground">{t("transcription.server.fallbackHint")}</p>
+          </div>
+          <Switch checked={serverFallback} onCheckedChange={onServerFallbackChange} />
         </div>
-        <Switch checked={serverFallback} onCheckedChange={onServerFallbackChange} />
       </div>
-
     </div>
   );
 }

@@ -95,29 +95,8 @@ export function SharePanel({ currentModel }: SharePanelProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="share-port" className="text-xs font-medium text-muted-foreground">
-          {t("transcription.share.port")}
-        </label>
-        <input
-          id="share-port"
-          type="text"
-          inputMode="numeric"
-          value={portInput}
-          onChange={(e) => setPortInput(e.target.value.replace(/\D/g, ""))}
-          onBlur={() => void savePort()}
-          onKeyDown={(e) => e.key === "Enter" && void savePort()}
-          className="w-28 px-3 py-2 text-sm rounded-lg border border-border-card bg-surface-inset focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]/30 focus:border-[var(--color-active)] font-mono"
-        />
-        {portError && (
-          <p role="alert" className="text-xs text-[var(--color-destructive)]">
-            {portError}
-          </p>
-        )}
-      </div>
-
       {info.enabled && (
-        <div className="space-y-1.5 text-xs">
+        <div className="space-y-1.5 text-xs border-t border-border-subtle pt-4">
           <p className={cn("flex items-center gap-1.5 font-medium", statusClass)}>
             {failed ? <AlertCircle className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
             {describeShare(info, t)}
@@ -148,35 +127,62 @@ export function SharePanel({ currentModel }: SharePanelProps) {
         </div>
       )}
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">{t("transcription.share.paired")}</p>
-        {devices.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("transcription.share.noneYet")}
-          </p>
-        ) : (
-          <ul className="space-y-1.5">
-            {devices.map((device) => (
-              <li
-                key={device.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface-inset px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm">{device.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatWhen(device.lastUsedAt, t)}</p>
-                </div>
-                <button
-                  onClick={() => void revoke(device.id)}
-                  className="cursor-pointer flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-surface-active hover:text-[var(--color-destructive)]"
+      {info.enabled && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="share-port" className="text-xs font-medium text-muted-foreground">
+              {t("transcription.share.port")}
+            </label>
+            <input
+              id="share-port"
+              type="text"
+              inputMode="numeric"
+              value={portInput}
+              onChange={(e) => setPortInput(e.target.value.replace(/\D/g, ""))}
+              onBlur={() => void savePort()}
+              onKeyDown={(e) => e.key === "Enter" && void savePort()}
+              className="w-24 px-3 py-1.5 text-sm text-right rounded-lg border border-border-card bg-surface-inset focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]/30 focus:border-[var(--color-active)] font-mono"
+            />
+          </div>
+          {portError && (
+            <p role="alert" className="text-xs text-[var(--color-destructive)]">
+              {portError}
+            </p>
+          )}
+        </div>
+      )}
+
+      {(info.enabled || devices.length > 0) && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">{t("transcription.share.paired")}</p>
+          {devices.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {t("transcription.share.noneYet")}
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {devices.map((device) => (
+                <li
+                  key={device.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface-inset px-3 py-2"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {t("transcription.share.revoke")}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm">{device.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatWhen(device.lastUsedAt, t)}</p>
+                  </div>
+                  <button
+                    onClick={() => void revoke(device.id)}
+                    className="cursor-pointer flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-surface-active hover:text-[var(--color-destructive)]"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t("transcription.share.revoke")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -133,8 +133,6 @@ export default function TranscriptionView({
             <div className="h-px bg-border-subtle" />
 
             {/* Content */}
-            {transcriptionMode === "local" && <SharePanel currentModel={currentModel} />}
-
             {transcriptionMode === "local" && (
               <LocalTab
                 models={models}
@@ -157,6 +155,8 @@ export default function TranscriptionView({
                 onGpuDeviceChange={onGpuDeviceChange}
               />
             )}
+
+            {transcriptionMode === "local" && <SharePanel currentModel={currentModel} />}
 
             {transcriptionMode === "server" && (
               <>
