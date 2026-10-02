@@ -40,7 +40,7 @@
     "reset": {
       "label": "Réinitialiser les statistiques",
       "title": "Réinitialiser les statistiques ?",
-      "description": "Tous les compteurs repartent de zéro, sans retour possible. Les transcriptions restent dans l'historique."
+      "description": "Les compteurs de cette machine repartent de zéro, sans retour possible. Les transcriptions restent dans l'historique. Si vous êtes connecté, les statistiques envoyées par cette machine sont aussi retirées de votre Google Drive, et vos autres machines gardent les leurs."
     },
     "ready": {
       "ready": "Prêt",
@@ -556,6 +556,20 @@
       "getStarted": "Commencer",
       "next": "Suivant"
     }
+  },
+  "account": {
+    "title": "Compte",
+    "hint": "Facultatif. La connexion synchronise seulement vos réglages, vos statistiques et votre historique entre vos machines, via votre propre Google Drive.",
+    "unavailable": "La connexion n'est pas disponible dans cette version.",
+    "signIn": "Se connecter avec Google",
+    "signingIn": "En attente du navigateur",
+    "signedInAs": "Connecté en tant que {{email}}",
+    "syncNow": "Synchroniser",
+    "signOut": "Se déconnecter",
+    "syncing": "Synchronisation en cours",
+    "lastSync": "Dernière synchronisation à {{time}}",
+    "neverSynced": "Pas encore synchronisé",
+    "syncFailed": "Échec de la dernière synchronisation : {{error}}"
   },
   "updates": {
     "title": "Mises à jour",

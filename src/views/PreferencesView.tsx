@@ -11,6 +11,7 @@ import MeetingModeSection from "./preferences/MeetingModeSection";
 import SoundFeedbackSection from "./preferences/SoundFeedbackSection";
 import SystemSection from "./preferences/SystemSection";
 import LanguageSection from "./preferences/LanguageSection";
+import AccountSection from "./preferences/AccountSection";
 import UpdatesSection from "./preferences/UpdatesSection";
 import type { Updater } from "@/lib/use-updater";
 
@@ -117,6 +118,7 @@ export default function PreferencesView({
         companionShortcuts={companionShortcuts}
         onCompanionShortcutsChange={onCompanionShortcutsChange}
       />
+      <AccountSection />
       {/* Last on the page, whatever is added above it */}
       <UpdatesSection updater={updater} />
     </PageShell>
