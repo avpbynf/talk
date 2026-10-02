@@ -1,5 +1,4 @@
 use crate::transcription::{AcceleratorBackend, GpuDevicePreference, GpuVendor};
-use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -301,8 +300,7 @@ impl Default for AppSettings {
 }
 
 pub(crate) fn get_config_dir() -> PathBuf {
-    ProjectDirs::from("com", "avpbynf", "t4lk")
-        .map(|dirs| dirs.config_dir().to_path_buf())
+    crate::paths::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
 }
 

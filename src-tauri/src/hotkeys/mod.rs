@@ -1,6 +1,5 @@
 use crate::{audio, audio_encoder, database, server_transcription, AppState, RecordingMode};
 use crate::settings::TranscriptionMode;
-use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use crate::dictation_queue::{PasteTarget, Release, Transcript};
@@ -124,8 +123,8 @@ impl Default for HotkeyConfig {
 }
 
 fn get_config_path() -> PathBuf {
-    ProjectDirs::from("com", "avpbynf", "t4lk")
-        .map(|dirs| dirs.config_dir().join("hotkeys.json"))
+    crate::paths::config_dir()
+        .map(|dir| dir.join("hotkeys.json"))
         .unwrap_or_else(|| PathBuf::from("hotkeys.json"))
 }
 
