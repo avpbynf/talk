@@ -17,6 +17,8 @@ import { ServerOfferBanner } from "@/components/ServerOfferBanner";
 import { type AppThemeId, applyAppTheme } from "@/lib/app-themes";
 import { useUpdater } from "@/lib/use-updater";
 import { useServerOffer } from "@/lib/use-server-offer";
+import { usePendingPairings } from "@/lib/share";
+import { PairingBanner } from "@/components/PairingBanner";
 
 export interface ModelInfo {
   id: string;
@@ -170,6 +172,7 @@ function App() {
   const updater = useUpdater();
 
   const { offer: serverOffer, dismiss: dismissServerOffer } = useServerOffer(setupCompleted === true);
+  const pendingPairings = usePendingPairings();
 
   // Refs to avoid re-registering listeners
   const hasInitialized = useRef(false);
@@ -495,6 +498,7 @@ function App() {
 
       {/* What a release found on GitHub says for itself, when there is one */}
       <UpdateBanner updater={updater} />
+      <PairingBanner pending={pendingPairings} />
       {serverOffer && (
         <ServerOfferBanner
           server={serverOffer}

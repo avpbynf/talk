@@ -90,6 +90,15 @@ one is a click. The first time a new server shows up while dictation runs locall
 the titlebar offers to switch to it. A server that requires a token can be paired instead of
 copied from: Talk asks for a code, you read it off the server, and the token fills itself in.
 
+**This PC can be the server.** With Share this PC on, the model loaded here answers other
+machines over the same HTTP API as Talk-Server, so a laptop in Server mode, or anything that
+speaks the OpenAI transcription API, can use the graphics card of the desktop. This PC accepts WAV
+uploads only, which is what Talk clients send, so another OpenAI client has to send WAV to it.
+Nothing besides Talk has to be installed. Pairing works the way it does against Talk-Server: the other machine
+asks, a code appears in Talk's window, and you read it out. Dictating here always goes first: a
+request from another machine waits for your dictation to finish, is stopped if you start
+recording while it runs, and the other machine is told to retry shortly.
+
 **A vocabulary biases the model toward your words.** Product names, colleagues,
 libraries, anything Whisper would otherwise turn into the nearest common word. It is a
 plain list, typed once.
