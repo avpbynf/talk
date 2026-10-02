@@ -39,6 +39,13 @@ When Talk is dictating on this machine and a server appears that it has not seen
 under the title bar offers to use it. Each server is offered a single time, whether you accept it
 or close the strip.
 
+- (server) Pair with a server instead of pasting its token
+
+A server that offers pairing now shows a Pair button in the list on the Transcription page, and
+the token field has a Pair with this server link for an address you typed. Talk asks the server for
+a code, you read the 6 digit code in the server's log or on its admin page and type it in, and the
+token fills itself in. The connection is tested straight after, so the status reads Connected.
+
 ### Bug Fixes
 
 - (server) Send the server token, so server mode transcribes on the server again

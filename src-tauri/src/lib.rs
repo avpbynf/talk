@@ -782,6 +782,29 @@ fn next_server_offer(
 }
 
 #[tauri::command]
+async fn pair_request(
+    url: String,
+) -> Result<server_transcription::PairRequest, server_transcription::PairError> {
+    server_transcription::pair_request(&url).await
+}
+
+/// Saves the server and its token the way the two setters do, so the page
+/// only has to refresh what it shows.
+#[tauri::command]
+async fn pair_confirm(
+    url: String,
+    request_id: String,
+    code: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<server_transcription::PairGrant, server_transcription::PairError> {
+    let grant = server_transcription::pair_confirm(&url, &request_id, &code).await?;
+    set_server_url(url, state).map_err(|_| server_transcription::PairError::Unreachable)?;
+    set_server_token(grant.token.clone())
+        .map_err(|_| server_transcription::PairError::Unreachable)?;
+    Ok(grant)
+}
+
+#[tauri::command]
 async fn test_server_connection(
     state: tauri::State<'_, AppState>,
 ) -> Result<server_transcription::ServerCheck, String> {
@@ -1207,6 +1230,8 @@ pub fn run() {
             set_server_timeout,
             test_server_connection,
             list_discovered_servers,
+            pair_request,
+            pair_confirm,
             next_server_offer,
             is_setup_completed,
             complete_setup,
