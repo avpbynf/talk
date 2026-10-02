@@ -27,6 +27,14 @@ Recording again while a dictation is still on its way used to hide it entirely. 
 sits beside the timer, filling as the dictation in progress goes through the model, with the number
 still waiting inside it. The crossed-out microphone meeting mode added to the overlay is gone:
 meeting mode is a setting, and it read as a second microphone.
+### Bug Fixes
+
+- (server) Send the server token, so server mode transcribes on the server again
+
+The token typed on the Transcription page was saved and never sent. The server refuses every
+transcription without one, so each dictation in server mode was turned away and quietly done on
+this machine instead, while the connection indicator, which asks a route that needs no token, kept
+showing the server as reachable.
 
 ## [0.9.0] - 2026-09-07
 

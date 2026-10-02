@@ -862,10 +862,12 @@ async fn transcribe(
             // Note: detected_context.language is a programming language name (e.g. "rust",
             // "generic_dev"), NOT a Whisper language code. Pass None to let the server use
             // its configured DEFAULT_LANGUAGE.
+            let server_token = crate::settings::load_settings().server_token;
             let request = server_transcription::transcribe_stream(
                 &server_url,
                 &wav_data,
                 server_timeout,
+                Some(&server_token),
                 None,
                 vocabulary_prompt.as_deref(),
                 on_segment,
