@@ -4,6 +4,8 @@ import type { TFunction } from "i18next";
 import { AlertCircle, Check, Clock, KeyRound, Loader2, Radar, RefreshCw, Server, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { SectionCard } from "@/components/SectionCard";
 import { useDiscoveredServers } from "@/lib/use-discovered-servers";
 import type { DiscoveredServer, PairGrant } from "@/lib/server";
 import { PairPanel } from "./PairPanel";
@@ -120,17 +122,13 @@ export function ServerTab({
   return (
     <div className="space-y-5">
       {/* Servers on this network */}
-      <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-[var(--color-server)]/15 flex items-center justify-center">
-            <Radar className="h-4 w-4 text-server" />
-          </div>
-          <div>
-            <h3 className="font-medium text-sm">{t("transcription.server.network")}</h3>
-            <p className="text-xs text-muted-foreground">{t("transcription.server.networkHint")}</p>
-          </div>
-        </div>
-
+      <SectionCard
+        variant="tile"
+        accent="server"
+        icon={Radar}
+        title={t("transcription.server.network")}
+        description={t("transcription.server.networkHint")}
+      >
         {discovered.length === 0 ? (
           <p className="text-xs text-muted-foreground">{t("transcription.server.noneFound")}</p>
         ) : (
@@ -168,7 +166,7 @@ export function ServerTab({
             ))}
           </ul>
         )}
-      </div>
+      </SectionCard>
 
       {pairTarget && (
         <PairPanel
@@ -181,30 +179,26 @@ export function ServerTab({
       )}
 
       {/* Server Connection */}
-      <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-[var(--color-server)]/15 flex items-center justify-center">
-            <Server className="h-4 w-4 text-server" />
-          </div>
-          <div>
-            <h3 className="font-medium text-sm">{t("transcription.server.connection")}</h3>
-            <p className="text-xs text-muted-foreground">{t("transcription.server.endpoint")}</p>
-          </div>
-        </div>
-
+      <SectionCard
+        variant="tile"
+        accent="server"
+        icon={Server}
+        title={t("transcription.server.connection")}
+        description={t("transcription.server.endpoint")}
+      >
         <div className="space-y-4">
           {/* URL + Test */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">{t("transcription.server.url")}</label>
             <div className="flex gap-2">
-              <input
-                type="text"
+              <Input
+                accent="server"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 onBlur={() => urlInput !== serverUrl && saveServerUrl()}
                 onKeyDown={(e) => e.key === "Enter" && saveServerUrl()}
                 placeholder="http://localhost:8000"
-                className="flex-1 px-3 py-2 text-sm rounded-lg border border-border-card bg-surface-inset focus:outline-none focus:ring-2 focus:ring-[var(--color-server)]/30 focus:border-[var(--color-server)] font-mono"
+                className="flex-1 font-mono"
               />
               <button
                 onClick={() => checkServerHealth(false)}
@@ -281,20 +275,16 @@ export function ServerTab({
             </p>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       {/* Timeout */}
-      <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-[var(--color-server)]/15 flex items-center justify-center">
-            <Clock className="h-4 w-4 text-server" />
-          </div>
-          <div>
-            <h3 className="font-medium text-sm">{t("transcription.server.timeout")}</h3>
-            <p className="text-xs text-muted-foreground">{t("transcription.server.timeoutHint")}</p>
-          </div>
-        </div>
-
+      <SectionCard
+        variant="tile"
+        accent="server"
+        icon={Clock}
+        title={t("transcription.server.timeout")}
+        description={t("transcription.server.timeoutHint")}
+      >
         <div className="grid grid-cols-4 gap-2">
           {TIMEOUT_OPTIONS.map((option) => (
             <button
@@ -320,7 +310,7 @@ export function ServerTab({
           </div>
           <Switch checked={serverFallback} onCheckedChange={onServerFallbackChange} />
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { OverlaySize } from "@/App";
 import { type OverlayThemeId, THEME_IDS, getThemeLabel, getThemePreviewColors } from "@/lib/overlay-themes";
+import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
 
 interface OverlaySectionProps {
@@ -34,11 +35,7 @@ export default function OverlaySection({
 }: OverlaySectionProps) {
   const { t } = useTranslation();
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-        <Sparkles className="h-4 w-4" />
-        {t("appearance.overlay.title")}
-      </div>
+    <SectionCard icon={Sparkles} title={t("appearance.overlay.title")}>
 
       <p className="text-sm text-muted-foreground">
         {t("appearance.overlay.sizeDescription")}
@@ -87,6 +84,6 @@ export default function OverlaySection({
           );
         })}
       </div>
-    </div>
+    </SectionCard>
   );
 }

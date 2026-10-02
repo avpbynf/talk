@@ -7,6 +7,7 @@ import {
   getAppThemeCategory,
   getAppThemePreview,
 } from "@/lib/app-themes";
+import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
 
 interface ThemeSectionProps {
@@ -80,11 +81,7 @@ export default function ThemeSection({
   );
 
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-        <Palette className="h-4 w-4" />
-        {t("appearance.theme.title")}
-      </div>
+    <SectionCard icon={Palette} title={t("appearance.theme.title")}>
 
       <p className="text-sm text-muted-foreground">
         {t("appearance.theme.description")}
@@ -123,6 +120,6 @@ export default function ThemeSection({
           ))}
         </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }

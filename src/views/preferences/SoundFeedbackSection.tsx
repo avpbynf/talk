@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { SectionCard } from "@/components/SectionCard";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Volume2 } from "lucide-react";
@@ -27,15 +28,11 @@ export default function SoundFeedbackSection({
 }: SoundFeedbackSectionProps) {
   const { t } = useTranslation();
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          <Volume2 className="h-4 w-4" />
-          {t("preferences.sound.title")}
-        </div>
-        <Switch checked={soundFeedback} onCheckedChange={onSoundFeedbackChange} />
-      </div>
-
+    <SectionCard
+      icon={Volume2}
+      title={t("preferences.sound.title")}
+      action={<Switch checked={soundFeedback} onCheckedChange={onSoundFeedbackChange} />}
+    >
       <p className="text-sm text-muted-foreground">
         {t("preferences.sound.description")}
       </p>
@@ -77,7 +74,7 @@ export default function SoundFeedbackSection({
           </div>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 

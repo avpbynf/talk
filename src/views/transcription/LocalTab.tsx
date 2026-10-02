@@ -3,6 +3,7 @@ import { HardDrive, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn } from "@/lib/utils";
+import { SectionCard } from "@/components/SectionCard";
 import { GpuSelector } from "@/components/GpuSelector";
 import { ModelCard } from "@/components/ModelCard";
 import type { ModelInfo, DownloadProgress, GpuDevice, GpuInfo, GpuVendor } from "@/App";
@@ -77,19 +78,12 @@ export function LocalTab({
       />
 
       {/* Models Selection */}
-      <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[var(--color-active)]/15 flex items-center justify-center">
-              <HardDrive className="h-4 w-4 text-[var(--color-active)]" />
-            </div>
-            <div>
-              <h3 className="font-medium text-sm">{t("transcription.local.title")}</h3>
-              <p className="text-xs text-muted-foreground">{t("transcription.local.downloaded", { count: downloadedModels.length, number: downloadedModels.length })}</p>
-            </div>
-          </div>
-
-          {/* Toggle Quantifie/Standard */}
+      <SectionCard
+        variant="tile"
+        icon={HardDrive}
+        title={t("transcription.local.title")}
+        description={t("transcription.local.downloaded", { count: downloadedModels.length, number: downloadedModels.length })}
+        action={
           <div className="flex gap-1 p-0.5 bg-surface-inset rounded-md border border-border-subtle">
             <button
               onClick={() => setModelFamily("quantized")}
@@ -114,8 +108,8 @@ export function LocalTab({
               {t("transcription.local.standard")}
             </button>
           </div>
-        </div>
-
+        }
+      >
         <div className="space-y-2">
           {filteredModels.map((model) => (
             <ModelCard
@@ -134,7 +128,7 @@ export function LocalTab({
             />
           ))}
         </div>
-      </div>
+      </SectionCard>
 
       <ConfirmDialog
         open={pendingDelete !== null}

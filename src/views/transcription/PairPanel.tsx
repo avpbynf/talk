@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { KeyRound, Loader2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SectionCard } from "@/components/SectionCard";
 import type { PairError, PairGrant, PairRequest } from "@/lib/server";
 
 interface PairPanelProps {
@@ -74,19 +76,15 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
   const complete = /^\d{6}$/.test(code);
 
   return (
-    <div className="p-5 rounded-xl border border-[var(--color-server)]/30 bg-surface-raised space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-[var(--color-server)]/15 flex items-center justify-center">
-            <KeyRound className="h-4 w-4 text-server" />
-          </div>
-          <div>
-            <h3 className="font-medium text-sm">{t("transcription.pair.title", { label })}</h3>
-            <p className="text-xs text-muted-foreground">
-              {t("transcription.pair.subtitle")}
-            </p>
-          </div>
-        </div>
+    <SectionCard
+      variant="tile"
+      accent="server"
+      alignAction="start"
+      icon={KeyRound}
+      title={t("transcription.pair.title", { label })}
+      description={t("transcription.pair.subtitle")}
+      className="border-[var(--color-server)]/30 gap-3"
+      action={
         <button
           onClick={onClose}
           aria-label={t("common.close")}
@@ -94,8 +92,8 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
         >
           <X className="h-4 w-4" />
         </button>
-      </div>
-
+      }
+    >
       {step.kind === "requesting" && (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -106,8 +104,8 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
       {(step.kind === "code" || step.kind === "confirming") && (
         <div className="space-y-2">
           <div className="flex gap-2">
-            <input
-              type="text"
+            <Input
+              accent="server"
               inputMode="numeric"
               autoComplete="off"
               maxLength={6}
@@ -117,7 +115,7 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
               onKeyDown={(e) => e.key === "Enter" && complete && void confirm()}
               placeholder="000000"
               aria-label={t("pairingBanner.codeLabel")}
-              className="w-32 px-3 py-2 text-sm rounded-lg border border-border-card bg-surface-inset font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--color-server)]/30 focus:border-[var(--color-server)]"
+              className="w-32 font-mono tracking-widest"
             />
             <Button onClick={() => void confirm()} disabled={!complete || step.kind === "confirming"}>
               {step.kind === "confirming" ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.confirm")}
@@ -148,6 +146,6 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
           )}
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

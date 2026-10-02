@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import { Keyboard, Hand, ToggleLeft } from "lucide-react";
+import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
 
 interface RecordingModeSectionProps {
@@ -14,12 +15,7 @@ export default function RecordingModeSection({
 }: RecordingModeSectionProps) {
   const { t } = useTranslation();
   return (
-    <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-        <Keyboard className="h-4 w-4" />
-        {t("preferences.recordingMode.title")}
-      </div>
-
+    <SectionCard icon={Keyboard} title={t("preferences.recordingMode.title")}>
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => onRecordingModeChange("push_to_talk")}
@@ -59,6 +55,6 @@ export default function RecordingModeSection({
           </div>
         </button>
       </div>
-    </div>
+    </SectionCard>
   );
 }
