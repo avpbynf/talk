@@ -259,6 +259,31 @@ pub fn resolve_gpu_device(preference: Option<&GpuDevicePreference>, devices: &[G
 }
 
 
+/// One stretch of speech, in seconds from the start of the audio
+#[derive(Debug, Clone, PartialEq)]
+pub struct TranscriptSegment {
+    pub start: f64,
+    pub end: f64,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Transcript {
+    pub segments: Vec<TranscriptSegment>,
+    pub language: String,
+}
+
+impl Transcript {
+    pub fn text(&self) -> String {
+        self.segments
+            .iter()
+            .map(|segment| segment.text.as_str())
+            .collect::<String>()
+            .trim()
+            .to_string()
+    }
+}
+
 pub struct WhisperEngine {
     ctx: WhisperContext,
     backend: AcceleratorBackend,
@@ -319,13 +344,52 @@ impl WhisperEngine {
         &self,
         audio_data: &[f32],
         vocabulary: Option<&str>,
-        mut on_progress: F,
+        on_progress: F,
         mut should_abort: A,
     ) -> Result<String, TranscriptionError>
     where
         F: FnMut(i32) + 'static,
         A: FnMut() -> bool + 'static,
     {
+        self.run(
+            audio_data,
+            Some("fr"),
+            vocabulary,
+            on_progress,
+            Some(Box::new(move || should_abort())),
+        )
+        .map(|transcript| transcript.text())
+    }
+
+    /// Transcribe with the timing of each segment, in the language asked for.
+    /// `None` lets whisper detect it, and the transcript says what it found.
+    pub fn transcribe_segments(
+        &self,
+        audio_data: &[f32],
+        language: Option<&str>,
+        prompt: Option<&str>,
+    ) -> Result<Transcript, TranscriptionError> {
+        self.run(audio_data, language, prompt, |_| {}, None)
+    }
+
+    fn run<F>(
+        &self,
+        audio_data: &[f32],
+        language: Option<&str>,
+        vocabulary: Option<&str>,
+        mut on_progress: F,
+        should_abort: Option<Box<dyn FnMut() -> bool>>,
+    ) -> Result<Transcript, TranscriptionError>
+    where
+        F: FnMut(i32) + 'static,
+    {
+        // whisper-rs turns these into C strings and panics on a NUL byte, which
+        // aborts the whole process in a release build
+        let language = language.map(without_nul);
+        let language = language.as_deref();
+        let vocabulary = vocabulary.map(without_nul);
+        let vocabulary = vocabulary.as_deref();
+
         let mut state = self
             .ctx
             .create_state()
@@ -335,7 +399,7 @@ impl WhisperEngine {
 
         // Configure for optimal performance
         params.set_n_threads(num_cpus::get() as i32 / 2);
-        params.set_language(Some("fr"));
+        params.set_language(language);
         params.set_translate(false);
         params.set_print_special(false);
         params.set_print_progress(false);
@@ -361,34 +425,55 @@ impl WhisperEngine {
         // trait object but registers a trampoline that reads it back as the
         // closure's own type, so a bare closure is called on the wrong data.
         // When the closure is itself that trait object the two agree.
-        let should_abort: Box<dyn FnMut() -> bool> = Box::new(move || should_abort());
-        params.set_abort_callback_safe(should_abort);
+        if let Some(should_abort) = should_abort {
+            params.set_abort_callback_safe::<_, Box<dyn FnMut() -> bool>>(should_abort);
+        }
 
         // Run transcription
         state
             .full(params, audio_data)
             .map_err(|e| TranscriptionError::Transcription(e.to_string()))?;
 
-        // Collect all segments
         let num_segments = state.full_n_segments();
-
-        let mut result = String::new();
+        let mut segments = Vec::new();
 
         for i in 0..num_segments {
             if let Some(segment) = state.get_segment(i) {
                 if let Ok(text) = segment.to_str() {
-                    result.push_str(text);
+                    segments.push(TranscriptSegment {
+                        // Whisper counts in hundredths of a second
+                        start: segment.start_timestamp() as f64 / 100.0,
+                        end: segment.end_timestamp() as f64 / 100.0,
+                        text: text.to_string(),
+                    });
                 }
             }
         }
 
-        Ok(result.trim().to_string())
+        let language = match language {
+            Some(code) => code.to_string(),
+            None => whisper_rs::get_lang_str(state.full_lang_id_from_state())
+                .unwrap_or("en")
+                .to_string(),
+        };
+
+        Ok(Transcript { segments, language })
     }
+}
+
+fn without_nul(text: &str) -> String {
+    text.replace('\0', "")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_nul_byte_is_dropped_before_it_reaches_whisper() {
+        assert_eq!(without_nul("fr\0en"), "fren");
+        assert_eq!(without_nul("plain"), "plain");
+    }
 
     fn device(index: u32, name: &str, vram_mb: u64) -> GpuDevice {
         GpuDevice {
