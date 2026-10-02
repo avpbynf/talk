@@ -138,8 +138,8 @@ data" is ticked while uninstalling.
 
 Dragging a term to reorder it stretched or squeezed the ones it passed over to the width of the
 term being dragged. They now only slide. The list of terms also used to stop after a few rows with
-a scroll of its own in the middle of the page; it now runs to the bottom of the window and scrolls
-inside, while the field to add terms stays in view.
+a scroll of its own in the middle of the page; it now grows with the terms it holds, and only
+scrolls once it reaches the bottom of the window, while the field to add terms stays in view.
 
 ## [0.9.0] - 2026-09-07
 
