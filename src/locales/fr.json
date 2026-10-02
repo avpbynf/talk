@@ -337,12 +337,12 @@
       "title": "Raccourcis",
       "main": {
         "label": "Raccourci principal",
-        "toggleDescription": "Démarre et arrête",
+        "toggleDescription": "Démarre un enregistrement, puis l'arrête",
         "holdDescription": "Maintenez-le enfoncé pour enregistrer"
       },
       "cancel": {
         "label": "Annuler",
-        "description": "Arrête l'enregistrement et le jette"
+        "description": "Jette l'enregistrement, ou une dictée pas encore collée"
       },
       "paste": {
         "label": "Coller la dernière",

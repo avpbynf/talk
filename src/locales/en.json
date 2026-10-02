@@ -337,12 +337,12 @@
       "title": "Shortcuts",
       "main": {
         "label": "Main shortcut",
-        "toggleDescription": "Starts and stops",
+        "toggleDescription": "Starts a recording, and stops it",
         "holdDescription": "Hold it down to record"
       },
       "cancel": {
         "label": "Cancel",
-        "description": "Stops the recording and throws it away"
+        "description": "Throws the recording away, or a dictation not pasted yet"
       },
       "paste": {
         "label": "Paste the last one",
