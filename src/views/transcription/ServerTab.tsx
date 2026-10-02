@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { AlertCircle, Check, Clock, KeyRound, Loader2, RefreshCw, Server, WifiOff } from "lucide-react";
+import { AlertCircle, Check, Clock, KeyRound, Loader2, Radar, RefreshCw, Server, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { useDiscoveredServers } from "@/lib/use-discovered-servers";
+import type { DiscoveredServer } from "@/lib/server";
 import type { ServerStatus } from "./TranscriptionView";
 
 interface ServerTabProps {
@@ -65,6 +67,14 @@ export function ServerTab({
   const [urlInput, setUrlInput] = useState(serverUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState(serverToken || "");
+
+  const discovered = useDiscoveredServers();
+
+  const pickServer = (server: DiscoveredServer) => {
+    setUrlInput(server.url);
+    setUrlError(null);
+    onServerUrlChange(server.url);
+  };
 
   const saveServerUrl = () => {
     try {
@@ -151,6 +161,47 @@ export function ServerTab({
             <p className="text-xs text-muted-foreground">OpenAI-compatible. Required by third-party services.</p>
           </div>
         </div>
+      </div>
+
+      {/* Servers on this network */}
+      <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-8 w-8 rounded-lg bg-[var(--color-server)]/15 flex items-center justify-center">
+            <Radar className="h-4 w-4 text-server" />
+          </div>
+          <div>
+            <h3 className="font-medium text-sm">Servers on this network</h3>
+            <p className="text-xs text-muted-foreground">Found automatically, nothing to type</p>
+          </div>
+        </div>
+
+        {discovered.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No server found yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {discovered.map((server) => (
+              <li
+                key={server.id}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border-card bg-surface-inset"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{server.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {server.model ? `${server.model}, ` : ""}
+                    <span className="font-mono">{server.url}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => pickServer(server)}
+                  disabled={server.url === serverUrl}
+                  className="cursor-pointer shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
+                >
+                  {server.url === serverUrl ? "In use" : "Use"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Timeout */}

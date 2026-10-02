@@ -3,6 +3,7 @@ mod audio_encoder;
 mod clipboard;
 mod database;
 mod dictation_queue;
+mod discovery;
 mod ducking;
 mod hotkeys;
 mod keystroke;
@@ -749,6 +750,13 @@ fn set_server_timeout(timeout: u64, state: tauri::State<'_, AppState>) {
 }
 
 #[tauri::command]
+fn list_discovered_servers(
+    discovery: tauri::State<'_, discovery::Discovery>,
+) -> Vec<discovery::DiscoveredServer> {
+    discovery.list()
+}
+
+#[tauri::command]
 async fn test_server_connection(
     state: tauri::State<'_, AppState>,
 ) -> Result<server_transcription::ServerCheck, String> {
@@ -1111,6 +1119,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(AppState::default())
+        .manage(discovery::Discovery::default())
         .invoke_handler(tauri::generate_handler![
             get_available_models,
             download_model,
@@ -1172,6 +1181,7 @@ pub fn run() {
             get_server_timeout,
             set_server_timeout,
             test_server_connection,
+            list_discovered_servers,
             is_setup_completed,
             complete_setup,
             get_autostart_enabled,
@@ -1221,6 +1231,8 @@ pub fn run() {
             let db = database::Database::open(&db_path)
                 .expect("Failed to open database");
             app.manage(db);
+
+            discovery::start(app.handle().clone());
 
             // Load saved settings into state
             let hotkey_config = hotkeys::load_config().unwrap_or_default();

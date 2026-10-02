@@ -54,6 +54,8 @@ thiserror = "1"
 parking_lot = "0.12"
 dotenvy = "0.15"
 url = "2"
+# Finds Talk-Server on the local network; the browse runs on its own thread.
+mdns-sd = "0.21"
 # Both were already in the tree through tauri, so declaring them costs no
 # extra compilation. They are what lets the recording path stamp a row
 # itself rather than handing the job to the frontend.
