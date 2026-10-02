@@ -1,4 +1,6 @@
 import { Check, Cpu, Zap, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { cn } from "@/lib/utils";
 import type { GpuDevice, GpuInfo, GpuVendor } from "@/App";
 
@@ -14,9 +16,10 @@ interface GpuSelectorProps {
   onDeviceChange: (index: number) => void;
 }
 
+/** Translation keys. */
 const GPU_TOOLTIPS: Record<GpuVendor, string> = {
-  vulkan: "Works with AMD, NVIDIA and Intel. One graphics API across every platform.",
-  cpu: "Runs anywhere, no graphics card needed. Slower, but it always works.",
+  vulkan: "transcription.gpu.tooltips.vulkan",
+  cpu: "transcription.gpu.tooltips.cpu",
 };
 
 const ALL_GPU_OPTIONS: GpuInfo[] = [
@@ -26,14 +29,14 @@ const ALL_GPU_OPTIONS: GpuInfo[] = [
 
 // An integrated chip reports the shared system memory as its own, so the figure would
 // read as if it were the roomier card. Say what it is instead.
-function describeDevice(device: GpuDevice) {
+function describeDevice(device: GpuDevice, t: TFunction) {
   if (device.integrated) {
-    return "Integrated";
+    return t("transcription.gpu.integrated");
   }
   if (device.vram_mb >= 1024) {
-    return `${Math.round(device.vram_mb / 1024)} GB`;
+    return t("transcription.gpu.gigabytes", { size: Math.round(device.vram_mb / 1024) });
   }
-  return `${device.vram_mb} MB`;
+  return t("transcription.gpu.megabytes", { size: device.vram_mb });
 }
 
 export function GpuSelector({
@@ -46,6 +49,7 @@ export function GpuSelector({
   switchingDevice,
   onDeviceChange,
 }: GpuSelectorProps) {
+  const { t } = useTranslation();
   const mergedGpus = ALL_GPU_OPTIONS.map((defaultGpu) => {
     const backendGpu = gpus.find((g) => g.vendor === defaultGpu.vendor);
     return backendGpu || defaultGpu;
@@ -67,8 +71,8 @@ export function GpuSelector({
           <Zap className="h-4 w-4 text-warning" />
         </div>
         <div>
-          <h3 className="font-medium text-sm">Acceleration</h3>
-          <p className="text-xs text-muted-foreground">Compute backend</p>
+          <h3 className="font-medium text-sm">{t("transcription.gpu.title")}</h3>
+          <p className="text-xs text-muted-foreground">{t("transcription.gpu.subtitle")}</p>
         </div>
       </div>
 
@@ -108,9 +112,9 @@ export function GpuSelector({
             </button>
             {/* Tooltip */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover border border-border-hover rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-150 pointer-events-none z-50 w-56 text-center">
-              <p className="text-xs text-popover-foreground">{GPU_TOOLTIPS[gpu.vendor]}</p>
+              <p className="text-xs text-popover-foreground">{t(GPU_TOOLTIPS[gpu.vendor])}</p>
               {!gpu.available && (
-                <p className="text-[10px] text-muted-foreground mt-1">Not available on this machine</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{t("transcription.gpu.unavailable")}</p>
               )}
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--color-border-hover)]" />
             </div>
@@ -123,7 +127,7 @@ export function GpuSelector({
         <div className="mt-4 pt-4 border-t border-border-subtle">
           {devices.length > 1 ? (
             <>
-              <p className="text-xs text-muted-foreground mb-2">Graphics card</p>
+              <p className="text-xs text-muted-foreground mb-2">{t("transcription.gpu.graphicsCard")}</p>
               <div className="space-y-1.5">
                 {devices.map((device) => (
                   <button
@@ -144,7 +148,7 @@ export function GpuSelector({
                   >
                     <span className="flex-1 min-w-0 text-sm truncate">{device.name}</span>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {describeDevice(device)}
+                      {describeDevice(device, t)}
                     </span>
                     {device.index === currentDevice && (
                       switchingDevice === device.index
@@ -157,7 +161,7 @@ export function GpuSelector({
             </>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Running on {devices[0].name} ({describeDevice(devices[0])})
+              {t("transcription.gpu.runningOn", { name: devices[0].name, details: describeDevice(devices[0], t) })}
             </p>
           )}
         </div>

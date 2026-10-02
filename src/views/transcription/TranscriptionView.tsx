@@ -1,4 +1,5 @@
 import { Cpu, Globe } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type {
@@ -86,6 +87,7 @@ export default function TranscriptionView({
   serverModel,
   onServerModelChange,
 }: TranscriptionViewProps) {
+  const { t } = useTranslation();
   return (
     <div className="h-full flex flex-col overflow-hidden view-enter">
       <ScrollArea className="flex-1 min-h-0">
@@ -93,9 +95,9 @@ export default function TranscriptionView({
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Page title */}
             <div>
-              <h1 className="text-xl font-semibold tracking-tight">Transcription</h1>
+              <h1 className="text-xl font-semibold tracking-tight">{t("transcription.title")}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Where speech gets turned into text, and by what
+                {t("transcription.subtitle")}
               </p>
             </div>
 
@@ -111,7 +113,7 @@ export default function TranscriptionView({
                 )}
               >
                 <Cpu className="h-4 w-4" />
-                Local
+                {t("transcription.modes.local")}
               </button>
               <button
                 onClick={() => onTranscriptionModeChange("server")}
@@ -123,7 +125,7 @@ export default function TranscriptionView({
                 )}
               >
                 <Globe className="h-4 w-4" />
-                Server
+                {t("transcription.modes.server")}
               </button>
             </div>
 
@@ -178,7 +180,7 @@ export default function TranscriptionView({
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-px bg-border-subtle" />
                       <span className="text-xs text-muted-foreground font-medium">
-                        Local fallback settings
+                        {t("transcription.fallbackSettings")}
                       </span>
                       <div className="flex-1 h-px bg-border-subtle" />
                     </div>
