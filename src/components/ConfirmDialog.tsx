@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 interface ConfirmDialogProps {
@@ -28,11 +29,12 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "Confirm",
+  confirmLabel,
   confirmIcon,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -73,7 +75,7 @@ export function ConfirmDialog({
                 onClick={onCancel}
                 className="text-muted-foreground"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="ghost"
@@ -82,7 +84,7 @@ export function ConfirmDialog({
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 {confirmIcon}
-                {confirmLabel}
+                {confirmLabel ?? t("common.confirm")}
               </Button>
             </div>
           </motion.div>

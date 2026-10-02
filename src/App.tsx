@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/server";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import { History, Cpu, Settings, BookA, Palette, LayoutDashboard } from "lucide-react";
 import { Titlebar } from "@/components/Titlebar";
 import { cn } from "@/lib/utils";
@@ -119,6 +120,7 @@ interface SavedTranscription {
 type View = "analytics" | "history" | "transcription" | "vocabulary" | "preferences" | "appearance";
 
 function App() {
+  const { t } = useTranslation();
   const [setupCompleted, setSetupCompleted] = useState<boolean | null>(null);
   const [currentView, setCurrentView] = useState<View>("analytics");
   const [models, setModels] = useState<ModelInfo[]>([]);
@@ -446,21 +448,21 @@ function App() {
   }, [transcriptionMode, serverUrl]);
 
   const navItemsTop = [
-    { id: "analytics" as View, icon: LayoutDashboard, label: "Dashboard" },
-    { id: "history" as View, icon: History, label: "History" },
-    { id: "vocabulary" as View, icon: BookA, label: "Vocabulary" },
+    { id: "analytics" as View, icon: LayoutDashboard, label: t("common.nav.dashboard") },
+    { id: "history" as View, icon: History, label: t("common.nav.history") },
+    { id: "vocabulary" as View, icon: BookA, label: t("common.nav.vocabulary") },
   ];
   const navItemsBottom = [
-    { id: "appearance" as View, icon: Palette, label: "Appearance" },
-    { id: "transcription" as View, icon: Cpu, label: "Transcription" },
-    { id: "preferences" as View, icon: Settings, label: "Preferences" },
+    { id: "appearance" as View, icon: Palette, label: t("common.nav.appearance") },
+    { id: "transcription" as View, icon: Cpu, label: t("common.nav.transcription") },
+    { id: "preferences" as View, icon: Settings, label: t("common.nav.preferences") },
   ];
 
   // Show loading state while checking setup status
   if (setupCompleted === null) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-muted-foreground">{t("common.loading")}</div>
       </div>
     );
   }
@@ -487,16 +489,16 @@ function App() {
           const isHybridMode = transcriptionMode === "server" && serverFallback;
           if (isServerMode) {
             return serverStatus === "online"
-              ? "Server connected"
+              ? t("titlebar.serverConnected")
               : serverStatus === "unauthorized"
-              ? "Token refused"
+              ? t("titlebar.tokenRefused")
               : serverStatus === "offline"
-              ? "Server unreachable"
-              : "Server";
+              ? t("titlebar.serverUnreachable")
+              : t("titlebar.server");
           } else if (isHybridMode) {
-            return serverStatus === "online" ? "Server connected" : currentModel || "Not ready";
+            return serverStatus === "online" ? t("titlebar.serverConnected") : currentModel || t("titlebar.notReady");
           }
-          return currentModel || "No model";
+          return currentModel || t("titlebar.noModel");
         })()}
       />
 

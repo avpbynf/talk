@@ -22,6 +22,7 @@
     "server": "Serveur",
     "serverConnected": "Serveur connecté",
     "serverUnreachable": "Serveur injoignable",
+    "tokenRefused": "Jeton refusé",
     "notReady": "Pas prêt",
     "noModel": "Aucun modèle"
   },
@@ -446,6 +447,7 @@
         "checking": "Vérification...",
         "online": "Serveur connecté",
         "offline": "Serveur injoignable",
+        "unauthorized": "Serveur joint, jeton refusé",
         "unknown": "Pas encore vérifié"
       },
       "test": "Tester"
