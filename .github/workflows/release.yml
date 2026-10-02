@@ -91,6 +91,10 @@ jobs:
           # hand, but no client will ever take it as an update.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Read at compile time. Without them the build still succeeds and the
+          # Account card says sign-in is not available in this build.
+          TALK_GOOGLE_CLIENT_ID: ${{ secrets.TALK_GOOGLE_CLIENT_ID }}
+          TALK_GOOGLE_CLIENT_SECRET: ${{ secrets.TALK_GOOGLE_CLIENT_SECRET }}
         with:
           # Empty on a manual run, which builds without publishing anything. Without
           # this guard a dispatch from main would create a release tagged "main".
