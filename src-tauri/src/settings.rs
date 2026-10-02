@@ -170,6 +170,9 @@ pub struct AppSettings {
     /// API token for server (OpenAI-compatible)
     #[serde(default)]
     pub server_token: String,
+    /// Model name sent to the server, empty to let the server choose.
+    #[serde(default)]
+    pub server_model: Option<String>,
     /// Ids of the discovered servers already offered, so each is offered once.
     /// Needs its serde default: a file without it must still parse, or
     /// load_settings drops the whole file.
@@ -258,6 +261,7 @@ impl Default for AppSettings {
             start_sound: default_sound_beep(),
             stop_sound: default_sound_beep(),
             server_token: String::new(),
+            server_model: None,
             offered_servers: Vec::new(),
             companion_shortcuts: Vec::new(),
             meeting_mode_enabled: false,
@@ -343,6 +347,7 @@ mod tests {
         assert_eq!(parse("{}").overlay_theme, AppSettings::default().overlay_theme);
         assert_eq!(parse("{}").start_sound, AppSettings::default().start_sound);
         assert_eq!(parse("{}").server_timeout, 30000);
+        assert_eq!(parse("{}").server_model, None);
     }
 
     #[test]
@@ -350,6 +355,7 @@ mod tests {
         let mut original = AppSettings::default();
         original.server_url = "http://localhost:4060".to_string();
         original.server_token = "sk-test".to_string();
+        original.server_model = Some("whisper-1".to_string());
         original.vocabulary = vec!["NeoForge".to_string(), "Tauri".to_string()];
         original.overlay_theme = OverlayTheme::Neon;
         original.overlay_size = OverlaySize::Large;
@@ -366,6 +372,7 @@ mod tests {
 
         assert_eq!(restored.server_url, original.server_url);
         assert_eq!(restored.server_token, original.server_token);
+        assert_eq!(restored.server_model, original.server_model);
         assert_eq!(restored.vocabulary, original.vocabulary);
         assert_eq!(restored.overlay_theme, OverlayTheme::Neon);
         assert_eq!(restored.overlay_size, OverlaySize::Large);

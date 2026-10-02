@@ -19,6 +19,7 @@ const office: DiscoveredServer = {
 function renderTab(serverUrl = "") {
   const onServerUrlChange = vi.fn();
   const onServerTokenChange = vi.fn();
+  const onServerModelChange = vi.fn();
   const checkServerHealth = vi.fn();
   render(
     <ServerTab
@@ -30,11 +31,13 @@ function renderTab(serverUrl = "") {
       checkServerHealth={checkServerHealth}
       serverToken=""
       onServerTokenChange={onServerTokenChange}
+      serverModel=""
+      onServerModelChange={onServerModelChange}
       serverFallback={true}
       onServerFallbackChange={vi.fn()}
     />
   );
-  return { onServerUrlChange, onServerTokenChange, checkServerHealth, user: userEvent.setup() };
+  return { onServerUrlChange, onServerTokenChange, onServerModelChange, checkServerHealth, user: userEvent.setup() };
 }
 
 beforeEach(() => {
@@ -153,5 +156,18 @@ describe("ServerTab pairing", () => {
 
     await screen.findByLabelText("Pairing code");
     expect(invoked).toHaveBeenCalledWith("pair_request", { url: "http://10.0.0.9:8000" });
+  });
+});
+
+describe("ServerTab model", () => {
+  it("saves the model typed in the field once it loses focus", async () => {
+    invoked.mockResolvedValue([]);
+    const { onServerModelChange, user } = renderTab("https://api.openai.com/v1");
+
+    const field = screen.getByPlaceholderText(/whisper-1, gpt-4o-transcribe/);
+    await user.type(field, " gpt-4o-mini-transcribe ");
+    await user.tab();
+
+    expect(onServerModelChange).toHaveBeenCalledWith("gpt-4o-mini-transcribe");
   });
 });

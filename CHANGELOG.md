@@ -27,6 +27,16 @@ Recording again while a dictation is still on its way used to hide it entirely. 
 sits beside the timer, filling as the dictation in progress goes through the model, with the number
 still waiting inside it. The crossed-out microphone meeting mode added to the overlay is gone:
 meeting mode is a setting, and it read as a second microphone.
+
+- (server) Use any OpenAI-compatible transcription server
+
+Server mode no longer needs a Talk-Server. Point the URL at OpenAI, at
+https://api.openai.com/v1 or without the /v1, or at any other server that offers
+/v1/audio/transcriptions, and put its key in the field now called API key or token. A server
+without the streaming route is detected on the first dictation and remembered until the app
+restarts, and the overlay shows its state without segments. A new Model field picks the model
+to ask for: leave it empty for a Talk server, and OpenAI falls back to whisper-1.
+
 - (server) Find servers on the local network
 
 A Talk-Server announces itself on the network, and the Transcription page now lists the ones it

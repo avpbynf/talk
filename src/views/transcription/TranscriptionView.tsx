@@ -47,6 +47,8 @@ interface TranscriptionViewProps {
   checkServerHealth: (silent?: boolean) => void;
   serverToken: string;
   onServerTokenChange: (token: string) => void;
+  serverModel: string;
+  onServerModelChange: (model: string) => void;
 }
 
 export default function TranscriptionView({
@@ -80,6 +82,8 @@ export default function TranscriptionView({
   checkServerHealth,
   serverToken,
   onServerTokenChange,
+  serverModel,
+  onServerModelChange,
 }: TranscriptionViewProps) {
   return (
     <div className="h-full flex flex-col overflow-hidden view-enter">
@@ -160,6 +164,8 @@ export default function TranscriptionView({
                   checkServerHealth={checkServerHealth}
                   serverToken={serverToken}
                   onServerTokenChange={onServerTokenChange}
+                  serverModel={serverModel}
+                  onServerModelChange={onServerModelChange}
                   serverFallback={serverFallback}
                   onServerFallbackChange={onServerFallbackChange}
                 />

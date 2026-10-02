@@ -999,6 +999,19 @@ fn set_server_token(token: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn get_server_model() -> String {
+    settings::load_settings().server_model.unwrap_or_default()
+}
+
+#[tauri::command]
+fn set_server_model(model: String) -> Result<(), String> {
+    let mut app_settings = settings::load_settings();
+    let model = model.trim();
+    app_settings.server_model = (!model.is_empty()).then(|| model.to_string());
+    settings::save_settings(&app_settings)
+}
+
+#[tauri::command]
 fn get_companion_shortcuts() -> Vec<settings::CompanionShortcut> {
     settings::load_settings().companion_shortcuts
 }
@@ -1257,6 +1270,8 @@ pub fn run() {
             preview_sound,
             get_server_token,
             set_server_token,
+            get_server_model,
+            set_server_model,
             get_companion_shortcuts,
             set_companion_shortcuts,
             simulate_keystroke_cmd,
