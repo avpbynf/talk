@@ -542,6 +542,11 @@
       "title": "Starting up",
       "subtitle": "What happens when the session opens"
     },
+    "google": {
+      "title": "Sync your machines",
+      "subtitle": "Optional, and you can do it later in Preferences",
+      "skip": "Skip"
+    },
     "complete": {
       "title": "All set",
       "subtitle": "Talk is ready",
@@ -603,6 +608,10 @@
     "title": "No model loaded",
     "hint": "Dictating will not work until one is",
     "choose": "Choose a model"
+  },
+  "googleInvite": {
+    "text": "Sign in with Google to sync your settings and statistics between your computers",
+    "dismiss": "Dismiss"
   },
   "serverOffer": {
     "found": "Server found: {{name}}",

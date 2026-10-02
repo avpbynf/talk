@@ -20,6 +20,8 @@ import { type AppThemeId, applyAppTheme } from "@/lib/app-themes";
 import { useUpdater } from "@/lib/use-updater";
 import { useServerOffer } from "@/lib/use-server-offer";
 import { usePendingPairings } from "@/lib/share";
+import { useGoogleInvite } from "@/lib/use-google-invite";
+import { GoogleInviteBanner } from "@/components/GoogleInviteBanner";
 import { PairingBanner } from "@/components/PairingBanner";
 
 export interface ModelInfo {
@@ -179,6 +181,16 @@ function App() {
 
   const { offer: serverOffer, dismiss: dismissServerOffer } = useServerOffer(setupCompleted === true);
   const pendingPairings = usePendingPairings();
+
+  // One strip at a time: the invitation waits for the others to go
+  const otherStripShowing =
+    serverOffer !== null ||
+    pendingPairings.length > 0 ||
+    (updater.status === "available" && !updater.dismissed) ||
+    updater.status === "downloading" ||
+    updater.status === "ready" ||
+    (initialized && transcriptionMode === "local" && !currentModel && !isLoading);
+  const googleInvite = useGoogleInvite(setupCompleted === true && !otherStripShowing);
 
   // Refs to avoid re-registering listeners
   const hasInitialized = useRef(false);
@@ -564,6 +576,15 @@ function App() {
 
       {initialized && transcriptionMode === "local" && !currentModel && !isLoading && (
         <NoModelBanner onChoose={() => setCurrentView("transcription")} />
+      )}
+
+      {googleInvite.open && (
+        <GoogleInviteBanner
+          busy={googleInvite.busy}
+          failure={googleInvite.failure}
+          onSignIn={googleInvite.signIn}
+          onDismiss={googleInvite.dismiss}
+        />
       )}
 
       {/* Main layout */}

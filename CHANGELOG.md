@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (preferences) Be invited to sign in with Google, once
+
+A strip under the title bar offers to sign in with Google to sync your settings and statistics
+between your computers, and the setup wizard gets an optional last step that does the same, with a
+Skip as prominent as the button. Either one is asked only once: signing in, skipping or closing it
+settles the question for good, and neither shows when the build cannot sign in or when you are
+already signed in.
+
 - (dashboard) Switch the dashboard between all your devices and this one
 
 Once another machine has synced, the dashboard shows an All devices / This device toggle. All
