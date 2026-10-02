@@ -101,6 +101,13 @@ low double note and the overlay says "No model loaded", or "Model still loading"
 after launch, and nothing is recorded. The main window also shows a strip saying no model is
 loaded, with a button to the Transcription page, for as long as that stays true.
 
+- (installer) Keep the downloaded models when installing a newer version
+
+Installing a new version over an older one runs the older uninstaller first, and that uninstaller
+deleted the models every time, so the first dictation after an upgrade had to download a gigabyte
+or more again. Models, settings and history are now only removed when "Delete the application
+data" is ticked while uninstalling.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

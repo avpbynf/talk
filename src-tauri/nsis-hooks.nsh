@@ -49,22 +49,25 @@
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL
-  ; Take back the disk, keep what the user typed.
+  ; Only when the uninstaller's own "Delete the application data" box is ticked.
   ;
-  ; The models are around a gigabyte and a half and download themselves again on
-  ; first use, so leaving them behind is the one real cost of uninstalling.
-  ; settings.json and the history stay: a reinstall finds its configuration where
-  ; it left it, which is what Windows does everywhere else.
+  ; Installing a newer version over an older one runs the older uninstaller
+  ; first, which is the choice the installer offers by default, and this hook
+  ; runs there too. Deleting the models unconditionally threw away a gigabyte
+  ; and more on every upgrade, and the next dictation had to download them all
+  ; again. The box is unticked unless someone ticks it, and Tauri's updater
+  ; skips the uninstaller altogether.
   ;
-  ; The path is %APPDATA%\avpbynf\t4lk and not the bundle identifier. On Windows
-  ; the directories crate drops the qualifier, so ProjectDirs::from("com",
-  ; "avpbynf", "t4lk") keeps only the last argument. This hook used to delete
-  ; %APPDATA%\com.avpbynf.t4lk, a path nothing ever writes to, so it cleaned up
-  ; nothing at all.
-  RMDir /r "$APPDATA\avpbynf\t4lk\data\models"
-  RMDir "$APPDATA\avpbynf\t4lk\data"
+  ; Tauri's own handling of that box deletes %APPDATA%\com.avpbynf.t4lk, which
+  ; nothing writes to: the directories crate drops the qualifier, so
+  ; ProjectDirs::from("com", "avpbynf", "t4lk") keeps only the last argument and
+  ; settings, history and models all live under %APPDATA%\avpbynf\t4lk.
+  ${If} $DeleteAppDataCheckboxState = 1
+  ${AndIf} $UpdateMode <> 1
+    RMDir /r "$APPDATA\avpbynf\t4lk"
+    RMDir "$APPDATA\avpbynf"
 
-  ; The WebView2 profile, which Tauri does name after the bundle identifier. It is
-  ; a browser cache and holds nothing worth a reinstall.
-  RMDir /r "$LOCALAPPDATA\com.avpbynf.t4lk"
+    ; The WebView2 profile, which Tauri does name after the bundle identifier.
+    RMDir /r "$LOCALAPPDATA\com.avpbynf.t4lk"
+  ${EndIf}
 !macroend
