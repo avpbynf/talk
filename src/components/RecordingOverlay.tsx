@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface RecordingOverlayProps {
   isRecording: boolean;
@@ -24,6 +25,7 @@ function Waveform() {
 }
 
 export default function RecordingOverlay({ isRecording }: RecordingOverlayProps) {
+  const { t } = useTranslation();
   const [isMinimized, setIsMinimized] = useState(false);
 
   if (!isRecording) return null;
@@ -33,7 +35,7 @@ export default function RecordingOverlay({ isRecording }: RecordingOverlayProps)
       <button
         onClick={() => setIsMinimized(false)}
         className="fixed top-4 right-4 z-50 p-2 rounded-full bg-recording/90 backdrop-blur-sm shadow-lg recording-pulse"
-        title="Recording..."
+        title={t("overlay.recording")}
       >
         <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
       </button>
@@ -57,13 +59,13 @@ export default function RecordingOverlay({ isRecording }: RecordingOverlayProps)
       <Waveform />
 
       {/* Recording text */}
-      <span className="text-sm font-medium text-recording">Recording...</span>
+      <span className="text-sm font-medium text-recording">{t("overlay.recording")}</span>
 
       {/* Minimize button */}
       <button
         onClick={() => setIsMinimized(true)}
         className="p-1 hover:bg-muted rounded"
-        title="Minimize"
+        title={t("overlay.minimize")}
       >
         <X className="h-3 w-3 text-muted-foreground" />
       </button>

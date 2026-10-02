@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +24,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/i18n";
 
 const DEFAULT_SERVER_URL = "";
 
@@ -56,6 +58,7 @@ interface SetupWizardProps {
 }
 
 export default function SetupWizard({ onComplete }: SetupWizardProps) {
+  const { t } = useTranslation();
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -182,7 +185,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       onComplete();
     } catch (error) {
       setCompletionError(
-        error instanceof Error ? error.message : "Something went wrong while setting up"
+        error instanceof Error ? error.message : t("setup.error")
       );
       setIsCompleting(false);
     }
@@ -228,9 +231,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   const getGpuDescription = (vendor: GpuVendor) => {
     switch (vendor) {
       case "vulkan":
-        return "Vulkan acceleration available";
+        return t("setup.hardware.vulkanFound");
       default:
-        return "No GPU acceleration found";
+        return t("setup.hardware.noGpu");
     }
   };
 
@@ -272,7 +275,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Talk</h1>
-            <p className="text-sm text-muted-foreground">First-time setup</p>
+            <p className="text-sm text-muted-foreground">{t("setup.subtitle")}</p>
           </div>
         </div>
 
@@ -300,9 +303,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         {stepContent === "mode" && (
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-2">Where it runs</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t("setup.mode.title")}</h2>
               <p className="text-muted-foreground">
-                Pick where your speech gets turned into text
+                {t("setup.mode.subtitle")}
               </p>
             </div>
 
@@ -317,9 +320,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 )}
               >
                 <Computer className="h-8 w-8 mb-3 text-[var(--color-active)]" />
-                <h3 className="font-semibold mb-1">Local</h3>
+                <h3 className="font-semibold mb-1">{t("setup.mode.local.title")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  On this machine. Works offline, needs a model.
+                  {t("setup.mode.local.description")}
                 </p>
               </button>
 
@@ -333,9 +336,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 )}
               >
                 <Server className="h-8 w-8 mb-3 text-[var(--color-active)]" />
-                <h3 className="font-semibold mb-1">Server</h3>
+                <h3 className="font-semibold mb-1">{t("setup.mode.server.title")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  On a server you run. Faster, and one card serves several machines.
+                  {t("setup.mode.server.description")}
                 </p>
               </button>
             </div>
@@ -346,9 +349,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         {stepContent === "hardware" && (
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-2">Your hardware</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t("setup.hardware.title")}</h2>
               <p className="text-muted-foreground">
-                Here is what was found
+                {t("setup.hardware.subtitle")}
               </p>
             </div>
 
@@ -368,7 +371,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               {detectedGpu === "cpu" && (
                 <div className="mt-4 p-3 rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30">
                   <p className="text-sm text-[var(--color-warning)]">
-                    Without a GPU this will be slow. Server mode is the way around that.
+                    {t("setup.hardware.slowWarning")}
                   </p>
                 </div>
               )}
@@ -376,7 +379,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
             {gpus.length > 1 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Other options available:</label>
+                <label className="text-sm font-medium">{t("setup.hardware.others")}</label>
                 {gpus
                   .filter((g) => g.available && g.vendor !== detectedGpu)
                   .map((gpu) => (
@@ -398,15 +401,15 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         {stepContent === "server" && (
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-2">Your server</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t("setup.server.title")}</h2>
               <p className="text-muted-foreground">
-                Where the audio gets sent
+                {t("setup.server.subtitle")}
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Server URL</label>
+                <label className="text-sm font-medium mb-2 block">{t("setup.server.url")}</label>
                 <input
                   type="url"
                   value={serverUrl}
@@ -414,7 +417,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     setServerUrl(e.target.value);
                     setServerStatus("unknown");
                   }}
-                  placeholder="https://whisper.example.com"
+                  placeholder={t("setup.server.placeholder")}
                   className="w-full h-10 px-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]"
                 />
               </div>
@@ -449,11 +452,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 )}
 
                 <span className="flex-1 text-sm">
-                  {serverStatus === "checking" && "Checking..."}
-                  {serverStatus === "online" && "Server connected"}
-                  {serverStatus === "offline" && "Server unreachable"}
-                  {serverStatus === "unauthorized" && "Server reached, token refused"}
-                  {serverStatus === "unknown" && "Not checked yet"}
+                  {serverStatus === "checking" && t("setup.server.status.checking")}
+                  {serverStatus === "online" && t("setup.server.status.online")}
+                  {serverStatus === "offline" && t("setup.server.status.offline")}
+                  {serverStatus === "unauthorized" && t("setup.server.status.unauthorized")}
+                  {serverStatus === "unknown" && t("setup.server.status.unknown")}
                 </span>
 
                 <Button
@@ -462,7 +465,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   onClick={checkServerHealth}
                   disabled={serverStatus === "checking"}
                 >
-                  Test it
+                  {t("setup.server.test")}
                 </Button>
               </div>
             </div>
@@ -473,9 +476,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         {stepContent === "model" && (
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-2">The model</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t("setup.model.title")}</h2>
               <p className="text-muted-foreground">
-                Which Whisper model to load
+                {t("setup.model.subtitle")}
               </p>
             </div>
 
@@ -490,7 +493,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Quantised (recommended)
+                {t("setup.model.quantised")}
               </button>
               <button
                 onClick={() => setModelFamily("standard")}
@@ -501,7 +504,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Standard
+                {t("setup.model.standard")}
               </button>
             </div>
 
@@ -531,18 +534,18 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     )}
 
                     <h3 className="font-semibold mb-1">{model.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">{model.description}</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t(`transcription.model.descriptions.${model.id}`, { defaultValue: model.description })}</p>
                     <p className="text-xs font-mono text-muted-foreground">
                       {model.size_mb >= 1000
-                        ? `${(model.size_mb / 1000).toFixed(1)} GB`
-                        : `${model.size_mb} MB`}
+                        ? t("transcription.gpu.gigabytes", { size: formatNumber(model.size_mb / 1000, 1) })
+                        : t("transcription.gpu.megabytes", { size: model.size_mb })}
                     </p>
 
                     {isCurrentlyDownloading && downloadProgress && (
                       <div className="mt-2">
                         <Progress value={downloadProgress.progress} className="h-1" />
                         <p className="text-xs text-muted-foreground mt-1">
-                          {downloadProgress.downloaded_mb.toFixed(0)} / {downloadProgress.total_mb.toFixed(0)} MB
+                          {t("transcription.model.progress", { downloaded: downloadProgress.downloaded_mb.toFixed(0), total: downloadProgress.total_mb.toFixed(0) })}
                         </p>
                       </div>
                     )}
@@ -562,12 +565,12 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   {isDownloading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Downloading...
+                      {t("transcription.model.downloading")}
                     </>
                   ) : (
                     <>
                       <Download className="h-4 w-4" />
-                      Download the model
+                      {t("setup.model.download")}
                     </>
                   )}
                 </Button>
@@ -580,9 +583,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         {stepContent === "options" && (
           <div className="max-w-lg mx-auto space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-semibold mb-2">Starting up</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t("setup.options.title")}</h2>
               <p className="text-muted-foreground">
-                What happens when the session opens
+                {t("setup.options.subtitle")}
               </p>
             </div>
 
@@ -591,9 +594,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div className="flex items-center gap-3">
                   <Settings2 className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">Start with Windows</p>
+                    <p className="font-medium">{t("preferences.system.autostart.label")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Launch when the session opens
+                      {t("preferences.system.autostart.hint")}
                     </p>
                   </div>
                 </div>
@@ -607,9 +610,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div className="flex items-center gap-3">
                   <Settings2 className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">Start minimised</p>
+                    <p className="font-medium">{t("preferences.system.minimized.label")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Open straight into the tray
+                      {t("preferences.system.minimized.hint")}
                     </p>
                   </div>
                 </div>
@@ -632,38 +635,38 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             </div>
 
             <div>
-              <h2 className="text-2xl font-semibold mb-2">All set</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t("setup.complete.title")}</h2>
               <p className="text-muted-foreground">
-                Talk is ready
+                {t("setup.complete.subtitle")}
               </p>
             </div>
 
             <div className="p-4 rounded-xl border border-border bg-card text-left space-y-2">
-              <h3 className="font-medium mb-3">What you chose</h3>
+              <h3 className="font-medium mb-3">{t("setup.complete.chosen")}</h3>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Mode:</span>
-                <span>{mode === "local" ? "Local" : "Server"}</span>
+                <span className="text-muted-foreground">{t("setup.complete.mode")}</span>
+                <span>{mode === "local" ? t("setup.mode.local.title") : t("setup.mode.server.title")}</span>
               </div>
               {mode === "local" ? (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Acceleration:</span>
+                    <span className="text-muted-foreground">{t("setup.complete.acceleration")}</span>
                     <span>{getGpuLabel(detectedGpu)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Model:</span>
+                    <span className="text-muted-foreground">{t("setup.complete.model")}</span>
                     <span>{models.find((m) => m.id === selectedModel)?.name || selectedModel}</span>
                   </div>
                 </>
               ) : (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Server:</span>
+                  <span className="text-muted-foreground">{t("setup.complete.server")}</span>
                   <span className="truncate max-w-[200px]">{serverUrl}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Start with Windows:</span>
-                <span>{autostartEnabled ? "Yes" : "No"}</span>
+                <span className="text-muted-foreground">{t("setup.complete.autostart")}</span>
+                <span>{autostartEnabled ? t("setup.complete.yes") : t("setup.complete.no")}</span>
               </div>
             </div>
 
@@ -688,11 +691,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             className="gap-2"
           >
             <ChevronLeft className="h-4 w-4" />
-            Back
+            {t("setup.nav.back")}
           </Button>
 
           <span className="text-sm text-muted-foreground">
-            Step {currentStep} of {totalSteps}
+            {t("setup.nav.step", { current: currentStep, total: totalSteps })}
           </span>
 
           {stepContent === "complete" ? (
@@ -700,12 +703,12 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               {isCompleting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Setting up...
+                  {t("setup.nav.settingUp")}
                 </>
               ) : (
                 <>
                   <Rocket className="h-4 w-4" />
-                  Get started
+                  {t("setup.nav.getStarted")}
                 </>
               )}
             </Button>
@@ -715,7 +718,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               disabled={!canProceed()}
               className="gap-2"
             >
-              Next
+              {t("setup.nav.next")}
               <ChevronRight className="h-4 w-4" />
             </Button>
           )}

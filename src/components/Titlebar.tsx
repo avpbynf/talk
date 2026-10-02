@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, Copy, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface TitlebarProps {
   title?: string;
@@ -8,6 +9,7 @@ interface TitlebarProps {
 }
 
 export function Titlebar({ title = "Talk", statusLabel }: TitlebarProps) {
+  const { t } = useTranslation();
   const appWindow = getCurrentWindow();
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -51,14 +53,14 @@ export function Titlebar({ title = "Talk", statusLabel }: TitlebarProps) {
         <button
           onClick={handleMinimize}
           className="h-full w-11 flex items-center justify-center text-muted-foreground hover:bg-surface-active hover:text-foreground transition-colors duration-150"
-          aria-label="Minimize"
+          aria-label={t("titlebar.minimize")}
         >
           <Minus className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
         <button
           onClick={handleMaximize}
           className="h-full w-11 flex items-center justify-center text-muted-foreground hover:bg-surface-active hover:text-foreground transition-colors duration-150"
-          aria-label={isMaximized ? "Restore" : "Maximize"}
+          aria-label={isMaximized ? t("titlebar.restore") : t("titlebar.maximize")}
         >
           {isMaximized ? (
             <Copy className="h-3 w-3" strokeWidth={1.5} />
@@ -69,7 +71,7 @@ export function Titlebar({ title = "Talk", statusLabel }: TitlebarProps) {
         <button
           onClick={handleClose}
           className="h-full w-11 flex items-center justify-center text-muted-foreground hover:bg-destructive hover:text-white transition-colors duration-150"
-          aria-label="Close"
+          aria-label={t("titlebar.close")}
         >
           <X className="h-4 w-4" strokeWidth={1.5} />
         </button>

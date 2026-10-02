@@ -22,6 +22,7 @@
     "server": "Server",
     "serverConnected": "Server connected",
     "serverUnreachable": "Server unreachable",
+    "tokenRefused": "Token refused",
     "notReady": "Not ready",
     "noModel": "No model"
   },
@@ -446,6 +447,7 @@
         "checking": "Checking...",
         "online": "Server connected",
         "offline": "Server unreachable",
+        "unauthorized": "Server reached, token refused",
         "unknown": "Not checked yet"
       },
       "test": "Test it"
