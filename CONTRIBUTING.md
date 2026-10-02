@@ -122,8 +122,9 @@ like a Rust error.
 
 ## Versions and releasing
 
-A version is three numbers, and after them either `-alpha`, or `-beta`, or nothing at all. Nothing
-follows the word, a counter least of all.
+A released version is three numbers, and after them either `-alpha`, or `-beta`, or nothing at
+all. Nothing follows the word, a counter least of all. The one exception is `-dev` below, which
+never reaches a tag, and the counter test installers add after it.
 
 Between two releases `dev` carries the next version with `-dev` after it, `0.10.0-dev` once `0.9.0`
 is out, opened by a `build/open-next-dev-version` branch right after the release. It names the version
