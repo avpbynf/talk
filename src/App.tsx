@@ -327,54 +327,15 @@ function App() {
     }
   }
 
-  async function initializeApp() {
-    // Read before the batch: the history fetch below needs it to size its query.
-    const savedLimit = await invoke<number>("get_history_limit").catch(() => 100);
-    setHistoryLimit(savedLimit);
-
-    // Load basic data
-    const [availableModels, downloaded, hotkeyConfig, savedHistory, availableGpus, currentVendor, autostart, startMin] = await Promise.all([
-      invoke<ModelInfo[]>("get_available_models"),
-      invoke<string[]>("get_downloaded_models"),
-      invoke<HotkeyConfig>("get_hotkey_config"),
-      invoke<SavedTranscription[]>("db_get_transcriptions", {
-        // Zero means keep everything, and the query still needs a number.
-        limit: savedLimit === 0 ? 100000 : savedLimit,
-        offset: 0,
-      }),
-      invoke<GpuInfo[]>("get_available_gpus"),
-      invoke<GpuVendor>("get_current_gpu_vendor"),
-      invoke<boolean>("get_autostart_enabled"),
-      invoke<boolean>("get_start_minimized"),
-    ]);
-
-    setModels(availableModels);
-    setDownloadedModels(downloaded);
+  // Reads what the backend holds and puts it in the page state. Also what runs
+  // again when settings arrive from another machine.
+  async function loadSavedSettings() {
+    const hotkeyConfig = await invoke<HotkeyConfig>("get_hotkey_config");
     setRecordingMode(hotkeyConfig.mode);
     setShortcut(hotkeyConfig.shortcut);
     setCancelShortcut(hotkeyConfig.cancel_shortcut || "Ctrl+F1");
     setPasteShortcut(hotkeyConfig.paste_shortcut || "Ctrl+Shift+Space");
-    setGpus(availableGpus);
-    setCurrentGpuVendor(currentVendor);
-    void loadGpuDevices(currentVendor);
-    setAutostartEnabled(autostart);
-    setStartMinimized(startMin);
 
-    // Restore transcription history from SQLite
-    if (savedHistory.length > 0) {
-      setTranscriptions(
-        savedHistory.map((t) => ({
-          id: t.id,
-          text: t.text,
-          timestamp: new Date(t.timestamp),
-          model: t.model,
-          enhanced: t.enhanced,
-          source: (t.source === "server" ? "server" : "local") as "local" | "server",
-        }))
-      );
-    }
-
-    // Load saved settings and apply them
     const savedSettings = await invoke<SavedSettings>("get_saved_settings");
     setVocabulary(savedSettings.vocabulary || []);
     setTranscriptionMode(savedSettings.transcription_mode || "local");
@@ -405,6 +366,53 @@ function App() {
     setStartSound(ss);
     setStopSound(es);
     setCompanionShortcuts(companions);
+
+    return savedSettings;
+  }
+
+  async function initializeApp() {
+    // Read before the batch: the history fetch below needs it to size its query.
+    const savedLimit = await invoke<number>("get_history_limit").catch(() => 100);
+    setHistoryLimit(savedLimit);
+
+    // Load basic data
+    const [availableModels, downloaded, savedHistory, availableGpus, currentVendor, autostart, startMin] = await Promise.all([
+      invoke<ModelInfo[]>("get_available_models"),
+      invoke<string[]>("get_downloaded_models"),
+      invoke<SavedTranscription[]>("db_get_transcriptions", {
+        // Zero means keep everything, and the query still needs a number.
+        limit: savedLimit === 0 ? 100000 : savedLimit,
+        offset: 0,
+      }),
+      invoke<GpuInfo[]>("get_available_gpus"),
+      invoke<GpuVendor>("get_current_gpu_vendor"),
+      invoke<boolean>("get_autostart_enabled"),
+      invoke<boolean>("get_start_minimized"),
+    ]);
+
+    setModels(availableModels);
+    setDownloadedModels(downloaded);
+    setGpus(availableGpus);
+    setCurrentGpuVendor(currentVendor);
+    void loadGpuDevices(currentVendor);
+    setAutostartEnabled(autostart);
+    setStartMinimized(startMin);
+
+    // Restore transcription history from SQLite
+    if (savedHistory.length > 0) {
+      setTranscriptions(
+        savedHistory.map((t) => ({
+          id: t.id,
+          text: t.text,
+          timestamp: new Date(t.timestamp),
+          model: t.model,
+          enhanced: t.enhanced,
+          source: (t.source === "server" ? "server" : "local") as "local" | "server",
+        }))
+      );
+    }
+
+    const savedSettings = await loadSavedSettings();
 
     // Auto-load last used model if it's downloaded
     // Only load if: mode is "local" OR (mode is "server" AND fallback is enabled)
