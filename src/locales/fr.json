@@ -587,7 +587,8 @@
     "syncing": "Synchronisation en cours",
     "lastSync": "Dernière synchronisation à {{time}}",
     "neverSynced": "Pas encore synchronisé",
-    "syncFailed": "Échec de la dernière synchronisation : {{error}}"
+    "syncFailed": "Échec de la dernière synchronisation : {{error}}",
+    "settingsNotUploaded": "Vos réglages ne sont pas envoyés, car le fichier de réglages de cet ordinateur n'a pas pu être lu."
   },
   "updates": {
     "title": "Mises à jour",

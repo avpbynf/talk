@@ -103,7 +103,7 @@ describe("VocabularyView", () => {
 
     await user.click(screen.getByRole("button", { name: /clear all/i }));
 
-    expect(invoked).toHaveBeenCalledWith("set_vocabulary", { words: [] });
+    expect(invoked).toHaveBeenCalledWith("clear_vocabulary", { terms: ["Tauri", "Vulkan"] });
     expect(onVocabularyChange).toHaveBeenCalledWith([]);
   });
 

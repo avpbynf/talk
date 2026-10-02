@@ -1,6 +1,7 @@
 use crate::transcription::{AcceleratorBackend, GpuDevicePreference, GpuVendor};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompanionShortcut {
@@ -317,8 +318,27 @@ pub fn load_settings_strict() -> Result<AppSettings, String> {
     if !path.exists() {
         return Ok(AppSettings::default());
     }
-    let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    serde_json::from_str(&content).map_err(|e| e.to_string())
+    let content = std::fs::read_to_string(&path).map_err(|e| {
+        UNREADABLE.store(true, Ordering::Relaxed);
+        e.to_string()
+    })?;
+    parse_settings(&content)
+}
+
+/// Set once the settings file failed to read or parse, and for the rest of the
+/// run: the defaults the lenient loader falls back to are not what the user
+/// chose, and the next save would make them the file.
+static UNREADABLE: AtomicBool = AtomicBool::new(false);
+
+pub fn was_unreadable() -> bool {
+    UNREADABLE.load(Ordering::Relaxed)
+}
+
+fn parse_settings(content: &str) -> Result<AppSettings, String> {
+    serde_json::from_str(content).map_err(|e| {
+        UNREADABLE.store(true, Ordering::Relaxed);
+        e.to_string()
+    })
 }
 
 pub fn load_settings() -> AppSettings {
@@ -347,6 +367,12 @@ mod tests {
     // would read and overwrite the settings of whoever runs the suite. What is
     // testable without that is the part that actually breaks: the defaults, and
     // what serde does with a file written by an older version.
+
+    #[test]
+    fn a_file_that_does_not_parse_is_remembered_as_unreadable() {
+        assert!(parse_settings("{ not json").is_err());
+        assert!(was_unreadable());
+    }
 
     fn parse(json: &str) -> AppSettings {
         serde_json::from_str(json).expect("should deserialise")

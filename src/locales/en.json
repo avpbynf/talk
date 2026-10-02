@@ -587,7 +587,8 @@
     "syncing": "Syncing",
     "lastSync": "Last synced at {{time}}",
     "neverSynced": "Not synced yet",
-    "syncFailed": "Last sync failed: {{error}}"
+    "syncFailed": "Last sync failed: {{error}}",
+    "settingsNotUploaded": "Your settings are not being uploaded because the settings file on this computer could not be read."
   },
   "updates": {
     "title": "Updates",

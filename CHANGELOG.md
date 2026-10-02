@@ -49,6 +49,15 @@ failed one only shows on the card. Reset stats now resets this machine's counts 
 uploaded statistics from Drive. Signing out keeps everything on this machine and leaves the Drive
 files in place.
 
+- (preferences) Settings follow you from one computer to the other, within seconds
+
+Start with Windows, Start minimized, Meeting mode and the engine-switch confirmation are now synced
+too. Meeting mode only changes where the virtual cable is installed, and the chosen model stays a
+choice per computer. A change in Preferences reaches your Google account about ten seconds later
+instead of at the next five minute round, and bringing the
+Talk window to the front syncs when the last round is over a minute old. Settings arriving from
+another computer show up in the open window without restarting Talk.
+
 - (recording) Chain dictations while one is still transcribing, and cancel what is transcribing
 
 Recording again while a long dictation is still on its way through the model no longer risks the
@@ -141,6 +150,14 @@ use, revoke, refresh and play buttons now share one size and style, and the fiel
 ring.
 
 ### Bug Fixes
+
+- (preferences) Never lose your vocabulary to a sync
+
+Signing in on a second computer replaced its vocabulary with the account's, so a list built by hand
+could end up empty. Vocabulary now merges between computers: a word added on either one reaches
+the other, and a word you remove disappears from both at the next sync. The first sign-in on a
+computer also keeps the settings you already chose there, and only fills in the ones still at their
+default from the account. Shortcuts for companion apps are combined the same way.
 
 - (preferences) Show a readable sync error on the Account card
 

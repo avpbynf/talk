@@ -130,7 +130,7 @@ export default function VocabularyView({
   };
 
   const clearAll = async () => {
-    await invoke("set_vocabulary", { words: [] });
+    await invoke("clear_vocabulary", { terms: vocabulary });
     onVocabularyChange([]);
   };
 

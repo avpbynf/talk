@@ -1,6 +1,8 @@
 //! What this machine remembers about its own syncing, in `sync.json` next to
 //! the settings. Nothing in it is a secret and none of it travels.
 
+use super::portable::Refusal;
+use super::vocabulary::VocabLedger;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -19,6 +21,11 @@ pub struct SyncState {
     pub settings_updated_ms: i64,
     /// False until the first sync of an account, which applies what Drive holds.
     pub settings_synced: bool,
+    /// When each vocabulary term was added here or taken out, which is what
+    /// lets two machines merge their lists.
+    pub vocabulary: VocabLedger,
+    /// Synced fields this machine could not apply, by name.
+    pub refused: HashMap<String, Refusal>,
     /// Fingerprints of what this device last uploaded, so nothing is pushed
     /// when nothing moved.
     pub stats_hash: String,
