@@ -102,14 +102,24 @@ workflows run that same file.
   version of the other. `server_fallback` applies inside server mode only, so a
   machine dictating badly may be in server mode falling back silently, or in local
   mode with a bad model. Check which mode it is in before anything else.
-- **The old name still points at real data, and not where you would guess.**
-  `ProjectDirs::from("com", "avpbynf", "t4lk")`, called in four places, resolves on
-  Windows to `%APPDATA%\avpbynf\t4lk`: the crate drops the qualifier, and only the
-  last argument carries the name. `settings.json`, `t4lk.db` and the downloaded
-  models all live there, better than a gigabyte of them. The bundle identifier
-  `com.avpbynf.t4lk` is a separate string that names the WebView2 profile under
-  `%LOCALAPPDATA%`, and nothing worth keeping is under it. Renaming either needs a
-  migration written first, not a find and replace.
+- **Data lives under `%APPDATA%\avpbynf\Talk`, and the old `t4lk` folder is migrated.**
+  `src-tauri/src/paths.rs` is the only place that builds the directories, through
+  `ProjectDirs::from("com", "avpbynf", "Talk")`: on Windows the crate drops the
+  qualifier and only the last argument carries the name. `config\` holds
+  `settings.json`, `t4lk.db`, `hotkeys.json` and `sync.json`; `data\` holds the
+  downloaded models, better than a gigabyte of them. The database file is still
+  `t4lk.db` on purpose: renaming it beside its WAL is what made the move unsafe, so
+  only the folder moves. `paths::init()` runs first in `run()` (before the
+  single-instance plugin, because the app state is built ahead of it) and renames
+  `%APPDATA%\avpbynf\t4lk` to `Talk` in one move. It deletes no file. A `Talk` that
+  holds data wins and the old folder is left alone; a `Talk` with no settings and no
+  database gives way to an old folder that has them, after its empty folders are
+  removed; one holding stray files is left alone and the run uses the old folder.
+  When a rename fails (a file held open) the run uses the old folder too and tries
+  again at the next start. The bundle
+  identifier `com.avpbynf.t4lk` is a separate string that names the WebView2 profile
+  under `%LOCALAPPDATA%`; it still says t4lk, nothing worth keeping is under it, and
+  changing it needs a migration of its own. Never add a path under the old name.
 - **`AppTheme` carries a `serde(alias)` on each of its two renamed variants.**
   `load_settings()` drops the whole file on a parse error and returns the defaults,
   so a settings file still holding `t4lk-dark` would take the server URL, the token

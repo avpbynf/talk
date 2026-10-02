@@ -343,7 +343,7 @@ mod tests {
     use super::*;
 
     // load_settings and save_settings are deliberately left out. They resolve
-    // through ProjectDirs to the real %APPDATA%\avpbynf\t4lk, so exercising them
+    // through ProjectDirs to the real %APPDATA%\avpbynf\Talk, so exercising them
     // would read and overwrite the settings of whoever runs the suite. What is
     // testable without that is the part that actually breaks: the defaults, and
     // what serde does with a file written by an older version.
