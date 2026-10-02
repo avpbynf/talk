@@ -1,4 +1,5 @@
 import { ArrowDownToLine, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Updater } from "@/lib/use-updater";
@@ -15,6 +16,7 @@ interface UpdateBannerProps {
  * here: the Preferences page is where a check that was asked for answers.
  */
 export function UpdateBanner({ updater }: UpdateBannerProps) {
+  const { t } = useTranslation();
   const { status, availableVersion, progress, dismissed } = updater;
 
   const offering = status === "available" && !dismissed;
@@ -30,19 +32,19 @@ export function UpdateBanner({ updater }: UpdateBannerProps) {
           <p className="truncate text-sm">
             {offering && (
               <>
-                <span className="font-medium">Talk {availableVersion} is available</span>
+                <span className="font-medium">{t("updates.banner.available", { version: availableVersion })}</span>
                 <span className="ml-2 text-muted-foreground">
-                  Installing closes the window and opens it again
+                  {t("updates.banner.restartNotice")}
                 </span>
               </>
             )}
             {status === "downloading" && (
               <span className="text-muted-foreground">
-                Downloading Talk {availableVersion}, {progress}%
+                {t("updates.banner.downloading", { version: availableVersion, progress })}
               </span>
             )}
             {status === "ready" && (
-              <span className="text-muted-foreground">Installing Talk {availableVersion}</span>
+              <span className="text-muted-foreground">{t("updates.banner.installing", { version: availableVersion })}</span>
             )}
           </p>
         </div>
@@ -50,12 +52,12 @@ export function UpdateBanner({ updater }: UpdateBannerProps) {
         {offering && (
           <>
             <Button size="sm" onClick={updater.install}>
-              Install and restart
+              {t("updates.banner.install")}
             </Button>
             <button
               onClick={updater.dismiss}
               className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface-active hover:text-foreground"
-              aria-label="Dismiss"
+              aria-label={t("updates.banner.dismiss")}
             >
               <X className="h-4 w-4" />
             </button>
