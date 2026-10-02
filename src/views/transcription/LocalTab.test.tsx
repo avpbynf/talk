@@ -23,8 +23,6 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof LocalTab>> = {
     onCancelDownload: vi.fn(),
     onGpuVendorChange: vi.fn(),
     onGpuDeviceChange: vi.fn(),
-    confirmEngineSwitch: true,
-    onConfirmEngineSwitchChange: vi.fn(),
     ...overrides,
   };
   render(<LocalTab {...props} />);
@@ -48,7 +46,6 @@ describe("LocalTab engine switch", () => {
     await user.click(screen.getByRole("button", { name: "Switch" }));
 
     expect(props.onGpuVendorChange).toHaveBeenCalledWith("vulkan");
-    expect(props.onConfirmEngineSwitchChange).not.toHaveBeenCalled();
   });
 
   it("leaves the selection alone on Cancel", async () => {
@@ -86,31 +83,16 @@ describe("LocalTab engine switch", () => {
     expect(props.onGpuVendorChange).toHaveBeenCalledWith("vulkan");
   });
 
-  it("does not ask once the question has been turned off", async () => {
-    const { props, user } = renderTab({ confirmEngineSwitch: false });
-
-    await user.click(screen.getByRole("button", { name: /Vulkan/ }));
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(props.onGpuVendorChange).toHaveBeenCalledWith("vulkan");
-  });
-
-  it("turns the question off when asked not to ask again", async () => {
+  it("asks every time and offers no way to stop asking", async () => {
     const { props, user } = renderTab();
 
     await user.click(screen.getByRole("button", { name: /Vulkan/ }));
-    await user.click(screen.getByRole("checkbox", { name: "Don't ask again" }));
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Switch" }));
+    expect(props.onGpuVendorChange).toHaveBeenCalledTimes(1);
 
-    expect(props.onConfirmEngineSwitchChange).toHaveBeenCalledWith(false);
-    expect(props.onGpuVendorChange).toHaveBeenCalledWith("vulkan");
-  });
-
-  it("turns the question back on from the switch beside the selector", async () => {
-    const { props, user } = renderTab({ confirmEngineSwitch: false });
-
-    await user.click(screen.getByRole("switch", { name: "Ask before switching" }));
-
-    expect(props.onConfirmEngineSwitchChange).toHaveBeenCalledWith(true);
+    await user.click(screen.getByRole("button", { name: /Vulkan/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
   });
 });

@@ -13,9 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 Switching between CPU and Vulkan, or to another graphics card, reloads the loaded model on the new
 device, which can take a minute or more with a large model while dictation is unavailable. A dialog
-now says so and names the model, with Switch and Cancel, and a Don't ask again box. The Ask before
-switching switch next to the selector brings the question back. Nothing is asked when no model is
-loaded.
+now says so and names the model, with Switch and Cancel. It asks every time. Nothing is asked when
+no model is loaded.
 
 - (preferences) Be invited to sign in with Google, once
 
@@ -51,8 +50,7 @@ files in place.
 
 - (preferences) Settings follow you from one computer to the other, within seconds
 
-Start with Windows, Start minimized, Meeting mode and the engine-switch confirmation are now synced
-too. Meeting mode only changes where the virtual cable is installed, and the chosen model stays a
+Start with Windows, Start minimized and Meeting mode are now synced too. Meeting mode only changes where the virtual cable is installed, and the chosen model stays a
 choice per computer. A change in Preferences reaches your Google account about ten seconds later
 instead of at the next five minute round, and bringing the
 Talk window to the front syncs when the last round is over a minute old. Settings arriving from

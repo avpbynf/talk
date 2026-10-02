@@ -29,8 +29,6 @@ interface LocalTabProps {
   onCancelDownload: () => void;
   onGpuVendorChange: (vendor: GpuVendor) => void;
   onGpuDeviceChange: (index: number) => void;
-  confirmEngineSwitch: boolean;
-  onConfirmEngineSwitchChange: (enabled: boolean) => void;
 }
 
 type PendingSwitch = { vendor: GpuVendor } | { device: number };
@@ -54,20 +52,16 @@ export function LocalTab({
   onCancelDownload,
   onGpuVendorChange,
   onGpuDeviceChange,
-  confirmEngineSwitch,
-  onConfirmEngineSwitchChange,
 }: LocalTabProps) {
   const { t } = useTranslation();
   // Either change reloads the loaded model on the new device, which keeps
   // dictation out of reach for as long as the model takes to load. With nothing
   // loaded there is nothing to reload, so the change goes straight through.
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null);
-  const [dontAskAgain, setDontAskAgain] = useState(false);
 
   function requestSwitch(change: PendingSwitch) {
     const sameVendor = "vendor" in change && change.vendor === currentGpuVendor;
-    if (currentModel && confirmEngineSwitch && !sameVendor) {
-      setDontAskAgain(false);
+    if (currentModel && !sameVendor) {
       setPendingSwitch(change);
     } else {
       applySwitch(change);
@@ -101,8 +95,6 @@ export function LocalTab({
         currentDevice={currentGpuDevice}
         switchingDevice={switchingGpuDevice}
         onDeviceChange={(device) => requestSwitch({ device })}
-        confirmSwitch={confirmEngineSwitch}
-        onConfirmSwitchChange={onConfirmEngineSwitchChange}
       />
 
       {/* Models Selection */}
@@ -164,16 +156,10 @@ export function LocalTab({
         title={t("transcription.gpu.switchTitle")}
         description={t("transcription.gpu.switchDescription", { model: currentModel ?? "" })}
         confirmLabel={t("transcription.gpu.switch")}
-        checkbox={{
-          label: t("transcription.gpu.dontAskAgain"),
-          checked: dontAskAgain,
-          onChange: setDontAskAgain,
-        }}
         onCancel={() => setPendingSwitch(null)}
         onConfirm={() => {
           const change = pendingSwitch;
           setPendingSwitch(null);
-          if (dontAskAgain) onConfirmEngineSwitchChange(false);
           if (change) applySwitch(change);
         }}
       />

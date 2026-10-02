@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/SectionCard";
-import { Switch } from "@/components/ui/switch";
 import type { GpuDevice, GpuInfo, GpuVendor } from "@/App";
 
 interface GpuSelectorProps {
@@ -16,9 +15,6 @@ interface GpuSelectorProps {
   /** The card a switch is running towards, or null while nothing is switching. */
   switchingDevice: number | null;
   onDeviceChange: (index: number) => void;
-  /** Whether a change that reloads the loaded model asks first. */
-  confirmSwitch: boolean;
-  onConfirmSwitchChange: (enabled: boolean) => void;
 }
 
 /** Translation keys. */
@@ -53,8 +49,6 @@ export function GpuSelector({
   currentDevice,
   switchingDevice,
   onDeviceChange,
-  confirmSwitch,
-  onConfirmSwitchChange,
 }: GpuSelectorProps) {
   const { t } = useTranslation();
   const mergedGpus = ALL_GPU_OPTIONS.map((defaultGpu) => {
@@ -168,17 +162,6 @@ export function GpuSelector({
           )}
         </div>
       )}
-
-      <div className="pt-4 border-t border-border-subtle flex items-center justify-between gap-3">
-        <label htmlFor="confirm-engine-switch" className="text-xs text-muted-foreground cursor-pointer">
-          {t("transcription.gpu.askBeforeSwitching")}
-        </label>
-        <Switch
-          id="confirm-engine-switch"
-          checked={confirmSwitch}
-          onCheckedChange={onConfirmSwitchChange}
-        />
-      </div>
     </SectionCard>
   );
 }

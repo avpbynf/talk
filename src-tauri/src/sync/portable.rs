@@ -46,7 +46,6 @@ pub struct SyncedSettings {
     pub autostart_enabled: bool,
     pub start_minimized: bool,
     pub meeting_mode_enabled: bool,
-    pub confirm_engine_switch: bool,
 }
 
 impl Default for SyncedSettings {
@@ -78,7 +77,6 @@ impl SyncedSettings {
             autostart_enabled: settings.autostart_enabled,
             start_minimized: settings.start_minimized,
             meeting_mode_enabled: settings.meeting_mode_enabled,
-            confirm_engine_switch: settings.confirm_engine_switch,
         }
     }
 
@@ -108,7 +106,6 @@ impl SyncedSettings {
         settings.autostart_enabled = self.autostart_enabled;
         settings.start_minimized = self.start_minimized;
         settings.meeting_mode_enabled = self.meeting_mode_enabled;
-        settings.confirm_engine_switch = self.confirm_engine_switch;
     }
 
     /// Changes whenever any synced value does, and only then.
@@ -319,7 +316,7 @@ pub fn plan(
 mod tests {
     use super::*;
 
-    const SYNCED_KEYS: [&str; 21] = [
+    const SYNCED_KEYS: [&str; 20] = [
         "shortcut",
         "cancel_shortcut",
         "paste_shortcut",
@@ -340,7 +337,6 @@ mod tests {
         "autostart_enabled",
         "start_minimized",
         "meeting_mode_enabled",
-        "confirm_engine_switch",
     ];
 
     const KEPT_ON_THE_MACHINE: [&str; 16] = [
@@ -593,17 +589,24 @@ mod tests {
     }
 
     #[test]
+    fn a_file_still_carrying_the_engine_switch_opt_out_still_parses() {
+        let local = SyncedSettings::default();
+        let body = r#"{"updated_at": 50, "settings": {"start_sound": "ding", "confirm_engine_switch": false}}"#;
+        let parsed = SettingsFile::parse(body, &local).expect("should parse");
+        assert_eq!(parsed.settings.start_sound, "ding");
+    }
+
+    #[test]
     fn a_field_the_file_does_not_carry_keeps_the_local_value() {
         let mut local = SyncedSettings::default();
         local.autostart_enabled = true;
         local.start_minimized = true;
         local.meeting_mode_enabled = true;
-        local.confirm_engine_switch = false;
         let body = r#"{"updated_at": 50, "settings": {"start_sound": "ding"}}"#;
         let parsed = SettingsFile::parse(body, &local).expect("should parse");
         assert_eq!(parsed.settings.start_sound, "ding");
         assert!(parsed.settings.autostart_enabled && parsed.settings.start_minimized);
-        assert!(parsed.settings.meeting_mode_enabled && !parsed.settings.confirm_engine_switch);
+        assert!(parsed.settings.meeting_mode_enabled);
 
         let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&parsed), 100);
         assert!(plan.merged.autostart_enabled && plan.merged.meeting_mode_enabled);
