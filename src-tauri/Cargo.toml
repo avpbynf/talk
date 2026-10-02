@@ -74,6 +74,8 @@ chrono = "0.4"
 [target.'cfg(windows)'.dependencies]
 enigo = "0.2"
 clipboard-win = "5"
+# The Google refresh token lives in the Windows Credential Manager.
+keyring = { version = "3", features = ["windows-native"] }
 windows = { version = "0.62", features = [
     "Foundation",
     "Win32_Foundation",
