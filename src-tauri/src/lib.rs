@@ -9,6 +9,7 @@ mod hotkeys;
 mod keystroke;
 mod models;
 mod overlay;
+mod paths;
 mod server_transcription;
 mod settings;
 mod share;

@@ -1,4 +1,3 @@
-use directories::ProjectDirs;
 use parking_lot::Mutex;
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
@@ -238,9 +237,9 @@ pub struct AnalyticsSummary {
 // ---------------------------------------------------------------------------
 
 pub fn default_db_path() -> PathBuf {
-    ProjectDirs::from("com", "avpbynf", "t4lk")
-        .map(|dirs| dirs.config_dir().join("t4lk.db"))
-        .unwrap_or_else(|| PathBuf::from("t4lk.db"))
+    crate::paths::config_dir()
+        .map(|dir| dir.join(crate::paths::DB_FILE))
+        .unwrap_or_else(|| PathBuf::from(crate::paths::DB_FILE))
 }
 
 /// The tables an analytics query reads: this machine's own, or those with the

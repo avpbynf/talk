@@ -1,4 +1,3 @@
-use directories::ProjectDirs;
 use futures::StreamExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -150,8 +149,8 @@ pub struct ModelManager {
 
 impl ModelManager {
     pub fn new() -> Self {
-        let models_dir = ProjectDirs::from("com", "avpbynf", "t4lk")
-            .map(|dirs| dirs.data_dir().join("models"))
+        let models_dir = crate::paths::data_dir()
+            .map(|dir| dir.join("models"))
             .unwrap_or_else(|| PathBuf::from("models"));
 
         std::fs::create_dir_all(&models_dir).ok();
