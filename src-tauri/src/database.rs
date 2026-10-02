@@ -43,6 +43,46 @@ CREATE TABLE IF NOT EXISTS share_tokens (
 );
 ";
 
+// Other devices' daily counters, kept apart from this machine's own so that a
+// pull replaces them whole and a sync never counts anything twice. Every
+// analytics query reads all_daily_stats, the two added up day by day.
+const SCHEMA_V4: &str = "
+CREATE TABLE IF NOT EXISTS meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS remote_daily_stats (
+    device_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    transcription_count INTEGER NOT NULL DEFAULT 0,
+    word_count INTEGER NOT NULL DEFAULT 0,
+    char_count INTEGER NOT NULL DEFAULT 0,
+    local_count INTEGER NOT NULL DEFAULT 0,
+    server_count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (device_id, date)
+);
+
+CREATE VIEW IF NOT EXISTS all_daily_stats AS
+SELECT date,
+       SUM(transcription_count) AS transcription_count,
+       SUM(word_count) AS word_count,
+       SUM(char_count) AS char_count,
+       SUM(local_count) AS local_count,
+       SUM(server_count) AS server_count
+FROM (
+    SELECT date, transcription_count, word_count, char_count, local_count, server_count
+    FROM daily_stats
+    UNION ALL
+    SELECT date, transcription_count, word_count, char_count, local_count, server_count
+    FROM remote_daily_stats
+)
+GROUP BY date;
+";
+
+pub const META_STATS_RESET: &str = "stats_reset";
+const META_DEVICE_ID: &str = "device_id";
+
 const AVERAGE_SPEECH_RATE_WPM: f64 = 150.0;
 const OPENAI_WHISPER_COST_PER_MINUTE: f64 = 0.006;
 
@@ -91,6 +131,17 @@ pub struct ShareDevice {
     pub name: String,
     pub created_at: String,
     pub last_used_at: Option<String>,
+}
+
+/// One day of one device's counters, as it travels between machines.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StatsRow {
+    pub date: String,
+    pub transcription_count: i64,
+    pub word_count: i64,
+    pub char_count: i64,
+    pub local_count: i64,
+    pub server_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -270,6 +321,11 @@ impl Database {
             conn.pragma_update(None, "user_version", 3)?;
         }
 
+        if version < 4 {
+            conn.execute_batch(SCHEMA_V4)?;
+            conn.pragma_update(None, "user_version", 4)?;
+        }
+
         Ok(())
     }
 
@@ -413,7 +469,7 @@ impl Database {
                 COALESCE(SUM(char_count), 0),
                 COALESCE(SUM(local_count), 0),
                 COALESCE(SUM(server_count), 0)
-             FROM daily_stats {}",
+             FROM all_daily_stats {}",
                 window
             ),
             [],
@@ -422,7 +478,7 @@ impl Database {
 
         // Today count
         let today_count: i64 = conn.query_row(
-            "SELECT COALESCE(transcription_count, 0) FROM daily_stats
+            "SELECT COALESCE(transcription_count, 0) FROM all_daily_stats
              WHERE date = date('now', 'localtime')",
             [],
             |row| row.get(0),
@@ -430,7 +486,7 @@ impl Database {
 
         // Week count
         let week_count: i64 = conn.query_row(
-            "SELECT COALESCE(SUM(transcription_count), 0) FROM daily_stats
+            "SELECT COALESCE(SUM(transcription_count), 0) FROM all_daily_stats
              WHERE date >= date('now', '-7 days', 'localtime')",
             [],
             |row| row.get(0),
@@ -470,7 +526,7 @@ impl Database {
         let (best_day, best_day_count): (Option<String>, i64) = conn
             .query_row(
                 &format!(
-                    "SELECT date, transcription_count FROM daily_stats {}
+                    "SELECT date, transcription_count FROM all_daily_stats {}
                      ORDER BY transcription_count DESC, date DESC LIMIT 1",
                     day_window
                 ),
@@ -481,7 +537,7 @@ impl Database {
 
         let active_days: i64 = conn
             .query_row(
-                &format!("SELECT COUNT(*) FROM daily_stats {}", day_window),
+                &format!("SELECT COUNT(*) FROM all_daily_stats {}", day_window),
                 [],
                 |row| row.get(0),
             )
@@ -490,7 +546,7 @@ impl Database {
         // The streak is a fact about the habit rather than about the window, so
         // it is counted over everything however the page is filtered.
         let mut stmt = conn.prepare(
-            "SELECT date FROM daily_stats WHERE transcription_count > 0 ORDER BY date DESC",
+            "SELECT date FROM all_daily_stats WHERE transcription_count > 0 ORDER BY date DESC",
         )?;
         let active_dates = stmt
             .query_map([], |row| row.get::<_, String>(0))?
@@ -502,7 +558,7 @@ impl Database {
         // clear, so this is the real start of use rather than the oldest
         // transcription still kept.
         let first_day: Option<String> = conn
-            .query_row("SELECT MIN(date) FROM daily_stats", [], |row| row.get(0))
+            .query_row("SELECT MIN(date) FROM all_daily_stats", [], |row| row.get(0))
             .unwrap_or(None);
 
         // Daily chart for last 7 days (zero-filled via CTE, reads from daily_stats)
@@ -521,7 +577,7 @@ impl Database {
                    COALESCE(ds.transcription_count, 0),
                    COALESCE(ds.word_count, 0)
             FROM dates
-            LEFT JOIN daily_stats ds ON dates.d = ds.date
+            LEFT JOIN all_daily_stats ds ON dates.d = ds.date
             ORDER BY dates.d",
         )?;
 
@@ -579,7 +635,7 @@ impl Database {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
             "SELECT date, transcription_count
-             FROM daily_stats
+             FROM all_daily_stats
              WHERE date >= date('now', '-364 days', 'localtime')
              ORDER BY date",
         )?;
@@ -627,9 +683,116 @@ impl Database {
         Ok(removed)
     }
 
+    /// Clears this machine's own counters. What other devices uploaded is
+    /// theirs and stays.
+    ///
+    /// The reset is also recorded, since an empty table alone must never take
+    /// this device's uploaded file down: only a reset somebody asked for does.
     pub fn reset_stats(&self) -> Result<()> {
         let conn = self.conn.lock();
         conn.execute("DELETE FROM daily_stats", [])?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, '1')",
+            params![META_STATS_RESET],
+        )?;
+        Ok(())
+    }
+
+    // -- Device identity and sync bookkeeping -------------------------------
+
+    pub fn get_meta(&self, key: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare("SELECT value FROM meta WHERE key = ?1")?;
+        let mut rows = stmt.query(params![key])?;
+        match rows.next()? {
+            Some(row) => Ok(Some(row.get(0)?)),
+            None => Ok(None),
+        }
+    }
+
+    pub fn delete_meta(&self, key: &str) -> Result<()> {
+        self.conn.lock().execute("DELETE FROM meta WHERE key = ?1", params![key])?;
+        Ok(())
+    }
+
+    /// The name of this install among the machines one account syncs.
+    ///
+    /// It lives here, with the data it describes: a settings file that is
+    /// lost, reset or copied to another machine can neither regenerate it nor
+    /// carry it. A fresh database is a new device.
+    pub fn device_id(&self) -> Result<String> {
+        if let Some(id) = self.get_meta(META_DEVICE_ID)? {
+            return Ok(id);
+        }
+        let conn = self.conn.lock();
+        conn.execute(
+            "INSERT OR IGNORE INTO meta (key, value) VALUES (?1, ?2)",
+            params![META_DEVICE_ID, uuid::Uuid::new_v4().simple().to_string()],
+        )?;
+        conn.query_row("SELECT value FROM meta WHERE key = ?1", params![META_DEVICE_ID], |row| {
+            row.get(0)
+        })
+    }
+
+    // -- Stats from other devices -------------------------------------------
+
+    /// This machine's own days, which is what gets uploaded.
+    pub fn local_daily_stats(&self) -> Result<Vec<StatsRow>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare(
+            "SELECT date, transcription_count, word_count, char_count,
+                    local_count, server_count
+             FROM daily_stats ORDER BY date",
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(StatsRow {
+                    date: row.get(0)?,
+                    transcription_count: row.get(1)?,
+                    word_count: row.get(2)?,
+                    char_count: row.get(3)?,
+                    local_count: row.get(4)?,
+                    server_count: row.get(5)?,
+                })
+            })?
+            .collect::<Result<Vec<_>>>()?;
+        Ok(rows)
+    }
+
+    /// Swap everything held for one device with what it just uploaded.
+    ///
+    /// Replacing rather than adding is what makes a pull idempotent: the
+    /// same file read ten times leaves the same totals.
+    pub fn replace_remote_stats(&self, device_id: &str, rows: &[StatsRow]) -> Result<()> {
+        let mut conn = self.conn.lock();
+        let tx = conn.transaction()?;
+        tx.execute(
+            "DELETE FROM remote_daily_stats WHERE device_id = ?1",
+            params![device_id],
+        )?;
+        for row in rows {
+            tx.execute(
+                "INSERT OR REPLACE INTO remote_daily_stats
+                    (device_id, date, transcription_count, word_count,
+                     char_count, local_count, server_count)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    device_id,
+                    row.date,
+                    row.transcription_count,
+                    row.word_count,
+                    row.char_count,
+                    row.local_count,
+                    row.server_count,
+                ],
+            )?;
+        }
+        tx.commit()
+    }
+
+    /// Forget every other device's counters, which is what signing out does.
+    pub fn clear_remote_stats(&self) -> Result<()> {
+        self.conn.lock().execute("DELETE FROM remote_daily_stats", [])?;
         Ok(())
     }
 
@@ -934,5 +1097,139 @@ mod tests {
         let dates = vec!["2026-08-25".to_string(), "2026-08-24".to_string()];
 
         assert_eq!(count_streak(&dates, today), 0);
+    }
+
+    fn stats_row(date: &str, count: i64, words: i64) -> StatsRow {
+        StatsRow {
+            date: date.to_string(),
+            transcription_count: count,
+            word_count: words,
+            char_count: words * 5,
+            local_count: count,
+            server_count: 0,
+        }
+    }
+
+    #[test]
+    fn two_devices_add_up_on_the_dashboard() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        add(&db, "t2", 1);
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50), stats_row("2026-08-02", 3, 30)])
+            .expect("should store");
+
+        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+
+        assert_eq!(summary.total_transcriptions, 2 + 5 + 3);
+        assert_eq!(summary.first_day.as_deref(), Some("2026-08-01"));
+        assert_eq!(summary.active_days, 2);
+    }
+
+    #[test]
+    fn a_second_remote_device_adds_to_the_first() {
+        let db = in_memory();
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50)]).expect("should store");
+        db.replace_remote_stats("tower", &[stats_row("2026-08-01", 7, 70)]).expect("should store");
+
+        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+
+        assert_eq!(summary.total_transcriptions, 12);
+        assert_eq!(summary.total_words, 120);
+        assert_eq!(summary.best_day_count, 12);
+    }
+
+    #[test]
+    fn pulling_again_replaces_a_device_instead_of_adding() {
+        let db = in_memory();
+        let rows = [stats_row("2026-08-01", 5, 50)];
+        db.replace_remote_stats("laptop", &rows).expect("should store");
+        db.replace_remote_stats("laptop", &rows).expect("should store");
+        assert_eq!(
+            db.get_analytics_summary(40.0, None).expect("should summarise").total_transcriptions,
+            5
+        );
+
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 6, 60)]).expect("should store");
+        assert_eq!(
+            db.get_analytics_summary(40.0, None).expect("should summarise").total_transcriptions,
+            6
+        );
+    }
+
+    #[test]
+    fn a_pull_drops_the_days_a_device_no_longer_has() {
+        let db = in_memory();
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50), stats_row("2026-08-02", 4, 40)])
+            .expect("should store");
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-02", 4, 40)]).expect("should store");
+
+        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+
+        assert_eq!(summary.total_transcriptions, 4);
+        assert_eq!(summary.first_day.as_deref(), Some("2026-08-02"));
+    }
+
+    #[test]
+    fn resetting_clears_this_machine_and_keeps_the_others() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50)]).expect("should store");
+
+        db.reset_stats().expect("should reset");
+
+        assert!(db.local_daily_stats().expect("should read").is_empty());
+        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        assert_eq!(summary.total_transcriptions, 5);
+    }
+
+    #[test]
+    fn signing_out_drops_the_other_devices_and_keeps_local_data() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50)]).expect("should store");
+
+        db.clear_remote_stats().expect("should clear");
+
+        let summary = db.get_analytics_summary(40.0, None).expect("should summarise");
+        assert_eq!(summary.total_transcriptions, 1);
+        assert_eq!(db.local_daily_stats().expect("should read").len(), 1);
+    }
+
+    #[test]
+    fn the_uploaded_rows_are_only_this_machines_own() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        db.replace_remote_stats("laptop", &[stats_row("2026-08-01", 5, 50)]).expect("should store");
+
+        let own = db.local_daily_stats().expect("should read");
+
+        assert_eq!(own.len(), 1);
+        assert_eq!(own[0].transcription_count, 1);
+    }
+
+    #[test]
+    fn the_device_id_is_made_once_and_stays() {
+        let db = in_memory();
+        let first = db.device_id().expect("should make one");
+        assert!(!first.is_empty());
+        assert_eq!(db.device_id().expect("should read it back"), first);
+    }
+
+    #[test]
+    fn a_fresh_database_is_a_new_device() {
+        assert_ne!(
+            in_memory().device_id().expect("should make one"),
+            in_memory().device_id().expect("should make one")
+        );
+    }
+
+    #[test]
+    fn a_reset_is_recorded_for_the_sync_and_an_empty_table_alone_is_not() {
+        let db = in_memory();
+        assert_eq!(db.get_meta(META_STATS_RESET).expect("should read"), None);
+
+        db.reset_stats().expect("should reset");
+
+        assert_eq!(db.get_meta(META_STATS_RESET).expect("should read").as_deref(), Some("1"));
     }
 }
