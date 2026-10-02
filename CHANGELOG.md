@@ -121,6 +121,13 @@ deleted the models every time, so the first dictation after an upgrade had to do
 or more again. Models, settings and history are now only removed when "Delete the application
 data" is ticked while uninstalling.
 
+- (vocabulary) Keep the terms their own size while one is dragged, and give the list the page
+
+Dragging a term to reorder it stretched or squeezed the ones it passed over to the width of the
+term being dragged. They now only slide. The list of terms also used to stop after a few rows with
+a scroll of its own in the middle of the page; it now runs to the bottom of the window and scrolls
+inside, while the field to add terms stays in view.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
