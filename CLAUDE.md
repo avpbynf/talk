@@ -9,6 +9,7 @@ See [README.md](README.md) for features, build requirements and troubleshooting.
 bun install
 bun run tauri:dev      # dev build, MSVC env loaded by scripts/vcenv.bat
 bun run tauri:build    # production installer
+bun run tauri:test-installer  # installer stamped 0.10.0-dev.N, a new N each build
 bun run tauri:check    # cargo check, no full build
 bun run dev            # frontend alone, no Tauri shell
 bun run test           # frontend suite, vitest on jsdom
