@@ -14,6 +14,7 @@ import AnalyticsView from "@/views/AnalyticsView";
 import SetupWizard from "@/pages/SetupWizard";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { ServerOfferBanner } from "@/components/ServerOfferBanner";
+import { NoModelBanner } from "@/components/NoModelBanner";
 import { type AppThemeId, applyAppTheme } from "@/lib/app-themes";
 import { useUpdater } from "@/lib/use-updater";
 import { useServerOffer } from "@/lib/use-server-offer";
@@ -126,6 +127,9 @@ function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Until the start-up has tried to load the last model, having none says
+  // nothing yet, and warning about it would flash on every launch.
+  const [initialized, setInitialized] = useState(false);
   const [recordingMode, setRecordingMode] = useState<RecordingMode>("push_to_talk");
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [, setIsRecording] = useState(false);
@@ -201,7 +205,7 @@ function App() {
     if (hasInitialized.current) return;
     if (setupCompleted !== true) return; // Don't initialize until setup is complete
     hasInitialized.current = true;
-    initializeApp();
+    initializeApp().finally(() => setInitialized(true));
   }, [setupCompleted]);
 
   const fireCompanionShortcuts = (phase: "start" | "stop") => {
@@ -515,6 +519,10 @@ function App() {
           }}
           onDismiss={dismissServerOffer}
         />
+      )}
+
+      {initialized && transcriptionMode === "local" && !currentModel && !isLoading && (
+        <NoModelBanner onChoose={() => setCurrentView("transcription")} />
       )}
 
       {/* Main layout */}

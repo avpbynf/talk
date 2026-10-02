@@ -2,10 +2,17 @@ import { useEffect, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Mic, Brain, Server } from "lucide-react";
+import { AlertTriangle, Mic, Brain, Server } from "lucide-react";
 import { getThemeGradients, type OverlayThemeId } from "@/lib/overlay-themes";
 
-type ProcessingState = "idle" | "recording" | "transcribing" | "streaming" | "server_transcribing";
+type ProcessingState =
+  | "idle"
+  | "recording"
+  | "transcribing"
+  | "streaming"
+  | "server_transcribing"
+  | "no_model"
+  | "model_loading";
 /**
  * The overlay is drawn at this size and scaled to whatever the window is.
  *
@@ -290,6 +297,17 @@ function OverlayPage() {
                 </span>
               </>
             )}
+          </>
+        );
+
+      case "no_model":
+      case "model_loading":
+        return (
+          <>
+            <AlertTriangle className="h-4 w-4" style={{ color: "var(--color-destructive)" }} />
+            <span className="text-xs font-medium whitespace-nowrap" style={{ color: theme.accentDim }}>
+              {state === "no_model" ? "No model loaded" : "Model still loading"}
+            </span>
           </>
         );
 

@@ -22,6 +22,7 @@ pub struct SoundEngine {
     stop_click: Vec<f32>,
     start_chime: Vec<f32>,
     stop_chime: Vec<f32>,
+    refused: Vec<f32>,
 }
 
 enum Command {
@@ -54,6 +55,7 @@ impl SoundEngine {
             stop_click: gen_tone(800.0, 0.05, 0.08, 0.001, Waveform::Square),
             start_chime: gen_sweep(523.25, 659.25, 0.3, 0.12, 0.01),
             stop_chime: gen_sweep(659.25, 523.25, 0.3, 0.12, 0.01),
+            refused: gen_refusal(),
         })
     }
 
@@ -66,6 +68,9 @@ impl SoundEngine {
 
     pub fn play(&self, sound_type: &str, preset: &str) {
         let samples = match (sound_type, preset) {
+            // One sound whatever the preset: it has to read as a refusal, not
+            // as a quieter version of the start.
+            ("refused", _) => &self.refused,
             ("start", "beep") => &self.start_beep,
             ("stop", "beep") => &self.stop_beep,
             ("start", "click") => &self.start_click,
@@ -130,6 +135,14 @@ fn run_output(commands: Receiver<Command>) {
 enum Waveform {
     Sine,
     Square,
+}
+
+/// Two short low notes, the second lower: the "no" a start beep never sounds like.
+fn gen_refusal() -> Vec<f32> {
+    let mut samples = gen_tone(330.0, 0.08, 0.12, 0.04, Waveform::Sine);
+    samples.extend(std::iter::repeat(0.0).take((SAMPLE_RATE as f32 * 0.06) as usize));
+    samples.extend(gen_tone(247.0, 0.12, 0.12, 0.01, Waveform::Sine));
+    samples
 }
 
 fn gen_tone(freq: f32, duration: f32, gain_start: f32, gain_end: f32, waveform: Waveform) -> Vec<f32> {
@@ -303,6 +316,7 @@ mod tests {
             gen_tone(880.0, 0.1, 0.10, 0.01, Waveform::Sine),
             gen_tone(1000.0, 0.05, 0.08, 0.001, Waveform::Square),
             gen_sweep(523.25, 659.25, 0.3, 0.12, 0.01),
+            gen_refusal(),
         ];
 
         for samples in presets {
