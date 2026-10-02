@@ -317,19 +317,27 @@ fn db_clear_transcriptions(
 fn db_get_analytics_summary(
     user_wpm: f64,
     period_days: Option<i64>,
+    include_remote: Option<bool>,
     db: tauri::State<'_, database::Database>,
 ) -> Result<database::AnalyticsSummary, String> {
     // Clamped here rather than trusted: the value reaches a date modifier.
     let period_days = period_days.filter(|d| *d > 0).map(|d| d.min(36_500));
-    db.get_analytics_summary(user_wpm, period_days)
+    db.get_analytics_summary(user_wpm, period_days, include_remote.unwrap_or(true))
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn db_get_yearly_activity(
+    include_remote: Option<bool>,
     db: tauri::State<'_, database::Database>,
 ) -> Result<Vec<database::YearlyDayActivity>, String> {
-    db.get_yearly_activity().map_err(|e| e.to_string())
+    db.get_yearly_activity(include_remote.unwrap_or(true))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_has_remote_data(db: tauri::State<'_, database::Database>) -> Result<bool, String> {
+    db.has_remote_data().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1279,6 +1287,7 @@ pub fn run() {
             db_clear_transcriptions,
             db_get_analytics_summary,
             db_get_yearly_activity,
+            db_has_remote_data,
             db_reset_stats,
             get_available_accelerators,
             get_available_gpus,
