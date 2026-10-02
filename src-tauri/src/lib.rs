@@ -758,15 +758,6 @@ async fn test_server_connection(
     Ok(server_transcription::check_server(&url, Some(&token), timeout).await)
 }
 
-#[tauri::command]
-async fn check_server_health(state: tauri::State<'_, AppState>) -> Result<bool, String> {
-    let url = state.server_url.lock().clone();
-    let timeout = *state.server_timeout.lock();
-    server_transcription::check_server_health(&url, timeout)
-        .await
-        .map_err(|e| e.to_string())
-}
-
 
 // ============================================================================
 // Setup Wizard Commands
@@ -1180,7 +1171,6 @@ pub fn run() {
             set_server_fallback,
             get_server_timeout,
             set_server_timeout,
-            check_server_health,
             test_server_connection,
             is_setup_completed,
             complete_setup,

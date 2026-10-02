@@ -34,27 +34,6 @@ impl std::fmt::Display for ServerError {
 
 impl std::error::Error for ServerError {}
 
-/// Check if the transcription server is available
-///
-/// # Arguments
-/// * `base_url` - Base URL of the server (e.g., "http://localhost:8000")
-/// * `timeout_ms` - Timeout in milliseconds
-pub async fn check_server_health(base_url: &str, timeout_ms: u64) -> Result<bool, ServerError> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_millis(timeout_ms))
-        .build()
-        .map_err(|e| ServerError::ConnectionFailed(e.to_string()))?;
-
-    let url = format!("{}/health", base_url.trim_end_matches('/'));
-
-    match client.get(&url).send().await {
-        Ok(response) => Ok(response.status().is_success()),
-        Err(e) if e.is_timeout() => Err(ServerError::Timeout),
-        Err(e) if e.is_connect() => Err(ServerError::ServerUnavailable),
-        Err(e) => Err(ServerError::ConnectionFailed(e.to_string())),
-    }
-}
-
 /// What a connection test found out about the configured server
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
