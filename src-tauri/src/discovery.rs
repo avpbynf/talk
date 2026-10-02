@@ -86,6 +86,14 @@ fn server_from_info(info: &ResolvedService) -> Option<DiscoveredServer> {
     })
 }
 
+/// The first server on the list that has not been offered yet
+pub fn pick_offer<'a>(
+    servers: &'a [DiscoveredServer],
+    offered: &[String],
+) -> Option<&'a DiscoveredServer> {
+    servers.iter().find(|s| !offered.contains(&s.id))
+}
+
 /// Browse for servers on a thread of its own, for the life of the application.
 ///
 /// A browse that cannot start (no network adapter, the port taken) is logged
@@ -239,6 +247,15 @@ mod tests {
         let mut moved = server("a");
         moved.url = "http://10.0.0.9:8000".to_string();
         assert!(discovery.upsert(moved));
+    }
+
+    #[test]
+    fn only_a_server_not_offered_before_is_picked() {
+        let servers = [server("a"), server("b")];
+
+        assert_eq!(pick_offer(&servers, &[]).unwrap().id, "a");
+        assert_eq!(pick_offer(&servers, &["a".to_string()]).unwrap().id, "b");
+        assert!(pick_offer(&servers, &["a".to_string(), "b".to_string()]).is_none());
     }
 
     #[test]

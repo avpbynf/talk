@@ -114,6 +114,10 @@ workflows run that same file.
   `load_settings()` drops the whole file on a parse error and returns the defaults,
   so a settings file still holding `t4lk-dark` would take the server URL, the token
   and the shortcuts down with it.
+- **A new settings field needs `#[serde(default)]`, always.** `load_settings()` drops the
+  whole file on a parse error, so `offered_servers` without its default would turn every
+  existing install back to the defaults on the first launch after the update, server URL
+  and token included. `settings.rs` carries a test for it.
 - **The uninstall key is the product name, not the identifier.** Tauri builds it as
   `Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}`, so renaming
   the product makes every earlier install invisible to the new one and Windows lists

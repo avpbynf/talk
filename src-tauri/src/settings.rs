@@ -170,6 +170,11 @@ pub struct AppSettings {
     /// API token for server (OpenAI-compatible)
     #[serde(default)]
     pub server_token: String,
+    /// Ids of the discovered servers already offered, so each is offered once.
+    /// Needs its serde default: a file without it must still parse, or
+    /// load_settings drops the whole file.
+    #[serde(default)]
+    pub offered_servers: Vec<String>,
     /// Companion shortcuts to simulate on recording start/stop
     #[serde(default)]
     pub companion_shortcuts: Vec<CompanionShortcut>,
@@ -253,6 +258,7 @@ impl Default for AppSettings {
             start_sound: default_sound_beep(),
             stop_sound: default_sound_beep(),
             server_token: String::new(),
+            offered_servers: Vec::new(),
             companion_shortcuts: Vec::new(),
             meeting_mode_enabled: false,
             input_device_name: None,
@@ -367,6 +373,26 @@ mod tests {
         assert!(restored.setup_completed);
         assert_eq!(restored.companion_shortcuts.len(), 1);
         assert_eq!(restored.companion_shortcuts[0].keys, "Ctrl+Shift+M");
+    }
+
+    #[test]
+    fn a_file_written_before_offered_servers_existed_still_parses() {
+        // The field was added after a release, and a parse error here would
+        // replace the whole file with the defaults.
+        let s = parse(r#"{"server_url": "http://localhost:4060", "setup_completed": true}"#);
+        assert!(s.offered_servers.is_empty());
+        assert_eq!(s.server_url, "http://localhost:4060");
+        assert!(s.setup_completed);
+    }
+
+    #[test]
+    fn the_offered_servers_survive_a_round_trip() {
+        let mut original = AppSettings::default();
+        original.offered_servers = vec!["office-pc._talk._tcp.local.".to_string()];
+
+        let restored = parse(&serde_json::to_string(&original).expect("should serialise"));
+
+        assert_eq!(restored.offered_servers, original.offered_servers);
     }
 
     #[test]

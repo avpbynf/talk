@@ -756,6 +756,31 @@ fn list_discovered_servers(
     discovery.list()
 }
 
+/// A server to propose using, once per server and only while dictating locally.
+/// The id is recorded as offered the moment it is handed out, so a banner that
+/// is dismissed, ignored or answered never comes back for the same server.
+#[tauri::command]
+fn next_server_offer(
+    state: tauri::State<'_, AppState>,
+    discovery: tauri::State<'_, discovery::Discovery>,
+) -> Option<discovery::DiscoveredServer> {
+    if *state.transcription_mode.lock() != TranscriptionMode::Local {
+        return None;
+    }
+    let mut app_settings = settings::load_settings();
+    if !app_settings.setup_completed {
+        return None;
+    }
+    let servers = discovery.list();
+    let server = discovery::pick_offer(&servers, &app_settings.offered_servers)?.clone();
+    app_settings.offered_servers.push(server.id.clone());
+    if let Err(e) = settings::save_settings(&app_settings) {
+        eprintln!("Failed to save settings: {}", e);
+        return None;
+    }
+    Some(server)
+}
+
 #[tauri::command]
 async fn test_server_connection(
     state: tauri::State<'_, AppState>,
@@ -1182,6 +1207,7 @@ pub fn run() {
             set_server_timeout,
             test_server_connection,
             list_discovered_servers,
+            next_server_offer,
             is_setup_completed,
             complete_setup,
             get_autostart_enabled,

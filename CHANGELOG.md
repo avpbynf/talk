@@ -33,6 +33,12 @@ A Talk-Server announces itself on the network, and the Transcription page now li
 hears, with their name, model and address. Pressing Use fills the server URL, so there is nothing
 to type. A server that goes away drops off the list by itself.
 
+- (server) Offer a server found on the network once
+
+When Talk is dictating on this machine and a server appears that it has not seen before, a strip
+under the title bar offers to use it. Each server is offered a single time, whether you accept it
+or close the strip.
+
 ### Bug Fixes
 
 - (server) Send the server token, so server mode transcribes on the server again
