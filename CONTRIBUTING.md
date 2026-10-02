@@ -125,6 +125,14 @@ like a Rust error.
 A version is three numbers, and after them either `-alpha`, or `-beta`, or nothing at all. Nothing
 follows the word, a counter least of all.
 
+Between two releases `dev` carries the next version with `-dev` after it, `0.10.0-dev` once `0.9.0`
+is out, opened by a `build/open-next-dev-version` branch right after the release. It names the version
+being written towards and is never tagged: the `release/<version>` branch is what takes the suffix
+off. A `-dev` version is also what lets a test installer be told apart from the release.
+`bun run tauri:test-installer` builds one stamped `0.10.0-dev.1`, then `.2` and so on, so each one
+installs as an upgrade over the last instead of offering a repair. The stamp goes through `--config`
+and the counter lives under `.git`, so nothing in the tree moves and nothing has to be put back.
+
 The version lives in four files and they move together:
 
 - `src-tauri/tauri.conf.json`, which is what the installer and the updater compare against
@@ -146,6 +154,8 @@ The path, in order:
 4. `git tag v<version> origin/main` and push the tag. **The tag is what publishes**: `release.yml`
    runs on tags and on nothing else, builds the NSIS installer on Windows, and uploads it with its
    signature and the manifest the updater reads.
+5. Open the next version on `dev` straight away, `build/open-next-dev-version`, carrying the four files
+   moved to `<next>-dev` and nothing else.
 
 An installed copy compares the releases page against its own `tauri.conf.json`, so a release proves
 nothing about the updater on its own: it is the version after it that shows whether an installed

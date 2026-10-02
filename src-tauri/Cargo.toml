@@ -1,6 +1,6 @@
 [package]
 name = "talk"
-version = "0.9.0"
+version = "0.10.0-dev"
 description = "Talk, a Speech-to-Text desktop client"
 authors = ["avpbynf"]
 edition = "2021"
