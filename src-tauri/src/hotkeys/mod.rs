@@ -353,11 +353,20 @@ struct OverlayLease {
 
 impl OverlayLease {
     fn take(app: &AppHandle) -> Self {
-        app.state::<AppState>()
+        let count = app
+            .state::<AppState>()
             .jobs_in_flight
-            .fetch_add(1, Ordering::SeqCst);
+            .fetch_add(1, Ordering::SeqCst)
+            + 1;
+        announce_jobs(app, count);
         Self { app: app.clone() }
     }
+}
+
+/// Tell the overlay how many dictations are still being transcribed, so a
+/// recording started behind them can show that they are on their way.
+fn announce_jobs(app: &AppHandle, count: usize) {
+    let _ = app.emit_to(EventTarget::webview_window("overlay"), "jobs-in-flight", count);
 }
 
 impl Drop for OverlayLease {
@@ -365,7 +374,9 @@ impl Drop for OverlayLease {
         let state = self.app.state::<AppState>();
         // fetch_sub returns the value before the subtraction, so 1 means this
         // was the last one.
-        let was_last = state.jobs_in_flight.fetch_sub(1, Ordering::SeqCst) == 1;
+        let before = state.jobs_in_flight.fetch_sub(1, Ordering::SeqCst);
+        announce_jobs(&self.app, before - 1);
+        let was_last = before == 1;
         if !was_last || *state.is_recording.lock() {
             return;
         }

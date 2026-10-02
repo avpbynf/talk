@@ -21,6 +21,12 @@ the last dictation or the whole last run.
   recording in progress; with none left, it drops everything waiting, or only the one being
   transcribed, as chosen on the same card. On a graphics card the transcription itself can take a
   second or two to let go, but nothing it brings back is pasted.
+- (overlay) Show what is still transcribing behind a new recording
+
+Recording again while a dictation is still on its way used to hide it entirely. A small ring now
+sits beside the timer, filling as the dictation in progress goes through the model, with the number
+still waiting inside it. The crossed-out microphone meeting mode added to the overlay is gone:
+meeting mode is a setting, and it read as a second microphone.
 
 ## [0.9.0] - 2026-09-07
 
