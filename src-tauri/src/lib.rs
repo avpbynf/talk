@@ -367,7 +367,12 @@ fn reload_engine(state: &AppState, backend: AcceleratorBackend) -> Result<(), St
             *state.whisper_engine.lock() = None;
 
             let device = current_gpu_device_index(state, backend);
-            let engine = match WhisperEngine::new_with_backend(&model_path, backend, device) {
+            // Said to be loading while it is, so a dictation in between hears
+            // "still loading" rather than that there is no model at all.
+            state.model_loading.store(true, Ordering::SeqCst);
+            let built = WhisperEngine::new_with_backend(&model_path, backend, device);
+            state.model_loading.store(false, Ordering::SeqCst);
+            let engine = match built {
                 Ok(engine) => engine,
                 Err(e) => {
                     *state.current_model.lock() = None;
