@@ -84,6 +84,13 @@ language of Windows by default, and anything that is not French shows in English
 page has a Language setting to pick one of the two whatever Windows is set to, and the change
 applies at once, without a restart. Dates, times and numbers follow the same language.
 
+- (server) Lay out the Transcription page in the order it is used
+
+In Server mode the servers found on the network now come first, then the connection, then a single
+card holding the timeout and the fallback to this machine. In Local mode the Share this PC card
+moved below the models, and while sharing is off it shows only its switch, plus the paired machines
+if there still are some to revoke.
+
 ### Bug Fixes
 
 - (preferences) Line up the shortcut cards, and say what Cancel throws away now
