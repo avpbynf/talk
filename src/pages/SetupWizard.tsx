@@ -423,7 +423,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">API key or token</label>
+                <label className="text-sm font-medium mb-2 block">{t("setup.server.token")}</label>
                 <input
                   type="password"
                   value={serverToken}
@@ -431,7 +431,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     setServerToken(e.target.value);
                     setServerStatus("unknown");
                   }}
-                  placeholder="Your OpenAI key, or the token a Talk server gave you"
+                  placeholder={t("setup.server.tokenPlaceholder")}
                   autoComplete="off"
                   className="w-full h-10 px-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]"
                 />

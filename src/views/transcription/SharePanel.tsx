@@ -1,21 +1,27 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, Check, Loader2, Share2, Trash2 } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { describeShare, useShare } from "@/lib/share";
+import { locale } from "@/i18n";
 
 interface SharePanelProps {
   currentModel: string | null;
 }
 
-function formatWhen(iso: string | null): string {
-  if (!iso) return "never used";
+function formatWhen(iso: string | null, t: TFunction): string {
+  if (!iso) return t("transcription.share.neverUsed");
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "never used" : `last used ${date.toLocaleString()}`;
+  return Number.isNaN(date.getTime())
+    ? t("transcription.share.neverUsed")
+    : t("transcription.share.lastUsed", { when: date.toLocaleString(locale()) });
 }
 
 /** Serve the local engine to other machines, which pair with a code. */
 export function SharePanel({ currentModel }: SharePanelProps) {
+  const { t } = useTranslation();
   const { info, devices, setEnabled, setPort, revoke } = useShare(currentModel);
   const [portInput, setPortInput] = useState("8000");
   const [portError, setPortError] = useState<string | null>(null);
@@ -41,7 +47,7 @@ export function SharePanel({ currentModel }: SharePanelProps) {
   const savePort = async () => {
     const port = Number(portInput);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-      setPortError("Enter a port between 1 and 65535");
+      setPortError(t("transcription.share.portRange"));
       return;
     }
     setPortError(null);
@@ -50,7 +56,7 @@ export function SharePanel({ currentModel }: SharePanelProps) {
     try {
       await setPort(port);
     } catch (e) {
-      setPortError(typeof e === "string" ? e : "Could not change the port");
+      setPortError(typeof e === "string" ? e : t("transcription.share.portFailed"));
     } finally {
       setBusy(false);
     }
@@ -72,9 +78,9 @@ export function SharePanel({ currentModel }: SharePanelProps) {
             <Share2 className="h-4 w-4 text-[var(--color-active)]" />
           </div>
           <div>
-            <h3 className="font-medium text-sm">Share this PC</h3>
+            <h3 className="font-medium text-sm">{t("transcription.share.title")}</h3>
             <p className="text-xs text-muted-foreground">
-              Let other machines dictate through the model loaded here
+              {t("transcription.share.subtitle")}
             </p>
           </div>
         </div>
@@ -84,14 +90,14 @@ export function SharePanel({ currentModel }: SharePanelProps) {
             checked={info.enabled}
             disabled={busy}
             onCheckedChange={(enabled) => void toggle(enabled)}
-            aria-label="Share this PC"
+            aria-label={t("transcription.share.title")}
           />
         </div>
       </div>
 
       <div className="space-y-2">
         <label htmlFor="share-port" className="text-xs font-medium text-muted-foreground">
-          Port
+          {t("transcription.share.port")}
         </label>
         <input
           id="share-port"
@@ -114,17 +120,21 @@ export function SharePanel({ currentModel }: SharePanelProps) {
         <div className="space-y-1.5 text-xs">
           <p className={cn("flex items-center gap-1.5 font-medium", statusClass)}>
             {failed ? <AlertCircle className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
-            {describeShare(info)}
+            {describeShare(info, t)}
           </p>
           {info.message && <p className="text-[var(--color-destructive)]">{info.message}</p>}
           {serving && !info.model && (
             <p className="text-muted-foreground">
-              Load a model below, other machines get an error until one is loaded.
+              {t("transcription.share.loadModel")}
             </p>
           )}
           {serving && info.address && (
             <p className="text-muted-foreground">
-              Other machines reach it at <span className="font-mono text-foreground">{info.address}</span>
+              <Trans
+                i18nKey="transcription.share.reachAt"
+                values={{ address: info.address }}
+                components={{ address: <span className="font-mono text-foreground" /> }}
+              />
             </p>
           )}
           {serving && info.announceError && (
@@ -132,17 +142,17 @@ export function SharePanel({ currentModel }: SharePanelProps) {
           )}
           {serving && info.pairingLocked && (
             <p className="text-[var(--color-destructive)]">
-              Too many wrong codes were entered. Pairing is off until Talk restarts.
+              {t("transcription.share.locked")}
             </p>
           )}
         </div>
       )}
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Paired machines</p>
+        <p className="text-xs font-medium text-muted-foreground">{t("transcription.share.paired")}</p>
         {devices.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            None yet. On the other machine, pick this PC in Server mode and enter the code shown here.
+            {t("transcription.share.noneYet")}
           </p>
         ) : (
           <ul className="space-y-1.5">
@@ -153,14 +163,14 @@ export function SharePanel({ currentModel }: SharePanelProps) {
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm">{device.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatWhen(device.lastUsedAt)}</p>
+                  <p className="text-xs text-muted-foreground">{formatWhen(device.lastUsedAt, t)}</p>
                 </div>
                 <button
                   onClick={() => void revoke(device.id)}
                   className="cursor-pointer flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-surface-active hover:text-[var(--color-destructive)]"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Revoke
+                  {t("transcription.share.revoke")}
                 </button>
               </li>
             ))}

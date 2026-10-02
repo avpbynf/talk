@@ -249,21 +249,66 @@
       "status": {
         "checking": "Checking...",
         "connected": "Connected",
-        "unavailable": "Unavailable",
-        "notTested": "Not tested"
+        "unavailable": "Unreachable",
+        "notTested": "Not tested",
+        "unauthorized": "Server reached, key or token refused"
       },
       "invalidUrl": "Invalid URL",
       "connection": "Connection",
-      "endpoint": "Whisper server endpoint",
+      "endpoint": "Talk server or any OpenAI-compatible endpoint",
       "url": "Server URL",
-      "token": "API token",
+      "token": "API key or token",
       "optional": "(optional)",
       "tokenPlaceholder": "sk-... or leave empty",
-      "tokenHint": "OpenAI-compatible. Required by third-party services.",
+      "tokenHint": "A Talk server gives one when you pair with it, OpenAI on its dashboard.",
       "timeout": "Timeout",
       "timeoutHint": "How long to wait before giving up",
       "fallback": "Local fallback",
-      "fallbackHint": "Fall back to the local model when the server does not answer"
+      "fallbackHint": "Fall back to the local model when the server does not answer",
+      "pairWith": "Pair with this server",
+      "model": "Model",
+      "modelHint": "Leave empty to let the server choose, which is right for a Talk server. OpenAI needs one and uses whisper-1 when this is empty.",
+      "network": "Servers on this network",
+      "networkHint": "Found automatically, nothing to type",
+      "noneFound": "No server found yet.",
+      "pair": "Pair",
+      "use": "Use",
+      "inUse": "In use"
+    },
+    "pair": {
+      "title": "Pair with {{label}}",
+      "subtitle": "The server shows a 6 digit code in its log and on its admin page.",
+      "requesting": "Asking the server for a code...",
+      "validFor_one": "The code is valid for about {{count}} minute.",
+      "validFor_other": "The code is valid for about {{count}} minutes.",
+      "startAgain": "Start again",
+      "errors": {
+        "not_supported": "This server does not offer pairing. Paste its token above instead.",
+        "busy": "The server already has several pairing requests waiting. Try again in a minute.",
+        "wrong_code": "That code is not right. Check it on the server and try again.",
+        "expired": "This code has expired, or too many wrong codes were tried. Start again to get a new one.",
+        "unreachable": "Could not reach the server."
+      }
+    },
+    "share": {
+      "title": "Share this PC",
+      "subtitle": "Let other machines dictate through the model loaded here",
+      "port": "Port",
+      "portRange": "Enter a port between 1 and 65535",
+      "portFailed": "Could not change the port",
+      "off": "Off",
+      "serving": "Serving",
+      "waitingModel": "Waiting for a model",
+      "portBusy": "Port already in use",
+      "error": "Could not start",
+      "loadModel": "Load a model below, other machines get an error until one is loaded.",
+      "reachAt": "Other machines reach it at <address>{{address}}</address>",
+      "locked": "Too many wrong codes were entered. Pairing is off until Talk restarts.",
+      "paired": "Paired machines",
+      "noneYet": "None yet. On the other machine, pick this PC in Server mode and enter the code shown here.",
+      "neverUsed": "never used",
+      "lastUsed": "last used {{when}}",
+      "revoke": "Revoke"
     }
   },
   "preferences": {
@@ -476,7 +521,9 @@
         "unauthorized": "Server reached, token refused",
         "unknown": "Not checked yet"
       },
-      "test": "Test it"
+      "test": "Test it",
+      "token": "API key or token",
+      "tokenPlaceholder": "Your OpenAI key, or the token a Talk server gave you"
     },
     "model": {
       "title": "The model",
@@ -536,5 +583,16 @@
     "title": "No model loaded",
     "hint": "Dictating will not work until one is",
     "choose": "Choose a model"
+  },
+  "serverOffer": {
+    "found": "Server found: {{name}}",
+    "use": "Use it",
+    "dismiss": "Dismiss"
+  },
+  "pairingBanner": {
+    "wants": "{{name}} wants to use this PC",
+    "code": "code",
+    "codeLabel": "Pairing code",
+    "valid": "valid {{time}}"
   }
 }

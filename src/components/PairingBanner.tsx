@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { KeyRound } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { PendingPairing } from "@/lib/share";
 
 function useNow(): number {
@@ -13,10 +14,10 @@ function useNow(): number {
   return now;
 }
 
-function formatLeft(seconds: number): string {
+function formatClock(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const rest = String(seconds % 60).padStart(2, "0");
-  return `valid ${minutes}:${rest}`;
+  return `${minutes}:${rest}`;
 }
 
 /**
@@ -26,6 +27,7 @@ function formatLeft(seconds: number): string {
  * A request leaves the strip when its two minutes are up.
  */
 export function PairingBanner({ pending }: { pending: PendingPairing[] }) {
+  const { t } = useTranslation();
   // The backend states the time left when the list arrives, and the countdown
   // runs from there
   const receivedAt = useMemo(() => Date.now(), [pending]);
@@ -43,12 +45,12 @@ export function PairingBanner({ pending }: { pending: PendingPairing[] }) {
         <div key={request.requestId} className="flex items-center gap-3">
           <KeyRound className="h-4 w-4 shrink-0 text-[var(--color-server)]" />
           <p className="min-w-0 flex-1 truncate text-sm">
-            <span className="font-medium">{request.clientName} wants to use this PC</span>
-            <span className="ml-2 text-muted-foreground">code</span>
-            <span className="ml-2 font-mono text-base font-semibold tracking-widest" aria-label="Pairing code">
+            <span className="font-medium">{t("pairingBanner.wants", { name: request.clientName })}</span>
+            <span className="ml-2 text-muted-foreground">{t("pairingBanner.code")}</span>
+            <span className="ml-2 font-mono text-base font-semibold tracking-widest" aria-label={t("pairingBanner.codeLabel")}>
               {request.code}
             </span>
-            <span className="ml-2 text-xs text-muted-foreground">{formatLeft(left)}</span>
+            <span className="ml-2 text-xs text-muted-foreground">{t("pairingBanner.valid", { time: formatClock(left) })}</span>
           </p>
         </div>
       ))}

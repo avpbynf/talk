@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { KeyRound, Loader2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { PairError, PairGrant, PairRequest } from "@/lib/server";
 
@@ -18,19 +19,14 @@ type Step =
   | { kind: "confirming"; requestId: string; expiresIn: number }
   | { kind: "failed"; error: PairError };
 
-const MESSAGES: Record<PairError, string> = {
-  not_supported: "This server does not offer pairing. Paste its token above instead.",
-  busy: "The server already has several pairing requests waiting. Try again in a minute.",
-  wrong_code: "That code is not right. Check it on the server and try again.",
-  expired: "This code has expired, or too many wrong codes were tried. Start again to get a new one.",
-  unreachable: "Could not reach the server.",
-};
+const PAIR_ERRORS: PairError[] = ["not_supported", "busy", "wrong_code", "expired", "unreachable"];
 
 function asPairError(e: unknown): PairError {
-  return typeof e === "string" && e in MESSAGES ? (e as PairError) : "unreachable";
+  return typeof e === "string" && PAIR_ERRORS.includes(e as PairError) ? (e as PairError) : "unreachable";
 }
 
 export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>({ kind: "requesting" });
   const [code, setCode] = useState("");
   const started = useRef(false);
@@ -85,15 +81,15 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
             <KeyRound className="h-4 w-4 text-server" />
           </div>
           <div>
-            <h3 className="font-medium text-sm">Pair with {label}</h3>
+            <h3 className="font-medium text-sm">{t("transcription.pair.title", { label })}</h3>
             <p className="text-xs text-muted-foreground">
-              The server shows a 6 digit code in its log and on its admin page.
+              {t("transcription.pair.subtitle")}
             </p>
           </div>
         </div>
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("common.close")}
           className="cursor-pointer p-1 rounded-md text-muted-foreground hover:bg-surface-active"
         >
           <X className="h-4 w-4" />
@@ -103,7 +99,7 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
       {step.kind === "requesting" && (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Asking the server for a code...
+          {t("transcription.pair.requesting")}
         </p>
       )}
 
@@ -120,21 +116,21 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => e.key === "Enter" && complete && void confirm()}
               placeholder="000000"
-              aria-label="Pairing code"
+              aria-label={t("pairingBanner.codeLabel")}
               className="w-32 px-3 py-2 text-sm rounded-lg border border-border-card bg-surface-inset font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--color-server)]/30 focus:border-[var(--color-server)]"
             />
             <Button onClick={() => void confirm()} disabled={!complete || step.kind === "confirming"}>
-              {step.kind === "confirming" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm"}
+              {step.kind === "confirming" ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.confirm")}
             </Button>
           </div>
           {step.kind === "code" && step.error && (
             <p role="alert" className="text-xs text-[var(--color-destructive)]">
-              {MESSAGES[step.error]}
+              {t(`transcription.pair.errors.${step.error}`)}
             </p>
           )}
           {minutes > 0 && (
             <p className="text-xs text-muted-foreground">
-              The code is valid for about {minutes} {minutes === 1 ? "minute" : "minutes"}.
+              {t("transcription.pair.validFor", { count: minutes })}
             </p>
           )}
         </div>
@@ -143,11 +139,11 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
       {step.kind === "failed" && (
         <div className="space-y-2">
           <p role="alert" className="text-xs text-[var(--color-destructive)]">
-            {MESSAGES[step.error]}
+            {t(`transcription.pair.errors.${step.error}`)}
           </p>
           {step.error !== "not_supported" && (
             <Button variant="outline" onClick={() => void start()}>
-              Start again
+              {t("transcription.pair.startAgain")}
             </Button>
           )}
         </div>

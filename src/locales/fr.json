@@ -250,20 +250,65 @@
         "checking": "Vérification...",
         "connected": "Connecté",
         "unavailable": "Injoignable",
-        "notTested": "Non testé"
+        "notTested": "Non testé",
+        "unauthorized": "Serveur joint, clé ou jeton refusé"
       },
       "invalidUrl": "URL invalide",
       "connection": "Connexion",
-      "endpoint": "Point d'accès du serveur Whisper",
+      "endpoint": "Serveur Talk ou tout point d'accès compatible OpenAI",
       "url": "URL du serveur",
-      "token": "Jeton d'API",
+      "token": "Clé d'API ou jeton",
       "optional": "(facultatif)",
       "tokenPlaceholder": "sk-... ou laisser vide",
-      "tokenHint": "Compatible OpenAI. Exigé par les services tiers.",
+      "tokenHint": "Un serveur Talk en fournit un à l'appairage, OpenAI sur son tableau de bord.",
       "timeout": "Délai d'attente",
       "timeoutHint": "Combien de temps attendre avant d'abandonner",
       "fallback": "Secours local",
-      "fallbackHint": "Bascule sur le modèle local quand le serveur ne répond pas"
+      "fallbackHint": "Bascule sur le modèle local quand le serveur ne répond pas",
+      "pairWith": "Appairer avec ce serveur",
+      "model": "Modèle",
+      "modelHint": "Laissez vide pour que le serveur choisisse, ce qui convient à un serveur Talk. OpenAI en exige un et utilise whisper-1 quand le champ est vide.",
+      "network": "Serveurs sur ce réseau",
+      "networkHint": "Trouvés automatiquement, rien à saisir",
+      "noneFound": "Aucun serveur trouvé pour l'instant.",
+      "pair": "Appairer",
+      "use": "Utiliser",
+      "inUse": "Utilisé"
+    },
+    "pair": {
+      "title": "Appairer avec {{label}}",
+      "subtitle": "Le serveur affiche un code à 6 chiffres dans son journal et sur sa page d'administration.",
+      "requesting": "Demande d'un code au serveur...",
+      "validFor_one": "Le code est valable environ {{count}} minute.",
+      "validFor_other": "Le code est valable environ {{count}} minutes.",
+      "startAgain": "Recommencer",
+      "errors": {
+        "not_supported": "Ce serveur ne propose pas l'appairage. Collez plutôt son jeton ci-dessus.",
+        "busy": "Le serveur a déjà plusieurs demandes d'appairage en attente. Réessayez dans une minute.",
+        "wrong_code": "Ce code n'est pas le bon. Vérifiez-le sur le serveur et réessayez.",
+        "expired": "Ce code a expiré, ou trop de codes erronés ont été essayés. Recommencez pour en obtenir un nouveau.",
+        "unreachable": "Impossible de joindre le serveur."
+      }
+    },
+    "share": {
+      "title": "Partager ce PC",
+      "subtitle": "Laisse d'autres machines dicter avec le modèle chargé ici",
+      "port": "Port",
+      "portRange": "Saisissez un port entre 1 et 65535",
+      "portFailed": "Impossible de changer le port",
+      "off": "Désactivé",
+      "serving": "En service",
+      "waitingModel": "En attente d'un modèle",
+      "portBusy": "Port déjà utilisé",
+      "error": "Démarrage impossible",
+      "loadModel": "Chargez un modèle ci-dessous, les autres machines reçoivent une erreur tant qu'il n'y en a pas.",
+      "reachAt": "Les autres machines le joignent à <address>{{address}}</address>",
+      "locked": "Trop de codes erronés ont été saisis. L'appairage est coupé jusqu'au redémarrage de Talk.",
+      "paired": "Machines appairées",
+      "noneYet": "Aucune pour l'instant. Sur l'autre machine, choisissez ce PC en mode Serveur et saisissez le code affiché ici.",
+      "neverUsed": "jamais utilisée",
+      "lastUsed": "dernière utilisation : {{when}}",
+      "revoke": "Révoquer"
     }
   },
   "preferences": {
@@ -476,7 +521,9 @@
         "unauthorized": "Serveur joint, jeton refusé",
         "unknown": "Pas encore vérifié"
       },
-      "test": "Tester"
+      "test": "Tester",
+      "token": "Clé d'API ou jeton",
+      "tokenPlaceholder": "Votre clé OpenAI, ou le jeton fourni par un serveur Talk"
     },
     "model": {
       "title": "Le modèle",
@@ -536,5 +583,16 @@
     "title": "Aucun modèle chargé",
     "hint": "La dictée ne fonctionnera pas tant qu'il n'y en a pas un",
     "choose": "Choisir un modèle"
+  },
+  "serverOffer": {
+    "found": "Serveur trouvé : {{name}}",
+    "use": "L'utiliser",
+    "dismiss": "Fermer"
+  },
+  "pairingBanner": {
+    "wants": "{{name}} souhaite utiliser ce PC",
+    "code": "code",
+    "codeLabel": "Code d'appairage",
+    "valid": "valable {{time}}"
   }
 }
