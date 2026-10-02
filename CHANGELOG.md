@@ -142,6 +142,13 @@ ring.
 
 ### Bug Fixes
 
+- (preferences) A proper page after Google sign-in
+
+The browser tab that opens when you sign in with Google was a bare line of black text on white. It is
+now a small card in Talk's colours, light or dark following the system, in English or French
+following the browser, with a check mark, and a clear message when Google refuses. The tab closes
+itself after a few seconds when the browser allows it, and Talk comes back to the front either way.
+
 - (history) Stop the history cards turning grey, or black, under a quick mouse
 
 In a light theme, sweeping the mouse across the history left cards grey after it had moved on, and

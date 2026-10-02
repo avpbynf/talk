@@ -6,6 +6,7 @@
 //! often a sync runs. Settings are one shared file, last writer wins.
 
 mod auth;
+mod auth_page;
 mod drive;
 mod portable;
 mod state;
