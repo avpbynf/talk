@@ -536,11 +536,6 @@ fn enable_shortcuts(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn cancel_recording(app: tauri::AppHandle) {
-    hotkeys::cancel(&app)
-}
-
-#[tauri::command]
 fn save_overlay_position(x: f64, y: f64) -> Result<(), String> {
     let mut app_settings = settings::load_settings();
     app_settings.overlay_position = Some(settings::OverlayPosition { x, y });
@@ -1134,7 +1129,6 @@ pub fn run() {
             update_paste_shortcut,
             disable_shortcuts,
             enable_shortcuts,
-            cancel_recording,
             show_overlay,
             hide_overlay,
             get_saved_settings,
