@@ -13,7 +13,6 @@ interface ConfirmDialogProps {
   /** The confirm button is red by default, for what throws something away. */
   tone?: "destructive" | "neutral";
   /** A box under the description, for a question that can be settled for good. */
-  checkbox?: { label: string; checked: boolean; onChange: (checked: boolean) => void };
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -36,7 +35,6 @@ export function ConfirmDialog({
   confirmLabel,
   confirmIcon,
   tone = "destructive",
-  checkbox,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -74,17 +72,6 @@ export function ConfirmDialog({
           >
             <h2 className="text-sm font-semibold">{title}</h2>
             <p className="text-sm text-muted-foreground mt-1.5">{description}</p>
-            {checkbox && (
-              <label className="flex items-center gap-2 mt-4 text-sm text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={checkbox.checked}
-                  onChange={(e) => checkbox.onChange(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--color-warning)]"
-                />
-                {checkbox.label}
-              </label>
-            )}
             <div className="flex items-center justify-end gap-2 mt-5">
               <Button
                 variant="ghost"

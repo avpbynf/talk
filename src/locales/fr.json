@@ -249,11 +249,9 @@
       "gigabytes": "{{size}} Go",
       "megabytes": "{{size}} Mo",
       "runningOn": "Exécution sur {{name}} ({{details}})",
-      "askBeforeSwitching": "Demander avant de changer",
       "switchTitle": "Recharger le modèle sur le nouveau périphérique ?",
       "switchDescription": "{{model}} va être rechargé sur le nouveau périphérique. Avec un gros modèle, cela peut prendre une minute ou plus, et la dictée est indisponible jusqu'à la fin.",
-      "switch": "Changer",
-      "dontAskAgain": "Ne plus demander"
+      "switch": "Changer"
     },
     "server": {
       "status": {
