@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ function SortableVocabularyItem({
   word: string;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -67,7 +69,7 @@ function SortableVocabularyItem({
       <button
         {...attributes}
         {...listeners}
-        aria-label={`Reorder ${word}`}
+        aria-label={t("vocabulary.reorder", { word })}
         className="cursor-grab active:cursor-grabbing p-0.5 opacity-30 group-hover:opacity-70 transition-opacity"
       >
         <GripVertical className="h-3 w-3" />
@@ -75,7 +77,7 @@ function SortableVocabularyItem({
       {word}
       <button
         onClick={onRemove}
-        aria-label={`Remove ${word}`}
+        aria-label={t("vocabulary.remove", { word })}
         className="p-0.5 rounded-full hover:bg-surface-raised opacity-50 group-hover:opacity-100 transition-opacity"
       >
         <X className="h-3 w-3" />
@@ -88,6 +90,7 @@ export default function VocabularyView({
   vocabulary,
   onVocabularyChange,
 }: VocabularyViewProps) {
+  const { t } = useTranslation();
   const [newWord, setNewWord] = useState("");
 
   const sensors = useSensors(
@@ -138,9 +141,9 @@ export default function VocabularyView({
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Page title */}
             <div>
-              <h1 className="text-xl font-semibold tracking-tight">Vocabulary</h1>
+              <h1 className="text-xl font-semibold tracking-tight">{t("vocabulary.title")}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                The words you use that Whisper would otherwise guess at
+                {t("vocabulary.subtitle")}
               </p>
             </div>
 
@@ -150,13 +153,13 @@ export default function VocabularyView({
             <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 <Plus className="h-4 w-4" />
-                Your words
+                {t("vocabulary.yourWords")}
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-medium">Add your terms</label>
+                <label className="text-sm font-medium">{t("vocabulary.addTerms")}</label>
                 <p className="text-xs text-muted-foreground">
-                  Proper nouns, acronyms, anything from your trade. They bias the model toward what you actually say.
+                  {t("vocabulary.help")}
                 </p>
                 <div className="flex gap-2">
                   <input
@@ -164,7 +167,7 @@ export default function VocabularyView({
                     value={newWord}
                     onChange={(e) => setNewWord(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addWord())}
-                    placeholder="e.g. MyProject, ACME Corp..."
+                    placeholder={t("vocabulary.placeholder")}
                     className="flex-1 px-3 py-2.5 text-sm rounded-lg border border-border-card bg-surface-inset focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]/30 focus:border-[var(--color-active)]"
                   />
                   <Button
@@ -173,7 +176,7 @@ export default function VocabularyView({
                     className="bg-[var(--color-active)] text-background hover:bg-[var(--color-active)]/90"
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    Add
+                    {t("vocabulary.add")}
                   </Button>
                 </div>
               </div>
@@ -183,7 +186,7 @@ export default function VocabularyView({
             <div className="pt-5 px-5 pb-3 rounded-xl border border-border-card bg-surface-raised space-y-3">
               <div className="flex items-center justify-between pb-2">
                 <label className="text-sm font-medium">
-                  Your terms ({vocabulary.length})
+                  {t("vocabulary.yourTerms", { number: vocabulary.length })}
                 </label>
                 {vocabulary.length > 0 && (
                   <Button
@@ -193,7 +196,7 @@ export default function VocabularyView({
                     className="cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Clear all
+                    {t("vocabulary.clearAll")}
                   </Button>
                 )}
               </div>
@@ -201,8 +204,8 @@ export default function VocabularyView({
               {vocabulary.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground border border-dashed border-border-card rounded-lg">
                   <BookText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nothing here yet</p>
-                  <p className="text-xs mt-1">Whisper is guessing on its own</p>
+                  <p className="text-sm">{t("vocabulary.emptyTitle")}</p>
+                  <p className="text-xs mt-1">{t("vocabulary.emptyHint")}</p>
                 </div>
               ) : (
                 <DndContext
