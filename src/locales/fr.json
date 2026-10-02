@@ -37,6 +37,11 @@
       "year": "Année",
       "all": "Tout"
     },
+    "scope": {
+      "label": "Appareils pris en compte",
+      "all": "Tous les appareils",
+      "this": "Cet appareil"
+    },
     "reset": {
       "label": "Réinitialiser les statistiques",
       "title": "Réinitialiser les statistiques ?",
