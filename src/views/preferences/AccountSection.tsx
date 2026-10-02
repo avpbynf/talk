@@ -1,64 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatTime } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/SectionCard";
+import { useGoogleAccount, type GoogleStatus } from "@/lib/use-google-account";
 
-export interface GoogleStatus {
-  available: boolean;
-  email: string | null;
-  syncing: boolean;
-  lastSyncMs: number | null;
-  lastError: string | null;
-}
+export type { GoogleStatus };
 
 export default function AccountSection() {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<GoogleStatus | null>(null);
-  const [busy, setBusy] = useState<"signIn" | "sync" | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
-
-  const refresh = useCallback(() => {
-    invoke<GoogleStatus>("google_status")
-      .then((next) => {
-        if (next) setStatus(next);
-      })
-      .catch((error) => console.error("Failed to read the account:", error));
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const finished = listen("sync-finished", refresh);
-    return () => {
-      finished.then((f) => f());
-    };
-  }, [refresh]);
-
-  async function run(kind: "signIn" | "sync", command: string) {
-    setBusy(kind);
-    setFailure(null);
-    try {
-      const next = await invoke<GoogleStatus>(command);
-      if (next) setStatus(next);
-    } catch (error) {
-      setFailure(String(error));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function signOut() {
-    setFailure(null);
-    try {
-      const next = await invoke<GoogleStatus>("google_sign_out");
-      if (next) setStatus(next);
-    } catch (error) {
-      setFailure(String(error));
-    }
-  }
+  const { status, busy, failure, run, signOut } = useGoogleAccount();
 
   function syncLine(current: GoogleStatus): string {
     if (busy === "sync" || current.syncing) return t("account.syncing");
@@ -76,7 +27,7 @@ export default function AccountSection() {
       {status && status.available && !status.email && (
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground min-w-0">{t("account.hint")}</p>
-          <Button size="sm" onClick={() => run("signIn", "google_sign_in")} disabled={busy !== null}>
+          <Button size="sm" onClick={() => run("signIn")} disabled={busy !== null}>
             {busy === "signIn" ? t("account.signingIn") : t("account.signIn")}
           </Button>
         </div>
@@ -98,7 +49,7 @@ export default function AccountSection() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => run("sync", "google_sync_now")}
+              onClick={() => run("sync")}
               disabled={busy !== null || status.syncing}
             >
               {t("account.syncNow")}
