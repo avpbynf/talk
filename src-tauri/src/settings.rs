@@ -187,6 +187,9 @@ pub struct AppSettings {
     /// answered, in the setup wizard or in the strip, so it is never made twice.
     #[serde(default)]
     pub google_invite_offered: bool,
+    /// Ask before a change of backend or graphics card reloads the loaded model.
+    #[serde(default = "default_true")]
+    pub confirm_engine_switch: bool,
     /// Companion shortcuts to simulate on recording start/stop
     #[serde(default)]
     pub companion_shortcuts: Vec<CompanionShortcut>,
@@ -284,6 +287,7 @@ impl Default for AppSettings {
             server_model: None,
             offered_servers: Vec::new(),
             google_invite_offered: false,
+            confirm_engine_switch: true,
             companion_shortcuts: Vec::new(),
             meeting_mode_enabled: false,
             input_device_name: None,
@@ -428,6 +432,12 @@ mod tests {
         assert!(s.offered_servers.is_empty());
         assert_eq!(s.server_url, "http://localhost:4060");
         assert!(s.setup_completed);
+    }
+
+    #[test]
+    fn a_file_written_before_the_engine_switch_question_asks_by_default() {
+        let s = parse(r#"{"setup_completed": true}"#);
+        assert!(s.confirm_engine_switch);
     }
 
     #[test]
