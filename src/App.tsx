@@ -52,7 +52,7 @@ export type AcceleratorBackend = "cpu" | "vulkan";
 export type GpuVendor = "vulkan" | "cpu";
 export type OverlaySize = "small" | "medium" | "large";
 export type OverlayTheme = "aurora" | "sunset" | "ocean" | "neon" | "frost" | "neutral";
-export type AppTheme = "talk-dark" | "talk-light" | "zed" | "vscode-dark" | "vscode-light" | "dracula" | "nord";
+export type AppTheme = "talk-dark" | "talk-light" | "zed" | "vscode-dark" | "vscode-light" | "dracula" | "nord" | "catppuccin-mocha" | "github-light";
 export type TranscriptionMode = "local" | "server";
 
 export type CompanionShortcut = {

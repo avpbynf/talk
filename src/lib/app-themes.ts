@@ -7,7 +7,9 @@ export type AppThemeId =
   | "vscode-dark"
   | "vscode-light"
   | "dracula"
-  | "nord";
+  | "nord"
+  | "catppuccin-mocha"
+  | "github-light";
 
 export type ThemeCategory = "dark" | "light";
 
@@ -72,6 +74,22 @@ const THEMES: Record<AppThemeId, AppThemeConfig> = {
       "oklch(0.25 0.02 240)",
       "oklch(0.75 0.08 200)",
       "oklch(0.27 0.02 240)",
+    ],
+  },
+  "catppuccin-mocha": {
+    category: "dark",
+    preview: [
+      "oklch(0.24 0.03 284)",
+      "oklch(0.79 0.12 305)",
+      "oklch(0.22 0.025 284)",
+    ],
+  },
+  "github-light": {
+    category: "light",
+    preview: [
+      "oklch(1 0 0)",
+      "oklch(0.54 0.19 257)",
+      "oklch(0.98 0.003 248)",
     ],
   },
 };
