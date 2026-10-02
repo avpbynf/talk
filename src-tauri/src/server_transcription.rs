@@ -63,6 +63,7 @@ pub async fn check_server_health(base_url: &str, timeout_ms: u64) -> Result<bool
 /// * `base_url` - Base URL of the server
 /// * `wav_data` - WAV audio data
 /// * `timeout_ms` - Timeout in milliseconds for the initial connection
+/// * `token` - Bearer token the server minted for this client, if any
 /// * `language` - Optional language code (e.g., "fr", "en")
 /// * `prompt` - Optional initial prompt for context/vocabulary
 /// * `on_segment` - Callback for each transcription segment
@@ -74,6 +75,7 @@ pub async fn transcribe_stream<F, S>(
     base_url: &str,
     wav_data: &[u8],
     timeout_ms: u64,
+    token: Option<&str>,
     language: Option<&str>,
     prompt: Option<&str>,
     mut on_segment: F,
@@ -110,10 +112,16 @@ where
         .build()
         .map_err(|e| ServerError::ConnectionFailed(e.to_string()))?;
 
-    let response = client
+    let mut request = client
         .post(&url)
         .multipart(form)
-        .header("Accept", "text/event-stream")
+        .header("Accept", "text/event-stream");
+    // Every /v1 route on the server answers 401 without it.
+    if let Some(token) = token.filter(|t| !t.is_empty()) {
+        request = request.bearer_auth(token);
+    }
+
+    let response = request
         .send()
         .await
         .map_err(|e| {
