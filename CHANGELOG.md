@@ -155,6 +155,13 @@ sits next to it on the Account card, on the strip under the title bar and in the
 puts things back as they were without an error. The wait itself now gives up after three minutes
 instead of five.
 
+- (installer) Keep your data in a folder named after the product
+
+Your settings, history and downloaded models used to live in a folder still called t4lk. It is now
+named Talk, and the first start after updating moves everything there by itself: there is nothing
+to do, and nothing is deleted. If the move cannot happen right then, Talk keeps using the old
+folder and tries again at the next start.
+
 - (preferences) Line up the shortcut cards, and say what Cancel throws away now
 
 The keys of the main shortcut and of Cancel sat at different heights whenever one description ran
