@@ -35,13 +35,12 @@ export default function OverlaySection({
 }: OverlaySectionProps) {
   const { t } = useTranslation();
   return (
-    <SectionCard icon={Sparkles} title={t("appearance.overlay.title")}>
-
-      <p className="text-sm text-muted-foreground">
-        {t("appearance.overlay.sizeDescription")}
-      </p>
-
-      <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border-subtle">
+    <SectionCard
+      icon={Sparkles}
+      title={t("appearance.overlay.title")}
+      description={t("appearance.overlay.sizeDescription")}
+    >
+      <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border-subtle">
         {SIZES.map(({ id, label, dimensions }) => {
           const isActive = overlaySize === id;
 
@@ -60,7 +59,7 @@ export default function OverlaySection({
         {t("appearance.overlay.colorDescription")}
       </p>
 
-      <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border-subtle">
+      <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border-subtle">
         {THEME_IDS.map((id) => {
           const colors = getThemePreviewColors(id);
           const isActive = overlayTheme === id;

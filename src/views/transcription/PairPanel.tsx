@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { KeyRound, Loader2, X } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionCard } from "@/components/SectionCard";
@@ -77,21 +77,27 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
 
   return (
     <SectionCard
-      variant="tile"
       accent="server"
-      alignAction="start"
       icon={KeyRound}
-      title={t("transcription.pair.title", { label })}
+      title={
+        <Trans
+          i18nKey="transcription.pair.title"
+          values={{ label }}
+          components={{ label: <span className="normal-case" /> }}
+        />
+      }
       description={t("transcription.pair.subtitle")}
-      className="border-[var(--color-server)]/30 gap-3"
+      className="border-[var(--color-server)]/30"
       action={
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClose}
           aria-label={t("common.close")}
-          className="cursor-pointer p-1 rounded-md text-muted-foreground hover:bg-surface-active"
+          className="h-7 w-7 text-muted-foreground"
         >
-          <X className="h-4 w-4" />
-        </button>
+          <X />
+        </Button>
       }
     >
       {step.kind === "requesting" && (

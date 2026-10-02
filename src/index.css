@@ -402,13 +402,6 @@
   border: 1px solid oklch(from var(--color-success) l c h / 0.3);
 }
 
-/* ===== INPUT STYLES ===== */
-
-.input-glow:focus {
-  box-shadow: 0 0 0 3px var(--color-active-glow);
-  border-color: var(--color-active);
-}
-
 /* ===== TOOLTIP STYLES ===== */
 
 .tooltip-enter {

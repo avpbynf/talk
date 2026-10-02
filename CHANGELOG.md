@@ -91,6 +91,15 @@ card holding the timeout and the fallback to this machine. In Local mode the Sha
 moved below the models, and while sharing is off it shows only its switch, plus the paired machines
 if there still are some to revoke.
 
+- Give every page and card the same look
+
+Cards on the Transcription, Preferences, Appearance and dashboard pages now share one header: a small
+icon and an uppercase title, with the switch or button that belongs to the card on the right and the
+explanation under it. The server cards keep their blue icon and the model cards their cyan one.
+Spacing inside cards and between them is the same everywhere. The save, cancel, edit, add, pair,
+use, revoke, refresh and play buttons now share one size and style, and the fields share one focus
+ring.
+
 ### Bug Fixes
 
 - (preferences) Line up the shortcut cards, and say what Cancel throws away now

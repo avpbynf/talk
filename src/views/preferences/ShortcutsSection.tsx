@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import { Keyboard, Edit3, Check, X, ClipboardPaste } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ShortcutsSectionProps {
@@ -183,12 +184,15 @@ export default function ShortcutsSection({
             </div>
           </div>
           {!isEditing && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => startEdit(type)}
-              className="cursor-pointer p-2 rounded-lg hover:bg-secondary transition-colors"
+              aria-label={t("preferences.shortcuts.edit", { name: label })}
+              className="text-muted-foreground"
             >
-              <Edit3 className="h-4 w-4 text-muted-foreground" />
-            </button>
+              <Edit3 />
+            </Button>
           )}
         </div>
 
@@ -215,24 +219,18 @@ export default function ShortcutsSection({
             {shortcutError && <p className="text-xs text-[var(--color-destructive)]">{shortcutError}</p>}
 
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={saveShortcut}
                 disabled={pendingShortcut.length === 0}
-                className={cn(
-                  "cursor-pointer flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg disabled:opacity-50 transition-colors",
-                  style.button
-                )}
+                className={style.button}
               >
-                <Check className="h-4 w-4" />
+                <Check />
                 {t("preferences.shortcuts.save")}
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="cursor-pointer flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-active transition-colors"
-              >
-                <X className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" onClick={cancelEdit}>
+                <X />
                 {t("common.cancel")}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (

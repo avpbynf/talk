@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Volume2 } from "lucide-react";
@@ -31,14 +32,11 @@ export default function SoundFeedbackSection({
     <SectionCard
       icon={Volume2}
       title={t("preferences.sound.title")}
+      description={t("preferences.sound.description")}
       action={<Switch checked={soundFeedback} onCheckedChange={onSoundFeedbackChange} />}
     >
-      <p className="text-sm text-muted-foreground">
-        {t("preferences.sound.description")}
-      </p>
-
       {soundFeedback && (
-        <div className="space-y-4 pt-2 border-t border-border-subtle slide-enter">
+        <div className="space-y-4 pt-4 border-t border-border-subtle slide-enter">
           <div className="grid grid-cols-2 gap-4">
             <SoundRow
               label={t("preferences.sound.whenStarts")}
@@ -111,15 +109,16 @@ function SoundRow({ label, playLabel, value, onChange, onPlay }: SoundRowProps) 
 
 function PlayButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size="icon"
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="h-9 w-9 shrink-0 flex items-center justify-center rounded-md border border-border-card bg-surface-deep text-muted-foreground transition-colors hover:text-foreground hover:bg-surface-active disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+      className="shrink-0"
     >
-      <Play className="h-3.5 w-3.5" />
-    </button>
+      <Play />
+    </Button>
   );
 }

@@ -4,7 +4,9 @@ import type { TFunction } from "i18next";
 import { AlertCircle, Check, Clock, KeyRound, Loader2, Radar, RefreshCw, Server, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SettingRow } from "@/components/SettingRow";
 import { SectionCard } from "@/components/SectionCard";
 import { useDiscoveredServers } from "@/lib/use-discovered-servers";
 import type { DiscoveredServer, PairGrant } from "@/lib/server";
@@ -120,10 +122,9 @@ export function ServerTab({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Servers on this network */}
       <SectionCard
-        variant="tile"
         accent="server"
         icon={Radar}
         title={t("transcription.server.network")}
@@ -147,20 +148,22 @@ export function ServerTab({
                 </div>
                 <div className="flex shrink-0 gap-2">
                   {server.pairing && (
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setPairTarget({ url: server.url, label: server.name })}
-                      className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active"
                     >
                       {t("transcription.server.pair")}
-                    </button>
+                    </Button>
                   )}
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => pickServer(server)}
                     disabled={server.url === serverUrl}
-                    className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface-active disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent"
                   >
                     {server.url === serverUrl ? t("transcription.server.inUse") : t("transcription.server.use")}
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
@@ -180,7 +183,6 @@ export function ServerTab({
 
       {/* Server Connection */}
       <SectionCard
-        variant="tile"
         accent="server"
         icon={Server}
         title={t("transcription.server.connection")}
@@ -200,20 +202,21 @@ export function ServerTab({
                 placeholder="http://localhost:8000"
                 className="flex-1 font-mono"
               />
-              <button
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => checkServerHealth(false)}
                 disabled={serverStatus === "checking"}
                 className={cn(
-                  "cursor-pointer px-3 py-2 rounded-lg border transition-all duration-200 disabled:cursor-not-allowed",
-                  serverStatus === "online"
-                    ? "border-[var(--color-success)]/30 bg-[var(--color-success)]/10 text-[var(--color-success)]"
-                    : serverStatus === "offline" || serverStatus === "unauthorized"
-                    ? "border-[var(--color-destructive)]/30 bg-[var(--color-destructive)]/10 text-[var(--color-destructive)]"
-                    : "border-border hover:bg-surface-active"
+                  "shrink-0",
+                  serverStatus === "online" &&
+                    "border-[var(--color-success)]/30 bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20 hover:text-[var(--color-success)]",
+                  (serverStatus === "offline" || serverStatus === "unauthorized") &&
+                    "border-[var(--color-destructive)]/30 bg-[var(--color-destructive)]/10 text-[var(--color-destructive)] hover:bg-[var(--color-destructive)]/20 hover:text-[var(--color-destructive)]"
                 )}
               >
-                <RefreshCw className={cn("h-4 w-4 transition-transform", serverStatus === "checking" && "animate-spin")} />
-              </button>
+                <RefreshCw className={serverStatus === "checking" ? "animate-spin" : undefined} />
+              </Button>
             </div>
             {urlError && <p className="text-xs text-[var(--color-destructive)]">{urlError}</p>}
           </div>
@@ -237,20 +240,22 @@ export function ServerTab({
               <label className="text-xs font-medium text-muted-foreground">
                 {t("transcription.server.token")} <span className="text-xs font-normal">{t("transcription.server.optional")}</span>
               </label>
-              <button
+              <Button
+                variant="link"
                 onClick={pairTyped}
-                className="cursor-pointer text-xs font-medium text-server hover:underline"
+                className="h-auto p-0 text-xs text-server"
               >
                 {t("transcription.server.pairWith")}
-              </button>
+              </Button>
             </div>
-            <input
+            <Input
+              accent="server"
               type="password"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               onBlur={() => { if (tokenInput !== serverToken) onServerTokenChange(tokenInput); }}
               placeholder={t("transcription.server.tokenPlaceholder")}
-              className="w-full px-3 py-2 rounded-lg bg-surface-inset border border-border-card text-sm font-mono input-glow placeholder:text-muted-foreground"
+              className="w-full font-mono"
             />
             <p className="text-xs text-muted-foreground">
               {t("transcription.server.tokenHint")}
@@ -262,13 +267,13 @@ export function ServerTab({
             <label className="text-xs font-medium text-muted-foreground">
               {t("transcription.server.model")} <span className="text-xs font-normal">{t("transcription.server.optional")}</span>
             </label>
-            <input
-              type="text"
+            <Input
+              accent="server"
               value={modelInput}
               onChange={(e) => setModelInput(e.target.value)}
               onBlur={() => { if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim()); }}
               placeholder="whisper-1, gpt-4o-transcribe..."
-              className="w-full px-3 py-2 rounded-lg bg-surface-inset border border-border-card text-sm font-mono input-glow placeholder:text-muted-foreground"
+              className="w-full font-mono"
             />
             <p className="text-xs text-muted-foreground">
               {t("transcription.server.modelHint")}
@@ -279,7 +284,6 @@ export function ServerTab({
 
       {/* Timeout */}
       <SectionCard
-        variant="tile"
         accent="server"
         icon={Clock}
         title={t("transcription.server.timeout")}
@@ -303,13 +307,13 @@ export function ServerTab({
         </div>
 
         {/* Local fallback */}
-        <div className="flex items-center justify-between gap-4 pt-4 border-t border-border-subtle">
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium text-foreground">{t("transcription.server.fallback")}</p>
-            <p className="text-xs text-muted-foreground">{t("transcription.server.fallbackHint")}</p>
-          </div>
+        <SettingRow
+          divided
+          label={t("transcription.server.fallback")}
+          hint={t("transcription.server.fallbackHint")}
+        >
           <Switch checked={serverFallback} onCheckedChange={onServerFallbackChange} />
-        </div>
+        </SettingRow>
       </SectionCard>
     </div>
   );

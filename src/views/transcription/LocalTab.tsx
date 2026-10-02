@@ -64,7 +64,7 @@ export function LocalTab({
   });
 
   return (
-    <div className="relative space-y-5">
+    <div className="relative space-y-6">
       {/* GPU Selection */}
       <GpuSelector
         gpus={gpus}
@@ -79,8 +79,8 @@ export function LocalTab({
 
       {/* Models Selection */}
       <SectionCard
-        variant="tile"
         icon={HardDrive}
+        accent="active"
         title={t("transcription.local.title")}
         description={t("transcription.local.downloaded", { count: downloadedModels.length, number: downloadedModels.length })}
         action={

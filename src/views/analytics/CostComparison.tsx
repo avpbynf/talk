@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Coins } from "lucide-react";
+import { SectionCard } from "@/components/SectionCard";
 import { formatMonth } from "@/lib/analytics";
 import { formatNumber, formatUsd } from "@/i18n";
 import { HOSTED_APIS, PRICES_CHECKED, apiCost } from "@/lib/analytics";
@@ -14,21 +15,16 @@ export function CostComparison({ summary }: CostComparisonProps) {
   const minutes = summary.estimatedAudioMinutes;
 
   return (
-    <Card className="bg-surface-raised border-border-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">{t("dashboard.cost.title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {minutes < 1 ? (
-          <p className="text-sm text-muted-foreground py-2">
-            {t("dashboard.empty")}
-          </p>
-        ) : (
-          <>
-            <p className="text-xs text-muted-foreground/70 -mt-1 mb-3">
-              {t("dashboard.cost.audio", { minutes: formatNumber(minutes) })}
-            </p>
-
+    <SectionCard
+      icon={Coins}
+      title={t("dashboard.cost.title")}
+      description={minutes < 1 ? undefined : t("dashboard.cost.audio", { minutes: formatNumber(minutes) })}
+    >
+      {minutes < 1 ? (
+        <p className="text-sm text-muted-foreground">{t("dashboard.empty")}</p>
+      ) : (
+        <>
+          <div>
             {HOSTED_APIS.map((api) => (
               <div key={api.name} className="py-1.5">
                 <div className="flex items-baseline justify-between gap-3">
@@ -43,15 +39,15 @@ export function CostComparison({ summary }: CostComparisonProps) {
                 </div>
               </div>
             ))}
+          </div>
 
-            <p className="text-[10px] text-muted-foreground/40 mt-3 leading-tight">
-              {t("dashboard.cost.footer", { date: formatMonth(PRICES_CHECKED) })}
-              {summary.serverCount > 0 &&
-                ` ${t("dashboard.cost.serverNote", { count: summary.serverCount, number: formatNumber(summary.serverCount) })}`}
-            </p>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-[10px] text-muted-foreground/40 leading-tight">
+            {t("dashboard.cost.footer", { date: formatMonth(PRICES_CHECKED) })}
+            {summary.serverCount > 0 &&
+              ` ${t("dashboard.cost.serverNote", { count: summary.serverCount, number: formatNumber(summary.serverCount) })}`}
+          </p>
+        </>
+      )}
+    </SectionCard>
   );
 }

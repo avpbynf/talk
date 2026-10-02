@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarClock } from "lucide-react";
+import { SectionCard } from "@/components/SectionCard";
 import { formatUsd } from "@/i18n";
 import {
   COMPETITORS,
@@ -20,21 +21,20 @@ export function SubscriptionComparison({ summary }: SubscriptionComparisonProps)
   const months = monthsSince(start);
 
   return (
-    <Card className="bg-surface-raised border-border-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">{t("dashboard.subscription.title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {months === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">
-            {t("dashboard.empty")}
-          </p>
-        ) : (
-          <>
-            <p className="text-xs text-muted-foreground/70 -mt-1 mb-3">
-              {t("dashboard.subscription.duration", { count: months, start: formatMonth(start) })}
-            </p>
-
+    <SectionCard
+      icon={CalendarClock}
+      title={t("dashboard.subscription.title")}
+      description={
+        months === 0
+          ? undefined
+          : t("dashboard.subscription.duration", { count: months, start: formatMonth(start) })
+      }
+    >
+      {months === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("dashboard.empty")}</p>
+      ) : (
+        <>
+          <div>
             {COMPETITORS.map((c) => (
               <div key={c.name} className="py-1.5">
                 <div className="flex items-baseline justify-between gap-3">
@@ -49,13 +49,13 @@ export function SubscriptionComparison({ summary }: SubscriptionComparisonProps)
                 </div>
               </div>
             ))}
+          </div>
 
-            <p className="text-[10px] text-muted-foreground/40 mt-3 leading-tight">
-              {t("dashboard.subscription.footer", { date: formatMonth(PRICES_CHECKED) })}
-            </p>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-[10px] text-muted-foreground/40 leading-tight">
+            {t("dashboard.subscription.footer", { date: formatMonth(PRICES_CHECKED) })}
+          </p>
+        </>
+      )}
+    </SectionCard>
   );
 }
