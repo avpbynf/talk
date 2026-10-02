@@ -242,7 +242,7 @@ async fn token_request(form: &[(&str, &str)]) -> Result<TokenResponse, String> {
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
         // invalid_grant is what a revoked or expired refresh token answers.
-        return Err(format!("Google answered {}: {}", status, body));
+        return Err(super::drive::describe_error(status, &body));
     }
     response.json().await.map_err(|e| e.to_string())
 }

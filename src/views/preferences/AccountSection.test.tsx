@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import AccountSection, { type GoogleStatus } from "./AccountSection";
+
+vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn().mockResolvedValue(undefined) }));
 
 const signedOut: GoogleStatus = {
   available: true,
@@ -25,6 +28,30 @@ beforeEach(() => {
 });
 
 describe("AccountSection", () => {
+  it("clamps a long sync error to three lines and keeps the whole text in the tooltip", async () => {
+    const long = "Something went wrong with Drive. ".repeat(40).trim();
+    answer({ ...signedOut, email: "me@example.com", lastError: long });
+    render(<AccountSection />);
+
+    const line = await screen.findByText(/Last sync failed: Something went wrong/);
+    expect(line).toHaveClass("line-clamp-3");
+    expect(line).toHaveClass("text-destructive");
+    expect(line).toHaveAttribute("title", `Last sync failed: ${long}`);
+  });
+
+  it("turns an address in the sync error into a link opened outside the app", async () => {
+    answer({
+      ...signedOut,
+      email: "me@example.com",
+      lastError: "API disabled. Enable it by visiting https://console.example.com/apis?project=1 then retry.",
+    });
+    render(<AccountSection />);
+
+    const link = await screen.findByRole("link", { name: "https://console.example.com/apis?project=1" });
+    await userEvent.click(link);
+    expect(openUrl).toHaveBeenCalledWith("https://console.example.com/apis?project=1");
+  });
+
   it("offers to sign in, and says what signing in does", async () => {
     answer(signedOut);
     render(<AccountSection />);

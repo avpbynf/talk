@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { UserRound } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import { formatTime } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -6,6 +8,35 @@ import { SectionCard } from "@/components/SectionCard";
 import { useGoogleAccount, type GoogleStatus } from "@/lib/use-google-account";
 
 export type { GoogleStatus };
+
+const URL_PATTERN = /https:\/\/[^\s]+/g;
+
+/** The text, with each https address turned into a link the system browser opens. */
+function withLinks(text: string) {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(URL_PATTERN)) {
+    const url = match[0].replace(/[.,;:!?)\]]+$/, "");
+    const start = match.index ?? 0;
+    if (start > last) parts.push(text.slice(last, start));
+    parts.push(
+      <a
+        key={start}
+        href={url}
+        className="underline underline-offset-2 break-all"
+        onClick={(event) => {
+          event.preventDefault();
+          void openUrl(url);
+        }}
+      >
+        {url}
+      </a>,
+    );
+    last = start + url.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
 
 export default function AccountSection() {
   const { t } = useTranslation();
@@ -17,6 +48,9 @@ export default function AccountSection() {
     if (current.lastSyncMs) return t("account.lastSync", { time: formatTime(new Date(current.lastSyncMs)) });
     return t("account.neverSynced");
   }
+
+  const line = status ? syncLine(status) : "";
+  const showsError = Boolean(status?.lastError) && busy !== "sync" && !status?.syncing;
 
   return (
     <SectionCard icon={UserRound} title={t("account.title")}>
@@ -45,11 +79,12 @@ export default function AccountSection() {
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">{t("account.signedInAs", { email: status.email })}</p>
             <p
+              title={showsError ? line : undefined}
               className={`text-sm mt-0.5 ${
-                status.lastError && busy !== "sync" ? "text-destructive" : "text-muted-foreground"
+                showsError ? "text-destructive line-clamp-3 break-words" : "text-muted-foreground"
               }`}
             >
-              {syncLine(status)}
+              {showsError ? withLinks(line) : line}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
