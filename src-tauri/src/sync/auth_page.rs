@@ -1,6 +1,8 @@
 //! The page the browser lands on after Google sign-in, served from the
-//! loopback listener. Self-contained: inline CSS and a few lines of inline
-//! script, no outside fetch.
+//! loopback listener. Self-contained: inline CSS, the typeface as data URIs,
+//! no script and no outside fetch.
+
+use base64::Engine;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Page {
@@ -66,23 +68,23 @@ fn texts(page: Page, french: bool) -> Texts {
 const MARK_OK: &str = "<path d=\"M6 12.5l4 4 8-9\"/>";
 const MARK_FAIL: &str = "<path d=\"M7 7l10 10M17 7L7 17\"/>";
 
-/// Counts down on the success page, then asks the browser to close the tab.
-/// Browsers refuse that for a tab the page did not open, so when the tab is
-/// still there the line falls back to the plain instruction.
-fn closing_script(french: bool) -> String {
-    let (counting, plain) = if french {
-        ("Cet onglet se fermera dans ", "Vous pouvez fermer cet onglet et retourner dans Talk.")
-    } else {
-        ("This tab will close in ", "You can close this tab and go back to Talk.")
-    };
+/// Talk's mark, the same drawing as the application icon.
+const LOGO: &str = "<svg class=\"logo\" viewBox=\"0 0 512 512\" aria-hidden=\"true\">\
+<defs><linearGradient id=\"lb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6366f1\"/><stop offset=\"1\" stop-color=\"#8b5cf6\"/></linearGradient></defs>\
+<circle cx=\"256\" cy=\"256\" r=\"240\" fill=\"url(#lb)\"/>\
+<path d=\"M100 256C140 200 180 180 220 200C260 220 280 280 320 256C360 232 380 180 412 256\" fill=\"none\" stroke=\"#fff\" stroke-width=\"36\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\
+<path d=\"M120 300C160 340 200 360 256 340C312 320 352 280 392 300\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".5\" stroke-width=\"24\" stroke-linecap=\"round\"/>\
+<circle cx=\"100\" cy=\"256\" r=\"18\" fill=\"#fff\"/></svg>";
+
+// The page cannot reach the application's assets, so the typeface travels inside it.
+const OUTFIT_400: &[u8] = include_bytes!("../../assets/fonts/outfit-latin-400-normal.woff2");
+const OUTFIT_600: &[u8] = include_bytes!("../../assets/fonts/outfit-latin-600-normal.woff2");
+
+fn font_face(weight: u32, data: &[u8]) -> String {
     format!(
-        "<script>(function(){{var n=5,el=document.getElementById('msg');\
-function show(){{el.textContent={counting:?}+n+' s'}}\
-function plain(){{el.textContent={plain:?}}}\
-show();var t=setInterval(function(){{n--;if(n>0){{show();return}}clearInterval(t);\
-try{{window.close()}}catch(e){{}}setTimeout(plain,400)}},1000)}})()</script>",
-        counting = counting,
-        plain = plain,
+        "@font-face{{font-family:Outfit;font-weight:{};font-style:normal;font-display:swap;src:url(data:font/woff2;base64,{}) format(\"woff2\")}}",
+        weight,
+        base64::engine::general_purpose::STANDARD.encode(data)
     )
 }
 
@@ -93,31 +95,32 @@ pub fn render(page: Page, french: bool) -> String {
         Page::Done => (MARK_OK, "ok"),
         _ => (MARK_FAIL, "fail"),
     };
-    let script = if page == Page::Done { closing_script(french) } else { String::new() };
     format!(
         "<!doctype html><html lang=\"{lang}\"><head><meta charset=\"utf-8\">\
 <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\
-<title>Talk</title><style>\
-:root{{color-scheme:dark light;--bg:#0f1115;--card:#171a21;--line:#262b36;--fg:#f2f4f8;--muted:#9aa3b2;--accent:#5b9df5;--bad:#f0616d}}\
-@media(prefers-color-scheme:light){{:root{{--bg:#f4f5f8;--card:#fff;--line:#dfe3ea;--fg:#14171d;--muted:#566070;--accent:#2f6fd8;--bad:#c93545}}}}\
+<title>Talk</title><style>{face_400}{face_600}\
+:root{{color-scheme:dark light;--bg:oklch(0.13 0.01 260);--fg:oklch(0.95 0.01 260);--card:oklch(0.15 0.01 260);--line:oklch(0.25 0.015 260);--muted:oklch(0.65 0.01 260);--ok:oklch(0.70 0.17 145);--bad:oklch(0.55 0.20 25)}}\
+@media(prefers-color-scheme:light){{:root{{--bg:oklch(0.97 0.005 260);--fg:oklch(0.20 0.015 260);--card:oklch(0.99 0.003 260);--line:oklch(0.86 0.008 260);--muted:oklch(0.45 0.01 260);--ok:oklch(0.52 0.17 145);--bad:oklch(0.48 0.20 25)}}}}\
 *{{box-sizing:border-box}}\
-body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,\"Segoe UI\",sans-serif}}\
-.card{{width:100%;max-width:380px;padding:36px 32px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25)}}\
-.mark{{width:56px;height:56px;margin:0 auto 20px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid currentColor}}\
+body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);color:var(--fg);font:400 16px/1.5 Outfit,system-ui,sans-serif}}\
+.card{{width:100%;max-width:420px;padding:48px 40px 44px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:12px}}\
+.logo{{display:block;width:40px;height:40px;margin:0 auto 32px}}\
+.mark{{width:56px;height:56px;margin:0 auto 24px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid currentColor}}\
 .mark svg{{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}}\
-.ok{{color:var(--accent)}}.fail{{color:var(--bad)}}\
-h1{{margin:0 0 8px;font-size:20px;font-weight:600}}\
-p{{margin:0;color:var(--muted)}}\
-.name{{margin-top:24px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}}\
-</style></head><body><main class=\"card\">\
+.ok{{color:var(--ok)}}.fail{{color:var(--bad)}}\
+h1{{margin:0 0 12px;font-size:22px;font-weight:600}}\
+p{{margin:0;font-size:15px;color:var(--muted)}}\
+</style></head><body><main class=\"card\">{logo}\
 <div class=\"mark {tone}\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\">{mark}</svg></div>\
-<h1>{title}</h1><p id=\"msg\">{message}</p><div class=\"name\">Talk</div></main>{script}</body></html>",
+<h1>{title}</h1><p>{message}</p></main></body></html>",
         lang = if french { "fr" } else { "en" },
+        face_400 = font_face(400, OUTFIT_400),
+        face_600 = font_face(600, OUTFIT_600),
+        logo = LOGO,
         tone = tone,
         mark = mark,
         title = escape(text.title),
         message = escape(text.message),
-        script = script,
     )
 }
 
@@ -136,7 +139,9 @@ mod tests {
     fn the_pages_are_self_contained_and_localised() {
         let html = render(Page::Done, true);
         assert!(html.contains("Connexion réussie"));
-        assert!(html.contains("Cet onglet se fermera"));
+        assert!(html.contains("Vous pouvez fermer cet onglet"));
+        assert!(html.contains("font-family:Outfit") && html.contains("data:font/woff2;base64,"));
+        assert!(!html.contains("<script") && !html.contains("setInterval"));
         assert!(!html.contains("http://") && !html.contains("https://") && !html.contains("src="));
         let refused = render(Page::Refused, false);
         assert!(refused.contains("Sign-in was refused"));
