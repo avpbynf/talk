@@ -27,6 +27,12 @@ Recording again while a dictation is still on its way used to hide it entirely. 
 sits beside the timer, filling as the dictation in progress goes through the model, with the number
 still waiting inside it. The crossed-out microphone meeting mode added to the overlay is gone:
 meeting mode is a setting, and it read as a second microphone.
+- (server) Find servers on the local network
+
+A Talk-Server announces itself on the network, and the Transcription page now lists the ones it
+hears, with their name, model and address. Pressing Use fills the server URL, so there is nothing
+to type. A server that goes away drops off the list by itself.
+
 ### Bug Fixes
 
 - (server) Send the server token, so server mode transcribes on the server again
