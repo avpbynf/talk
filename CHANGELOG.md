@@ -76,6 +76,13 @@ machine is told to retry shortly.
 Hearing the sound already picked meant choosing another one and coming back. Each sound on the
 Preferences page now has a play button beside it, the refusal sound included.
 
+- (preferences) Use the application in French as well as English
+
+The whole interface, the tray menu included, now comes in English and French. It follows the
+language of Windows by default, and anything that is not French shows in English. The Preferences
+page has a Language setting to pick one of the two whatever Windows is set to, and the change
+applies at once, without a restart. Dates, times and numbers follow the same language.
+
 ### Bug Fixes
 
 - (server) Send the server token, so server mode transcribes on the server again

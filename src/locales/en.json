@@ -1,0 +1,500 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "pressKeys": "Press...",
+    "notSet": "Not set",
+    "nav": {
+      "dashboard": "Dashboard",
+      "history": "History",
+      "vocabulary": "Vocabulary",
+      "appearance": "Appearance",
+      "transcription": "Transcription",
+      "preferences": "Preferences"
+    }
+  },
+  "titlebar": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close",
+    "server": "Server",
+    "serverConnected": "Server connected",
+    "serverUnreachable": "Server unreachable",
+    "notReady": "Not ready",
+    "noModel": "No model"
+  },
+  "dashboard": {
+    "empty": "Nothing dictated yet. This starts counting on the first one.",
+    "wpm": "{{wpm}} wpm",
+    "testTypingSpeed": "Test your typing speed",
+    "period": {
+      "today": "Today",
+      "week": "7 days",
+      "month": "30 days",
+      "year": "Year",
+      "all": "All time"
+    },
+    "reset": {
+      "label": "Reset stats",
+      "title": "Reset the statistics?",
+      "description": "Every count goes back to zero and does not come back. The transcriptions themselves stay in the history."
+    },
+    "ready": {
+      "ready": "Ready",
+      "noModelLoaded": "No model loaded",
+      "checkingServer": "Checking the server",
+      "unreachableLocal": "Server unreachable, running local",
+      "unreachable": "Server unreachable",
+      "toTalk": "to talk",
+      "server": "Server",
+      "local": "Local",
+      "fallbackReady": "fallback ready",
+      "noFallback": "no fallback model",
+      "noModel": "no model"
+    },
+    "stats": {
+      "dictations": "Dictations",
+      "dictationsDetail": "{{today}} today, {{week}} this week",
+      "youSpeak": "You speak at",
+      "youType": "you type at {{wpm}}",
+      "fasterThanRealTime": "Faster than real time",
+      "timed_one": "{{number}} dictation timed",
+      "timed_other": "{{number}} dictations timed",
+      "lasts": "A dictation lasts",
+      "wordsAverage_one": "{{count}} word on average",
+      "wordsAverage_other": "{{count}} words on average",
+      "notMeasured": "not measured yet",
+      "seconds": "{{s}} s",
+      "minutes": "{{m}} min",
+      "minutesSeconds": "{{m}} min {{s}} s"
+    },
+    "facts": {
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "since": "since {{date}}",
+      "dictating": "dictating",
+      "inARow": "{{count}} in a row",
+      "currentStreak": "current streak",
+      "noStreak": "no streak going",
+      "bestDay": "best day",
+      "bestDayOn": "best day, {{date}}",
+      "localShare": "{{percent}}% local",
+      "throughServer": "{{number}} through the server",
+      "neverLeft": "never left the machine"
+    },
+    "cost": {
+      "title": "Against a hosted API",
+      "audio": "~{{minutes}} min of audio, had it been sent away",
+      "perMinute": "{{price}}/min",
+      "footer": "Prices as published, {{date}}. Per minute of audio.",
+      "serverNote_one": "{{number}} of these went through your server, which costs whatever that server costs.",
+      "serverNote_other": "{{number}} of these went through your server, which costs whatever that server costs."
+    },
+    "subscription": {
+      "title": "Against a subscription",
+      "duration_one": "{{count}} month from {{start}}",
+      "duration_other": "{{count}} months from {{start}}",
+      "perMonth": "{{price}}/mo",
+      "footer": "Prices as published, {{date}}. Windows tools only."
+    },
+    "competitors": {
+      "wisprFlow": "Pro, billed yearly",
+      "dragon": "Anywhere, per user",
+      "superwhisper": "monthly"
+    },
+    "hostedApis": {
+      "deepgram": "pay as you go",
+      "openai": "list price",
+      "azure": "standard, per hour billed"
+    },
+    "timeSaved": {
+      "title": "Time won",
+      "againstTyping": "against typing it yourself",
+      "typingSpeed": "Your typing speed",
+      "retest": "Retest",
+      "wordsDictated": "Words dictated",
+      "typingThatOut": "Typing that out",
+      "sayingInstead": "Saying it instead",
+      "lessThanMinute": "< 1 min",
+      "minutes": "~{{m}} min",
+      "plainMinutes": "{{m}} min",
+      "hoursMinutes": "~{{h}}h {{m}}m",
+      "hours": "~{{h}}h"
+    },
+    "activity": {
+      "title": "Activity",
+      "cell_one": "{{date}}: {{count}} transcription",
+      "cell_other": "{{date}}: {{count}} transcriptions"
+    },
+    "typingGame": {
+      "title": "Measure your typing speed",
+      "subtitle": "Type the line below as fast as you comfortably can",
+      "wordsPerMinute": "words per minute",
+      "placeholder": "Start typing...",
+      "result": "{{wpm}} words per minute",
+      "tryAgain": "Try again",
+      "useResult": "Use this result",
+      "sentences": [
+        "Productivity is the art of doing more with less effort.",
+        "Every minute saved is a minute put back into making something.",
+        "A tool should amplify what you can do, not stand in for it.",
+        "A good tool disappears in the hands of whoever has mastered it.",
+        "Time is the one resource nobody gets back.",
+        "Automating the repetitive parts leaves room for the rest.",
+        "Speech is the most natural way people have of saying anything.",
+        "Writing at the speed you talk changes what you bother to write."
+      ]
+    }
+  },
+  "history": {
+    "title": "History",
+    "empty": "Nothing dictated yet",
+    "kept": "{{number}} of {{limit}} kept",
+    "keepHowMany": "How many transcriptions to keep",
+    "keepOption": "Keep {{value}}",
+    "clearAll": "Clear the whole history",
+    "press": "Press",
+    "startTalking": "and start talking",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "server": "Server",
+    "local": "Local",
+    "delete": "Delete this transcription",
+    "clearConfirm": {
+      "title": "Clear the whole history?",
+      "description": "All {{number}} of them go, and they do not come back."
+    },
+    "limitConfirm": {
+      "title": "Keep only {{limit}} transcriptions?",
+      "description": "{{number}} older ones go, and they do not come back. The statistics keep counting them."
+    }
+  },
+  "vocabulary": {
+    "title": "Vocabulary",
+    "subtitle": "The words you use that Whisper would otherwise guess at",
+    "yourWords": "Your words",
+    "addTerms": "Add your terms",
+    "help": "Proper nouns, acronyms, anything from your trade. They bias the model toward what you actually say.",
+    "placeholder": "e.g. MyProject, ACME Corp...",
+    "add": "Add",
+    "yourTerms": "Your terms ({{number}})",
+    "clearAll": "Clear all",
+    "emptyTitle": "Nothing here yet",
+    "emptyHint": "Whisper is guessing on its own",
+    "reorder": "Reorder {{word}}",
+    "remove": "Remove {{word}}"
+  },
+  "transcription": {
+    "title": "Transcription",
+    "subtitle": "Where speech gets turned into text, and by what",
+    "modes": {
+      "local": "Local",
+      "server": "Server"
+    },
+    "fallbackSettings": "Local fallback settings",
+    "local": {
+      "title": "Whisper models",
+      "downloaded_one": "{{number}} downloaded",
+      "downloaded_other": "{{number}} downloaded",
+      "quantised": "Quantised",
+      "standard": "Standard",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteDescription": "The file goes from the disk, {{size}} MB of it, and downloading it again is the only way back. The transcriptions it produced stay where they are.",
+      "delete": "Delete"
+    },
+    "model": {
+      "active": "Active",
+      "size": "{{size}} MB",
+      "download": "DL",
+      "unload": "Unload",
+      "load": "Load",
+      "stopDownload": "Stop the download",
+      "downloading": "Downloading...",
+      "progress": "{{downloaded}} / {{total}} MB",
+      "descriptions": {
+        "tiny": "The fastest, and it shows",
+        "tiny-q5_1": "Tiny, quantised. Barely there",
+        "base": "Fast, and good enough for most of it",
+        "base-q5_1": "Base, quantised. Light",
+        "small": "An even trade of speed for accuracy",
+        "small-q5_1": "Small, quantised",
+        "medium": "Accurate, and slower for it",
+        "medium-q5_0": "Medium, quantised. A good middle",
+        "large-v3-turbo": "Large accuracy at Medium speed",
+        "large-v3-turbo-q5_0": "Turbo, quantised. The best accuracy per megabyte",
+        "large-v3": "The most accurate, and the slowest",
+        "large-v3-q5_0": "Large, quantised"
+      }
+    },
+    "gpu": {
+      "title": "Acceleration",
+      "subtitle": "Compute backend",
+      "tooltips": {
+        "vulkan": "Works with AMD, NVIDIA and Intel. One graphics API across every platform.",
+        "cpu": "Runs anywhere, no graphics card needed. Slower, but it always works."
+      },
+      "unavailable": "Not available on this machine",
+      "graphicsCard": "Graphics card",
+      "integrated": "Integrated",
+      "gigabytes": "{{size}} GB",
+      "megabytes": "{{size}} MB",
+      "runningOn": "Running on {{name}} ({{details}})"
+    },
+    "server": {
+      "status": {
+        "checking": "Checking...",
+        "connected": "Connected",
+        "unavailable": "Unavailable",
+        "notTested": "Not tested"
+      },
+      "invalidUrl": "Invalid URL",
+      "connection": "Connection",
+      "endpoint": "Whisper server endpoint",
+      "url": "Server URL",
+      "token": "API token",
+      "optional": "(optional)",
+      "tokenPlaceholder": "sk-... or leave empty",
+      "tokenHint": "OpenAI-compatible. Required by third-party services.",
+      "timeout": "Timeout",
+      "timeoutHint": "How long to wait before giving up",
+      "fallback": "Local fallback",
+      "fallbackHint": "Fall back to the local model when the server does not answer"
+    }
+  },
+  "preferences": {
+    "title": "Preferences",
+    "subtitle": "Recording, shortcuts and how it behaves on the system",
+    "audio": {
+      "title": "Audio devices",
+      "microphone": "Microphone",
+      "microphoneHint": "What it listens to",
+      "output": "Output",
+      "outputHint": "Where the feedback sounds play",
+      "devices_one": "{{count}} device",
+      "devices_other": "{{count}} devices",
+      "systemDefault": "System default",
+      "systemDefaultNamed": "System default ({{name}})",
+      "refresh": "Look for devices again"
+    },
+    "recordingMode": {
+      "title": "Recording mode",
+      "hold": "Hold",
+      "holdHint": "Push-to-talk",
+      "toggle": "Toggle",
+      "toggleHint": "Click on, click off"
+    },
+    "shortcuts": {
+      "title": "Shortcuts",
+      "main": {
+        "label": "Main shortcut",
+        "toggleDescription": "Starts and stops",
+        "holdDescription": "Hold it down to record"
+      },
+      "cancel": {
+        "label": "Cancel",
+        "description": "Stops the recording and throws it away"
+      },
+      "paste": {
+        "label": "Paste the last one",
+        "description": "Puts the last transcription back in, wherever you are typing"
+      },
+      "pressKeys": "Press the keys...",
+      "save": "Save",
+      "errors": {
+        "needModifier": "Use at least one modifier plus a key",
+        "invalid": "That combination is invalid or already taken"
+      }
+    },
+    "sound": {
+      "title": "Feedback sounds",
+      "description": "Play a sound when recording starts and when it stops. Which device they come out of sits with the microphone, under Audio devices.",
+      "whenStarts": "When it starts",
+      "whenStops": "When it stops",
+      "options": {
+        "none": "None",
+        "beep": "Beep",
+        "click": "Click",
+        "chime": "Chime"
+      }
+    },
+    "meeting": {
+      "title": "Meeting mode",
+      "detected": "VB-Cable detected ({{device}})",
+      "notInstalled": "VB-Cable not installed",
+      "hint": "Routes the mic through VB-Cable so a meeting hears nothing",
+      "setup": "Set Teams or Discord to use \"CABLE Output\" as their microphone. While you dictate, the other participants hear nothing."
+    },
+    "system": {
+      "title": "System",
+      "autostart": {
+        "label": "Start with Windows",
+        "hint": "Launch when the session opens"
+      },
+      "minimized": {
+        "label": "Start minimised",
+        "hint": "Open straight into the tray"
+      },
+      "duck": {
+        "label": "Turn the volume down",
+        "hint": "Everything the machine plays drops to a share of where it was while you talk, and comes back after",
+        "downTo": "Down to",
+        "ariaLabel": "How much of the volume to keep while recording",
+        "percent": "{{percent}}% of it"
+      },
+      "clipboard": {
+        "label": "Preserve the clipboard",
+        "hint": "Puts back whatever was in it after pasting"
+      }
+    },
+    "language": {
+      "title": "Language",
+      "label": "Interface language",
+      "description": "Menus, messages and the recording overlay",
+      "system": "System"
+    },
+    "companion": {
+      "title": "Companion shortcuts",
+      "add": "Add",
+      "name": "Name",
+      "remove": "Remove",
+      "onStart": "On start",
+      "onStop": "On stop",
+      "both": "Both",
+      "description": "Send a keystroke to another application when recording starts or stops, to mute yourself in Discord or Teams without leaving what you are doing.",
+      "empty": "No companion shortcuts yet"
+    }
+  },
+  "appearance": {
+    "title": "Appearance",
+    "subtitle": "How the application looks",
+    "theme": {
+      "title": "Theme",
+      "description": "The colour scheme the application is drawn in.",
+      "dark": "Dark",
+      "light": "Light"
+    },
+    "overlay": {
+      "title": "Overlay",
+      "sizeDescription": "Size of the window shown while recording.",
+      "colorDescription": "Colour of the glow around it while recording.",
+      "sizes": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      }
+    },
+    "appThemes": {
+      "talk-dark": "Talk Dark",
+      "talk-light": "Talk Light",
+      "zed": "Zed",
+      "vscode-dark": "VS Code Dark",
+      "vscode-light": "VS Code Light",
+      "dracula": "Dracula",
+      "nord": "Nord"
+    },
+    "overlayThemes": {
+      "aurora": "Aurora",
+      "sunset": "Sunset",
+      "ocean": "Ocean",
+      "neon": "Neon",
+      "frost": "Frost",
+      "neutral": "Neutral"
+    }
+  },
+  "overlay": {
+    "recording": "Recording...",
+    "minimize": "Minimize"
+  },
+  "setup": {
+    "subtitle": "First-time setup",
+    "error": "Something went wrong while setting up",
+    "mode": {
+      "title": "Where it runs",
+      "subtitle": "Pick where your speech gets turned into text",
+      "local": {
+        "title": "Local",
+        "description": "On this machine. Works offline, needs a model."
+      },
+      "server": {
+        "title": "Server",
+        "description": "On a server you run. Faster, and one card serves several machines."
+      }
+    },
+    "hardware": {
+      "title": "Your hardware",
+      "subtitle": "Here is what was found",
+      "vulkanFound": "Vulkan acceleration available",
+      "noGpu": "No GPU acceleration found",
+      "slowWarning": "Without a GPU this will be slow. Server mode is the way around that.",
+      "others": "Other options available:"
+    },
+    "server": {
+      "title": "Your server",
+      "subtitle": "Where the audio gets sent",
+      "url": "Server URL",
+      "placeholder": "https://whisper.example.com",
+      "status": {
+        "checking": "Checking...",
+        "online": "Server connected",
+        "offline": "Server unreachable",
+        "unknown": "Not checked yet"
+      },
+      "test": "Test it"
+    },
+    "model": {
+      "title": "The model",
+      "subtitle": "Which Whisper model to load",
+      "quantised": "Quantised (recommended)",
+      "standard": "Standard",
+      "download": "Download the model"
+    },
+    "options": {
+      "title": "Starting up",
+      "subtitle": "What happens when the session opens"
+    },
+    "complete": {
+      "title": "All set",
+      "subtitle": "Talk is ready",
+      "chosen": "What you chose",
+      "mode": "Mode:",
+      "acceleration": "Acceleration:",
+      "model": "Model:",
+      "server": "Server:",
+      "autostart": "Start with Windows:",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "nav": {
+      "back": "Back",
+      "step": "Step {{current}} of {{total}}",
+      "settingUp": "Setting up...",
+      "getStarted": "Get started",
+      "next": "Next"
+    }
+  },
+  "updates": {
+    "title": "Updates",
+    "version": "Version",
+    "versionNumber": "Version {{version}}",
+    "checkNow": "Check now",
+    "status": {
+      "checking": "Asking GitHub",
+      "available": "Talk {{version}} is out, and the banner up top installs it",
+      "downloading": "Downloading, {{progress}}%",
+      "ready": "Installing, the window closes and comes back",
+      "failed": "The check failed",
+      "schedule": "Checked at every launch, and every hour after",
+      "upToDate": "Up to date, checked at {{time}}"
+    },
+    "banner": {
+      "available": "Talk {{version}} is available",
+      "restartNotice": "Installing closes the window and opens it again",
+      "downloading": "Downloading Talk {{version}}, {{progress}}%",
+      "installing": "Installing Talk {{version}}",
+      "install": "Install and restart",
+      "dismiss": "Dismiss"
+    }
+  }
+}

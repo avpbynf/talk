@@ -1,0 +1,500 @@
+{
+  "common": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "pressKeys": "Appuyez...",
+    "notSet": "Non défini",
+    "nav": {
+      "dashboard": "Tableau de bord",
+      "history": "Historique",
+      "vocabulary": "Vocabulaire",
+      "appearance": "Apparence",
+      "transcription": "Transcription",
+      "preferences": "Préférences"
+    }
+  },
+  "titlebar": {
+    "minimize": "Réduire",
+    "maximize": "Agrandir",
+    "restore": "Restaurer",
+    "close": "Fermer",
+    "server": "Serveur",
+    "serverConnected": "Serveur connecté",
+    "serverUnreachable": "Serveur injoignable",
+    "notReady": "Pas prêt",
+    "noModel": "Aucun modèle"
+  },
+  "dashboard": {
+    "empty": "Rien n'a encore été dicté. Le compte démarre à la première dictée.",
+    "wpm": "{{wpm}} mots/min",
+    "testTypingSpeed": "Tester votre vitesse de frappe",
+    "period": {
+      "today": "Aujourd'hui",
+      "week": "7 jours",
+      "month": "30 jours",
+      "year": "Année",
+      "all": "Tout"
+    },
+    "reset": {
+      "label": "Réinitialiser les statistiques",
+      "title": "Réinitialiser les statistiques ?",
+      "description": "Tous les compteurs repartent de zéro, sans retour possible. Les transcriptions restent dans l'historique."
+    },
+    "ready": {
+      "ready": "Prêt",
+      "noModelLoaded": "Aucun modèle chargé",
+      "checkingServer": "Vérification du serveur",
+      "unreachableLocal": "Serveur injoignable, mode local",
+      "unreachable": "Serveur injoignable",
+      "toTalk": "pour dicter",
+      "server": "Serveur",
+      "local": "Local",
+      "fallbackReady": "secours prêt",
+      "noFallback": "pas de modèle de secours",
+      "noModel": "aucun modèle"
+    },
+    "stats": {
+      "dictations": "Dictées",
+      "dictationsDetail": "{{today}} aujourd'hui, {{week}} cette semaine",
+      "youSpeak": "Vous parlez à",
+      "youType": "vous tapez à {{wpm}}",
+      "fasterThanRealTime": "Plus rapide que le temps réel",
+      "timed_one": "{{number}} dictée chronométrée",
+      "timed_other": "{{number}} dictées chronométrées",
+      "lasts": "Une dictée dure",
+      "wordsAverage_one": "{{count}} mot en moyenne",
+      "wordsAverage_other": "{{count}} mots en moyenne",
+      "notMeasured": "pas encore mesuré",
+      "seconds": "{{s}} s",
+      "minutes": "{{m}} min",
+      "minutesSeconds": "{{m}} min {{s}} s"
+    },
+    "facts": {
+      "days_one": "{{count}} jour",
+      "days_other": "{{count}} jours",
+      "since": "depuis le {{date}}",
+      "dictating": "de dictée",
+      "inARow": "{{count}} d'affilée",
+      "currentStreak": "série en cours",
+      "noStreak": "pas de série en cours",
+      "bestDay": "meilleur jour",
+      "bestDayOn": "meilleur jour, {{date}}",
+      "localShare": "{{percent}} % en local",
+      "throughServer": "{{number}} via le serveur",
+      "neverLeft": "rien n'a quitté la machine"
+    },
+    "cost": {
+      "title": "Face à une API hébergée",
+      "audio": "~{{minutes}} min d'audio, s'il avait été envoyé ailleurs",
+      "perMinute": "{{price}}/min",
+      "footer": "Tarifs publiés en {{date}}. Par minute d'audio.",
+      "serverNote_one": "{{number}} dictée est passée par votre serveur, qui coûte ce que coûte ce serveur.",
+      "serverNote_other": "{{number}} dictées sont passées par votre serveur, qui coûte ce que coûte ce serveur."
+    },
+    "subscription": {
+      "title": "Face à un abonnement",
+      "duration_one": "{{count}} mois depuis {{start}}",
+      "duration_other": "{{count}} mois depuis {{start}}",
+      "perMonth": "{{price}}/mois",
+      "footer": "Tarifs publiés en {{date}}. Outils Windows uniquement."
+    },
+    "competitors": {
+      "wisprFlow": "Pro, facturé à l'année",
+      "dragon": "Anywhere, par utilisateur",
+      "superwhisper": "mensuel"
+    },
+    "hostedApis": {
+      "deepgram": "paiement à l'usage",
+      "openai": "tarif public",
+      "azure": "standard, facturé à l'heure"
+    },
+    "timeSaved": {
+      "title": "Temps gagné",
+      "againstTyping": "par rapport à une saisie au clavier",
+      "typingSpeed": "Votre vitesse de frappe",
+      "retest": "Refaire le test",
+      "wordsDictated": "Mots dictés",
+      "typingThatOut": "Pour les taper",
+      "sayingInstead": "Pour les dire",
+      "lessThanMinute": "< 1 min",
+      "minutes": "~{{m}} min",
+      "plainMinutes": "{{m}} min",
+      "hoursMinutes": "~{{h}} h {{m}} min",
+      "hours": "~{{h}} h"
+    },
+    "activity": {
+      "title": "Activité",
+      "cell_one": "{{date}} : {{count}} transcription",
+      "cell_other": "{{date}} : {{count}} transcriptions"
+    },
+    "typingGame": {
+      "title": "Mesurer votre vitesse de frappe",
+      "subtitle": "Recopiez la ligne ci-dessous aussi vite que vous le pouvez sans forcer",
+      "wordsPerMinute": "mots par minute",
+      "placeholder": "Commencez à taper...",
+      "result": "{{wpm}} mots par minute",
+      "tryAgain": "Réessayer",
+      "useResult": "Utiliser ce résultat",
+      "sentences": [
+        "La productivité, c'est l'art de faire plus avec moins d'effort.",
+        "Chaque minute gagnée est une minute rendue à ce que l'on veut créer.",
+        "Un outil doit prolonger ce que l'on sait faire, pas le remplacer.",
+        "Un bon outil s'efface dans les mains de celui qui le maîtrise.",
+        "Le temps est la seule ressource que personne ne récupère.",
+        "Automatiser les tâches répétitives laisse de la place au reste.",
+        "La parole est la façon la plus naturelle de dire quoi que ce soit.",
+        "Écrire aussi vite que l'on parle change ce que l'on se donne la peine d'écrire."
+      ]
+    }
+  },
+  "history": {
+    "title": "Historique",
+    "empty": "Rien n'a encore été dicté",
+    "kept": "{{number}} sur {{limit}} conservées",
+    "keepHowMany": "Nombre de transcriptions à conserver",
+    "keepOption": "Conserver {{value}}",
+    "clearAll": "Vider tout l'historique",
+    "press": "Appuyez sur",
+    "startTalking": "et commencez à parler",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "server": "Serveur",
+    "local": "Local",
+    "delete": "Supprimer cette transcription",
+    "clearConfirm": {
+      "title": "Vider tout l'historique ?",
+      "description": "Les {{number}} transcriptions sont supprimées, sans retour possible."
+    },
+    "limitConfirm": {
+      "title": "Ne conserver que {{limit}} transcriptions ?",
+      "description": "{{number}} transcriptions plus anciennes sont supprimées, sans retour possible. Les statistiques continuent de les compter."
+    }
+  },
+  "vocabulary": {
+    "title": "Vocabulaire",
+    "subtitle": "Les mots que vous utilisez et que Whisper devinerait sinon",
+    "yourWords": "Vos mots",
+    "addTerms": "Ajouter vos termes",
+    "help": "Noms propres, sigles, tout ce qui vient de votre métier. Ils orientent le modèle vers ce que vous dites réellement.",
+    "placeholder": "p. ex. MonProjet, ACME...",
+    "add": "Ajouter",
+    "yourTerms": "Vos termes ({{number}})",
+    "clearAll": "Tout effacer",
+    "emptyTitle": "Rien ici pour le moment",
+    "emptyHint": "Whisper devine tout seul",
+    "reorder": "Déplacer {{word}}",
+    "remove": "Retirer {{word}}"
+  },
+  "transcription": {
+    "title": "Transcription",
+    "subtitle": "Où la parole devient du texte, et avec quoi",
+    "modes": {
+      "local": "Local",
+      "server": "Serveur"
+    },
+    "fallbackSettings": "Réglages du modèle local de secours",
+    "local": {
+      "title": "Modèles Whisper",
+      "downloaded_one": "{{number}} téléchargé",
+      "downloaded_other": "{{number}} téléchargés",
+      "quantised": "Quantifiés",
+      "standard": "Standard",
+      "deleteTitle": "Supprimer {{name}} ?",
+      "deleteDescription": "Le fichier est supprimé du disque ({{size}} Mo), et seul un nouveau téléchargement permet de le récupérer. Les transcriptions qu'il a produites restent en place.",
+      "delete": "Supprimer"
+    },
+    "model": {
+      "active": "Actif",
+      "size": "{{size}} Mo",
+      "download": "Télécharger",
+      "unload": "Décharger",
+      "load": "Charger",
+      "stopDownload": "Arrêter le téléchargement",
+      "downloading": "Téléchargement...",
+      "progress": "{{downloaded}} / {{total}} Mo",
+      "descriptions": {
+        "tiny": "Le plus rapide, et ça se voit",
+        "tiny-q5_1": "Tiny, quantifié. Ultra léger",
+        "base": "Rapide, et suffisant pour l'essentiel",
+        "base-q5_1": "Base, quantifié. Léger",
+        "small": "Un compromis équilibré entre vitesse et précision",
+        "small-q5_1": "Small, quantifié",
+        "medium": "Précis, mais plus lent",
+        "medium-q5_0": "Medium, quantifié. Un bon compromis",
+        "large-v3-turbo": "La précision de Large à la vitesse de Medium",
+        "large-v3-turbo-q5_0": "Turbo, quantifié. La meilleure précision par mégaoctet",
+        "large-v3": "Le plus précis, et le plus lent",
+        "large-v3-q5_0": "Large, quantifié"
+      }
+    },
+    "gpu": {
+      "title": "Accélération",
+      "subtitle": "Moteur de calcul",
+      "tooltips": {
+        "vulkan": "Fonctionne avec AMD, NVIDIA et Intel. Une seule API graphique pour toutes les plateformes.",
+        "cpu": "Fonctionne partout, sans carte graphique. Plus lent, mais cela marche toujours."
+      },
+      "unavailable": "Indisponible sur cette machine",
+      "graphicsCard": "Carte graphique",
+      "integrated": "Intégrée",
+      "gigabytes": "{{size}} Go",
+      "megabytes": "{{size}} Mo",
+      "runningOn": "Exécution sur {{name}} ({{details}})"
+    },
+    "server": {
+      "status": {
+        "checking": "Vérification...",
+        "connected": "Connecté",
+        "unavailable": "Injoignable",
+        "notTested": "Non testé"
+      },
+      "invalidUrl": "URL invalide",
+      "connection": "Connexion",
+      "endpoint": "Point d'accès du serveur Whisper",
+      "url": "URL du serveur",
+      "token": "Jeton d'API",
+      "optional": "(facultatif)",
+      "tokenPlaceholder": "sk-... ou laisser vide",
+      "tokenHint": "Compatible OpenAI. Exigé par les services tiers.",
+      "timeout": "Délai d'attente",
+      "timeoutHint": "Combien de temps attendre avant d'abandonner",
+      "fallback": "Secours local",
+      "fallbackHint": "Bascule sur le modèle local quand le serveur ne répond pas"
+    }
+  },
+  "preferences": {
+    "title": "Préférences",
+    "subtitle": "Enregistrement, raccourcis et comportement dans le système",
+    "audio": {
+      "title": "Périphériques audio",
+      "microphone": "Microphone",
+      "microphoneHint": "Ce qu'il écoute",
+      "output": "Sortie",
+      "outputHint": "Où jouent les sons de retour",
+      "devices_one": "{{count}} périphérique",
+      "devices_other": "{{count}} périphériques",
+      "systemDefault": "Par défaut du système",
+      "systemDefaultNamed": "Par défaut du système ({{name}})",
+      "refresh": "Rechercher à nouveau les périphériques"
+    },
+    "recordingMode": {
+      "title": "Mode d'enregistrement",
+      "hold": "Maintenir",
+      "holdHint": "Appuyer pour parler",
+      "toggle": "Basculer",
+      "toggleHint": "Un clic pour démarrer, un clic pour arrêter"
+    },
+    "shortcuts": {
+      "title": "Raccourcis",
+      "main": {
+        "label": "Raccourci principal",
+        "toggleDescription": "Démarre et arrête",
+        "holdDescription": "Maintenez-le enfoncé pour enregistrer"
+      },
+      "cancel": {
+        "label": "Annuler",
+        "description": "Arrête l'enregistrement et le jette"
+      },
+      "paste": {
+        "label": "Coller la dernière",
+        "description": "Remet la dernière transcription en place, là où vous écrivez"
+      },
+      "pressKeys": "Appuyez sur les touches...",
+      "save": "Enregistrer",
+      "errors": {
+        "needModifier": "Utilisez au moins un modificateur et une touche",
+        "invalid": "Cette combinaison est invalide ou déjà prise"
+      }
+    },
+    "sound": {
+      "title": "Sons de retour",
+      "description": "Joue un son quand l'enregistrement démarre et quand il s'arrête. Le périphérique de sortie se choisit avec le microphone, sous Périphériques audio.",
+      "whenStarts": "Au démarrage",
+      "whenStops": "À l'arrêt",
+      "options": {
+        "none": "Aucun",
+        "beep": "Bip",
+        "click": "Clic",
+        "chime": "Carillon"
+      }
+    },
+    "meeting": {
+      "title": "Mode réunion",
+      "detected": "VB-Cable détecté ({{device}})",
+      "notInstalled": "VB-Cable non installé",
+      "hint": "Fait passer le micro par VB-Cable pour qu'une réunion n'entende rien",
+      "setup": "Réglez Teams ou Discord sur « CABLE Output » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien."
+    },
+    "system": {
+      "title": "Système",
+      "autostart": {
+        "label": "Lancer avec Windows",
+        "hint": "Démarre à l'ouverture de la session"
+      },
+      "minimized": {
+        "label": "Démarrer réduit",
+        "hint": "S'ouvre directement dans la zone de notification"
+      },
+      "duck": {
+        "label": "Baisser le volume",
+        "hint": "Tout ce que la machine joue descend à une fraction de son niveau pendant que vous parlez, puis revient",
+        "downTo": "Descendre à",
+        "ariaLabel": "Part du volume à conserver pendant l'enregistrement",
+        "percent": "{{percent}} % du volume"
+      },
+      "clipboard": {
+        "label": "Préserver le presse-papiers",
+        "hint": "Remet son contenu d'origine après le collage"
+      }
+    },
+    "language": {
+      "title": "Langue",
+      "label": "Langue de l'interface",
+      "description": "Menus, messages et bandeau d'enregistrement",
+      "system": "Système"
+    },
+    "companion": {
+      "title": "Raccourcis associés",
+      "add": "Ajouter",
+      "name": "Nom",
+      "remove": "Retirer",
+      "onStart": "Au démarrage",
+      "onStop": "À l'arrêt",
+      "both": "Les deux",
+      "description": "Envoie une frappe à une autre application quand l'enregistrement démarre ou s'arrête, par exemple pour couper votre micro dans Discord ou Teams sans quitter ce que vous faites.",
+      "empty": "Aucun raccourci associé pour le moment"
+    }
+  },
+  "appearance": {
+    "title": "Apparence",
+    "subtitle": "L'aspect de l'application",
+    "theme": {
+      "title": "Thème",
+      "description": "Les couleurs de l'application",
+      "dark": "Sombre",
+      "light": "Clair"
+    },
+    "overlay": {
+      "title": "Bandeau",
+      "sizeDescription": "Taille de la fenêtre affichée pendant l'enregistrement.",
+      "colorDescription": "Couleur de la lueur qui l'entoure pendant l'enregistrement.",
+      "sizes": {
+        "small": "Petit",
+        "medium": "Moyen",
+        "large": "Grand"
+      }
+    },
+    "appThemes": {
+      "talk-dark": "Talk sombre",
+      "talk-light": "Talk clair",
+      "zed": "Zed",
+      "vscode-dark": "VS Code sombre",
+      "vscode-light": "VS Code clair",
+      "dracula": "Dracula",
+      "nord": "Nord"
+    },
+    "overlayThemes": {
+      "aurora": "Aurore",
+      "sunset": "Crépuscule",
+      "ocean": "Océan",
+      "neon": "Néon",
+      "frost": "Givre",
+      "neutral": "Neutre"
+    }
+  },
+  "overlay": {
+    "recording": "Enregistrement...",
+    "minimize": "Réduire"
+  },
+  "setup": {
+    "subtitle": "Première configuration",
+    "error": "Un problème est survenu pendant la configuration",
+    "mode": {
+      "title": "Où se fait la transcription",
+      "subtitle": "Choisissez où votre voix est transformée en texte",
+      "local": {
+        "title": "Local",
+        "description": "Sur cette machine. Fonctionne hors ligne, demande un modèle."
+      },
+      "server": {
+        "title": "Serveur",
+        "description": "Sur un serveur que vous gérez. Plus rapide, et une seule carte sert plusieurs machines."
+      }
+    },
+    "hardware": {
+      "title": "Votre matériel",
+      "subtitle": "Voici ce qui a été trouvé",
+      "vulkanFound": "Accélération Vulkan disponible",
+      "noGpu": "Aucune accélération GPU trouvée",
+      "slowWarning": "Sans GPU, ce sera lent. Le mode serveur permet de contourner cela.",
+      "others": "Autres options disponibles :"
+    },
+    "server": {
+      "title": "Votre serveur",
+      "subtitle": "Où l'audio est envoyé",
+      "url": "URL du serveur",
+      "placeholder": "https://whisper.example.com",
+      "status": {
+        "checking": "Vérification...",
+        "online": "Serveur connecté",
+        "offline": "Serveur injoignable",
+        "unknown": "Pas encore vérifié"
+      },
+      "test": "Tester"
+    },
+    "model": {
+      "title": "Le modèle",
+      "subtitle": "Quel modèle Whisper charger",
+      "quantised": "Quantifiés (recommandés)",
+      "standard": "Standard",
+      "download": "Télécharger le modèle"
+    },
+    "options": {
+      "title": "Démarrage",
+      "subtitle": "Ce qui se passe à l'ouverture de la session"
+    },
+    "complete": {
+      "title": "Tout est prêt",
+      "subtitle": "Talk est prêt",
+      "chosen": "Votre choix",
+      "mode": "Mode :",
+      "acceleration": "Accélération :",
+      "model": "Modèle :",
+      "server": "Serveur :",
+      "autostart": "Lancer avec Windows :",
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "nav": {
+      "back": "Retour",
+      "step": "Étape {{current}} sur {{total}}",
+      "settingUp": "Configuration...",
+      "getStarted": "Commencer",
+      "next": "Suivant"
+    }
+  },
+  "updates": {
+    "title": "Mises à jour",
+    "version": "Version",
+    "versionNumber": "Version {{version}}",
+    "checkNow": "Vérifier maintenant",
+    "status": {
+      "checking": "Interrogation de GitHub",
+      "available": "Talk {{version}} est disponible, et la bannière en haut l'installe",
+      "downloading": "Téléchargement, {{progress}} %",
+      "ready": "Installation en cours, la fenêtre se ferme puis revient",
+      "failed": "La vérification a échoué",
+      "schedule": "Vérifié à chaque lancement, puis toutes les heures",
+      "upToDate": "À jour, vérifié à {{time}}"
+    },
+    "banner": {
+      "available": "Talk {{version}} est disponible",
+      "restartNotice": "L'installation ferme la fenêtre puis la rouvre",
+      "downloading": "Téléchargement de Talk {{version}}, {{progress}} %",
+      "installing": "Installation de Talk {{version}}",
+      "install": "Installer et redémarrer",
+      "dismiss": "Ignorer"
+    }
+  }
+}
