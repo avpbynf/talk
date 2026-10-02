@@ -60,10 +60,13 @@
   ;
   ; Tauri's own handling of that box deletes %APPDATA%\com.avpbynf.t4lk, which
   ; nothing writes to: the directories crate drops the qualifier, so
-  ; ProjectDirs::from("com", "avpbynf", "t4lk") keeps only the last argument and
-  ; settings, history and models all live under %APPDATA%\avpbynf\t4lk.
+  ; ProjectDirs::from("com", "avpbynf", "Talk") keeps only the last argument and
+  ; settings, history and models all live under %APPDATA%\avpbynf\Talk. The old
+  ; t4lk folder goes too: the application moves it on its first start, but one
+  ; that never ran after the update still has its data there.
   ${If} $DeleteAppDataCheckboxState = 1
   ${AndIf} $UpdateMode <> 1
+    RMDir /r "$APPDATA\avpbynf\Talk"
     RMDir /r "$APPDATA\avpbynf\t4lk"
     RMDir "$APPDATA\avpbynf"
 
