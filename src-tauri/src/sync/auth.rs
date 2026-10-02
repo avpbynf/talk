@@ -11,10 +11,13 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::time::{Duration, Instant};
+use tauri::Manager;
 use tauri_plugin_opener::OpenerExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
+
+use super::auth_page::{self, Page};
 
 const CLIENT_ID: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_ID");
 const CLIENT_SECRET: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_SECRET");
@@ -150,6 +153,16 @@ fn parse_redirect(request: &str) -> Redirect {
     }
 }
 
+fn response_bytes(status: &str, body: &str) -> Vec<u8> {
+    format!(
+        "HTTP/1.1 {}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        status,
+        body.len(),
+        body
+    )
+    .into_bytes()
+}
+
 /// How the wait for the browser ended, short of an error.
 #[derive(Debug, PartialEq)]
 enum Wait {
@@ -189,24 +202,14 @@ async fn wait_for_redirect(
             Redirect::Denied { state, .. } => state.as_deref() != Some(expected_state),
             Redirect::Other => false,
         };
+        let french = auth_page::prefers_french(&request);
         let (status, body) = match &parsed {
-            Redirect::Other => ("404 Not Found", ""),
-            _ if wrong_state => (
-                "400 Bad Request",
-                "<html><body style=\"font-family:sans-serif\"><p>This sign-in answer was not expected. Go back to Talk and try again.</p></body></html>",
-            ),
-            _ => (
-                "200 OK",
-                "<html><body style=\"font-family:sans-serif\"><p>You can close this tab and go back to Talk.</p></body></html>",
-            ),
+            Redirect::Other => ("404 Not Found", String::new()),
+            _ if wrong_state => ("400 Bad Request", auth_page::render(Page::Unexpected, french)),
+            Redirect::Denied { .. } => ("200 OK", auth_page::render(Page::Refused, french)),
+            _ => ("200 OK", auth_page::render(Page::Done, french)),
         };
-        let response = format!(
-            "HTTP/1.1 {}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-            status,
-            body.len(),
-            body
-        );
-        let _ = stream.write_all(response.as_bytes()).await;
+        let _ = stream.write_all(&response_bytes(status, &body)).await;
         let _ = stream.shutdown().await;
 
         match parsed {
@@ -284,6 +287,7 @@ pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, 
         Wait::Code(code) => code,
         Wait::Cancelled => return Ok(None),
     };
+    bring_app_forward(app);
 
     let tokens = token_request(&[
         ("client_id", client_id),
@@ -312,6 +316,16 @@ pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, 
             expires: Instant::now() + Duration::from_secs(tokens.expires_in.saturating_sub(60)),
         },
     }))
+}
+
+/// Put Talk back in front once the browser has answered, whatever the browser
+/// does with its own tab.
+fn bring_app_forward(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
 }
 
 /// Keep the account: the refresh token goes to the Credential Manager.
@@ -406,6 +420,16 @@ mod tests {
     fn cancelling_with_nothing_pending_does_nothing() {
         cancel_sign_in();
         assert!(CANCEL.lock().is_none());
+    }
+
+    #[test]
+    fn the_content_length_is_the_byte_length_of_an_accented_body() {
+        let body = auth_page::render(Page::Done, true);
+        assert!(body.len() > body.chars().count());
+        let response = String::from_utf8(response_bytes("200 OK", &body)).unwrap();
+        let (head, sent) = response.split_once("\r\n\r\n").unwrap();
+        assert!(head.contains(&format!("Content-Length: {}", body.len())));
+        assert_eq!(sent.len(), body.len());
     }
 
     #[test]
