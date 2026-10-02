@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (transcription) Confirm before a change of backend or graphics card reloads the model
+
+Switching between CPU and Vulkan, or to another graphics card, reloads the loaded model on the new
+device, which can take a minute or more with a large model while dictation is unavailable. A dialog
+now says so and names the model, with Switch and Cancel, and a Don't ask again box. The Ask before
+switching switch next to the selector brings the question back. Nothing is asked when no model is
+loaded.
+
 - (preferences) Be invited to sign in with Google, once
 
 A strip under the title bar offers to sign in with Google to sync your settings and statistics

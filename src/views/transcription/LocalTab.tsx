@@ -29,7 +29,11 @@ interface LocalTabProps {
   onCancelDownload: () => void;
   onGpuVendorChange: (vendor: GpuVendor) => void;
   onGpuDeviceChange: (index: number) => void;
+  confirmEngineSwitch: boolean;
+  onConfirmEngineSwitchChange: (enabled: boolean) => void;
 }
+
+type PendingSwitch = { vendor: GpuVendor } | { device: number };
 
 export function LocalTab({
   models,
@@ -50,8 +54,30 @@ export function LocalTab({
   onCancelDownload,
   onGpuVendorChange,
   onGpuDeviceChange,
+  confirmEngineSwitch,
+  onConfirmEngineSwitchChange,
 }: LocalTabProps) {
   const { t } = useTranslation();
+  // Either change reloads the loaded model on the new device, which keeps
+  // dictation out of reach for as long as the model takes to load. With nothing
+  // loaded there is nothing to reload, so the change goes straight through.
+  const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null);
+  const [dontAskAgain, setDontAskAgain] = useState(false);
+
+  function requestSwitch(change: PendingSwitch) {
+    const sameVendor = "vendor" in change && change.vendor === currentGpuVendor;
+    if (currentModel && confirmEngineSwitch && !sameVendor) {
+      setDontAskAgain(false);
+      setPendingSwitch(change);
+    } else {
+      applySwitch(change);
+    }
+  }
+
+  function applySwitch(change: PendingSwitch) {
+    if ("vendor" in change) onGpuVendorChange(change.vendor);
+    else onGpuDeviceChange(change.device);
+  }
   const [modelFamily, setModelFamily] = useState<ModelFamily>("quantized");
   // A model is around a gigabyte and comes back over the network, so this asks
   // the same way the history and the statistics ask before they throw anything
@@ -70,11 +96,13 @@ export function LocalTab({
         gpus={gpus}
         currentVendor={currentGpuVendor}
         isLoading={isLoading}
-        onVendorChange={onGpuVendorChange}
+        onVendorChange={(vendor) => requestSwitch({ vendor })}
         devices={gpuDevices}
         currentDevice={currentGpuDevice}
         switchingDevice={switchingGpuDevice}
-        onDeviceChange={onGpuDeviceChange}
+        onDeviceChange={(device) => requestSwitch({ device })}
+        confirmSwitch={confirmEngineSwitch}
+        onConfirmSwitchChange={onConfirmEngineSwitchChange}
       />
 
       {/* Models Selection */}
@@ -129,6 +157,26 @@ export function LocalTab({
           ))}
         </div>
       </SectionCard>
+
+      <ConfirmDialog
+        open={pendingSwitch !== null}
+        tone="neutral"
+        title={t("transcription.gpu.switchTitle")}
+        description={t("transcription.gpu.switchDescription", { model: currentModel ?? "" })}
+        confirmLabel={t("transcription.gpu.switch")}
+        checkbox={{
+          label: t("transcription.gpu.dontAskAgain"),
+          checked: dontAskAgain,
+          onChange: setDontAskAgain,
+        }}
+        onCancel={() => setPendingSwitch(null)}
+        onConfirm={() => {
+          const change = pendingSwitch;
+          setPendingSwitch(null);
+          if (dontAskAgain) onConfirmEngineSwitchChange(false);
+          if (change) applySwitch(change);
+        }}
+      />
 
       <ConfirmDialog
         open={pendingDelete !== null}

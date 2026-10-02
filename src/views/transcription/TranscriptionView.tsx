@@ -37,6 +37,8 @@ interface TranscriptionViewProps {
   currentGpuDevice: number;
   switchingGpuDevice: number | null;
   onGpuDeviceChange: (index: number) => void;
+  confirmEngineSwitch: boolean;
+  onConfirmEngineSwitchChange: (enabled: boolean) => void;
   transcriptionMode: TranscriptionMode;
   onTranscriptionModeChange: (mode: TranscriptionMode) => void;
   serverUrl: string;
@@ -72,6 +74,8 @@ export default function TranscriptionView({
   currentGpuDevice,
   switchingGpuDevice,
   onGpuDeviceChange,
+  confirmEngineSwitch,
+  onConfirmEngineSwitchChange,
   transcriptionMode,
   onTranscriptionModeChange,
   serverUrl,
@@ -146,6 +150,8 @@ export default function TranscriptionView({
           currentGpuDevice={currentGpuDevice}
           switchingGpuDevice={switchingGpuDevice}
           onGpuDeviceChange={onGpuDeviceChange}
+          confirmEngineSwitch={confirmEngineSwitch}
+          onConfirmEngineSwitchChange={onConfirmEngineSwitchChange}
         />
       )}
 
@@ -197,6 +203,8 @@ export default function TranscriptionView({
                 currentGpuDevice={currentGpuDevice}
                 switchingGpuDevice={switchingGpuDevice}
                 onGpuDeviceChange={onGpuDeviceChange}
+                confirmEngineSwitch={confirmEngineSwitch}
+                onConfirmEngineSwitchChange={onConfirmEngineSwitchChange}
               />
             </>
           )}
