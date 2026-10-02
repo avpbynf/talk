@@ -4,6 +4,8 @@ import i18n, { resolveLanguage, formatNumber } from "@/i18n";
 import en from "@/locales/en.json";
 import fr from "@/locales/fr.json";
 import VocabularyView from "@/views/VocabularyView";
+import { PairingBanner } from "@/components/PairingBanner";
+import { NoModelBanner } from "@/components/NoModelBanner";
 
 function keysOf(node: unknown, prefix = ""): string[] {
   if (Array.isArray(node)) return node.map((_, i) => `${prefix}.${i}`);
@@ -84,5 +86,24 @@ describe("a view in French", () => {
     expect(formatNumber(1234.5, 1)).toBe("1,234.5");
     await act(() => i18n.changeLanguage("fr"));
     expect(formatNumber(1234.5, 1).replace(/\s/g, " ")).toBe("1 234,5");
+  });
+});
+
+describe("the banners in French", () => {
+  it("shows a pairing request with its countdown", async () => {
+    await act(() => i18n.changeLanguage("fr"));
+    render(<PairingBanner pending={[{ requestId: "r1", clientName: "Portable", code: "123456", secondsLeft: 120 }]} />);
+
+    expect(screen.getByText("Portable souhaite utiliser ce PC")).toBeInTheDocument();
+    expect(screen.getByLabelText("Code d'appairage")).toHaveTextContent("123456");
+    expect(screen.getByText("valable 2:00")).toBeInTheDocument();
+  });
+
+  it("says there is no model and offers to choose one", async () => {
+    await act(() => i18n.changeLanguage("fr"));
+    render(<NoModelBanner onChoose={() => {}} />);
+
+    expect(screen.getByText("Aucun modèle chargé")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Choisir un modèle" })).toBeInTheDocument();
   });
 });
