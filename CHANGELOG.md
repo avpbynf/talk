@@ -86,6 +86,12 @@ applies at once, without a restart. Dates, times and numbers follow the same lan
 
 ### Bug Fixes
 
+- (preferences) Line up the shortcut cards, and say what Cancel throws away now
+
+The keys of the main shortcut and of Cancel sat at different heights whenever one description ran
+to two lines; they now both sit at the foot of their card. Cancel's description still said it only
+stopped the recording, when it also throws away dictations not pasted yet.
+
 - (preferences) Keep the Updates card at the bottom of Preferences
 
 Cards were added to the page in the order they were written, so Companion shortcuts had landed

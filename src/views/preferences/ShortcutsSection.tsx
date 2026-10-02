@@ -167,7 +167,7 @@ export default function ShortcutsSection({
     const Icon = style.icon;
 
     return (
-      <div className={cn("p-5 rounded-xl border border-border-card bg-surface-inset", className)}>
+      <div className={cn("flex flex-col p-5 rounded-xl border border-border-card bg-surface-inset", className)}>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex gap-3">
             <div className={cn(
@@ -192,7 +192,7 @@ export default function ShortcutsSection({
         </div>
 
         {isEditing ? (
-          <div className="space-y-3">
+          <div className="mt-auto space-y-3">
             <div
               ref={inputRef}
               tabIndex={0}
@@ -235,7 +235,7 @@ export default function ShortcutsSection({
             </div>
           </div>
         ) : (
-          <div className="flex gap-2 flex-wrap">
+          <div className="mt-auto flex gap-2 flex-wrap">
             {shortcutParts.map((key, i) => (
               <kbd key={i}>{key}</kbd>
             ))}
