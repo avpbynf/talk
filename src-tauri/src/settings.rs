@@ -200,6 +200,12 @@ pub struct AppSettings {
     /// How dictations chained while others are transcribing get pasted
     #[serde(default)]
     pub queue: crate::dictation_queue::QueueSettings,
+    /// Serve the local engine to other machines on the network
+    #[serde(default)]
+    pub share_enabled: bool,
+    /// The port the shared engine listens on
+    #[serde(default = "default_share_port")]
+    pub share_port: u16,
 }
 
 fn default_true() -> bool {
@@ -220,6 +226,10 @@ fn default_server_timeout() -> u64 {
 
 fn default_history_limit() -> usize {
     100
+}
+
+pub fn default_share_port() -> u16 {
+    8000
 }
 
 fn default_duck_percent() -> u8 {
@@ -269,6 +279,8 @@ impl Default for AppSettings {
             output_device_name: None,
             history_limit: default_history_limit(),
             queue: Default::default(),
+            share_enabled: false,
+            share_port: default_share_port(),
         }
     }
 }
@@ -348,6 +360,15 @@ mod tests {
         assert_eq!(parse("{}").start_sound, AppSettings::default().start_sound);
         assert_eq!(parse("{}").server_timeout, 30000);
         assert_eq!(parse("{}").server_model, None);
+    }
+
+    #[test]
+    fn a_file_written_before_sharing_existed_keeps_it_off() {
+        // A parse error here would replace the whole file with the defaults.
+        let s = parse(r#"{"server_url": "http://localhost:4060", "setup_completed": true}"#);
+        assert!(!s.share_enabled);
+        assert_eq!(s.share_port, 8000);
+        assert_eq!(s.server_url, "http://localhost:4060");
     }
 
     #[test]

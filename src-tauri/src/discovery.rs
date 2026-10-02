@@ -24,6 +24,10 @@ pub struct DiscoveredServer {
 #[derive(Default)]
 pub struct Discovery {
     servers: Mutex<HashMap<String, DiscoveredServer>>,
+    /// The instance name this PC announces while it shares its engine. It
+    /// answers its own browse like any other machine and must not be offered
+    /// as a server to itself.
+    own: Mutex<Option<String>>,
 }
 
 impl Discovery {
@@ -32,6 +36,28 @@ impl Discovery {
         let mut servers: Vec<_> = self.servers.lock().values().cloned().collect();
         servers.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.id.cmp(&b.id)));
         servers
+    }
+
+    /// Name the announcement that is this machine's own, or none once it stops.
+    /// Returns whether the list changed, since an entry already listed goes.
+    pub fn set_own(&self, fullname: Option<String>) -> bool {
+        let mut servers = self.servers.lock();
+        let before = servers.len();
+        if let Some(name) = &fullname {
+            servers.retain(|id, _| !id.eq_ignore_ascii_case(name));
+        }
+        let removed = servers.len() != before;
+        drop(servers);
+        *self.own.lock() = fullname;
+        removed
+    }
+
+    fn is_own(&self, id: &str) -> bool {
+        // DNS names do not distinguish case, and a resolver may fold it
+        self.own
+            .lock()
+            .as_deref()
+            .is_some_and(|own| own.eq_ignore_ascii_case(id))
     }
 
     /// Returns whether the set changed
@@ -133,8 +159,8 @@ fn run(app: AppHandle) {
     while let Ok(event) = receiver.recv() {
         let changed = match event {
             ServiceEvent::ServiceResolved(info) => match server_from_info(&info) {
-                Some(server) => discovery.upsert(server),
-                None => false,
+                Some(server) if !discovery.is_own(&server.id) => discovery.upsert(server),
+                _ => false,
             },
             ServiceEvent::ServiceRemoved(_, fullname) => discovery.remove(&fullname),
             _ => false,
@@ -271,6 +297,21 @@ mod tests {
         assert_eq!(pick_offer(&servers, &[]).unwrap().id, "a");
         assert_eq!(pick_offer(&servers, &["a".to_string()]).unwrap().id, "b");
         assert!(pick_offer(&servers, &["a".to_string(), "b".to_string()]).is_none());
+    }
+
+    #[test]
+    fn this_machines_own_announcement_is_not_a_server() {
+        let discovery = Discovery::default();
+        discovery.upsert(server("me"));
+        discovery.upsert(server("other"));
+
+        assert!(discovery.set_own(Some("me".to_string())));
+
+        assert!(discovery.is_own("me"));
+        assert!(!discovery.is_own("other"));
+        assert_eq!(discovery.list().len(), 1);
+        assert!(!discovery.set_own(None));
+        assert!(!discovery.is_own("me"));
     }
 
     #[test]

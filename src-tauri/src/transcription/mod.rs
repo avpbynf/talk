@@ -363,13 +363,15 @@ impl WhisperEngine {
 
     /// Transcribe with the timing of each segment, in the language asked for.
     /// `None` lets whisper detect it, and the transcript says what it found.
+    /// Whisper polls `should_abort` as it works and gives up when it says true.
     pub fn transcribe_segments(
         &self,
         audio_data: &[f32],
         language: Option<&str>,
         prompt: Option<&str>,
+        should_abort: Box<dyn FnMut() -> bool>,
     ) -> Result<Transcript, TranscriptionError> {
-        self.run(audio_data, language, prompt, |_| {}, None)
+        self.run(audio_data, language, prompt, |_| {}, Some(should_abort))
     }
 
     fn run<F>(

@@ -56,6 +56,15 @@ dotenvy = "0.15"
 url = "2"
 # Finds Talk-Server on the local network; the browse runs on its own thread.
 mdns-sd = "0.21"
+# Share this PC: the HTTP API other machines dictate through. symphonia was
+# already here for the sounds, and now decodes the WAV they upload.
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "multipart", "tokio"] }
+symphonia = { version = "0.5", default-features = false, features = ["wav", "pcm"] }
+if-addrs = "0.15"
+sha2 = "0.10"
+subtle = "2"
+rand = "0.8"
+base64 = "0.22"
 # Both were already in the tree through tauri, so declaring them costs no
 # extra compilation. They are what lets the recording path stamp a row
 # itself rather than handing the job to the frontend.
@@ -79,6 +88,7 @@ windows = { version = "0.62", features = [
 
 [dev-dependencies]
 tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
 
 [features]
 default = ["vulkan"]

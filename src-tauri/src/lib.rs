@@ -11,6 +11,7 @@ mod models;
 mod overlay;
 mod server_transcription;
 mod settings;
+mod share;
 mod sound;
 mod transcription;
 mod virtual_mic;
@@ -166,7 +167,11 @@ fn get_downloaded_models(state: tauri::State<'_, AppState>) -> Vec<String> {
 }
 
 #[tauri::command]
-async fn load_model(model_id: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
+async fn load_model(
+    model_id: String,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
     let model_path = state
         .model_manager
         .get_model_path(&model_id)
@@ -198,13 +203,15 @@ async fn load_model(model_id: String, state: tauri::State<'_, AppState>) -> Resu
         eprintln!("Failed to save settings: {}", e);
     }
 
+    share::model_changed(&app);
     Ok(())
 }
 
 #[tauri::command]
-fn unload_model(state: tauri::State<'_, AppState>) -> Result<(), String> {
+fn unload_model(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
     *state.whisper_engine.lock() = None;
     *state.current_model.lock() = None;
+    share::model_changed(&app);
     Ok(())
 }
 
@@ -395,7 +402,11 @@ fn get_current_gpu_vendor(state: tauri::State<'_, AppState>) -> GpuVendor {
 }
 
 #[tauri::command]
-fn set_gpu_vendor(vendor: GpuVendor, state: tauri::State<'_, AppState>) -> Result<(), String> {
+fn set_gpu_vendor(
+    vendor: GpuVendor,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
     let backend = AcceleratorBackend::from_vendor(vendor);
     *state.gpu_vendor.lock() = vendor;
     *state.accelerator_backend.lock() = backend;
@@ -409,7 +420,7 @@ fn set_gpu_vendor(vendor: GpuVendor, state: tauri::State<'_, AppState>) -> Resul
     }
 
     // Reload model with new backend if one is loaded
-    reload_engine(&state, backend)
+    reload_engine(&state, backend).inspect_err(|_| share::model_changed(&app))
 }
 
 /// The GPUs the local engine can run on, and the one it uses right now.
@@ -429,7 +440,7 @@ fn get_gpu_devices(state: tauri::State<'_, AppState>) -> GpuDeviceList {
 }
 
 #[tauri::command]
-fn set_gpu_device(index: u32, state: tauri::State<'_, AppState>) -> Result<(), String> {
+fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let devices = transcription::list_gpu_devices();
     let device = devices
         .iter()
@@ -450,6 +461,8 @@ fn set_gpu_device(index: u32, state: tauri::State<'_, AppState>) -> Result<(), S
     let backend = *state.accelerator_backend.lock();
     if let Err(e) = reload_engine(&state, backend) {
         *state.gpu_device.lock() = previous;
+        // The reload left no model loaded, and the network still names one
+        share::model_changed(&app);
         return Err(e);
     }
 
@@ -463,7 +476,11 @@ fn set_gpu_device(index: u32, state: tauri::State<'_, AppState>) -> Result<(), S
 }
 
 #[tauri::command]
-fn set_accelerator_backend(backend: AcceleratorBackend, state: tauri::State<'_, AppState>) -> Result<(), String> {
+fn set_accelerator_backend(
+    backend: AcceleratorBackend,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
     *state.accelerator_backend.lock() = backend;
 
     // Save to settings
@@ -474,7 +491,7 @@ fn set_accelerator_backend(backend: AcceleratorBackend, state: tauri::State<'_, 
     }
 
     // Reload model with new backend if one is loaded
-    reload_engine(&state, backend)
+    reload_engine(&state, backend).inspect_err(|_| share::model_changed(&app))
 }
 
 #[tauri::command]
@@ -1181,6 +1198,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(AppState::default())
         .manage(discovery::Discovery::default())
+        .manage(share::ShareManager::default())
         .invoke_handler(tauri::generate_handler![
             get_available_models,
             download_model,
@@ -1286,6 +1304,12 @@ pub fn run() {
             get_default_output_device,
             get_output_device,
             set_output_device,
+            share::share_get_status,
+            share::share_set_enabled,
+            share::share_set_port,
+            share::share_list_devices,
+            share::share_revoke_device,
+            share::share_pending_pairings,
         ])
         .setup(|app| {
             // Load .env file in dev mode only
@@ -1299,6 +1323,7 @@ pub fn run() {
             app.manage(db);
 
             discovery::start(app.handle().clone());
+            share::start_at_launch(app.handle());
 
             // Load saved settings into state
             let hotkey_config = hotkeys::load_config().unwrap_or_default();
