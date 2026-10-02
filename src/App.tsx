@@ -13,8 +13,10 @@ import AppearanceView from "@/views/AppearanceView";
 import AnalyticsView from "@/views/AnalyticsView";
 import SetupWizard from "@/pages/SetupWizard";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { ServerOfferBanner } from "@/components/ServerOfferBanner";
 import { type AppThemeId, applyAppTheme } from "@/lib/app-themes";
 import { useUpdater } from "@/lib/use-updater";
+import { useServerOffer } from "@/lib/use-server-offer";
 
 export interface ModelInfo {
   id: string;
@@ -165,6 +167,8 @@ function App() {
   // Looks at the GitHub releases on its own; the banner and the Preferences page
   // are two views of the same state.
   const updater = useUpdater();
+
+  const { offer: serverOffer, dismiss: dismissServerOffer } = useServerOffer(setupCompleted === true);
 
   // Refs to avoid re-registering listeners
   const hasInitialized = useRef(false);
@@ -489,6 +493,23 @@ function App() {
 
       {/* What a release found on GitHub says for itself, when there is one */}
       <UpdateBanner updater={updater} />
+      {serverOffer && (
+        <ServerOfferBanner
+          server={serverOffer}
+          onUse={async (server) => {
+            dismissServerOffer();
+            setServerUrl(server.url);
+            setTranscriptionMode("server");
+            try {
+              await invoke("set_server_url", { url: server.url });
+              await invoke("set_transcription_mode", { mode: "server" });
+            } catch (error) {
+              console.error("Failed to switch to the server:", error);
+            }
+          }}
+          onDismiss={dismissServerOffer}
+        />
+      )}
 
       {/* Main layout */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
