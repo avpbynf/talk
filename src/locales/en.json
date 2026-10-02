@@ -580,6 +580,7 @@
     "unavailable": "Sign-in is not available in this build.",
     "signIn": "Sign in with Google",
     "signingIn": "Waiting for the browser",
+    "cancelSignIn": "Cancel",
     "signedInAs": "Signed in as {{email}}",
     "syncNow": "Sync now",
     "signOut": "Sign out",

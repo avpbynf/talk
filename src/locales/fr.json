@@ -580,6 +580,7 @@
     "unavailable": "La connexion n'est pas disponible dans cette version.",
     "signIn": "Se connecter avec Google",
     "signingIn": "En attente du navigateur",
+    "cancelSignIn": "Annuler",
     "signedInAs": "Connecté en tant que {{email}}",
     "syncNow": "Synchroniser",
     "signOut": "Se déconnecter",

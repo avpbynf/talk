@@ -78,6 +78,31 @@ describe("AccountSection", () => {
     expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeInTheDocument();
   });
 
+  it("cancelling a sign-in that waits goes back to signed out without an error", async () => {
+    let release: (status: GoogleStatus) => void = () => {};
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return signedOut;
+      if (command === "google_sign_in") return new Promise<GoogleStatus>((resolve) => (release = resolve));
+      if (command === "google_sign_in_cancel") {
+        release(signedOut);
+        return undefined;
+      }
+      return undefined;
+    });
+    render(<AccountSection />);
+
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Sign in with Google" }));
+    expect(await screen.findByText("Waiting for the browser")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(invoke).toHaveBeenCalledWith("google_sign_in_cancel");
+    expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(document.querySelector(".text-destructive")).toBeNull();
+  });
+
   it("syncing now asks the backend", async () => {
     answer({ ...signedOut, email: "me@example.com" });
     render(<AccountSection />);

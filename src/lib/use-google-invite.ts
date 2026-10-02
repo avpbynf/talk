@@ -18,7 +18,7 @@ export function answerGoogleInvite(): Promise<void> {
  * does not bring the strip back at the next start.
  */
 export function useGoogleInvite(enabled: boolean) {
-  const { status, busy, failure, run } = useGoogleAccount();
+  const { status, busy, failure, run, cancelSignIn } = useGoogleAccount();
   const [offered, setOffered] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -40,5 +40,5 @@ export function useGoogleInvite(enabled: boolean) {
 
   const open = enabled && offered === false && !!status?.available && !status.email;
 
-  return { open, busy: busy === "signIn", failure, signIn, dismiss };
+  return { open, busy: busy === "signIn", failure, signIn, cancelSignIn, dismiss };
 }

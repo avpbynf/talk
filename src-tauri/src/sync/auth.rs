@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 use tauri_plugin_opener::OpenerExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
+use tokio::sync::oneshot;
 
 const CLIENT_ID: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_ID");
 const CLIENT_SECRET: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_SECRET");
@@ -21,7 +22,7 @@ const CLIENT_SECRET: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_SECRET");
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const SCOPES: &str = "openid email https://www.googleapis.com/auth/drive.appdata";
-const SIGN_IN_TIMEOUT: Duration = Duration::from_secs(300);
+const SIGN_IN_TIMEOUT: Duration = Duration::from_secs(180);
 
 const KEYRING_SERVICE: &str = "Talk";
 const KEYRING_USER: &str = "google-account";
@@ -39,6 +40,16 @@ struct CachedToken {
 }
 
 static ACCESS_TOKEN: Mutex<Option<CachedToken>> = Mutex::new(None);
+
+/// The way to wake a sign-in that is waiting for the browser. Empty when none is.
+static CANCEL: Mutex<Option<oneshot::Sender<()>>> = Mutex::new(None);
+
+/// Abandon the sign-in in progress, if there is one.
+pub fn cancel_sign_in() {
+    if let Some(cancel) = CANCEL.lock().take() {
+        let _ = cancel.send(());
+    }
+}
 
 /// Whether this build carries Google credentials at all.
 pub fn available() -> bool {
@@ -139,15 +150,29 @@ fn parse_redirect(request: &str) -> Redirect {
     }
 }
 
+/// How the wait for the browser ended, short of an error.
+#[derive(Debug, PartialEq)]
+enum Wait {
+    Code(String),
+    Cancelled,
+}
+
 /// Wait for the browser to come back with the code. A request carrying some
 /// other state is answered with an error page and ignored, so something else
 /// on the machine poking the port cannot end the wait.
-async fn wait_for_redirect(listener: TcpListener, expected_state: &str) -> Result<String, String> {
+async fn wait_for_redirect(
+    listener: TcpListener,
+    expected_state: &str,
+    mut cancel: oneshot::Receiver<()>,
+) -> Result<Wait, String> {
     let deadline = Instant::now() + SIGN_IN_TIMEOUT;
     loop {
         let remaining = deadline.saturating_duration_since(Instant::now());
-        let (mut stream, _) = tokio::time::timeout(remaining, listener.accept())
-            .await
+        let accepted = tokio::select! {
+            accepted = tokio::time::timeout(remaining, listener.accept()) => accepted,
+            _ = &mut cancel => return Ok(Wait::Cancelled),
+        };
+        let (mut stream, _) = accepted
             .map_err(|_| "Sign-in timed out".to_string())?
             .map_err(|e| e.to_string())?;
 
@@ -185,7 +210,7 @@ async fn wait_for_redirect(listener: TcpListener, expected_state: &str) -> Resul
         let _ = stream.shutdown().await;
 
         match parsed {
-            Redirect::Code { code, .. } if !wrong_state => return Ok(code),
+            Redirect::Code { code, .. } if !wrong_state => return Ok(Wait::Code(code)),
             Redirect::Denied { error, .. } if !wrong_state => {
                 return Err(format!("Google refused the sign-in: {}", error))
             }
@@ -235,7 +260,8 @@ pub struct PendingSignIn {
 
 /// Run the browser round trip and the code exchange. Nothing is stored until
 /// `store` is called, so the caller can get its own state in order first.
-pub async fn authorize(app: &tauri::AppHandle) -> Result<PendingSignIn, String> {
+/// None means the user cancelled while the browser was open.
+pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, String> {
     let (client_id, client_secret) = credentials().ok_or("Sign-in is not available in this build")?;
 
     let listener = TcpListener::bind("127.0.0.1:0").await.map_err(|e| e.to_string())?;
@@ -246,11 +272,18 @@ pub async fn authorize(app: &tauri::AppHandle) -> Result<PendingSignIn, String> 
     let state = random_url_safe(16);
     let url = authorization_url(client_id, &redirect, &state, &challenge_for(&verifier));
 
-    app.opener()
-        .open_url(url, None::<&str>)
-        .map_err(|e| e.to_string())?;
+    let (cancel_tx, cancel_rx) = oneshot::channel();
+    *CANCEL.lock() = Some(cancel_tx);
 
-    let code = wait_for_redirect(listener, &state).await?;
+    let waited = match app.opener().open_url(url, None::<&str>) {
+        Ok(()) => wait_for_redirect(listener, &state, cancel_rx).await,
+        Err(e) => Err(e.to_string()),
+    };
+    *CANCEL.lock() = None;
+    let code = match waited? {
+        Wait::Code(code) => code,
+        Wait::Cancelled => return Ok(None),
+    };
 
     let tokens = token_request(&[
         ("client_id", client_id),
@@ -272,13 +305,13 @@ pub async fn authorize(app: &tauri::AppHandle) -> Result<PendingSignIn, String> 
         .and_then(email_from_id_token)
         .unwrap_or_default();
 
-    Ok(PendingSignIn {
+    Ok(Some(PendingSignIn {
         account: StoredAccount { refresh_token, email },
         token: CachedToken {
             value: tokens.access_token,
             expires: Instant::now() + Duration::from_secs(tokens.expires_in.saturating_sub(60)),
         },
-    })
+    }))
 }
 
 /// Keep the account: the refresh token goes to the Credential Manager.
@@ -352,6 +385,27 @@ mod tests {
         assert!(url.contains("code_challenge_method=S256"));
         assert!(url.contains("drive.appdata"));
         assert!(!url.contains("auth%2Fdrive%20") && !url.contains("auth%2Fdrive&"));
+    }
+
+    #[tokio::test]
+    async fn a_cancel_ends_the_wait_and_frees_the_port() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let (cancel_tx, cancel_rx) = oneshot::channel();
+        let wait = tokio::spawn(async move { wait_for_redirect(listener, "state", cancel_rx).await });
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        cancel_tx.send(()).unwrap();
+
+        let outcome = tokio::time::timeout(Duration::from_secs(2), wait).await.unwrap().unwrap();
+        assert_eq!(outcome, Ok(Wait::Cancelled));
+        TcpListener::bind(("127.0.0.1", port)).await.expect("the port is free again");
+    }
+
+    #[test]
+    fn cancelling_with_nothing_pending_does_nothing() {
+        cancel_sign_in();
+        assert!(CANCEL.lock().is_none());
     }
 
     #[test]

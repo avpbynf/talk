@@ -471,7 +471,9 @@ pub fn google_status() -> GoogleStatus {
 
 #[tauri::command]
 pub async fn google_sign_in(app: tauri::AppHandle) -> Result<GoogleStatus, String> {
-    let pending = auth::authorize(&app).await?;
+    let Some(pending) = auth::authorize(&app).await? else {
+        return Ok(status());
+    };
     {
         // Under the same lock as a sync, so none in flight writes the old
         // account's bookkeeping back after the new one is kept.
@@ -481,6 +483,12 @@ pub async fn google_sign_in(app: tauri::AppHandle) -> Result<GoogleStatus, Strin
     }
     run_sync(&app).await;
     Ok(status())
+}
+
+/// Abandon the sign-in waiting for the browser. Does nothing when none is.
+#[tauri::command]
+pub fn google_sign_in_cancel() {
+    auth::cancel_sign_in();
 }
 
 /// Whether the invitation to sign in was already shown and answered.
