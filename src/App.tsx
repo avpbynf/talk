@@ -144,6 +144,7 @@ function App() {
   const [serverFallback, setServerFallback] = useState(true);
   const [serverTimeout, setServerTimeout] = useState(30000);
   const [serverToken, setServerToken] = useState("");
+  const [serverModel, setServerModel] = useState("");
   const [autostartEnabled, setAutostartEnabled] = useState(false);
   const [startMinimized, setStartMinimized] = useState(false);
   const [duckAudioOnRecord, setDuckAudioOnRecord] = useState(false);
@@ -383,6 +384,7 @@ function App() {
 
     const savedToken = await invoke<string>("get_server_token").catch(() => "");
     setServerToken(savedToken);
+    setServerModel(await invoke<string>("get_server_model").catch(() => ""));
 
     const [sf, ss, es, companions] = await Promise.all([
       invoke<boolean>("get_sound_feedback").catch(() => true),
@@ -715,6 +717,11 @@ function App() {
             onServerTokenChange={async (token) => {
               setServerToken(token);
               await invoke("set_server_token", { token });
+            }}
+            serverModel={serverModel}
+            onServerModelChange={async (model) => {
+              setServerModel(model);
+              await invoke("set_server_model", { model });
             }}
           />
         )}

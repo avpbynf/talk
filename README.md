@@ -34,8 +34,12 @@ model on this machine, through whisper.cpp on Vulkan, and needs nothing else: no
 network, no server, no account. Server points the app at a
 [Talk-Server](https://github.com/avpbynf/Talk-Server) instance instead, which is what
 makes a machine with no GPU usable and what lets one card serve several machines from
-a single loaded model. Local is the default, and either mode can be changed later on
-the Transcription page.
+a single loaded model. Server mode also works with any OpenAI-compatible transcription
+endpoint, OpenAI included: give it the URL (with or without `/v1`), the API key, and
+optionally a model name (`whisper-1` is used for OpenAI when it is empty). A server without
+the streaming route is detected on the first dictation and the standard route is used from
+then on, so the overlay shows its state without live segments. Local is the default, and
+either mode can be changed later on the Transcription page.
 
 **Server mode carries a fallback**, on unless you turn it off: when the server does not
 answer, the local engine takes over mid-shortcut and you keep dictating. Its price is

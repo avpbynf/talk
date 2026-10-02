@@ -16,6 +16,8 @@ interface ServerTabProps {
   checkServerHealth: (silent?: boolean) => void;
   serverToken: string;
   onServerTokenChange: (token: string) => void;
+  serverModel: string;
+  onServerModelChange: (model: string) => void;
   serverFallback: boolean;
   onServerFallbackChange: (value: boolean) => void;
 }
@@ -47,7 +49,7 @@ function statusText(serverStatus: ServerStatus) {
   switch (serverStatus) {
     case "checking": return "Checking...";
     case "online": return "Connected";
-    case "unauthorized": return "Server reached, token refused";
+    case "unauthorized": return "Server reached, key or token refused";
     case "offline": return "Unreachable";
     default: return "Not tested";
   }
@@ -62,12 +64,15 @@ export function ServerTab({
   checkServerHealth,
   serverToken,
   onServerTokenChange,
+  serverModel,
+  onServerModelChange,
   serverFallback,
   onServerFallbackChange,
 }: ServerTabProps) {
   const [urlInput, setUrlInput] = useState(serverUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState(serverToken || "");
+  const [modelInput, setModelInput] = useState(serverModel || "");
 
   const [pairTarget, setPairTarget] = useState<{ url: string; label: string } | null>(null);
 
@@ -119,7 +124,7 @@ export function ServerTab({
           </div>
           <div>
             <h3 className="font-medium text-sm">Connection</h3>
-            <p className="text-xs text-muted-foreground">Whisper server endpoint</p>
+            <p className="text-xs text-muted-foreground">Talk server or any OpenAI-compatible endpoint</p>
           </div>
         </div>
 
@@ -172,7 +177,7 @@ export function ServerTab({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-xs font-medium text-muted-foreground">
-                API token <span className="text-xs font-normal">(optional)</span>
+                API key or token <span className="text-xs font-normal">(optional)</span>
               </label>
               <button
                 onClick={pairTyped}
@@ -189,7 +194,28 @@ export function ServerTab({
               placeholder="sk-... or leave empty"
               className="w-full px-3 py-2 rounded-lg bg-surface-inset border border-border-card text-sm font-mono input-glow placeholder:text-muted-foreground"
             />
-            <p className="text-xs text-muted-foreground">OpenAI-compatible. Required by third-party services.</p>
+            <p className="text-xs text-muted-foreground">
+              A Talk server gives one when you pair with it, OpenAI on its dashboard.
+            </p>
+          </div>
+
+          {/* Model */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">
+              Model <span className="text-xs font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={modelInput}
+              onChange={(e) => setModelInput(e.target.value)}
+              onBlur={() => { if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim()); }}
+              placeholder="whisper-1, gpt-4o-transcribe..."
+              className="w-full px-3 py-2 rounded-lg bg-surface-inset border border-border-card text-sm font-mono input-glow placeholder:text-muted-foreground"
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave empty to let the server choose, which is right for a Talk server. OpenAI
+              needs one and uses whisper-1 when this is empty.
+            </p>
           </div>
         </div>
       </div>
