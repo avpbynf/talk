@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (preferences) Show an avatar drawn from your address on the Account card
+
+The Account card now shows a small avatar next to the address you are signed in with. It is
+generated from the address, so it is always the same one, and it moves gently unless your system is
+set to reduce motion.
+
 - (transcription) Confirm before a change of backend or graphics card reloads the model
 
 Switching between CPU and Vulkan, or to another graphics card, reloads the loaded model on the new

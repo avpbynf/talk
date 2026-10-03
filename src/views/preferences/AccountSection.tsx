@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { UserRound } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
+import { Blobatar } from "@blobatar/react";
+import "blobatar/motion.css";
 import { formatTime } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/SectionCard";
@@ -76,19 +78,28 @@ export default function AccountSection() {
 
       {status && status.available && status.email && (
         <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{t("account.signedInAs", { email: status.email })}</p>
-            <p
-              title={showsError ? line : undefined}
-              className={`text-sm mt-0.5 ${
-                showsError ? "text-destructive line-clamp-3 break-words" : "text-muted-foreground"
-              }`}
-            >
-              {showsError ? withLinks(line) : line}
-            </p>
-            {status.settingsUploadBlocked && (
-              <p className="text-sm text-destructive mt-0.5">{t("account.settingsNotUploaded")}</p>
-            )}
+          <div className="flex items-center gap-3 min-w-0">
+            <Blobatar
+              name={status.email}
+              size={40}
+              animate="always"
+              aria-hidden="true"
+              className="shrink-0 rounded-full"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{t("account.signedInAs", { email: status.email })}</p>
+              <p
+                title={showsError ? line : undefined}
+                className={`text-sm mt-0.5 ${
+                  showsError ? "text-destructive line-clamp-3 break-words" : "text-muted-foreground"
+                }`}
+              >
+                {showsError ? withLinks(line) : line}
+              </p>
+              {status.settingsUploadBlocked && (
+                <p className="text-sm text-destructive mt-0.5">{t("account.settingsNotUploaded")}</p>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button
