@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (preferences) Choose the overlay's style, colours, movement and position
+
+The overlay tab of Appearance is rebuilt around a live preview on a fake desktop, which loops through
+recording, transcribing, pasted and refused or holds on the one you pick. Three styles: Halo, today's
+overlay refined; Capsule, a dark pill that stretches with your voice scrolling by as a wave and
+shimmering text while it transcribes; and Orb, your account's avatar, which swells with your voice and
+sends out ripples, thinks inside a spinning ring, smiles and hops when the text is pasted and scowls
+when a dictation is refused. Colours come from the application's accent gradient, from one of the six
+overlay themes you already had (yours stays selected), or from three colours of your own, on a dark,
+glass or light background. You can set how strongly it reacts to your voice, how it appears (bounce,
+slide or fade), its size, the timer, the microphone icon and, off by default, the words after pasting.
+Position is one of six spots or free: drag the overlay, in the preview or on screen, and it stays where
+you drop it with none of the six selected, until you pick a spot again. With several screens, choose the
+one where you are typing, the one with the mouse pointer, the primary, or always one in particular; if
+that one is unplugged the overlay falls back to where you are typing. The style, colours and movement
+follow your account, and the position and the screen stay on each PC.
+
 - (overlay) Say when the text is pasted, and turn a refused dictation away with a shake
 
 Once the text is in the window you were typing in, the overlay stays up for a moment with a tick

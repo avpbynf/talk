@@ -503,9 +503,88 @@
       "undo": "Annuler"
     },
     "overlay": {
-      "title": "Bandeau",
-      "sizeDescription": "Taille de la fenêtre affichée pendant l'enregistrement.",
-      "colorDescription": "Couleur de la lueur qui l'entoure pendant l'enregistrement.",
+      "style": {
+        "title": "Style du bandeau",
+        "label": "Style du bandeau",
+        "halo": {
+          "name": "Halo",
+          "text": "Le bandeau d'aujourd'hui, affiné. Trois arcs de lumière tournent sur le bord, plus vite quand vous parlez."
+        },
+        "capsule": {
+          "name": "Capsule",
+          "text": "Une pastille sombre qui s'étire. L'onde de votre voix défile, et le texte scintille pendant la transcription."
+        },
+        "orb": {
+          "name": "Orbe",
+          "text": "Votre blobatar en personne. Il gonfle avec la voix et lance des ondes, réfléchit pendant la transcription et sourit quand le texte est collé."
+        }
+      },
+      "preview": {
+        "title": "Aperçu",
+        "state": "État affiché",
+        "loop": "En boucle",
+        "recording": "Enregistre",
+        "transcribing": "Transcrit",
+        "pasted": "Collé",
+        "refused": "Refusé",
+        "desktop": "Un faux bureau. Attrapez le bandeau pour le poser où vous voulez.",
+        "window": "Notes de réunion",
+        "earlier": "À reprendre demain matin :",
+        "later": "Vérifier que le vocabulaire survit à un changement de PC, puis essayer le modèle turbo sur la carte Intel avant la sortie."
+      },
+      "colors": {
+        "title": "Couleurs du bandeau",
+        "palette": "Palette",
+        "paletteHint": "Celle de l'application, une des six que le bandeau avait déjà, ou trois des vôtres",
+        "accent": "Application",
+        "custom": "À vous",
+        "customColors": "Vos trois couleurs",
+        "customColor": "Couleur {{n}}",
+        "background": "Fond",
+        "dark": "Sombre",
+        "glass": "Verre",
+        "light": "Clair"
+      },
+      "movement": {
+        "title": "Mouvement",
+        "reaction": "Réaction à la voix",
+        "reactionHint": "À quel point le bandeau bouge quand vous parlez",
+        "entrance": "Apparition",
+        "entranceHint": "Comment il arrive quand un enregistrement commence",
+        "bounce": "Rebond",
+        "slide": "Glisse",
+        "fade": "Fondu",
+        "size": "Taille",
+        "sizeHint": "Taille de la fenêtre affichée pendant l'enregistrement",
+        "timer": "Minuteur",
+        "mic": "Icône du micro",
+        "micHint": "Halo et Capsule",
+        "endText": "Mots après le collage",
+        "endTextHint": "Affiche \"Collé, 14 mots\" une fois le texte en place. Désactivé, le bandeau confirme par une coche, sans mot. Une dictée refusée dit toujours pourquoi, en quelques mots."
+      },
+      "position": {
+        "title": "Position",
+        "where": "Où il apparaît",
+        "hint": "Six emplacements, ou attrapez le bandeau dans l'aperçu ou à l'écran et posez-le où vous voulez.",
+        "free": "Position libre. Choisissez un emplacement pour le refixer.",
+        "spots": {
+          "top_left": "En haut à gauche",
+          "top_center": "En haut au centre",
+          "top_right": "En haut à droite",
+          "bottom_left": "En bas à gauche",
+          "bottom_center": "En bas au centre",
+          "bottom_right": "En bas à droite"
+        },
+        "screen": "Écran",
+        "screenHint": "Avec plusieurs écrans, un seul l'affiche",
+        "screenFree": "Une pastille déplacée reste sur l'écran où vous l'avez lâchée. Choisissez un emplacement ci-dessus pour reprendre ce choix",
+        "typing": "Celui où vous écrivez",
+        "pointer": "Celui de la souris",
+        "primary": "L'écran principal",
+        "chosen": "Toujours {{name}}",
+        "named": "Écran {{n}} ({{width}} x {{height}})",
+        "missing": "Un écran qui n'est plus branché"
+      },
       "sizes": {
         "small": "Petit",
         "medium": "Moyen",
@@ -766,7 +845,7 @@
       "gpu": "Carte graphique",
       "model": "Modèle",
       "server": "Serveur et jeton",
-      "overlay": "Position du bandeau",
+      "overlay": "Position et écran du bandeau",
       "history": "Taille de l'historique"
     },
     "syncNow": "Synchroniser",

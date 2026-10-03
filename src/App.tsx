@@ -56,7 +56,6 @@ export type AcceleratorBackend = "cpu" | "vulkan";
 export type GpuVendor = "vulkan" | "cpu";
 export type OverlaySize = "small" | "medium" | "large";
 export type WindowButtonsSide = "left" | "right";
-export type OverlayTheme = "aurora" | "sunset" | "ocean" | "neon" | "frost" | "neutral";
 export type TranscriptionMode = "local" | "server";
 
 export type CompanionShortcut = {
@@ -90,8 +89,6 @@ export interface GpuDevice {
 interface SavedSettings {
   last_model: string | null;
   accelerator_backend: AcceleratorBackend;
-  overlay_size: OverlaySize;
-  overlay_theme: OverlayTheme;
   theme?: unknown;
   saved_themes?: unknown;
   window_buttons?: WindowButtonsSide;
@@ -175,8 +172,6 @@ function App() {
   const [startSound, setStartSound] = useState("beep");
   const [stopSound, setStopSound] = useState("beep");
   const [companionShortcuts, setCompanionShortcuts] = useState<CompanionShortcut[]>([]);
-  const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("frost");
-  const [overlaySize, setOverlaySize] = useState<OverlaySize>("small");
   const appTheme = useAppTheme();
   const [windowButtons, setWindowButtons] = useState<WindowButtonsSide>(() => readCachedTheme().windowButtons);
   useEffect(() => writeCachedTheme({ windowButtons }), [windowButtons]);
@@ -400,8 +395,6 @@ function App() {
     setPreserveClipboard(savedSettings.preserve_clipboard || false);
     setAutostartEnabled(savedSettings.autostart_enabled === true);
     setStartMinimized(savedSettings.start_minimized === true);
-    setOverlayTheme(savedSettings.overlay_theme || "frost");
-    setOverlaySize(savedSettings.overlay_size || "small");
 
     appTheme.load(savedSettings);
     setWindowButtons(savedSettings.window_buttons === "left" ? "left" : "right");
@@ -800,16 +793,6 @@ function App() {
         )}
         {view === "appearance" && (
           <AppearanceView
-            overlayTheme={overlayTheme}
-            onOverlayThemeChange={async (theme) => {
-              setOverlayTheme(theme);
-              await invoke("set_overlay_theme", { theme });
-            }}
-            overlaySize={overlaySize}
-            onOverlaySizeChange={async (size) => {
-              setOverlaySize(size);
-              await invoke("set_overlay_size", { size });
-            }}
             appTheme={appTheme}
             windowButtons={windowButtons}
             onWindowButtonsChange={async (side) => {
