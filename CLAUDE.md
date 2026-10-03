@@ -14,6 +14,8 @@ bun run tauri:check    # cargo check, no full build
 bun run dev            # frontend alone, no Tauri shell
 bun run test           # frontend suite, vitest on jsdom
 bun run test:coverage  # same, with a coverage report
+bun run test:ui        # interface suite, Playwright on Chromium, native side mocked
+bun run test:ui:update # regenerate the visual baselines (Windows draws the real ones)
 bun run test:rust      # cargo test, MSVC env loaded the same way
 ```
 
@@ -22,6 +24,14 @@ so a cold build takes a long while. `tauri:check` is the fast feedback loop.
 
 `bun run test` is the fast one: it never touches the native side, so it answers in
 seconds. `test:rust` pays the whisper.cpp build the first time in any fresh worktree.
+
+`bun run test:ui` is the one to run after touching a page, the sidebar or the styles. It starts
+Vite on its own port, loads the real frontend in Chromium and answers every `invoke` and `listen`
+from `e2e/native-mock.ts`, which fails a test naming any command it does not know. The browser is
+fetched once with `bun run playwright install chromium-headless-shell`. Playwright needs Node and
+Bun's own runtime cannot drive the browser (the launch hangs), so `node-win-x64` is a dev
+dependency and `bun run` finds its `node`. Go through the scripts and not `bunx playwright`. A
+failing snapshot is looked at before it is regenerated.
 
 Call cargo through `test:rust` and not directly. `cargo test` on its own inherits
 whatever environment the shell has, and without the MSVC one loaded the native
