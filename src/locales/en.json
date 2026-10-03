@@ -26,6 +26,21 @@
     "notReady": "Not ready",
     "noModel": "No model"
   },
+  "sidebar": {
+    "label": "Main navigation",
+    "collapse": "Collapse the sidebar",
+    "expand": "Expand the sidebar",
+    "account": {
+      "title": "Account",
+      "signedOut": "Signed out"
+    },
+    "sync": {
+      "synced": "Synced",
+      "syncing": "Syncing",
+      "error": "Failed",
+      "notSynced": "Not synced"
+    }
+  },
   "dashboard": {
     "empty": "Nothing dictated yet. This starts counting on the first one.",
     "wpm": "{{wpm}} wpm",

@@ -26,6 +26,21 @@
     "notReady": "Pas prêt",
     "noModel": "Aucun modèle"
   },
+  "sidebar": {
+    "label": "Navigation principale",
+    "collapse": "Réduire la barre latérale",
+    "expand": "Déplier la barre latérale",
+    "account": {
+      "title": "Compte",
+      "signedOut": "Déconnecté"
+    },
+    "sync": {
+      "synced": "Synchronisé",
+      "syncing": "Synchronisation",
+      "error": "Échec",
+      "notSynced": "Non synchronisé"
+    }
+  },
   "dashboard": {
     "empty": "Rien n'a encore été dicté. Le compte démarre à la première dictée.",
     "wpm": "{{wpm}} mots/min",
