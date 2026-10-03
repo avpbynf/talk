@@ -651,10 +651,15 @@
     }
   },
   "overlay": {
-    "recording": "Recording...",
-    "minimize": "Minimize",
-    "noModel": "No model loaded",
-    "modelLoading": "Model still loading",
+    "transcribing": "Transcribing",
+    "pasted_one": "Pasted, {{count}} word",
+    "pasted_other": "Pasted, {{count}} words",
+    "reasons": {
+      "no_model": "No model",
+      "model_loading": "Model loading",
+      "paste_failed": "Paste failed",
+      "capture_failed": "No microphone"
+    },
     "queued_one": "{{count}} still transcribing",
     "queued_other": "{{count}} still transcribing"
   },

@@ -651,10 +651,15 @@
     }
   },
   "overlay": {
-    "recording": "Enregistrement...",
-    "minimize": "Réduire",
-    "noModel": "Aucun modèle chargé",
-    "modelLoading": "Modèle en cours de chargement",
+    "transcribing": "Transcription",
+    "pasted_one": "Collé, {{count}} mot",
+    "pasted_other": "Collé, {{count}} mots",
+    "reasons": {
+      "no_model": "Aucun modèle",
+      "model_loading": "Modèle en chargement",
+      "paste_failed": "Collage impossible",
+      "capture_failed": "Micro indisponible"
+    },
     "queued_one": "{{count}} en cours de transcription",
     "queued_other": "{{count}} en cours de transcription"
   },

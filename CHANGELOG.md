@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (overlay) Say when the text is pasted, and turn a refused dictation away with a shake
+
+Once the text is in the window you were typing in, the overlay stays up for a moment with a tick
+instead of vanishing the instant it is done, unless another dictation is still transcribing, which then
+keeps the overlay. A paste that fails (a locked clipboard, a window that will not take it) never shows
+the tick: the overlay says "Paste failed". When a dictation cannot start, the overlay appears in red,
+shakes side to side like a head saying no, says why in a few words (no model, model still loading, no
+microphone) and the refusal sound plays as before; a second refusal while the first is showing shakes
+again. The words after a paste ("Pasted, 14 words") are off by default and the tick carries it. The
+overlay is drawn on a stage with room round the pill, and the three arcs of the halo now turn on the
+graphics card instead of repainting the border every frame, at the same speeds as before. Dictations
+still transcribing behind a recording still show their count in the overlay, and cancelling a recording
+in front of a queued dictation hands the overlay to it without drawing it in again.
+
 - (overlay) Place the overlay on a screen's work area and keep it whole on the screen
 
 The overlay now appears at the bottom centre of the screen where you are typing, above the taskbar,

@@ -530,7 +530,6 @@ fn announce_remote_settings(app: &tauri::AppHandle, remote: &SyncedSettings) {
         crate::overlay::place(app, &overlay);
         crate::overlay::raise(&overlay);
     }
-    let _ = app.emit("overlay-theme-changed", remote.overlay_theme);
     crate::overlay::announce(app);
     let _ = app.emit("language-changed", remote.language.clone());
     let _ = app.emit("settings-synced", ());

@@ -1,4 +1,4 @@
-use crate::{audio, audio_encoder, database, server_transcription, AppState, RecordingMode};
+use crate::{audio, audio_encoder, database, overlay_feedback, server_transcription, AppState, RecordingMode};
 use crate::settings::TranscriptionMode;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -353,14 +353,48 @@ struct OverlayLease {
 
 impl OverlayLease {
     fn take(app: &AppHandle) -> Self {
-        let count = app
-            .state::<AppState>()
-            .jobs_in_flight
-            .fetch_add(1, Ordering::SeqCst)
-            + 1;
+        let state = app.state::<AppState>();
+        // A transcription takes the overlay: whatever timer was running for an older state is void.
+        state.overlay_gen.begin();
+        *state.overlay_hold_until.lock() = None;
+        let count = state.jobs_in_flight.fetch_add(1, Ordering::SeqCst) + 1;
         announce_jobs(app, count);
         Self { app: app.clone() }
     }
+}
+
+/// Take the overlay down after a while, if nothing else has put it to use in
+/// the meantime: a recording or a transcription started since keeps it or gets it back,
+/// and a state that took the overlay since is not ours to hide.
+fn release_overlay_after(app: &AppHandle, hold_ms: u64) {
+    let state = app.state::<AppState>();
+    let generation = state.overlay_gen.begin();
+    // A job that lets go of the overlay while this is up leaves it to the hold's own end.
+    *state.overlay_hold_until.lock() = Some(overlay_feedback::hold_end(std::time::Instant::now(), hold_ms));
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(hold_ms));
+        let state = app.state::<AppState>();
+        // The decision and what it does happen under the recording lock, so a recording cannot
+        // start in between and have its overlay hidden under it.
+        let recording = state.is_recording.lock();
+        let jobs = state.jobs_in_flight.load(Ordering::SeqCst);
+        let overlay = EventTarget::webview_window("overlay");
+        match overlay_feedback::after_hold(state.overlay_gen.is_current(generation), *recording, jobs) {
+            overlay_feedback::Hold::Leave => {}
+            overlay_feedback::Hold::ResumeRecording => {
+                *state.overlay_hold_until.lock() = None;
+                let _ = app.emit_to(overlay, "processing-state", "recording");
+            }
+            overlay_feedback::Hold::Resume => {
+                *state.overlay_hold_until.lock() = None;
+                // The job's own state, so a server's job keeps its icon.
+                let job = *state.job_state.lock();
+                let _ = app.emit_to(overlay, "processing-state", job);
+            }
+            overlay_feedback::Hold::Hide => hide_overlay(&app),
+        }
+    });
 }
 
 /// Tell the overlay how many dictations are still being transcribed, so a
@@ -377,7 +411,16 @@ impl Drop for OverlayLease {
         let before = state.jobs_in_flight.fetch_sub(1, Ordering::SeqCst);
         announce_jobs(&self.app, before - 1);
         let was_last = before == 1;
-        if !was_last || *state.is_recording.lock() {
+        // Under the recording lock from the check to the hide, so a recording cannot start in
+        // between and have its overlay hidden under it.
+        let recording = state.is_recording.lock();
+        if !was_last || *recording {
+            return;
+        }
+
+        // Text just reached the focused window, or a dictation was turned away: the overlay is
+        // held for it, and the hold has its own end.
+        if overlay_feedback::holding(*state.overlay_hold_until.lock(), std::time::Instant::now()) {
             return;
         }
 
@@ -528,6 +571,7 @@ fn cancel_transcriptions(app: &AppHandle) {
 }
 
 fn hide_overlay(app: &AppHandle) {
+    *app.state::<AppState>().overlay_hold_until.lock() = None;
     let _ = app.emit_to(
         EventTarget::webview_window("overlay"),
         "processing-state",
@@ -581,11 +625,8 @@ fn cancel_recording(app: &AppHandle) {
     if idle {
         hide_overlay(app);
     } else {
-        let _ = app.emit_to(
-            EventTarget::webview_window("overlay"),
-            "processing-state",
-            "transcribing",
-        );
+        let job = *state.job_state.lock();
+        let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", job);
     }
 
     // Sound feedback: cancellation counts as stop
@@ -687,31 +728,18 @@ fn refuse_without_model(app: &AppHandle) -> bool {
         "no_model"
     };
 
+    refuse(app, reason);
+    true
+}
+
+/// Turn a dictation away: the refusal sound, and the overlay in the danger colour saying why.
+///
+/// The reasons the overlay words itself: `no_model`, `model_loading`, `capture_failed`.
+fn refuse(app: &AppHandle, reason: &str) {
     play_sound_feedback(app, "refused");
     crate::overlay::show(app);
     let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", reason);
-
-    // Long enough to be read, and only taken down if nothing else has put
-    // the overlay to use in the meantime.
-    let app = app.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(1800));
-        let state = app.state::<AppState>();
-        if *state.is_recording.lock() {
-            return;
-        }
-        // A transcription still running gets its overlay back.
-        if state.jobs_in_flight.load(Ordering::SeqCst) > 0 {
-            let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", "transcribing");
-            return;
-        }
-        let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", "idle");
-        if let Some(overlay) = app.get_webview_window("overlay") {
-            let _ = overlay.hide();
-        }
-    });
-
-    true
+    release_overlay_after(app, overlay_feedback::REFUSED_HOLD_MS);
 }
 
 fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
@@ -735,7 +763,14 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
 
     // 2. Start audio capture immediately (use selected device or system default)
     let device_name = state.input_device_name.lock().clone();
-    let (buffer, handle) = audio::start_capture_device(device_name.as_deref()).map_err(|e| e.to_string())?;
+    let (buffer, handle) = match audio::start_capture_device(device_name.as_deref()) {
+        Ok(started) => started,
+        Err(e) => {
+            // A microphone that will not open is a dictation turned away like any other.
+            refuse(app, "capture_failed");
+            return Err(e.to_string());
+        }
+    };
     let buffer_for_spectrum = buffer.clone();
 
     *state.audio_buffer.lock() = Some(buffer);
@@ -749,6 +784,8 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     duck_audio(&state);
 
     // 4. Show overlay (pre-created at startup, just show it, never recreate)
+    state.overlay_gen.begin();
+    *state.overlay_hold_until.lock() = None;
     crate::overlay::show(app);
 
     // 5. Emit recording state
@@ -981,8 +1018,12 @@ async fn cancelled(flag: &AtomicBool) {
 /// Tell the overlay what this transcription is doing, unless a newer
 /// recording has it. A transcription running behind a recording would
 /// otherwise pull the overlay off the microphone while the user still talks.
-fn emit_to_overlay(app: &AppHandle, processing_state: &str) {
-    if *app.state::<AppState>().is_recording.lock() {
+fn emit_to_overlay(app: &AppHandle, processing_state: &'static str) {
+    let state = app.state::<AppState>();
+    // Remembered even while a recording has the overlay: it is what the transcription goes
+    // back to showing, with the same icon, whenever the overlay is given back to it.
+    *state.job_state.lock() = processing_state;
+    if *state.is_recording.lock() {
         return;
     }
     let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", processing_state);
@@ -996,8 +1037,30 @@ fn hand_out(app: &AppHandle, release: Release) {
     #[cfg(windows)]
     {
         let preserve = *state.preserve_clipboard.lock();
+        let (mut words, mut failures) = (0usize, 0usize);
         for text in &release.paste {
-            let _ = crate::clipboard::type_text(text, preserve);
+            match crate::clipboard::type_text(text, preserve) {
+                Ok(()) => words += text.split_whitespace().count(),
+                Err(e) => {
+                    eprintln!("Failed to paste the transcription: {}", e);
+                    failures += 1;
+                }
+            }
+        }
+
+        // Say what arrived, and what did not: a paste that failed never reads as one.
+        let recording = *state.is_recording.lock();
+        let jobs = state.jobs_in_flight.load(Ordering::SeqCst);
+        let said = overlay_feedback::confirmation(recording, jobs, words, failures);
+        match &said {
+            overlay_feedback::Confirmation::Pasted(count) => {
+                let _ = app.emit_to(EventTarget::webview_window("overlay"), "dictation-pasted", count);
+                release_overlay_after(app, overlay_feedback::PASTED_HOLD_MS);
+            }
+            // A refusal like any other: the state and the sound together, once. Over a recording
+            // or a transcription it is brief, and the overlay then returns to what is in flight.
+            overlay_feedback::Confirmation::Failed => refuse(app, "paste_failed"),
+            overlay_feedback::Confirmation::Nothing => {}
         }
     }
 
