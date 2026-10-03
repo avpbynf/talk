@@ -45,6 +45,19 @@ hidden or unfocused. The window opens in your theme from the first frame. Your o
 over to its match, and a change you make is kept with the rest of your settings. The recording
 overlay settings sit on their own tab and are unchanged.
 
+- (preferences) Edit the accent gradient, the lights, the base colours and the shape of the window
+
+Under the themes, the Application tab lets you build your own look. The gradient has two to four
+colours you drag along a bar, add by clicking the bar or with a button, and remove, an angle dial
+that also answers the arrow keys, linear, radial or conic, a reverse, a random draw and a few
+inspirations. The atmosphere sets the strength of the background lights, how much the cards let
+them through, whether they follow the gradient or use three colours of their own, whether they
+drift, and an optional grain. You can also pick the four base colours (light or dark follows the
+background, and the text is kept readable), the corners, the text size and the speed of animations
+(Reduced follows the Windows setting too, and stops everything but the spinners). A changed theme
+is marked as modified with a way back, and Save as my theme keeps it in the grid and on your
+account.
+
 - (window) Move the navigation into a wider sidebar and slim the title bar down to the window buttons
 
 The sidebar now names its pages, shows the account you are signed in with at the bottom (it opens

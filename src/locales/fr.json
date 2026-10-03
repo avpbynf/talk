@@ -548,6 +548,100 @@
       "github-light": "GitHub Light",
       "catppuccin-latte": "Catppuccin Latte",
       "solarized-light": "Solarized Light"
+    },
+    "gradient": {
+      "title": "Dégradé d'accent",
+      "flip": "Inverser le dégradé",
+      "random": "Tirer un dégradé au hasard",
+      "angle": "Angle du dégradé",
+      "kind": "Type de dégradé",
+      "kinds": {
+        "linear": "Linéaire",
+        "radial": "Radial",
+        "conic": "Conique"
+      },
+      "colors_one": "{{count}} couleur",
+      "colors_other": "{{count}} couleurs",
+      "add": "Cliquez pour ajouter une couleur",
+      "full": "Quatre couleurs au plus, retirez-en une d'abord",
+      "stop": "Couleur {{n}}, à {{pos}} %",
+      "color": "Couleur {{n}}",
+      "position": "à {{pos}} %",
+      "remove": "Retirer cette couleur",
+      "inspirations": "Inspirations",
+      "inspiration": "Dégradé {{colors}}",
+      "addColor": "Ajouter une couleur"
+    },
+    "atmosphere": {
+      "title": "Atmosphère",
+      "lights": {
+        "label": "Lumières de fond",
+        "hint": "Trois halos qui dérivent derrière les cartes"
+      },
+      "glass": {
+        "label": "Verre",
+        "hint": "Plus c'est bas, plus les cartes laissent passer la lumière"
+      },
+      "source": {
+        "label": "Couleur des lumières",
+        "hint": "Elles suivent le dégradé, ou prennent trois couleurs à part",
+        "gradient": "Le dégradé",
+        "apart": "À part",
+        "own": "Les trois lumières",
+        "light": "Lumière {{n}}"
+      },
+      "drift": {
+        "label": "Dérive",
+        "hint": "Les lumières bougent lentement"
+      },
+      "grain": {
+        "label": "Grain",
+        "hint": "Une texture fine, comme du papier photo"
+      }
+    },
+    "base": {
+      "title": "Couleurs de base",
+      "bg": {
+        "label": "Fond",
+        "hint": "Derrière les cartes et la barre latérale"
+      },
+      "card": {
+        "label": "Surface",
+        "hint": "Les cartes, les listes, les menus"
+      },
+      "fg": {
+        "label": "Texte",
+        "hint": "Le texte secondaire en découle"
+      },
+      "border": {
+        "label": "Contours",
+        "hint": "Les lignes entre les cartes et autour"
+      },
+      "description": "Clair ou sombre suit le fond. Le texte reste lisible dessus, quoi que vous choisissiez.",
+      "adjusted": "La couleur du texte était trop proche des surfaces : une couleur plus lisible est utilisée. La vôtre est conservée.",
+      "solidified": "Les lumières sont trop vives pour cette couleur de texte : les cartes sont rendues plus pleines. Vos réglages sont conservés."
+    },
+    "shape": {
+      "title": "Forme et mouvement",
+      "radius": {
+        "label": "Arrondis",
+        "sharp": "Nets",
+        "soft": "Doux",
+        "round": "Ronds"
+      },
+      "text": {
+        "label": "Taille du texte",
+        "compact": "Compacte",
+        "normal": "Normale",
+        "large": "Grande"
+      },
+      "motion": {
+        "label": "Animations",
+        "hint": "Réduites suit aussi le réglage de Windows",
+        "lively": "Vives",
+        "gentle": "Douces",
+        "reduced": "Réduites"
+      }
     }
   },
   "overlay": {

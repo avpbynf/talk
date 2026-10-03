@@ -548,6 +548,100 @@
       "github-light": "GitHub Light",
       "catppuccin-latte": "Catppuccin Latte",
       "solarized-light": "Solarized Light"
+    },
+    "gradient": {
+      "title": "Accent gradient",
+      "flip": "Reverse the gradient",
+      "random": "Draw a random gradient",
+      "angle": "Gradient angle",
+      "kind": "Kind of gradient",
+      "kinds": {
+        "linear": "Linear",
+        "radial": "Radial",
+        "conic": "Conic"
+      },
+      "colors_one": "{{count}} colour",
+      "colors_other": "{{count}} colours",
+      "add": "Click to add a colour",
+      "full": "Four colours at most, remove one first",
+      "stop": "Colour {{n}}, at {{pos}} %",
+      "color": "Colour {{n}}",
+      "position": "at {{pos}} %",
+      "remove": "Remove this colour",
+      "inspirations": "Inspirations",
+      "inspiration": "Gradient {{colors}}",
+      "addColor": "Add a colour"
+    },
+    "atmosphere": {
+      "title": "Atmosphere",
+      "lights": {
+        "label": "Background lights",
+        "hint": "Three halos that drift behind the cards"
+      },
+      "glass": {
+        "label": "Glass",
+        "hint": "The lower it is, the more the cards let the light through"
+      },
+      "source": {
+        "label": "Colour of the lights",
+        "hint": "They follow the gradient, or take three colours of their own",
+        "gradient": "The gradient",
+        "apart": "Their own",
+        "own": "The three lights",
+        "light": "Light {{n}}"
+      },
+      "drift": {
+        "label": "Drift",
+        "hint": "The lights move slowly"
+      },
+      "grain": {
+        "label": "Grain",
+        "hint": "A fine texture, like photographic paper"
+      }
+    },
+    "base": {
+      "title": "Base colours",
+      "bg": {
+        "label": "Background",
+        "hint": "Behind the cards and the sidebar"
+      },
+      "card": {
+        "label": "Surface",
+        "hint": "Cards, lists and menus"
+      },
+      "fg": {
+        "label": "Text",
+        "hint": "The lighter text is derived from it"
+      },
+      "border": {
+        "label": "Borders",
+        "hint": "Lines between and around the cards"
+      },
+      "description": "Light or dark follows the background. Text is kept readable on it whatever you pick.",
+      "adjusted": "The text colour was too close to the surfaces, so a more readable one is used. Yours is kept.",
+      "solidified": "The lights are too bright for this text colour, so the cards are made more solid. Your settings are kept."
+    },
+    "shape": {
+      "title": "Shape and motion",
+      "radius": {
+        "label": "Corners",
+        "sharp": "Sharp",
+        "soft": "Soft",
+        "round": "Round"
+      },
+      "text": {
+        "label": "Text size",
+        "compact": "Compact",
+        "normal": "Normal",
+        "large": "Large"
+      },
+      "motion": {
+        "label": "Animations",
+        "hint": "Reduced also follows the Windows setting",
+        "lively": "Lively",
+        "gentle": "Gentle",
+        "reduced": "Reduced"
+      }
     }
   },
   "overlay": {
