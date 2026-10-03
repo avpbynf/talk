@@ -25,6 +25,8 @@ export default defineConfig({
     timezoneId: "UTC",
     deviceScaleFactor: 1,
     trace: "retain-on-failure",
+    // The runner has no graphics card and draws in software. E2E_SOFTWARE=1 does the same here.
+    launchOptions: process.env.E2E_SOFTWARE ? { args: ["--disable-gpu", "--disable-gpu-compositing"] } : {},
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
