@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,13 @@ export default function SoundFeedbackSection({
       icon={Volume2}
       title={t("preferences.sound.title")}
       description={t("preferences.sound.description")}
-      action={<Switch checked={soundFeedback} onCheckedChange={onSoundFeedbackChange} />}
+      action={
+        <Switch
+          checked={soundFeedback}
+          onCheckedChange={onSoundFeedbackChange}
+          aria-label={t("preferences.sound.title")}
+        />
+      }
     >
       {soundFeedback && (
         <div className="space-y-4 pt-4 border-t border-border-subtle slide-enter">
@@ -86,12 +93,13 @@ interface SoundRowProps {
 
 function SoundRow({ label, playLabel, value, onChange, onPlay }: SoundRowProps) {
   const { t } = useTranslation();
+  const labelId = useId();
   return (
     <div className="space-y-2">
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <label id={labelId} className="text-xs font-medium text-muted-foreground">{label}</label>
       <div className="flex items-center gap-2">
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger className="flex-1 cursor-pointer bg-surface-deep border-border-card text-foreground">
+          <SelectTrigger aria-labelledby={labelId} className="flex-1 cursor-pointer bg-surface-deep border-border-card text-foreground">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

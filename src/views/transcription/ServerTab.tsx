@@ -207,6 +207,7 @@ export function ServerTab({
                 size="icon"
                 onClick={() => checkServerHealth(false)}
                 disabled={serverStatus === "checking"}
+                aria-label={t("transcription.server.recheck")}
                 className={cn(
                   "shrink-0",
                   serverStatus === "online" &&

@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { SettingLabelContext } from "@/lib/setting-label";
 
 interface SettingRowProps {
   label: ReactNode;
@@ -22,14 +23,17 @@ export function SettingRow({
   disabled,
   below,
 }: SettingRowProps) {
+  const labelId = useId();
   return (
     <div className={cn(divided && "border-t border-border-subtle pt-4")}>
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <label className={cn("text-sm font-medium", disabled && "opacity-50")}>{label}</label>
+          <label id={labelId} className={cn("text-sm font-medium", disabled && "opacity-50")}>
+            {label}
+          </label>
           {hint && <p className="text-sm text-muted-foreground mt-0.5">{hint}</p>}
         </div>
-        {children}
+        <SettingLabelContext.Provider value={labelId}>{children}</SettingLabelContext.Provider>
       </div>
       {below}
     </div>
