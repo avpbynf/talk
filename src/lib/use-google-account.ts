@@ -18,9 +18,17 @@ const COMMANDS: Record<GoogleAction, string> = {
   sync: "google_sync_now",
 };
 
+const subscribers = new Set<(status: GoogleStatus) => void>();
+
+/** Every mounted user of the hook sees an answer, whichever of them asked. */
+function publish(status: GoogleStatus) {
+  subscribers.forEach((listener) => listener(status));
+}
+
 /**
  * The Google account as the backend reports it, and the calls that change it.
- * `status` stays null until the first answer arrives.
+ * `status` stays null until the first answer arrives. The sidebar and the
+ * Account card each call this and stay in step through `publish`.
  */
 export function useGoogleAccount() {
   const [status, setStatus] = useState<GoogleStatus | null>(null);
@@ -30,15 +38,19 @@ export function useGoogleAccount() {
   const refresh = useCallback(() => {
     invoke<GoogleStatus>("google_status")
       .then((next) => {
-        if (next) setStatus(next);
+        if (next) publish(next);
       })
       .catch((error) => console.error("Failed to read the account:", error));
   }, []);
 
   useEffect(() => {
     refresh();
+    subscribers.add(setStatus);
+    const started = listen("sync-started", refresh);
     const finished = listen("sync-finished", refresh);
     return () => {
+      subscribers.delete(setStatus);
+      started.then((f) => f());
       finished.then((f) => f());
     };
   }, [refresh]);
@@ -48,7 +60,7 @@ export function useGoogleAccount() {
     setFailure(null);
     try {
       const next = await invoke<GoogleStatus>(COMMANDS[action]);
-      if (next) setStatus(next);
+      if (next) publish(next);
     } catch (error) {
       setFailure(String(error));
     } finally {
@@ -60,7 +72,7 @@ export function useGoogleAccount() {
     setFailure(null);
     try {
       const next = await invoke<GoogleStatus>("google_sign_out");
-      if (next) setStatus(next);
+      if (next) publish(next);
     } catch (error) {
       setFailure(String(error));
     }
