@@ -122,6 +122,18 @@ export function defaultState() {
       accelerator_backend: "vulkan",
       overlay_size: "small",
       overlay_theme: "frost",
+      overlay_look: {
+        style: "halo",
+        palette: "preset",
+        custom_colors: ["#ff7a59", "#ff4f8b", "#a259ff"],
+        background: "dark",
+        reaction: 100,
+        entrance: "bounce",
+        timer: true,
+        mic: true,
+        end_text: false,
+      } as Record<string, unknown>,
+      overlay_placement: { spot: "bottom_center", free: null, screen: "typing", chosen_screen: null } as Record<string, unknown>,
       theme: { preset: "aurora", custom: null } as { preset: string; custom: unknown },
       saved_themes: [] as { id: string; name: string; values: unknown; modified: number }[],
       window_buttons: "right",
@@ -218,6 +230,12 @@ export function defaultState() {
     defaultOutput: "Speakers (Realtek Audio)" as string | null,
     inputDevice: null as string | null,
     outputDevice: null as string | null,
+    screens: [{ id: "\\\\.\\DISPLAY1", width: 1920, height: 1080, primary: true }] as {
+      id: string;
+      width: number;
+      height: number;
+      primary: boolean;
+    }[],
     meetingMode: false,
     vbcable: { installed: false, device_name: null as string | null },
     queue: { delivery: "each", paste_target: "last", cancel_scope: "all" },

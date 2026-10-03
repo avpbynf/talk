@@ -1,7 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { OverlaySize } from "@/App";
-import { type OverlayThemeId, THEME_IDS, getThemeLabel, getThemePreviewColors } from "@/lib/overlay-themes";
+import { type OverlayThemeId, THEME_IDS, getThemeLabel, getThemeColors } from "@/lib/overlay-themes";
 import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
 
@@ -61,7 +61,7 @@ export default function OverlaySection({
 
       <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border-subtle">
         {THEME_IDS.map((id) => {
-          const colors = getThemePreviewColors(id);
+          const colors = getThemeColors(id);
           const isActive = overlayTheme === id;
 
           return (

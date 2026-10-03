@@ -99,6 +99,18 @@ export function installNativeMock(init: MockInit): void {
     return null;
   };
 
+  const overlayView = () => ({
+    look: clone(settings.overlay_look),
+    theme: settings.overlay_theme,
+    size: settings.overlay_size,
+    placement: clone(settings.overlay_placement),
+  });
+  const announced = (key: string, value: unknown) => {
+    settings[key] = value;
+    emit("overlay-settings-changed", overlayView());
+    return null;
+  };
+
   const handlers: Record<string, (a: any) => unknown> = {
     // Start-up
     is_setup_completed: () => s.setupCompleted,
@@ -136,7 +148,7 @@ export function installNativeMock(init: MockInit): void {
     get_autostart_enabled: () => settings.autostart_enabled,
     get_start_minimized: () => settings.start_minimized,
     get_current_model: () => s.currentModel,
-    get_overlay_theme: () => settings.overlay_theme,
+    get_overlay_settings: () => overlayView(),
 
     // Model and engine
     load_model: (a) => {
@@ -305,9 +317,19 @@ export function installNativeMock(init: MockInit): void {
       settings.saved_themes = [{ ...a.theme, modified: Date.now() }, ...stored.filter((t) => t.id !== a.theme.id)];
       return settings.saved_themes;
     },
-    set_overlay_theme: field("overlay_theme", "theme"),
-    set_overlay_size: field("overlay_size", "size"),
-    save_overlay_position: () => null,
+    // Like the real ones: each change is announced to every window as the whole overlay view.
+    set_overlay_theme: (a) => announced("overlay_theme", a.theme),
+    set_overlay_size: (a) => announced("overlay_size", a.size),
+    set_overlay_look: (a) => announced("overlay_look", a.look),
+    set_overlay_placement: (a) => announced("overlay_placement", a.placement),
+    // The real overlay dragged: it leaves the six spots, at a share of the screen.
+    save_overlay_position: (a) =>
+      announced("overlay_placement", {
+        ...(settings.overlay_placement as object),
+        spot: "free",
+        free: { x: Math.min(1, a.x / 1676), y: Math.min(1, a.y / 940) },
+      }),
+    list_screens: () => s.screens,
 
     // Settings page
     set_autostart_enabled: field("autostart_enabled", "enabled"),
@@ -374,6 +396,7 @@ export function installNativeMock(init: MockInit): void {
       return null;
     },
     "plugin:window|close": () => null,
+    "plugin:window|start_dragging": () => null,
   };
 
   async function invoke(cmd: string, args?: any): Promise<unknown> {

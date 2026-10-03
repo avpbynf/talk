@@ -1,10 +1,13 @@
+import { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { startLanguageSync } from "./i18n";
 import App from "./App";
-import OverlayPage from "./pages/OverlayPage";
 import "./index.css";
 import { applyCachedTheme } from "./lib/theme-cache";
+
+// The overlay's drawing code is the overlay window's, and the main window loads it only for the preview.
+const OverlayPage = lazy(() => import("./pages/OverlayPage"));
 
 // The overlay is a webview of its own, so both windows run this and follow the same choice.
 void startLanguageSync();
@@ -17,7 +20,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<App />} />
-      <Route path="/overlay" element={<OverlayPage />} />
+      <Route path="/overlay" element={<Suspense fallback={null}><OverlayPage /></Suspense>} />
     </Routes>
   </BrowserRouter>,
 );

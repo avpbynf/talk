@@ -41,7 +41,7 @@ test.describe("overlay route", () => {
   test("opens without the shell and without complaint", async ({ app, page }) => {
     await app.open({ path: "/overlay", bare: true });
     await expect(page.getByRole("navigation")).toHaveCount(0);
-    await expect.poll(async () => (await app.calls("get_overlay_theme")).length).toBe(1);
+    await expect.poll(async () => (await app.calls("get_overlay_settings")).length).toBe(1);
   });
 
   test("takes a recording starting and being cancelled without complaint", async ({ app, page }) => {

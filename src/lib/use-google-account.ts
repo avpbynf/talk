@@ -87,5 +87,5 @@ export function useGoogleAccount() {
     }
   }, []);
 
-  return { status, busy, failure, run, signOut, cancelSignIn };
+  return { status, busy, failure, run, signOut, cancelSignIn, refresh };
 }

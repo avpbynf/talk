@@ -9,6 +9,7 @@ mod hotkeys;
 mod keystroke;
 mod models;
 mod overlay;
+mod overlay_feedback;
 mod overlay_settings;
 mod placement;
 mod paths;
@@ -88,6 +89,14 @@ pub struct AppState {
     /// window shared by all of them, and this is what tells the last one out
     /// to turn the light off.
     pub jobs_in_flight: AtomicUsize,
+    /// Until when the overlay is held up to say what a paste or a refusal just said. A job
+    /// letting go of the overlay inside that time leaves it to the hold's own end.
+    pub overlay_hold_until: Mutex<Option<std::time::Instant>>,
+    /// What the running transcription last told the overlay, `transcribing` or `streaming`
+    /// (a server), so that giving the overlay back to it says the same.
+    pub job_state: Mutex<&'static str>,
+    /// Counts what took the overlay, so an old timer cannot hide a newer state
+    pub overlay_gen: overlay_feedback::Generation,
     /// Dictations chained while earlier ones are still being transcribed
     pub dictation_queue: Mutex<dictation_queue::DictationQueue>,
     /// How chained dictations are pasted, recalled and cancelled
@@ -127,6 +136,9 @@ impl Default for AppState {
             history_limit: Mutex::new(100),
             show_main_window_pending: Mutex::new(false),
             jobs_in_flight: AtomicUsize::new(0),
+            overlay_hold_until: Mutex::new(None),
+            job_state: Mutex::new("transcribing"),
+            overlay_gen: Default::default(),
             dictation_queue: Mutex::new(dictation_queue::DictationQueue::default()),
             queue_settings: Mutex::new(dictation_queue::QueueSettings::default()),
             model_loading: AtomicBool::new(false),
@@ -604,16 +616,10 @@ fn set_overlay_size(app: tauri::AppHandle, size: settings::OverlaySize) -> Resul
 }
 
 #[tauri::command]
-fn get_overlay_theme() -> settings::OverlayTheme {
-    settings::load_settings().overlay_theme
-}
-
-#[tauri::command]
 fn set_overlay_theme(app: tauri::AppHandle, theme: settings::OverlayTheme) -> Result<(), String> {
     let mut app_settings = settings::load_settings();
     app_settings.overlay_theme = theme;
     settings::save_settings(&app_settings)?;
-    let _ = app.emit("overlay-theme-changed", theme);
     overlay::announce(&app);
     Ok(())
 }
@@ -1358,7 +1364,6 @@ pub fn run() {
             save_overlay_position,
             list_screens,
             set_overlay_size,
-            get_overlay_theme,
             set_overlay_theme,
             get_overlay_settings,
             set_overlay_look,
