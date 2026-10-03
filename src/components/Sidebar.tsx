@@ -13,11 +13,14 @@ export interface NavItem<Id extends string = string> {
   label: string;
 }
 
-export type StatusTone = "ok" | "warn" | "bad" | "idle";
+export type StatusTone = "warn" | "bad";
 
+/** Something wrong or under way with the engine; there is no status when all is well. */
 export interface EngineStatus {
   label: string;
   tone: StatusTone;
+  /** Still in progress, so the dot pulses. */
+  busy?: boolean;
 }
 
 interface SidebarProps<Id extends string> {
@@ -27,17 +30,15 @@ interface SidebarProps<Id extends string> {
   /** The page the account entry opens. */
   accountTarget: Id;
   onNavigate: (id: Id) => void;
-  status: EngineStatus;
+  status: EngineStatus | null;
   onStatusClick?: () => void;
 }
 
 const STORAGE_KEY = "talk.sidebar.collapsed";
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
-const TONE_COLOR: Record<StatusTone, string> = {
-  ok: "bg-success",
-  warn: "bg-warning",
-  bad: "bg-destructive",
-  idle: "bg-muted-foreground/60",
+const TONE_PILL: Record<StatusTone, string> = {
+  warn: "text-warning border-warning/40 bg-warning/10",
+  bad: "text-destructive border-destructive/40 bg-destructive/10",
 };
 
 const LABEL =
@@ -197,14 +198,24 @@ export function Sidebar<Id extends string>({
         {top.map(renderItem)}
         <div className="flex-1" />
 
-        <button
-          onClick={onStatusClick}
-          title={status.label}
-          className="shrink-0 mb-2 ml-[14px] self-start max-w-full flex items-center gap-2 h-[22px] text-xs text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)] rounded"
-        >
-          <i className={cn("h-[7px] w-[7px] shrink-0 rounded-full", TONE_COLOR[status.tone])} />
-          <span className={cn("truncate", LABEL)}>{status.label}</span>
-        </button>
+        {status && (
+          <button
+            onClick={onStatusClick}
+            title={status.label}
+            className={cn(
+              "shrink-0 mb-2 self-start max-w-full flex items-center justify-center gap-2 h-[22px] pl-2 pr-2.5 rounded-full border text-xs font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)] group-data-[collapsed=true]/side:w-[22px] group-data-[collapsed=true]/side:px-0",
+              TONE_PILL[status.tone],
+            )}
+          >
+            <i
+              className={cn(
+                "h-[7px] w-[7px] shrink-0 rounded-full bg-current",
+                status.busy && "animate-pulse motion-reduce:animate-none",
+              )}
+            />
+            <span className="truncate group-data-[collapsed=true]/side:hidden">{status.label}</span>
+          </button>
+        )}
 
         {bottom.map(renderItem)}
 
