@@ -570,7 +570,7 @@
     },
     "google": {
       "title": "Sync your machines",
-      "subtitle": "Optional, and you can do it later in Settings",
+      "subtitle": "Optional, and you can do it later on the Account page",
       "skip": "Skip"
     },
     "complete": {
@@ -594,6 +594,7 @@
     }
   },
   "account": {
+    "subtitle": "Keep your settings and statistics in step across your machines",
     "title": "Account",
     "hint": "Optional. Signing in only syncs your settings, statistics and history between your machines, through your own Google Drive.",
     "unavailable": "Sign-in is not available in this build.",
@@ -601,6 +602,28 @@
     "signingIn": "Waiting for the browser",
     "cancelSignIn": "Cancel",
     "signedInAs": "Signed in as {{email}}",
+    "provider": "Google Drive",
+    "follows": {
+      "title": "What follows your account",
+      "shortcuts": "Shortcuts and companions",
+      "recording": "Recording mode and chained dictations",
+      "vocabulary": "Vocabulary",
+      "sounds": "Feedback sounds",
+      "themes": "App and overlay look",
+      "language": "Language",
+      "startup": "Start with Windows and minimized",
+      "system": "Volume ducking and clipboard",
+      "meeting": "Meeting mode"
+    },
+    "stays": {
+      "title": "Stays on each PC",
+      "audio": "Microphone and output",
+      "gpu": "Graphics card",
+      "model": "Model",
+      "server": "Server and token",
+      "overlay": "Overlay position",
+      "history": "History size"
+    },
     "syncNow": "Sync now",
     "signOut": "Sign out",
     "syncing": "Syncing",

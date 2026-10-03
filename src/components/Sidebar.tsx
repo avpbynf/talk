@@ -65,12 +65,9 @@ export function Sidebar<Id extends string>({
   const reduced = useReducedMotion() ?? false;
   const { status: account } = useGoogleAccount();
   const [collapsed, setCollapsed] = useState(readCollapsed);
-  // The account entry opens a page that also has its own link; which of the two
-  // the highlight sits on is whichever was clicked last.
-  const [viaAccount, setViaAccount] = useState(false);
 
   const topIds = top.map((item) => item.id as string);
-  const activeKey = viaAccount && current === accountTarget ? "account" : current;
+  const activeKey = current === accountTarget ? "account" : current;
   const groupOf = (key: string) => (topIds.includes(key) ? "top" : "bottom");
 
   const buttons = useRef(new Map<string, HTMLElement>());
@@ -149,10 +146,7 @@ export function Sidebar<Id extends string>({
       <button
         key={item.id}
         ref={track(item.id)}
-        onClick={() => {
-          setViaAccount(false);
-          onNavigate(item.id);
-        }}
+        onClick={() => onNavigate(item.id)}
         aria-current={active ? "page" : undefined}
         title={item.label}
         className={cn(
@@ -223,10 +217,7 @@ export function Sidebar<Id extends string>({
 
         <button
           ref={track("account")}
-          onClick={() => {
-            setViaAccount(true);
-            onNavigate(accountTarget);
-          }}
+          onClick={() => onNavigate(accountTarget)}
           aria-current={accountActive ? "page" : undefined}
           title={email ?? t("sidebar.account.title")}
           className={cn(

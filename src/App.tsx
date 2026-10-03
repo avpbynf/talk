@@ -10,6 +10,7 @@ import { PageTransition } from "@/components/PageTransition";
 import HistoryView from "@/views/HistoryView";
 import TranscriptionView from "@/views/transcription/TranscriptionView";
 import VocabularyView from "@/views/VocabularyView";
+import AccountView from "@/views/AccountView";
 import DictationView from "@/views/DictationView";
 import PreferencesView from "@/views/PreferencesView";
 import AppearanceView from "@/views/AppearanceView";
@@ -123,7 +124,7 @@ interface SavedTranscription {
   charCount: number;
 }
 
-type View = "analytics" | "history" | "transcription" | "vocabulary" | "dictation" | "preferences" | "appearance";
+type View = "analytics" | "history" | "transcription" | "vocabulary" | "dictation" | "preferences" | "appearance" | "account";
 
 function App() {
   const { t } = useTranslation();
@@ -515,7 +516,8 @@ function App() {
     { id: "appearance", icon: Palette, label: t("common.nav.appearance") },
     { id: "preferences", icon: Settings, label: t("common.nav.settings") },
   ];
-  const navOrder = [...navItemsTop, ...navItemsBottom].map((item) => item.id);
+  const navOrder: View[] = [...navItemsTop, ...navItemsBottom].map((item) => item.id);
+  navOrder.push("account");
 
   // Only what is wrong or under way; nothing at all when dictation is ready.
   const engineStatus: EngineStatus | null = (() => {
@@ -562,7 +564,7 @@ function App() {
         top={navItemsTop}
         bottom={navItemsBottom}
         current={currentView}
-        accountTarget="preferences"
+        accountTarget="account"
         onNavigate={setCurrentView}
         status={engineStatus}
         onStatusClick={() => setCurrentView("transcription")}
@@ -845,6 +847,7 @@ function App() {
             }}
           />
         )}
+        {view === "account" && <AccountView />}
         {view === "preferences" && (
           <PreferencesView
             autostartEnabled={autostartEnabled}

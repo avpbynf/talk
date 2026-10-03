@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import AccountSection, { type GoogleStatus } from "./AccountSection";
+import AccountView, { type GoogleStatus } from "./AccountView";
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn().mockResolvedValue(undefined) }));
 
@@ -27,11 +27,11 @@ beforeEach(() => {
   vi.mocked(invoke).mockReset();
 });
 
-describe("AccountSection", () => {
+describe("AccountView", () => {
   it("clamps a long sync error to three lines and keeps the whole text in the tooltip", async () => {
     const long = "Something went wrong with Drive. ".repeat(40).trim();
     answer({ ...signedOut, email: "me@example.com", lastError: long });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     const line = await screen.findByText(/Last sync failed: Something went wrong/);
     expect(line).toHaveClass("line-clamp-3");
@@ -45,7 +45,7 @@ describe("AccountSection", () => {
       email: "me@example.com",
       lastError: "API disabled. Enable it by visiting https://console.example.com/apis?project=1 then retry.",
     });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     const link = await screen.findByRole("link", { name: "https://console.example.com/apis?project=1" });
     await userEvent.click(link);
@@ -54,16 +54,38 @@ describe("AccountSection", () => {
 
   it("offers to sign in, and says what signing in does", async () => {
     answer(signedOut);
-    render(<AccountSection />);
+    render(<AccountView />);
 
     expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeInTheDocument();
     expect(screen.getByText(/only syncs your settings, statistics and history/)).toBeInTheDocument();
     expect(document.querySelector("svg.rounded-full")).toBeNull();
   });
 
+  it("signed out, titles the page and lists what an account would carry", async () => {
+    answer(signedOut);
+    render(<AccountView />);
+
+    expect(await screen.findByRole("heading", { name: "Account" })).toBeInTheDocument();
+    expect(screen.getByText("What follows your account")).toBeInTheDocument();
+    expect(screen.getByText("Vocabulary")).toBeInTheDocument();
+    expect(screen.getByText("Stays on each PC")).toBeInTheDocument();
+    expect(screen.getByText("Graphics card")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+  });
+
+  it("signed in, names the provider and keeps the same lists below the address", async () => {
+    answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now() });
+    render(<AccountView />);
+
+    expect(await screen.findByText("Google Drive")).toBeInTheDocument();
+    expect(screen.getByText("Shortcuts and companions")).toBeInTheDocument();
+    expect(screen.getByText("Server and token")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign in with Google" })).not.toBeInTheDocument();
+  });
+
   it("says so when the build carries no Google credentials", async () => {
     answer({ ...signedOut, available: false });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     expect(await screen.findByText("Sign-in is not available in this build.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign in with Google" })).not.toBeInTheDocument();
@@ -71,9 +93,9 @@ describe("AccountSection", () => {
 
   it("shows who is signed in and when it last synced", async () => {
     answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now() });
-    render(<AccountSection />);
+    render(<AccountView />);
 
-    expect(await screen.findByText("Signed in as me@example.com")).toBeInTheDocument();
+    expect(await screen.findByText("me@example.com")).toBeInTheDocument();
     expect(screen.getByText(/Last synced at/)).toBeInTheDocument();
     expect(document.querySelector('svg[aria-hidden="true"].rounded-full')).not.toBeNull();
     expect(screen.getByRole("button", { name: "Sync now" })).toBeInTheDocument();
@@ -82,31 +104,31 @@ describe("AccountSection", () => {
 
   it("shows the error of the last sync instead of a time", async () => {
     answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now(), lastError: "offline" });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     expect(await screen.findByText("Last sync failed: offline")).toBeInTheDocument();
   });
 
   it("says when the settings are not uploaded because the file could not be read", async () => {
     answer({ ...signedOut, email: "me@example.com", settingsUploadBlocked: true });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     expect(await screen.findByText(/settings are not being uploaded/)).toBeInTheDocument();
   });
 
   it("signing in asks the backend and then shows the account", async () => {
     answer(signedOut, { google_sign_in: { ...signedOut, email: "me@example.com" } });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     await userEvent.click(await screen.findByRole("button", { name: "Sign in with Google" }));
 
     expect(invoke).toHaveBeenCalledWith("google_sign_in");
-    expect(await screen.findByText("Signed in as me@example.com")).toBeInTheDocument();
+    expect(await screen.findByText("me@example.com")).toBeInTheDocument();
   });
 
   it("signing out goes back to the sign-in button", async () => {
     answer({ ...signedOut, email: "me@example.com" }, { google_sign_out: signedOut });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     await userEvent.click(await screen.findByRole("button", { name: "Sign out" }));
 
@@ -125,7 +147,7 @@ describe("AccountSection", () => {
       }
       return undefined;
     });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: "Sign in with Google" }));
@@ -141,7 +163,7 @@ describe("AccountSection", () => {
 
   it("syncing now asks the backend", async () => {
     answer({ ...signedOut, email: "me@example.com" });
-    render(<AccountSection />);
+    render(<AccountView />);
 
     await userEvent.click(await screen.findByRole("button", { name: "Sync now" }));
 
