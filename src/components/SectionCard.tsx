@@ -46,7 +46,7 @@ export function SectionCard({
       )}
     >
       <div>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <Title
             {...(fold && { onClick: fold.onToggle, "aria-expanded": fold.open })}
             className={cn(

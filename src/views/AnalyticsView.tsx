@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Keyboard, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -20,7 +20,7 @@ import { ActivityChart } from "@/views/analytics/ActivityChart";
 import { CostComparison } from "@/views/analytics/CostComparison";
 import { SubscriptionComparison } from "@/views/analytics/SubscriptionComparison";
 import { TimeSaved } from "@/views/analytics/TimeSaved";
-import { TypingGame } from "@/views/analytics/TypingGame";
+import { TypingTestDialog } from "@/views/analytics/TypingTestDialog";
 
 interface AnalyticsViewProps {
   transcriptionMode: TranscriptionMode;
@@ -41,7 +41,7 @@ export default function AnalyticsView({
 }: AnalyticsViewProps) {
   const { t } = useTranslation();
   const [userWpm, setUserWpm] = useState<number>(() => loadUserWpm());
-  const [showGame, setShowGame] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
   // Not persisted: every start opens on all devices.
   const [scope, setScope] = useState<DeviceScope>("all");
@@ -109,14 +109,24 @@ export default function AnalyticsView({
       wide
       className="w-full"
       overlay={
-        <ConfirmDialog
-          open={confirmReset}
-          title={t("dashboard.reset.title")}
-          description={t("dashboard.reset.description")}
-          confirmIcon={<Trash2 className="h-4 w-4 mr-2" />}
-          onCancel={() => setConfirmReset(false)}
-          onConfirm={handleResetStats}
-        />
+        <>
+          <ConfirmDialog
+            open={confirmReset}
+            title={t("dashboard.reset.title")}
+            description={t("dashboard.reset.description")}
+            confirmIcon={<Trash2 className="h-4 w-4 mr-2" />}
+            onCancel={() => setConfirmReset(false)}
+            onConfirm={handleResetStats}
+          />
+          <TypingTestDialog
+            open={testOpen}
+            onClose={() => setTestOpen(false)}
+            onWpmMeasured={(wpm) => {
+              setUserWpm(wpm);
+              setTestOpen(false);
+            }}
+          />
+        </>
       }
     >
       <ReadyBand
@@ -158,7 +168,7 @@ export default function AnalyticsView({
             <TimeSaved
               summary={summary}
               userWpm={userWpm}
-              onRecalibrate={() => setShowGame(true)}
+              onRecalibrate={() => setTestOpen(true)}
             />
           </div>
 
@@ -166,31 +176,6 @@ export default function AnalyticsView({
               period above says, so it answers a different question and
               does not need to be in the way to do it. */}
           <ActivityChart yearlyActivity={yearlyActivity} />
-
-          {showGame ? (
-            <TypingGame
-              onWpmMeasured={(wpm) => {
-                setUserWpm(wpm);
-                setShowGame(false);
-              }}
-            />
-          ) : (
-            <button
-              onClick={() => setShowGame(true)}
-              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl border border-border-card bg-surface-raised text-sm text-muted-foreground hover:bg-surface-active hover:text-foreground hover:border-border-hover transition-all duration-200 group"
-            >
-              <div className="flex items-center gap-3">
-                <Keyboard
-                  size={16}
-                  className="text-muted-foreground/60 group-hover:text-[var(--color-active)] transition-colors"
-                />
-                <span>{t("dashboard.testTypingSpeed")}</span>
-              </div>
-              <span className="text-xs text-muted-foreground/80 bg-surface-active px-2.5 py-1 rounded-md">
-                {t("dashboard.wpm", { wpm: userWpm })}
-              </span>
-            </button>
-          )}
         </>
       ) : (
         <div className="py-16 text-center text-muted-foreground">{t("common.loading")}</div>

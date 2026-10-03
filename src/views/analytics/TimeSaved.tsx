@@ -1,4 +1,5 @@
-import { Timer } from "lucide-react";
+import { Keyboard, Timer } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/SectionCard";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -31,7 +32,21 @@ function formatTime(minutes: number, t: TFunction): string {
 export function TimeSaved({ summary, userWpm, onRecalibrate }: TimeSavedProps) {
   const { t } = useTranslation();
   return (
-    <SectionCard icon={Timer} title={t("dashboard.timeSaved.title")}>
+    <SectionCard
+      icon={Timer}
+      title={t("dashboard.timeSaved.title")}
+      action={
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRecalibrate}
+          className="text-[var(--color-active)] hover:text-[var(--color-active)]"
+        >
+          <Keyboard />
+          {t("dashboard.timeSaved.retest")}
+        </Button>
+      }
+    >
       <div>
         <div className="text-center py-2">
           <div
@@ -46,15 +61,7 @@ export function TimeSaved({ summary, userWpm, onRecalibrate }: TimeSavedProps) {
         <div className="h-px bg-border-subtle" />
 
         <Row label={t("dashboard.timeSaved.typingSpeed")}>
-          <span className="inline-flex items-baseline gap-2.5">
-            <span>{t("dashboard.wpm", { wpm: userWpm })}</span>
-            <button
-              onClick={onRecalibrate}
-              className="text-[11px] text-[var(--color-active)] hover:underline whitespace-nowrap"
-            >
-              {t("dashboard.timeSaved.retest")}
-            </button>
-          </span>
+          {t("dashboard.wpm", { wpm: userWpm })}
         </Row>
         <Row label={t("dashboard.timeSaved.wordsDictated")}>{formatNumber(summary.totalWords)}</Row>
         <Row label={t("dashboard.timeSaved.typingThatOut")}>{t("dashboard.timeSaved.plainMinutes", { m: formatNumber(Math.round(summary.timeSavedMinutes)) })}</Row>
