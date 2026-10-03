@@ -308,6 +308,11 @@ scrolls once it reaches the bottom of the window, while the field to add terms s
 The sidebar pill that reads Loading model only ever appeared when you loaded a model by hand. At
 launch, while the last model was coming back, it stayed empty. It now shows for that wait too.
 
+- (window) Stop the options that slide open from moving when your system reduces motion
+
+The extra options under feedback sounds, companion shortcuts and the system settings slid in even
+with reduced motion on. They now appear at once.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
