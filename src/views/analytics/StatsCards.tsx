@@ -70,7 +70,7 @@ export function StatsCards({ summary, userWpm }: StatsCardsProps) {
   const waiting = t("dashboard.stats.notMeasured");
 
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-4 gap-3 @max-[700px]:grid-cols-2">
       <StatCard
         label={t("dashboard.stats.dictations")}
         value={formatNumber(summary.totalTranscriptions)}

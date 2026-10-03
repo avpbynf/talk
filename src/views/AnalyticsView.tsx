@@ -139,7 +139,7 @@ export default function AnalyticsView({
       />
 
       {/* The filter moves everything below it and nothing above. */}
-      <div className="flex items-center justify-between pt-1">
+      <div className="flex items-center justify-between gap-2 pt-1 @max-[700px]:flex-col @max-[700px]:items-stretch">
         <PeriodFilter value={period} onChange={setPeriod} />
         <div className="flex items-center gap-2">
           {hasRemote && <DeviceScopeFilter value={scope} onChange={setScope} />}
@@ -162,7 +162,7 @@ export default function AnalyticsView({
 
           <Facts summary={summary} />
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4 @max-[700px]:grid-cols-1">
             <CostComparison summary={summary} />
             <SubscriptionComparison summary={summary} />
             <TimeSaved

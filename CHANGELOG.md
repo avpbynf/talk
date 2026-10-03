@@ -198,6 +198,13 @@ and the result only replaces your typing speed when you keep it. Once the senten
 Escape and a click outside do nothing, so a result is never lost by accident: keep it or discard it.
 The full-width button at the bottom of the dashboard is gone.
 
+- (dashboard) Fit the dashboard to the width it is given
+
+The dashboard now follows the width of its own page rather than the screen. When it is narrow, which
+includes the default window, the period and device filters each take a full row, the four figures
+and the four facts go two by two, and the three comparison cards stack. Labels in the facts strip
+wrap between words instead of being cut off.
+
 ### Bug Fixes
 
 - (preferences) Never lose your vocabulary to a sync
