@@ -96,9 +96,28 @@ test.describe("vocabulary", () => {
   });
 
   test("reorders from the keyboard", async ({ app, page }) => {
-    await page.getByRole("button", { name: "Reorder Whisper" }).focus();
+    const handle = page.getByRole("button", { name: "Reorder Whisper" });
+    const announced = page.locator('[id^="DndLiveRegion"]');
+    // dnd-kit arms its keyboard listener a moment after the pick-up, with nothing on the page to
+    // say when, and an arrow pressed before that is dropped. It calls preventDefault on the ones
+    // it takes, so the arrow is pressed until the page reports it was taken, then pressed no more.
+    await page.evaluate(() => {
+      const probe = window as unknown as { __arrowTaken: boolean };
+      probe.__arrowTaken = false;
+      window.addEventListener("keydown", (e) => {
+        if (e.code === "ArrowRight") probe.__arrowTaken = e.defaultPrevented;
+      });
+    });
+    await handle.focus();
     await page.keyboard.press("Space");
-    await page.keyboard.press("ArrowRight");
+    await expect(announced).toContainText("moved over droppable area Whisper");
+    await expect
+      .poll(async () => {
+        await page.keyboard.press("ArrowRight");
+        return page.evaluate(() => (window as unknown as { __arrowTaken: boolean }).__arrowTaken);
+      })
+      .toBe(true);
+    await expect(announced).toContainText("moved over droppable area Tauri");
     await page.keyboard.press("Space");
 
     const expected = ["Talk", "Tauri", "Whisper", "VB-Cable", "Vulkan", "Marta", "Daniel"];
