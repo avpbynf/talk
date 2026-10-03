@@ -292,6 +292,15 @@
 .stagger-item:nth-child(7) { animation-delay: 0.14s; }
 .stagger-item:nth-child(8) { animation-delay: 0.16s; }
 
+/* The entrances above are CSS, so the motion library's own reduced-motion handling never sees them. */
+@media (prefers-reduced-motion: reduce) {
+  .slide-enter,
+  .stagger-item,
+  .tooltip-enter {
+    animation: none;
+  }
+}
+
 /* ===== BUTTON & INTERACTIVE STATES ===== */
 
 /* Hover lift effect */
