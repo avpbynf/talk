@@ -68,7 +68,7 @@ export function PageShell({
     <div className={cn("relative h-full flex flex-col overflow-hidden", className)}>
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-6">
-          <div className={cn("mx-auto space-y-6", wide ? "max-w-5xl" : "max-w-2xl")}>
+          <div data-page-blocks className={cn("mx-auto space-y-6", wide ? "max-w-5xl" : "max-w-2xl")}>
             {header}
             {children}
           </div>

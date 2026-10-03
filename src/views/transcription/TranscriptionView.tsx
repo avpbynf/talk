@@ -93,7 +93,6 @@ export default function TranscriptionView({
       title={t("transcription.title")}
       subtitle={t("transcription.subtitle")}
       separator={false}
-      className="view-enter"
     >
       {/* Mode selector */}
       <div className="grid grid-cols-2 gap-2">

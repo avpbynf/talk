@@ -4,8 +4,9 @@ import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/serv
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { History, Cpu, Settings, BookA, Palette, LayoutDashboard } from "lucide-react";
-import { Titlebar } from "@/components/Titlebar";
-import { cn } from "@/lib/utils";
+import { CaptionStrip } from "@/components/CaptionStrip";
+import { Sidebar, type EngineStatus, type NavItem } from "@/components/Sidebar";
+import { PageTransition } from "@/components/PageTransition";
 import HistoryView from "@/views/HistoryView";
 import TranscriptionView from "@/views/transcription/TranscriptionView";
 import VocabularyView from "@/views/VocabularyView";
@@ -502,16 +503,35 @@ function App() {
     return () => clearInterval(interval);
   }, [transcriptionMode, serverUrl]);
 
-  const navItemsTop = [
-    { id: "analytics" as View, icon: LayoutDashboard, label: t("common.nav.dashboard") },
-    { id: "history" as View, icon: History, label: t("common.nav.history") },
-    { id: "vocabulary" as View, icon: BookA, label: t("common.nav.vocabulary") },
+  const navItemsTop: NavItem<View>[] = [
+    { id: "analytics", icon: LayoutDashboard, label: t("common.nav.dashboard") },
+    { id: "history", icon: History, label: t("common.nav.history") },
+    { id: "vocabulary", icon: BookA, label: t("common.nav.vocabulary") },
   ];
-  const navItemsBottom = [
-    { id: "appearance" as View, icon: Palette, label: t("common.nav.appearance") },
-    { id: "transcription" as View, icon: Cpu, label: t("common.nav.transcription") },
-    { id: "preferences" as View, icon: Settings, label: t("common.nav.preferences") },
+  const navItemsBottom: NavItem<View>[] = [
+    { id: "appearance", icon: Palette, label: t("common.nav.appearance") },
+    { id: "transcription", icon: Cpu, label: t("common.nav.transcription") },
+    { id: "preferences", icon: Settings, label: t("common.nav.preferences") },
   ];
+  const navOrder = [...navItemsTop, ...navItemsBottom].map((item) => item.id);
+
+  // What is answering dictations, kept where the old title bar showed it.
+  const engineStatus: EngineStatus = (() => {
+    if (transcriptionMode === "server" && !serverFallback) {
+      if (serverStatus === "online") return { label: t("titlebar.serverConnected"), tone: "ok" };
+      if (serverStatus === "unauthorized") return { label: t("titlebar.tokenRefused"), tone: "bad" };
+      if (serverStatus === "offline") return { label: t("titlebar.serverUnreachable"), tone: "bad" };
+      return { label: t("titlebar.server"), tone: "idle" };
+    }
+    if (transcriptionMode === "server" && serverStatus === "online") {
+      return { label: t("titlebar.serverConnected"), tone: "ok" };
+    }
+    if (currentModel) return { label: currentModel, tone: "ok" };
+    return {
+      label: transcriptionMode === "server" ? t("titlebar.notReady") : t("titlebar.noModel"),
+      tone: "warn",
+    };
+  })();
 
   // Show loading state while checking setup status
   if (setupCompleted === null) {
@@ -536,26 +556,19 @@ function App() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-hidden noise-overlay">
-      {/* Titlebar */}
-      <Titlebar
-        statusLabel={(() => {
-          const isServerMode = transcriptionMode === "server" && !serverFallback;
-          const isHybridMode = transcriptionMode === "server" && serverFallback;
-          if (isServerMode) {
-            return serverStatus === "online"
-              ? t("titlebar.serverConnected")
-              : serverStatus === "unauthorized"
-              ? t("titlebar.tokenRefused")
-              : serverStatus === "offline"
-              ? t("titlebar.serverUnreachable")
-              : t("titlebar.server");
-          } else if (isHybridMode) {
-            return serverStatus === "online" ? t("titlebar.serverConnected") : currentModel || t("titlebar.notReady");
-          }
-          return currentModel || t("titlebar.noModel");
-        })()}
+    <div className="h-full flex bg-background overflow-hidden noise-overlay">
+      <Sidebar
+        top={navItemsTop}
+        bottom={navItemsBottom}
+        current={currentView}
+        accountTarget="preferences"
+        onNavigate={setCurrentView}
+        status={engineStatus}
+        onStatusClick={() => setCurrentView("transcription")}
       />
+
+      <div className="flex-1 min-w-0 flex flex-col">
+      <CaptionStrip />
 
       {/* What a release found on GitHub says for itself, when there is one */}
       <UpdateBanner updater={updater} />
@@ -592,53 +605,10 @@ function App() {
         />
       )}
 
-      {/* Main layout */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-[72px] shrink-0 bg-surface-inset border-r border-border-subtle flex flex-col items-center py-4">
-          {/* Top group */}
-          <div className="flex flex-col gap-2 w-full px-2">
-            {navItemsTop.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setCurrentView(item.id)}
-                className={cn(
-                  "w-full aspect-square flex flex-col items-center justify-center rounded-xl transition-all duration-200 group relative",
-                  currentView === item.id
-                    ? "bg-surface-active text-[var(--color-active)] shadow-sm"
-                    : "text-muted-foreground hover:bg-surface-raised hover:text-foreground"
-                )}
-                title={item.label}
-              >
-                <item.icon size={22} strokeWidth={currentView === item.id ? 2.5 : 2} />
-              </button>
-            ))}
-          </div>
-
-          {/* Bottom group */}
-          <div className="mt-auto flex flex-col gap-2 w-full px-2">
-            {navItemsBottom.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setCurrentView(item.id)}
-                className={cn(
-                  "w-full aspect-square flex flex-col items-center justify-center rounded-xl transition-all duration-200 group relative opacity-80 hover:opacity-100",
-                  currentView === item.id
-                    ? "bg-surface-active text-foreground shadow-sm opacity-100"
-                    : "text-muted-foreground hover:bg-surface-raised hover:text-foreground"
-                )}
-                title={item.label}
-              >
-                <item.icon size={20} strokeWidth={currentView === item.id ? 2.5 : 2} />
-              </button>
-            ))}
-          </div>
-
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1 min-h-0 min-w-0 view-enter" key={currentView}>
-        {currentView === "analytics" && (
+      <PageTransition view={currentView} order={navOrder}>
+        {(view) => (
+          <>
+        {view === "analytics" && (
           <AnalyticsView
             transcriptionMode={transcriptionMode}
             serverStatus={serverStatus}
@@ -648,7 +618,7 @@ function App() {
             shortcut={shortcut}
           />
         )}
-        {currentView === "history" && (
+        {view === "history" && (
           <HistoryView
             transcriptions={transcriptions}
             onClear={() => {
@@ -684,7 +654,7 @@ function App() {
             }}
           />
         )}
-        {currentView === "transcription" && (
+        {view === "transcription" && (
           <TranscriptionView
             models={models}
             downloadedModels={downloadedModels}
@@ -804,13 +774,13 @@ function App() {
             }}
           />
         )}
-        {currentView === "vocabulary" && (
+        {view === "vocabulary" && (
           <VocabularyView
             vocabulary={vocabulary}
             onVocabularyChange={setVocabulary}
           />
         )}
-        {currentView === "appearance" && (
+        {view === "appearance" && (
           <AppearanceView
             overlayTheme={overlayTheme}
             onOverlayThemeChange={async (theme) => {
@@ -830,7 +800,7 @@ function App() {
             }}
           />
         )}
-        {currentView === "preferences" && (
+        {view === "preferences" && (
           <PreferencesView
             recordingMode={recordingMode}
             onRecordingModeChange={async (mode) => {
@@ -900,7 +870,9 @@ function App() {
             updater={updater}
           />
         )}
-      </div>
+          </>
+        )}
+      </PageTransition>
       </div>
     </div>
   );

@@ -136,7 +136,7 @@ export default function VocabularyView({
 
   return (
     <div className="h-full flex flex-col overflow-hidden p-6">
-      <div className="max-w-2xl w-full mx-auto flex-1 min-h-0 flex flex-col gap-6">
+      <div data-page-blocks className="max-w-2xl w-full mx-auto flex-1 min-h-0 flex flex-col gap-6">
         {/* Page title */}
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{t("vocabulary.title")}</h1>

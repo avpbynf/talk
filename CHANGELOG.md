@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (window) Move the navigation into a wider sidebar and slim the title bar down to the window buttons
+
+The sidebar now names its pages, shows the account you are signed in with at the bottom (it opens
+Preferences), and collapses to icons with the thin handle on its right edge; it remembers which
+way you left it. A highlight glides to the page you pick, and pages ease in when you switch,
+unless your system is set to reduce motion. The strip along the top is only the minimize, maximize
+and close buttons now, and what answers your dictations (the loaded model or the server state)
+sits above the settings pages in the sidebar instead of in the title bar.
+
 - (preferences) Show an avatar drawn from your address on the Account card
 
 The Account card now shows a small avatar next to the address you are signed in with. It is
