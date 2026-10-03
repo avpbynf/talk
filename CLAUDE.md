@@ -33,6 +33,22 @@ Bun's own runtime cannot drive the browser (the launch hangs), so `node-win-x64`
 dependency and `bun run` finds its `node`. Go through the scripts and not `bunx playwright`. A
 failing snapshot is looked at before it is regenerated.
 
+The runner has no graphics card, so the suite is also the check on what the window costs when the
+processor paints every layer: `E2E_SOFTWARE=1 bun run test:ui -- --workers 4` draws the same way
+here. Anything that moves behind the content has to be cheap in software: the ambient lights are
+gradients that are soft by construction and move by transform alone, the cards and the sidebar
+carry no `backdrop-filter`, and `frame-budget.ts` pauses the lights when the frames come too slow.
+A blur on a moving layer, or a backdrop blur over one, took that from 60 to 16 frames a second.
+
+The suite walks every page, and the Appearance page in particular: it opens clean at the three
+window sizes, every shipped preset keeps the dashboard past the axe contrast check, an unreadable
+base colour is corrected and announced, saved themes can be saved, removed and undone, the gradient
+editor works from the keyboard, and the window buttons sit on either side, collapsed sidebar
+included. A damaged cached theme must still boot to a visible window. The gradient editor has no
+pixel snapshot on purpose. A test waits on the condition it needs (`app.settle()`,
+`themeSettled()`, a polled axe run) and never on a delay: dnd-kit drops an arrow key pressed in the
+tick after a pick-up, so the vocabulary test presses until the page says the key was taken.
+
 Call cargo through `test:rust` and not directly. `cargo test` on its own inherits
 whatever environment the shell has, and without the MSVC one loaded the native
 build fails in ways that read like a Rust error.

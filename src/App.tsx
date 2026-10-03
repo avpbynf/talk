@@ -19,7 +19,7 @@ import SetupWizard from "@/pages/SetupWizard";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { ServerOfferBanner } from "@/components/ServerOfferBanner";
 import { NoModelBanner } from "@/components/NoModelBanner";
-import { type AppThemeId, applyAppTheme } from "@/lib/app-themes";
+import { useAppTheme } from "@/lib/use-app-theme";
 import { useUpdater } from "@/lib/use-updater";
 import { useServerOffer } from "@/lib/use-server-offer";
 import { usePendingPairings } from "@/lib/share";
@@ -55,7 +55,6 @@ export type AcceleratorBackend = "cpu" | "vulkan";
 export type GpuVendor = "vulkan" | "cpu";
 export type OverlaySize = "small" | "medium" | "large";
 export type OverlayTheme = "aurora" | "sunset" | "ocean" | "neon" | "frost" | "neutral";
-export type AppTheme = "talk-dark" | "talk-light" | "zed" | "vscode-dark" | "vscode-light" | "dracula" | "nord" | "catppuccin-mocha" | "github-light";
 export type TranscriptionMode = "local" | "server";
 
 export type CompanionShortcut = {
@@ -91,7 +90,8 @@ interface SavedSettings {
   accelerator_backend: AcceleratorBackend;
   overlay_size: OverlaySize;
   overlay_theme: OverlayTheme;
-  app_theme: AppTheme;
+  theme?: unknown;
+  saved_themes?: unknown;
   vocabulary: string[];
   transcription_mode: TranscriptionMode;
   server_url: string;
@@ -174,7 +174,7 @@ function App() {
   const [companionShortcuts, setCompanionShortcuts] = useState<CompanionShortcut[]>([]);
   const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("frost");
   const [overlaySize, setOverlaySize] = useState<OverlaySize>("small");
-  const [appTheme, setAppTheme] = useState<AppThemeId>("talk-dark");
+  const appTheme = useAppTheme();
   // Matches default_history_limit() on the Rust side. The two drifting apart
   // is what made the sound state show the wrong thing until the settings
   // loaded, so this one starts where Rust starts.
@@ -398,9 +398,7 @@ function App() {
     setOverlayTheme(savedSettings.overlay_theme || "frost");
     setOverlaySize(savedSettings.overlay_size || "small");
 
-    const savedAppTheme = (savedSettings.app_theme || "talk-dark") as AppThemeId;
-    setAppTheme(savedAppTheme);
-    applyAppTheme(savedAppTheme);
+    appTheme.load(savedSettings);
 
     const savedToken = await invoke<string>("get_server_token").catch(() => "");
     setServerToken(savedToken);
@@ -561,7 +559,15 @@ function App() {
   }
 
   return (
-    <div className="h-full flex bg-background overflow-hidden noise-overlay">
+    <div className="relative isolate h-full flex bg-background overflow-hidden">
+      {appTheme.resolved.values.ambient > 0 && (
+        <div className="amb" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+      )}
+      {appTheme.resolved.values.grain && <div className="grain" aria-hidden="true" />}
       <Sidebar
         top={navItemsTop}
         bottom={navItemsBottom}
@@ -798,11 +804,6 @@ function App() {
               await invoke("set_overlay_size", { size });
             }}
             appTheme={appTheme}
-            onAppThemeChange={async (theme) => {
-              setAppTheme(theme);
-              applyAppTheme(theme);
-              await invoke("set_app_theme", { theme });
-            }}
           />
         )}
         {view === "dictation" && (

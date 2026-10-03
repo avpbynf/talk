@@ -482,10 +482,25 @@
     "title": "Appearance",
     "subtitle": "How the application looks",
     "theme": {
-      "title": "Theme",
-      "description": "The colour scheme the application is drawn in.",
-      "dark": "Dark",
-      "light": "Light"
+      "title": "Themes",
+      "description": "Pick a look, then change whatever you like. Your changes and the themes you save follow your Google account.",
+      "yours": "Your themes",
+      "mine": "yours",
+      "groups": {
+        "gradients": "Gradients",
+        "classics": "Classics"
+      },
+      "light": "light",
+      "edited": "modified",
+      "revert": "Back to the theme",
+      "save": "Save as my theme",
+      "savedName": "My theme {{n}}",
+      "remove": "Remove {{name}}",
+      "reset": "Reset appearance",
+      "saveUnchanged": "Change something first: an unchanged theme is already in the grid",
+      "limit": "You can keep {{max}} saved themes. Remove one to make room for another.",
+      "removed": "Removed {{name}}.",
+      "undo": "Undo"
     },
     "overlay": {
       "title": "Overlay",
@@ -497,17 +512,6 @@
         "large": "Large"
       }
     },
-    "appThemes": {
-      "talk-dark": "Talk Dark",
-      "talk-light": "Talk Light",
-      "zed": "Zed",
-      "vscode-dark": "VS Code Dark",
-      "vscode-light": "VS Code Light",
-      "dracula": "Dracula",
-      "nord": "Nord",
-      "catppuccin-mocha": "Catppuccin Mocha",
-      "github-light": "GitHub Light"
-    },
     "overlayThemes": {
       "aurora": "Aurora",
       "sunset": "Sunset",
@@ -515,6 +519,35 @@
       "neon": "Neon",
       "frost": "Frost",
       "neutral": "Neutral"
+    },
+    "tabs": {
+      "application": "Application",
+      "overlay": "Recording overlay"
+    },
+    "presets": {
+      "aurora": "Aurora",
+      "ember": "Ember",
+      "lagoon": "Lagoon",
+      "orchid": "Orchid",
+      "graphite": "Graphite",
+      "peach": "Peach",
+      "mist": "Mist",
+      "mint": "Mint",
+      "talk-dark": "Talk Dark",
+      "talk-light": "Talk Light",
+      "zed": "Zed",
+      "vscode-dark": "VS Code Dark",
+      "vscode-light": "VS Code Light",
+      "dracula": "Dracula",
+      "nord": "Nord",
+      "tokyo-night": "Tokyo Night",
+      "catppuccin-mocha": "Catppuccin Mocha",
+      "rose-pine": "Rose Pine",
+      "gruvbox": "Gruvbox",
+      "one-dark": "One Dark",
+      "github-light": "GitHub Light",
+      "catppuccin-latte": "Catppuccin Latte",
+      "solarized-light": "Solarized Light"
     }
   },
   "overlay": {

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, animate, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, animate, motion } from "motion/react";
+import { useReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";

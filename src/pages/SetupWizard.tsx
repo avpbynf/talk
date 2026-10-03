@@ -422,7 +422,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     setServerStatus("unknown");
                   }}
                   placeholder={t("setup.server.placeholder")}
-                  className="w-full h-10 px-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]"
+                  className="w-full h-10 px-3 rounded-lg bg-surface-deep border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]"
                 />
               </div>
 
@@ -437,7 +437,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   }}
                   placeholder={t("setup.server.tokenPlaceholder")}
                   autoComplete="off"
-                  className="w-full h-10 px-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]"
+                  className="w-full h-10 px-3 rounded-lg bg-surface-deep border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]"
                 />
               </div>
 

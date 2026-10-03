@@ -31,10 +31,10 @@ function intensityLevel(count: number, userMax: number): number {
 
 const LEVEL_BG: Record<number, string> = {
   0: "var(--color-surface-active)",
-  1: "color-mix(in oklch, var(--color-active) 20%, var(--color-surface-active))",
-  2: "color-mix(in oklch, var(--color-active) 40%, var(--color-surface-active))",
-  3: "color-mix(in oklch, var(--color-active) 65%, var(--color-surface-active))",
-  4: "var(--color-active)",
+  1: "color-mix(in oklch, var(--ring) 25%, var(--color-surface-active))",
+  2: "color-mix(in oklch, var(--ring) 45%, var(--color-surface-active))",
+  3: "color-mix(in oklch, var(--ring) 70%, var(--color-surface-active))",
+  4: "var(--ring)",
 };
 
 function monthLabel(month: number): string {

@@ -120,8 +120,10 @@ only by the release build.
 
 `test:ui` runs the real frontend in a browser with the native side faked, so it answers whether the
 pages still lay out, move and behave, and it fails on a console error, a command nobody mocked, a
-cut-off label, a control out of reach and a serious accessibility violation. Run it after any change
-to a page, the sidebar or the styles. A change that moves pixels on purpose regenerates the
+cut-off label, a control out of reach and a serious accessibility violation. It also walks the
+Appearance page: every shipped preset must pass the contrast check, and saving, removing and undoing
+a theme, the gradient editor from the keyboard and the window buttons on either side are exercised.
+Run it after any change to a page, the sidebar, the theme or the styles. A change that moves pixels on purpose regenerates the
 baselines, and the new images are reviewed in the diff like code:
 
     bun run test:ui:update
