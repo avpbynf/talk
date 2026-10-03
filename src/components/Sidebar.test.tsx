@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import { History, LayoutDashboard, Settings } from "lucide-react";
-import { Sidebar, type NavItem } from "./Sidebar";
+import { Sidebar, type EngineStatus, type NavItem } from "./Sidebar";
 import type { GoogleStatus } from "@/lib/use-google-account";
 
 type Id = "dash" | "history" | "prefs";
@@ -20,7 +20,7 @@ function answer(status: GoogleStatus) {
   );
 }
 
-function setup(current: Id = "dash") {
+function setup(current: Id = "dash", status: EngineStatus | null = null) {
   const onNavigate = vi.fn();
   render(
     <Sidebar
@@ -29,7 +29,7 @@ function setup(current: Id = "dash") {
       current={current}
       accountTarget="prefs"
       onNavigate={onNavigate}
-      status={{ label: "base", tone: "ok" }}
+      status={status}
     />,
   );
   return onNavigate;
@@ -63,6 +63,28 @@ describe("Sidebar", () => {
 
     expect(await screen.findByText("me@example.com")).toBeInTheDocument();
     expect(screen.getByText("Synced")).toBeInTheDocument();
+  });
+
+  it("shows no status row when nothing is wrong", () => {
+    setup();
+    expect(screen.queryByTitle("No model")).not.toBeInTheDocument();
+  });
+
+  it("shows a status pill that opens the transcription page's handler", async () => {
+    const onStatusClick = vi.fn();
+    render(
+      <Sidebar
+        top={top}
+        bottom={bottom}
+        current="dash"
+        accountTarget="prefs"
+        onNavigate={vi.fn()}
+        status={{ label: "No model", tone: "warn" }}
+        onStatusClick={onStatusClick}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "No model" }));
+    expect(onStatusClick).toHaveBeenCalled();
   });
 
   it("remembers the collapsed state", async () => {

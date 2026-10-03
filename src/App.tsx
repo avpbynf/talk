@@ -515,22 +515,21 @@ function App() {
   ];
   const navOrder = [...navItemsTop, ...navItemsBottom].map((item) => item.id);
 
-  // What is answering dictations, kept where the old title bar showed it.
-  const engineStatus: EngineStatus = (() => {
-    if (transcriptionMode === "server" && !serverFallback) {
-      if (serverStatus === "online") return { label: t("titlebar.serverConnected"), tone: "ok" };
-      if (serverStatus === "unauthorized") return { label: t("titlebar.tokenRefused"), tone: "bad" };
-      if (serverStatus === "offline") return { label: t("titlebar.serverUnreachable"), tone: "bad" };
-      return { label: t("titlebar.server"), tone: "idle" };
+  // Only what is wrong or under way; nothing at all when dictation is ready.
+  const engineStatus: EngineStatus | null = (() => {
+    if (!initialized) return null;
+    const serverMode = transcriptionMode === "server";
+    if (serverMode && serverStatus === "unauthorized") return { label: t("sidebar.status.tokenRefused"), tone: "bad" };
+    if (serverMode && serverStatus === "offline") {
+      if (!serverFallback) return { label: t("sidebar.status.serverUnreachable"), tone: "bad" };
+      if (currentModel) return { label: t("sidebar.status.fallingBack"), tone: "warn" };
     }
-    if (transcriptionMode === "server" && serverStatus === "online") {
-      return { label: t("titlebar.serverConnected"), tone: "ok" };
+    if (serverMode && !serverFallback) return null;
+    if (isLoading) return { label: t("sidebar.status.loadingModel"), tone: "warn", busy: true };
+    if (!currentModel && !(serverMode && serverStatus === "online")) {
+      return { label: t("sidebar.status.noModel"), tone: "warn" };
     }
-    if (currentModel) return { label: currentModel, tone: "ok" };
-    return {
-      label: transcriptionMode === "server" ? t("titlebar.notReady") : t("titlebar.noModel"),
-      tone: "warn",
-    };
+    return null;
   })();
 
   // Show loading state while checking setup status

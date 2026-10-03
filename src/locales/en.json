@@ -18,18 +18,19 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
-    "close": "Close",
-    "server": "Server",
-    "serverConnected": "Server connected",
-    "serverUnreachable": "Server unreachable",
-    "tokenRefused": "Token refused",
-    "notReady": "Not ready",
-    "noModel": "No model"
+    "close": "Close"
   },
   "sidebar": {
     "label": "Main navigation",
     "collapse": "Collapse the sidebar",
     "expand": "Expand the sidebar",
+    "status": {
+      "noModel": "No model",
+      "loadingModel": "Loading model",
+      "serverUnreachable": "Server unreachable",
+      "tokenRefused": "Token refused",
+      "fallingBack": "Using local model"
+    },
     "account": {
       "title": "Account",
       "signedOut": "Signed out"

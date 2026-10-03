@@ -15,8 +15,10 @@ The sidebar now names its pages, shows the account you are signed in with at the
 Preferences), and collapses to icons with the thin handle on its right edge; it remembers which
 way you left it. A highlight glides to the page you pick, and pages ease in when you switch,
 unless your system is set to reduce motion. The strip along the top is only the minimize, maximize
-and close buttons now, and what answers your dictations (the loaded model or the server state)
-sits above the settings pages in the sidebar instead of in the title bar.
+and close buttons now. The title bar's model and server label is gone; when dictation is not
+ready (no model, a model loading, server unreachable, token refused, or a fall back to the local
+model) a small coloured pill says so above the settings pages in the sidebar, and a click opens
+Transcription.
 
 - (preferences) Show an avatar drawn from your address on the Account card
 
