@@ -148,10 +148,14 @@ pub fn type_text(text: &str, preserve_clipboard: bool) -> Result<(), ClipboardEr
 
     let saved = save_clipboard();
 
-    copy_and_paste(text)?;
+    // The user's clipboard comes back whether or not the paste went through: an error in it
+    // would otherwise leave the dictation sitting in their clipboard.
+    let pasted = copy_and_paste(text);
 
-    // Wait for paste to be processed by the target application
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    if pasted.is_ok() {
+        // Wait for paste to be processed by the target application
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 
     match saved {
         Some(snapshot) => restore_clipboard(snapshot),
@@ -164,7 +168,7 @@ pub fn type_text(text: &str, preserve_clipboard: bool) -> Result<(), ClipboardEr
         }
     }
 
-    Ok(())
+    pasted
 }
 
 #[cfg(not(windows))]
