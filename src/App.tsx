@@ -20,6 +20,7 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { ServerOfferBanner } from "@/components/ServerOfferBanner";
 import { NoModelBanner } from "@/components/NoModelBanner";
 import { useAppTheme } from "@/lib/use-app-theme";
+import { readCachedTheme, writeCachedTheme } from "@/lib/theme-cache";
 import { useUpdater } from "@/lib/use-updater";
 import { useServerOffer } from "@/lib/use-server-offer";
 import { usePendingPairings } from "@/lib/share";
@@ -54,6 +55,7 @@ export type RecordingMode = "push_to_talk" | "toggle";
 export type AcceleratorBackend = "cpu" | "vulkan";
 export type GpuVendor = "vulkan" | "cpu";
 export type OverlaySize = "small" | "medium" | "large";
+export type WindowButtonsSide = "left" | "right";
 export type OverlayTheme = "aurora" | "sunset" | "ocean" | "neon" | "frost" | "neutral";
 export type TranscriptionMode = "local" | "server";
 
@@ -92,6 +94,7 @@ interface SavedSettings {
   overlay_theme: OverlayTheme;
   theme?: unknown;
   saved_themes?: unknown;
+  window_buttons?: WindowButtonsSide;
   vocabulary: string[];
   transcription_mode: TranscriptionMode;
   server_url: string;
@@ -175,6 +178,8 @@ function App() {
   const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("frost");
   const [overlaySize, setOverlaySize] = useState<OverlaySize>("small");
   const appTheme = useAppTheme();
+  const [windowButtons, setWindowButtons] = useState<WindowButtonsSide>(() => readCachedTheme().windowButtons);
+  useEffect(() => writeCachedTheme({ windowButtons }), [windowButtons]);
   // Matches default_history_limit() on the Rust side. The two drifting apart
   // is what made the sound state show the wrong thing until the settings
   // loaded, so this one starts where Rust starts.
@@ -399,6 +404,7 @@ function App() {
     setOverlaySize(savedSettings.overlay_size || "small");
 
     appTheme.load(savedSettings);
+    setWindowButtons(savedSettings.window_buttons === "left" ? "left" : "right");
 
     const savedToken = await invoke<string>("get_server_token").catch(() => "");
     setServerToken(savedToken);
@@ -576,10 +582,11 @@ function App() {
         onNavigate={setCurrentView}
         status={engineStatus}
         onStatusClick={() => setCurrentView("transcription")}
+        windowButtons={windowButtons}
       />
 
       <div className="flex-1 min-w-0 flex flex-col">
-      <CaptionStrip />
+      <CaptionStrip buttons={windowButtons === "right"} />
 
       {/* What a release found on GitHub says for itself, when there is one */}
       <UpdateBanner updater={updater} />
@@ -804,6 +811,11 @@ function App() {
               await invoke("set_overlay_size", { size });
             }}
             appTheme={appTheme}
+            windowButtons={windowButtons}
+            onWindowButtonsChange={async (side) => {
+              setWindowButtons(side);
+              await invoke("set_window_buttons", { side });
+            }}
           />
         )}
         {view === "dictation" && (

@@ -641,6 +641,12 @@
         "lively": "Lively",
         "gentle": "Gentle",
         "reduced": "Reduced"
+      },
+      "buttons": {
+        "label": "Window buttons",
+        "hint": "Minimize, maximize and close",
+        "left": "On the left",
+        "right": "On the right"
       }
     }
   },

@@ -7,6 +7,7 @@ import { Blobatar } from "@blobatar/react";
 import "blobatar/motion.css";
 import { cn } from "@/lib/utils";
 import { useGoogleAccount, type GoogleStatus } from "@/lib/use-google-account";
+import { WindowDots } from "@/components/WindowDots";
 
 export interface NavItem<Id extends string = string> {
   id: Id;
@@ -33,6 +34,8 @@ interface SidebarProps<Id extends string> {
   onNavigate: (id: Id) => void;
   status: EngineStatus | null;
   onStatusClick?: () => void;
+  /** Where the window buttons are. On the left they sit in the top row of the sidebar. */
+  windowButtons?: "left" | "right";
 }
 
 const STORAGE_KEY = "talk.sidebar.collapsed";
@@ -61,6 +64,7 @@ export function Sidebar<Id extends string>({
   onNavigate,
   status,
   onStatusClick,
+  windowButtons = "right",
 }: SidebarProps<Id>) {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
@@ -176,10 +180,24 @@ export function Sidebar<Id extends string>({
       transition={reduced ? { duration: 0 } : { duration: 0.55, ease: [0.34, 1.25, 0.64, 1] }}
       className="group/side relative shrink-0 motion-reduce:**:transition-none flex flex-col overflow-hidden bg-surface-inset border-r border-border-subtle pb-2.5"
     >
-      <div data-tauri-drag-region className="h-8 shrink-0 flex items-center pl-[22px] select-none">
-        <span data-tauri-drag-region className={cn("text-[15px] font-semibold tracking-tight", LABEL)}>
+      <div
+        data-tauri-drag-region
+        className={cn(
+          "h-8 shrink-0 flex items-center pl-[22px] select-none",
+          windowButtons === "left" && "justify-between pr-2.5 group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0",
+        )}
+      >
+        <span
+          data-tauri-drag-region
+          className={cn(
+            "text-[15px] font-semibold tracking-tight",
+            windowButtons === "left" && "group-data-[collapsed=true]/side:absolute",
+            LABEL,
+          )}
+        >
           Talk
         </span>
+        {windowButtons === "left" && <WindowDots />}
       </div>
 
       <div ref={listRef} className="relative flex-1 min-h-0 flex flex-col gap-0.5 px-2.5 pt-3">

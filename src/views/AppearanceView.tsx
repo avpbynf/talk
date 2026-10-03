@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { OverlaySize } from "@/App";
+import type { OverlaySize, WindowButtonsSide } from "@/App";
 import type { OverlayThemeId } from "@/lib/overlay-themes";
 import type { AppThemeController } from "@/lib/use-app-theme";
 import { PageShell } from "@/components/PageShell";
@@ -18,6 +18,8 @@ interface AppearanceViewProps {
   overlaySize: OverlaySize;
   onOverlaySizeChange: (size: OverlaySize) => void;
   appTheme: AppThemeController;
+  windowButtons: WindowButtonsSide;
+  onWindowButtonsChange: (side: WindowButtonsSide) => void;
 }
 
 type Tab = "application" | "overlay";
@@ -28,6 +30,8 @@ export default function AppearanceView({
   overlaySize,
   onOverlaySizeChange,
   appTheme,
+  windowButtons,
+  onWindowButtonsChange,
 }: AppearanceViewProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("application");
@@ -51,7 +55,11 @@ export default function AppearanceView({
           <GradientEditor theme={appTheme} />
           <AtmosphereCard theme={appTheme} />
           <BaseColorsCard theme={appTheme} />
-          <ShapeCard theme={appTheme} />
+          <ShapeCard
+            theme={appTheme}
+            windowButtons={windowButtons}
+            onWindowButtonsChange={onWindowButtonsChange}
+          />
         </>
       ) : (
         <OverlaySection

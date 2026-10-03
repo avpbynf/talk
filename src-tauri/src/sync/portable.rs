@@ -18,7 +18,7 @@
 use super::vocabulary::{self, VocabLedger};
 use crate::dictation_queue::QueueSettings;
 use crate::hotkeys::HotkeyConfig;
-use crate::settings::{AppSettings, CompanionShortcut, OverlaySize, OverlayTheme};
+use crate::settings::{AppSettings, CompanionShortcut, OverlaySize, OverlayTheme, WindowButtons};
 use crate::theme::{self, SavedTheme, ThemeSettings, Tombstone};
 use crate::RecordingMode;
 use serde::{Deserialize, Serialize};
@@ -42,6 +42,8 @@ pub struct SyncedSettings {
     pub saved_themes: Vec<SavedTheme>,
     #[serde(deserialize_with = "crate::theme::lenient")]
     pub removed_themes: Vec<Tombstone>,
+    #[serde(deserialize_with = "crate::theme::lenient")]
+    pub window_buttons: WindowButtons,
     pub overlay_size: OverlaySize,
     pub overlay_theme: OverlayTheme,
     pub language: Option<String>,
@@ -75,6 +77,7 @@ impl SyncedSettings {
             theme: settings.theme.clone(),
             saved_themes: settings.saved_themes.clone(),
             removed_themes: settings.removed_themes.clone(),
+            window_buttons: settings.window_buttons,
             overlay_size: settings.overlay_size,
             overlay_theme: settings.overlay_theme,
             language: settings.language.clone(),
@@ -106,6 +109,7 @@ impl SyncedSettings {
         settings.theme = self.theme.clone();
         settings.saved_themes = self.saved_themes.clone();
         settings.removed_themes = self.removed_themes.clone();
+        settings.window_buttons = self.window_buttons;
         settings.overlay_size = self.overlay_size;
         settings.overlay_theme = self.overlay_theme;
         settings.language = self.language.clone();
@@ -129,7 +133,11 @@ impl SyncedSettings {
     /// disk is still there after an upgrade, and without this the first sync would take the
     /// new shape for an edit and upload over what other machines changed.
     pub fn legacy_fingerprint(&self) -> Option<String> {
-        if self.theme.custom.is_some() || !self.saved_themes.is_empty() || !self.removed_themes.is_empty() {
+        if self.theme.custom.is_some()
+            || !self.saved_themes.is_empty()
+            || !self.removed_themes.is_empty()
+            || self.window_buttons != WindowButtons::Right
+        {
             return None;
         }
         let app_theme = self.theme.legacy_name()?;
@@ -285,14 +293,15 @@ impl SettingsFile {
 }
 
 /// Fields read only when this build can read all of them.
-const READABLE: [(&str, fn(&serde_json::Value) -> bool); 3] = [
+const READABLE: [(&str, fn(&serde_json::Value) -> bool); 4] = [
     ("theme", theme::theme_readable),
     ("saved_themes", theme::saved_readable),
     ("removed_themes", |value| serde_json::from_value::<Vec<Tombstone>>(value.clone()).is_ok()),
+    ("window_buttons", |value| serde_json::from_value::<WindowButtons>(value.clone()).is_ok()),
 ];
 
 /// Fields a file written by the release before them lacks, and which go back on the account.
-const AFTER_THEMES: [&str; 3] = ["theme", "saved_themes", "removed_themes"];
+const AFTER_THEMES: [&str; 4] = ["theme", "saved_themes", "removed_themes", "window_buttons"];
 
 /// The `settings.json` file in Drive.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -476,7 +485,7 @@ mod tests {
         SavedTheme { id: id.to_string(), name: id.to_string(), values: Default::default(), modified, ..Default::default() }
     }
 
-    const SYNCED_KEYS: [&str; 22] = [
+    const SYNCED_KEYS: [&str; 23] = [
         "shortcut",
         "cancel_shortcut",
         "paste_shortcut",
@@ -489,6 +498,7 @@ mod tests {
         "theme",
         "saved_themes",
         "removed_themes",
+        "window_buttons",
         "overlay_size",
         "overlay_theme",
         "language",
@@ -1080,6 +1090,39 @@ mod tests {
         remote.settings.start_sound = "ding".to_string();
         let plan = plan(&upgraded, stamp, true, &VocabLedger::default(), Some(&remote), 9_500);
         assert_eq!(plan.merged.start_sound, "ding", "the account's newer edit is applied here");
+    }
+
+    #[test]
+    fn window_buttons_this_build_cannot_read_stay_as_they_are_here_and_on_the_account() {
+        let mut local = SyncedSettings::default();
+        local.window_buttons = WindowButtons::Left;
+        let body = r#"{"updated_at": 50, "settings": {"window_buttons": "top", "start_sound": "ding"}}"#;
+        let parsed = SettingsFile::parse(body, &local).expect("should parse");
+        assert_eq!(parsed.settings.window_buttons, WindowButtons::Left);
+        assert!(parsed.foreign.contains_key("window_buttons"));
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&parsed), 100);
+        assert_eq!(plan.merged.window_buttons, WindowButtons::Left);
+        assert_eq!(plan.foreign["window_buttons"], "top");
+        assert_eq!(uploaded(plan, 100)["settings"]["window_buttons"], "top", "written back as it was");
+    }
+
+    #[test]
+    fn a_window_buttons_value_it_reads_is_applied_and_goes_back_in_its_own_form() {
+        let local = SyncedSettings::default();
+        let remote = SettingsFile::parse(&account_copy(r#"{"window_buttons": "left"}"#), &local).expect("parse");
+        assert!(remote.foreign.is_empty());
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan.merged.window_buttons, WindowButtons::Left);
+        assert_eq!(uploaded(plan, 100)["settings"]["window_buttons"], "left");
+    }
+
+    #[test]
+    fn moving_the_window_buttons_after_the_upgrade_is_an_edit() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings::from_legacy("dracula");
+        let stored = upgraded.legacy_fingerprint().expect("hash");
+        upgraded.window_buttons = WindowButtons::Left;
+        assert!(upgraded.changed_since(&stored));
     }
 
     #[test]
