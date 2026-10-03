@@ -1,3 +1,4 @@
+use crate::theme::{SavedTheme, ThemeSettings, Tombstone};
 use crate::transcription::{AcceleratorBackend, GpuDevicePreference, GpuVendor};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -69,31 +70,6 @@ impl Default for OverlayTheme {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum AppTheme {
-    // The two aliases carry settings written before the rename to Talk.
-    // Without them the whole file fails to parse and is silently replaced
-    // by the defaults, taking the server URL and the shortcuts with it.
-    #[serde(alias = "t4lk-dark")]
-    TalkDark,
-    #[serde(alias = "t4lk-light")]
-    TalkLight,
-    Zed,
-    VscodeDark,
-    VscodeLight,
-    Dracula,
-    Nord,
-    CatppuccinMocha,
-    GithubLight,
-}
-
-impl Default for AppTheme {
-    fn default() -> Self {
-        Self::TalkDark
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OverlayPosition {
     pub x: f64,
@@ -116,8 +92,18 @@ pub struct AppSettings {
     pub overlay_size: OverlaySize,
     #[serde(default)]
     pub overlay_theme: OverlayTheme,
-    #[serde(default)]
-    pub app_theme: AppTheme,
+    /// The look of the window. Settings written before themes were values carry
+    /// `app_theme` instead, which is read once and turned into this on load.
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
+    pub theme: ThemeSettings,
+    /// Themes the user saved under a name
+    #[serde(default, deserialize_with = "crate::theme::lenient_saved")]
+    pub saved_themes: Vec<SavedTheme>,
+    /// Marks left by removed saved themes, so a sync does not bring them back
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
+    pub removed_themes: Vec<Tombstone>,
+    #[serde(default, rename = "app_theme", skip_serializing)]
+    legacy_app_theme: Option<serde_json::Value>,
     /// Interface language, "en" or "fr". None follows the system language.
     #[serde(default)]
     pub language: Option<String>,
@@ -263,7 +249,10 @@ impl Default for AppSettings {
             overlay_position: None,
             overlay_size: OverlaySize::default(),
             overlay_theme: OverlayTheme::default(),
-            app_theme: AppTheme::default(),
+            theme: ThemeSettings::default(),
+            saved_themes: Vec::new(),
+            removed_themes: Vec::new(),
+            legacy_app_theme: None,
             language: None,
             vocabulary: default_vocabulary(),
             transcription_mode: TranscriptionMode::default(),
@@ -331,10 +320,19 @@ pub fn was_unreadable() -> bool {
 }
 
 fn parse_settings(content: &str) -> Result<AppSettings, String> {
-    serde_json::from_str(content).map_err(|e| {
+    let unreadable = |e: serde_json::Error| {
         UNREADABLE.store(true, Ordering::Relaxed);
         e.to_string()
-    })
+    };
+    let value: serde_json::Value = serde_json::from_str(content).map_err(unreadable)?;
+    let has_theme = value.get("theme").is_some_and(|theme| !theme.is_null());
+    let mut settings: AppSettings = serde_json::from_value(value).map_err(unreadable)?;
+    if let Some(old) = settings.legacy_app_theme.take() {
+        if !has_theme {
+            settings.theme = ThemeSettings::from_legacy(old.as_str().unwrap_or_default());
+        }
+    }
+    Ok(settings)
 }
 
 pub fn load_settings() -> AppSettings {
@@ -371,7 +369,7 @@ mod tests {
     }
 
     fn parse(json: &str) -> AppSettings {
-        serde_json::from_str(json).expect("should deserialise")
+        parse_settings(json).expect("should deserialise")
     }
 
     #[test]
@@ -478,13 +476,83 @@ mod tests {
     }
 
     #[test]
-    fn the_theme_names_from_before_the_rename_still_parse() {
+    fn every_theme_name_from_before_themes_were_values_loads_as_its_preset() {
         // Settings written while the product was called T4lk carry t4lk-dark and
-        // t4lk-light. The aliases are what stop the whole file from failing to
-        // parse, which would take the server URL and the shortcuts down with it.
-        assert_eq!(parse(r#"{"app_theme": "t4lk-dark"}"#).app_theme, AppTheme::TalkDark);
-        assert_eq!(parse(r#"{"app_theme": "t4lk-light"}"#).app_theme, AppTheme::TalkLight);
-        assert_eq!(parse(r#"{"app_theme": "talk-dark"}"#).app_theme, AppTheme::TalkDark);
+        // t4lk-light. Whatever the old name, the file must load whole: a parse
+        // error here would take the server URL and the shortcuts down with it.
+        for (old, preset) in [
+            ("t4lk-dark", "talk-dark"),
+            ("t4lk-light", "talk-light"),
+            ("talk-dark", "talk-dark"),
+            ("talk-light", "talk-light"),
+            ("zed", "zed"),
+            ("vscode-dark", "vscode-dark"),
+            ("vscode-light", "vscode-light"),
+            ("dracula", "dracula"),
+            ("nord", "nord"),
+            ("catppuccin-mocha", "catppuccin-mocha"),
+            ("github-light", "github-light"),
+        ] {
+            let json = format!(
+                r#"{{"app_theme": "{old}", "server_url": "http://localhost:4060", "server_token": "sk-test",
+                    "setup_completed": true, "vocabulary": ["Tauri"], "start_sound": "chime"}}"#
+            );
+            let s = parse(&json);
+            assert_eq!(s.theme.preset, preset, "{old}");
+            assert_eq!(s.theme.custom, None);
+            assert_eq!(s.server_url, "http://localhost:4060");
+            assert_eq!(s.server_token, "sk-test");
+            assert!(s.setup_completed);
+            assert_eq!(s.vocabulary, vec!["Tauri".to_string()]);
+            assert_eq!(s.start_sound, "chime");
+        }
+    }
+
+    #[test]
+    fn an_old_theme_name_nobody_knows_still_loads_the_file() {
+        let s = parse(r#"{"app_theme": "from-the-future", "server_url": "http://localhost:4060"}"#);
+        assert_eq!(s.theme, ThemeSettings::default());
+        assert_eq!(s.server_url, "http://localhost:4060");
+    }
+
+    #[test]
+    fn an_old_theme_of_the_wrong_type_or_null_loads_the_file_with_the_default() {
+        for old in ["3", "null", r#"["dracula"]"#, r#"{"a": 1}"#] {
+            let s = parse(&format!(r#"{{"app_theme": {old}, "server_url": "http://localhost:4060"}}"#));
+            assert_eq!(s.theme, ThemeSettings::default(), "{old}");
+            assert_eq!(s.server_url, "http://localhost:4060");
+        }
+    }
+
+    #[test]
+    fn a_null_theme_leaves_the_old_name_to_decide() {
+        let s = parse(r#"{"theme": null, "app_theme": "dracula"}"#);
+        assert_eq!(s.theme.preset, "dracula");
+        let s = parse(r#"{"theme": null, "app_theme": "t4lk-light"}"#);
+        assert_eq!(s.theme.preset, "talk-light");
+        assert_eq!(parse(r#"{"theme": null}"#).theme, ThemeSettings::default());
+    }
+
+    #[test]
+    fn a_theme_written_by_this_version_wins_over_a_leftover_old_name() {
+        let s = parse(r#"{"app_theme": "dracula", "theme": {"preset": "nord"}}"#);
+        assert_eq!(s.theme.preset, "nord");
+    }
+
+    #[test]
+    fn the_old_name_is_not_written_back() {
+        let s = parse(r#"{"app_theme": "dracula"}"#);
+        let json = serde_json::to_value(&s).expect("should serialise");
+        assert!(json.get("app_theme").is_none());
+        assert_eq!(json["theme"]["preset"], "dracula");
+    }
+
+    #[test]
+    fn a_file_with_a_broken_theme_keeps_everything_else() {
+        let s = parse(r#"{"theme": 12, "saved_themes": "nope", "server_url": "http://localhost:4060"}"#);
+        assert_eq!(s.theme, ThemeSettings::default());
+        assert!(s.saved_themes.is_empty());
+        assert_eq!(s.server_url, "http://localhost:4060");
     }
 
     #[test]
