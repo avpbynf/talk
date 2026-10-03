@@ -1,0 +1,75 @@
+# The interface test suite: the real frontend in Chromium, with the native side faked by a module
+# the suite injects into the page. It answers what `bun run test` cannot, which is whether the
+# screens still lay out, move and behave once they are drawn.
+#
+# Windows, and not Linux like `build`, because the visual baselines are the pixels Windows draws.
+# The same page rendered on another system differs in its text by more than any tolerance worth
+# having, so the machine that records them is the machine that checks them.
+#
+# The Rust side is not involved. The Vite dev server is started by Playwright itself.
+#
+# A failure uploads the HTML report and the folder the diff images land in, which is where the
+# expected, the actual and the difference of a snapshot sit side by side.
+
+name: interface
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interface:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The browser is the slow part to fetch. It is keyed on the lockfile, which pins the
+      # Playwright version and therefore the browser build it wants.
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install the browser
+        run: bun run playwright install chromium-headless-shell
+
+      - name: Type-check the suite
+        run: bunx tsc -p e2e
+
+      - name: The interface suite
+        run: bun run test:ui
+
+      - name: Upload the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 14
+
+      - name: Upload the diff images and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results
+          retention-days: 14
