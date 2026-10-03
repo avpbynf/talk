@@ -30,6 +30,8 @@ scale. "It is new" is a fine answer for a feature.
 Say which of these the claim rests on. An unticked line is not a failure, it is a scope.
 
 - `bun run build` and `bun run test`, the tsc pass the release runs and the frontend suite.
+- `bun run test:ui`, the interface suite, when a page, the sidebar or the styles moved; say which
+  baselines were regenerated and that the images were looked at.
 - `bun run test:rust`, or say plainly that the native side was not compiled here.
 - On the machine: what was done in the running application, and what was observed rather than
   assumed. A number read off a log or a measurement carries more than a description.

@@ -108,13 +108,29 @@ The two feedback loops are not symmetric, and it is worth knowing which one a ch
 
     bun run build      # tsc and vite, the same pass the release runs
     bun run test       # the frontend suite, vitest on jsdom, seconds
+    bun run test:ui    # the interface suite, Playwright on Chromium, a couple of minutes
     bun run tauri:check # cargo check, MSVC environment loaded by scripts/vcenv.bat
     bun run test:rust  # cargo test, the same environment
 
-`build` and `test` are what CI runs. **The Rust side is not compiled in CI**: `whisper-rs` builds
+`build` and `test` are what the `build` workflow runs, and `test:ui` is what the `interface`
+workflow runs, on Windows. **The Rust side is not compiled in CI**: `whisper-rs` builds
 whisper.cpp from its build script, so even `cargo check` pays a compile measured in tens of minutes.
 A change to `src-tauri/` is checked locally with `tauri:check` and read carefully, or it is answered
 only by the release build.
+
+`test:ui` runs the real frontend in a browser with the native side faked, so it answers whether the
+pages still lay out, move and behave, and it fails on a console error, a command nobody mocked, a
+cut-off label, a control out of reach and a serious accessibility violation. Run it after any change
+to a page, the sidebar or the styles. A change that moves pixels on purpose regenerates the
+baselines, and the new images are reviewed in the diff like code:
+
+    bun run test:ui:update
+
+The baselines are the ones Windows draws, which is the machine CI runs on; they are not regenerated
+anywhere else. The first run needs the browser, `bun run playwright install chromium-headless-shell`.
+Playwright needs a real Node, which `node-win-x64` provides inside `node_modules`, so nothing has
+to be installed on the machine. The native mock lives in `e2e/` and nothing under `src/` may import
+it.
 
 Call cargo through those scripts and not directly: `cargo test` on its own inherits whatever
 environment the shell has, and without the MSVC one loaded the native build fails in ways that read
