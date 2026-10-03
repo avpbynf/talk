@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "./styles/themes.css";
+@import "./styles/theme-engine.css";
 
 /* Local fonts via Fontsource */
 @import "@fontsource/outfit/300.css";
@@ -12,71 +12,77 @@
 @import "@fontsource/jetbrains-mono/600.css";
 @import "@fontsource/jetbrains-mono/700.css";
 
-@theme {
-  /* Refined dark palette with warm undertones */
-  --color-background: oklch(0.13 0.01 260);
-  --color-foreground: oklch(0.95 0.01 260);
+/*
+ * Every colour is a name for something derived from the theme engine
+ * (styles/theme-engine.css), which is what lets a theme change them all at once.
+ * Static, because the engine and the arbitrary values across the app read them
+ * by name and nothing would otherwise say they are used.
+ */
+@theme static {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
 
-  --color-card: oklch(0.16 0.01 260);
-  --color-card-foreground: oklch(0.95 0.01 260);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
 
-  --color-popover: oklch(0.18 0.015 260);
-  --color-popover-foreground: oklch(0.95 0.01 260);
+  --color-popover: color-mix(in oklch, var(--card) 92%, var(--fg));
+  --color-popover-foreground: var(--fg);
 
-  --color-primary: oklch(0.95 0.01 260);
-  --color-primary-foreground: oklch(0.13 0.01 260);
+  --color-primary: var(--accent-text);
+  --color-primary-foreground: var(--bg);
+  --color-on-accent: var(--on-accent);
 
-  --color-secondary: oklch(0.22 0.01 260);
-  --color-secondary-foreground: oklch(0.95 0.01 260);
+  --color-secondary: var(--raised);
+  --color-secondary-foreground: var(--fg);
 
-  --color-muted: oklch(0.22 0.015 260);
-  --color-muted-foreground: oklch(0.65 0.01 260);
+  --color-muted: color-mix(in oklch, var(--fg) 8%, var(--bg));
+  --color-muted-foreground: var(--muted);
 
-  --color-accent: oklch(0.25 0.02 260);
-  --color-accent-foreground: oklch(0.95 0.01 260);
+  --color-accent: color-mix(in oklch, var(--fg) 10%, var(--bg));
+  --color-accent-foreground: var(--fg);
 
-  /* Recording state - warm amber/orange */
-  --color-recording: oklch(0.70 0.18 45);
-  --color-recording-glow: oklch(0.70 0.20 45 / 0.4);
+  /* Recording state */
+  --color-recording: var(--rec);
+  --color-recording-glow: var(--rec-glow);
 
-  /* Active/loaded state - cool cyan */
-  --color-active: oklch(0.72 0.15 195);
-  --color-active-glow: oklch(0.72 0.18 195 / 0.3);
+  /* Active state, which is the accent */
+  --color-active: var(--accent-text);
+  --color-active-glow: color-mix(in oklch, var(--s1) 30%, transparent);
 
   /* Status colors */
-  --color-success: oklch(0.70 0.17 145);
-  --color-warning: oklch(0.75 0.15 85);
-  --color-destructive: oklch(0.55 0.20 25);
-  --color-destructive-foreground: oklch(0.95 0.01 25);
+  --color-success: var(--ok);
+  --color-warning: var(--warn);
+  --color-destructive: var(--bad);
+  --color-destructive-foreground: var(--bad-on);
 
   /* Borders and inputs */
-  --color-border: oklch(0.28 0.015 260);
-  --color-input: oklch(0.20 0.01 260);
-  --color-ring: oklch(0.72 0.15 195);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
   /* Surface hierarchy */
-  --color-surface-deep: oklch(0.11 0.01 260);
-  --color-surface-inset: oklch(0.12 0.01 260);
-  --color-surface-raised: oklch(0.15 0.01 260);
-  --color-surface-elevated: oklch(0.18 0.015 260);
-  --color-surface-active: oklch(0.20 0.015 260);
+  --color-surface-deep: color-mix(in oklch, var(--bg) calc(100% - var(--depth)), var(--sink));
+  --color-surface-inset: var(--surface-2);
+  --color-surface-raised: var(--surface);
+  --color-surface-elevated: color-mix(in oklch, var(--card) 88%, var(--fg));
+  --color-surface-active: var(--raised);
 
   /* Border hierarchy */
-  --color-border-subtle: oklch(0.22 0.015 260);
-  --color-border-card: oklch(0.25 0.015 260);
-  --color-border-hover: oklch(0.30 0.015 260);
+  --color-border-subtle: var(--line);
+  --color-border-card: var(--border);
+  --color-border-hover: var(--input);
 
   /* Mode accent colors */
-  --color-server: oklch(0.65 0.18 250);
-  --color-server-glow: oklch(0.65 0.20 250 / 0.3);
-  --color-hybrid: oklch(0.65 0.18 300);
-  --color-hybrid-glow: oklch(0.65 0.20 300 / 0.3);
+  --color-server: var(--srv);
+  --color-server-glow: var(--srv-glow);
+  --color-hybrid: var(--hyb);
+  --color-hybrid-glow: var(--hyb-glow);
 
-  /* Radii */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  /* Radii follow the corner step of the theme */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: calc(var(--radius) * 1.2);
+  --radius-xl: calc(var(--radius) * 1.6);
 }
 
 @layer base {
@@ -357,7 +363,7 @@
 
 .card-interactive:hover {
   background-color: var(--color-surface-active);
-  border-color: oklch(0.35 0.02 260);
+  border-color: var(--color-border-hover);
 }
 
 /* Selected card glow */
@@ -365,6 +371,80 @@
   border-color: var(--color-active) !important;
   box-shadow: 0 0 0 1px var(--color-active-glow),
               inset 0 1px 0 oklch(1 0 0 / 0.03);
+}
+
+/* A chosen card wears the accent gradient as its outline */
+.selected-ring {
+  position: relative;
+  border-color: transparent !important;
+  background-color: var(--tint-2);
+}
+
+.selected-ring::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--grad);
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* ===== SLIDERS ===== */
+
+/* The thumb takes the gradient wherever a range input sits; --v, when set, fills the track. */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--grad);
+  box-shadow: 0 2px 8px oklch(0 0 0 / 0.35);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.2);
+}
+
+input[type="range"].range {
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  background:
+    linear-gradient(90deg, transparent var(--v, 50%), color-mix(in oklch, var(--fg) 12%, transparent) var(--v, 50%)),
+    var(--grad-x);
+}
+
+/* Round colour fields */
+input[type="color"].swatch {
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--color-input);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+input[type="color"].swatch::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+input[type="color"].swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+input[type="color"].swatch:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
 }
 
 /* ===== TAB STYLES ===== */

@@ -42,7 +42,7 @@ export function ModelCard({
       className={cn(
         "p-3 rounded-lg border transition-all duration-200",
         isLoaded
-          ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
+          ? "selected-ring"
           : "border-border-subtle bg-surface-inset"
       )}
     >

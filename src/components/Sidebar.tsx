@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ComponentType } from "react";
-import { motion, useAnimate, useReducedMotion } from "motion/react";
+import { motion, useAnimate } from "motion/react";
+import { useReducedMotion } from "@/lib/motion";
 import { useTranslation } from "react-i18next";
 import { UserRound } from "lucide-react";
 import { Blobatar } from "@blobatar/react";
@@ -62,7 +63,7 @@ export function Sidebar<Id extends string>({
   onStatusClick,
 }: SidebarProps<Id>) {
   const { t } = useTranslation();
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotion();
   const { status: account } = useGoogleAccount();
   const [collapsed, setCollapsed] = useState(readCollapsed);
 
@@ -186,7 +187,7 @@ export function Sidebar<Id extends string>({
           ref={indicator}
           aria-hidden="true"
           style={{ opacity: 0 }}
-          className="absolute left-2.5 right-2.5 top-0 h-[34px] rounded-lg pointer-events-none z-0 bg-[color-mix(in_oklch,var(--color-active)_16%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--color-active)_28%,transparent)]"
+          className="absolute left-2.5 right-2.5 top-0 h-[34px] rounded-lg pointer-events-none z-0 bg-[linear-gradient(90deg,color-mix(in_oklch,var(--s1)_22%,transparent),color-mix(in_oklch,var(--s4)_6%,transparent))] shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--s1)_26%,transparent)]"
         />
 
         {top.map(renderItem)}

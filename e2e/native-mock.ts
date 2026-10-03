@@ -288,7 +288,22 @@ export function installNativeMock(init: MockInit): void {
     get_vbcable_status: () => s.vbcable,
 
     // Appearance and overlay
-    set_app_theme: field("app_theme", "theme"),
+    set_app_theme: field("theme", "theme"),
+    // Like the real ones: a changed theme is stamped, and the list as stored comes back.
+    set_saved_themes: (a) => {
+      const now = Date.now();
+      const stored = settings.saved_themes as { id: string; name: string; modified: number }[];
+      settings.saved_themes = (a.themes as { id: string; name: string }[]).map((theme) => {
+        const old = stored.find((t) => t.id === theme.id);
+        return { ...theme, modified: old && old.name === theme.name ? old.modified : now };
+      });
+      return settings.saved_themes;
+    },
+    restore_saved_theme: (a) => {
+      const stored = settings.saved_themes as { id: string }[];
+      settings.saved_themes = [{ ...a.theme, modified: Date.now() }, ...stored.filter((t) => t.id !== a.theme.id)];
+      return settings.saved_themes;
+    },
     set_overlay_theme: field("overlay_theme", "theme"),
     set_overlay_size: field("overlay_size", "size"),
     save_overlay_position: () => null,

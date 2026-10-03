@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { animate, stagger, useReducedMotion } from "motion/react";
+import { animate, stagger } from "motion/react";
+import { useReducedMotion } from "@/lib/motion";
 
 interface PageTransitionProps<Id extends string> {
   /** The page asked for. The one on screen follows once it has faded out. */
@@ -26,7 +27,7 @@ function blocksOf(root: HTMLElement): HTMLElement[] {
 }
 
 export function PageTransition<Id extends string>({ view, order, children }: PageTransitionProps<Id>) {
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotion();
   const [shown, setShown] = useState(view);
   // Part of the key, so that a page that was faded out and is asked for again
   // still gets a fresh element rather than the faded one.

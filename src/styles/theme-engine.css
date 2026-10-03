@@ -1,0 +1,228 @@
+/* =============================================================================
+   Theme engine
+   A theme is four base colours, an accent gradient of up to four stops, an
+   atmosphere and a shape. src/lib/theme.ts writes those values on the root
+   element, with the colours that carry text or mark a control already held to a
+   readable contrast; everything below, and every Tailwind colour token in
+   index.css, is derived from them. Each value is a registered property, so a
+   change of theme morphs through the transition on :root instead of snapping.
+
+   With nothing written (the overlay window) the initial values below are the
+   Aurora preset.
+   ============================================================================= */
+
+@property --bg { syntax: "<color>"; inherits: true; initial-value: #0e0f1c; }
+@property --card { syntax: "<color>"; inherits: true; initial-value: #171a2c; }
+@property --fg { syntax: "<color>"; inherits: true; initial-value: #eef0ff; }
+@property --muted { syntax: "<color>"; inherits: true; initial-value: #b4b5bf; }
+@property --border { syntax: "<color>"; inherits: true; initial-value: #2a2d48; }
+@property --s1 { syntax: "<color>"; inherits: true; initial-value: #7c5cff; }
+@property --s2 { syntax: "<color>"; inherits: true; initial-value: #4f8bff; }
+@property --s3 { syntax: "<color>"; inherits: true; initial-value: #22d3ee; }
+@property --s4 { syntax: "<color>"; inherits: true; initial-value: #22d3ee; }
+@property --q1 { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+@property --q2 { syntax: "<percentage>"; inherits: true; initial-value: 50%; }
+@property --q3 { syntax: "<percentage>"; inherits: true; initial-value: 100%; }
+@property --q4 { syntax: "<percentage>"; inherits: true; initial-value: 100%; }
+@property --angle { syntax: "<angle>"; inherits: true; initial-value: 135deg; }
+@property --m1 { syntax: "<color>"; inherits: true; initial-value: #7c5cff; }
+@property --m2 { syntax: "<color>"; inherits: true; initial-value: #4f8bff; }
+@property --m3 { syntax: "<color>"; inherits: true; initial-value: #22d3ee; }
+@property --on-accent { syntax: "<color>"; inherits: true; initial-value: #101018; }
+@property --scrim { syntax: "<color>"; inherits: true; initial-value: rgb(255 255 255 / 0.05); }
+@property --accent-text { syntax: "<color>"; inherits: true; initial-value: #b09fff; }
+@property --ring { syntax: "<color>"; inherits: true; initial-value: #22d3ee; }
+@property --rec { syntax: "<color>"; inherits: true; initial-value: #ff8c49; }
+@property --ok { syntax: "<color>"; inherits: true; initial-value: #57c35f; }
+@property --warn { syntax: "<color>"; inherits: true; initial-value: #d9a514; }
+@property --bad { syntax: "<color>"; inherits: true; initial-value: #ff8b83; }
+@property --bad-on { syntax: "<color>"; inherits: true; initial-value: #101018; }
+@property --srv { syntax: "<color>"; inherits: true; initial-value: #41b3ff; }
+@property --hyb { syntax: "<color>"; inherits: true; initial-value: #c796ff; }
+@property --glass { syntax: "<number>"; inherits: true; initial-value: 0.72; }
+@property --amb { syntax: "<number>"; inherits: true; initial-value: 0.5; }
+@property --radius { syntax: "<length>"; inherits: true; initial-value: 10px; }
+
+:root {
+  --tt: 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+
+  /* From the four base colours */
+  --raised: color-mix(in oklch, var(--card) 86%, var(--fg));
+  --line: color-mix(in oklch, var(--border) 85%, transparent);
+  --input: color-mix(in oklch, var(--border) 65%, var(--fg));
+  --surface: color-mix(in oklch, var(--card) calc(var(--glass) * 100%), transparent);
+  --surface-2: color-mix(in oklch, var(--card) calc(var(--glass) * 60%), transparent);
+  --sink: black;
+  --depth: 30%;
+
+  /* From the accent gradient */
+  --accent: var(--s1);
+  --tint-2: color-mix(in oklch, var(--s1) 8%, transparent);
+  --grad: linear-gradient(var(--angle), var(--s1) var(--q1), var(--s2) var(--q2), var(--s3) var(--q3), var(--s4) var(--q4));
+  --grad-x: linear-gradient(90deg, var(--s1) var(--q1), var(--s2) var(--q2), var(--s3) var(--q3), var(--s4) var(--q4));
+  /* Behind text: the gradient under the layer that holds the text to its contrast */
+  --grad-fill: linear-gradient(var(--scrim), var(--scrim)), var(--grad);
+
+  /*
+   * On a card, text and status colours are the page's, unless no single colour reads on both:
+   * then the engine sets these inline, each corrected against the cards alone.
+   */
+  --fg-card: var(--fg);
+  --muted-card: var(--muted);
+  --accent-text-card: var(--accent-text);
+  --rec-card: var(--rec);
+  --ok-card: var(--ok);
+  --warn-card: var(--warn);
+  --bad-card: var(--bad);
+  --srv-card: var(--srv);
+  --hyb-card: var(--hyb);
+
+  /* Glows follow the status colours */
+  --rec-glow: color-mix(in oklch, var(--rec) 40%, transparent);
+  --srv-glow: color-mix(in oklch, var(--srv) 30%, transparent);
+  --hyb-glow: color-mix(in oklch, var(--hyb) 30%, transparent);
+
+  transition:
+    --bg var(--tt), --card var(--tt), --fg var(--tt), --muted var(--tt), --border var(--tt),
+    --s1 var(--tt), --s2 var(--tt), --s3 var(--tt), --s4 var(--tt),
+    --q1 var(--tt), --q2 var(--tt), --q3 var(--tt), --q4 var(--tt), --angle var(--tt),
+    --m1 var(--tt), --m2 var(--tt), --m3 var(--tt), --on-accent var(--tt), --scrim var(--tt),
+    --accent-text var(--tt), --ring var(--tt), --rec var(--tt), --ok var(--tt), --warn var(--tt),
+    --bad var(--tt), --bad-on var(--tt), --srv var(--tt), --hyb var(--tt),
+    --glass var(--tt), --amb var(--tt), --radius 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:root[data-mode="light"] {
+  color-scheme: light;
+  --raised: color-mix(in oklch, var(--card) 93%, var(--fg));
+  --sink: var(--fg);
+  --depth: 5%;
+}
+
+:root[data-gt="radial"] {
+  --grad: radial-gradient(circle at 18% 12%, var(--s1) var(--q1), var(--s2) var(--q2), var(--s3) var(--q3), var(--s4) var(--q4));
+}
+
+:root[data-gt="conic"] {
+  --grad: conic-gradient(from var(--angle) at 50% 50%, var(--s1) var(--q1), var(--s2) var(--q2), var(--s3) var(--q3), var(--s4) var(--q4), var(--s1) 100%);
+}
+
+/*
+ * Anything drawn on a card surface reads the card's text tokens. In the base layer, so that a
+ * text colour set by a utility on the same element still wins.
+ */
+@layer base {
+  :is(
+    .on-card,
+    [class~="bg-surface-raised"],
+    [class~="bg-surface-inset"],
+    [class~="bg-surface-elevated"],
+    [class~="bg-card"],
+    [class~="bg-popover"]
+  ) {
+    color: var(--fg-card);
+    --color-foreground: var(--fg-card);
+    --color-muted-foreground: var(--muted-card);
+    --color-active: var(--accent-text-card);
+    --color-primary: var(--accent-text-card);
+    --color-recording: var(--rec-card);
+    --color-success: var(--ok-card);
+    --color-warning: var(--warn-card);
+    --color-destructive: var(--bad-card);
+    --color-server: var(--srv-card);
+    --color-hybrid: var(--hyb-card);
+  }
+}
+
+/* Text size scales every rem in the window */
+:root[data-text="compact"] { font-size: 15px; }
+:root[data-text="large"] { font-size: 17px; }
+
+/* Animation speed */
+:root[data-motion="lively"] { --tt: 0.54s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/*
+ * Reduced: nothing moves for its own sake, and a theme change lands at once. A spinner is
+ * feedback that work is going on, so it keeps turning.
+ */
+:root[data-motion="reduced"] { --tt: 0s; transition: none; }
+:root[data-motion="reduced"] :not(.animate-spin, .animate-spin-slow),
+:root[data-motion="reduced"] :not(.animate-spin, .animate-spin-slow)::before,
+:root[data-motion="reduced"] :not(.animate-spin, .animate-spin-slow)::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+/* Edits that follow a finger must not trail behind it */
+:root.theme-live { transition: none !important; }
+
+/* Atmosphere: three lights drifting behind the cards, and an optional grain */
+.amb {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/*
+ * A light is a texture that is soft by construction: the falloff is in the gradient, so nothing
+ * is blurred while it moves, and it moves by transform alone, in steps of about a pixel and eight
+ * to the second: drifting that slowly is smooth to the eye, and a machine that paints every layer
+ * itself is asked for eight frames a second instead of sixty. The glass over it needs no blur of
+ * its own, there being nothing sharp behind it to blur.
+ */
+.amb i {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: calc(0.55 * var(--amb));
+  will-change: transform;
+}
+
+.amb i:nth-child(1) { --c: var(--m1); left: -14%; top: -22%; animation: drift1 26s steps(208) infinite alternate; }
+.amb i:nth-child(2) { --c: var(--m2); right: -18%; top: 18%; animation: drift2 31s steps(248) infinite alternate; }
+.amb i:nth-child(3) { --c: var(--m3); left: 22%; bottom: -40%; animation: drift3 23s steps(184) infinite alternate; }
+
+.amb i {
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--c) 100%, transparent) 0%,
+    color-mix(in srgb, var(--c) 92%, transparent) 15%,
+    color-mix(in srgb, var(--c) 74%, transparent) 30%,
+    color-mix(in srgb, var(--c) 50%, transparent) 45%,
+    color-mix(in srgb, var(--c) 28%, transparent) 60%,
+    color-mix(in srgb, var(--c) 11%, transparent) 75%,
+    color-mix(in srgb, var(--c) 3%, transparent) 90%,
+    transparent 100%
+  );
+}
+
+/*
+ * The lights hold still when drift is off, while nobody is looking at the window, and when the
+ * machine could not keep a steady frame rate with them moving.
+ */
+:root.still .amb i,
+:root[data-awake="false"] .amb i,
+:root[data-perf="low"] .amb i {
+  animation-play-state: paused;
+}
+
+@keyframes drift1 { to { transform: translate(18%, 22%) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-24%, -10%) scale(0.9); } }
+@keyframes drift3 { to { transform: translate(-16%, -28%) scale(1.2); } }
+
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+}
+
+:root.grained .grain { opacity: 0.22; }

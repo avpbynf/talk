@@ -30,6 +30,21 @@ and Appearance: the shortcuts, the recording mode, chained dictations, the feedb
 companion shortcuts and meeting mode. Settings keeps the audio devices, the system options, the
 language and the updates.
 
+- (preferences) Draw the window from a theme made of colours and a gradient
+
+The Appearance page now opens on an Application tab with a grid of themes: eight gradient ones, the
+classic editor palettes, and every theme the application had before. Picking one fades the window
+over to it instead of switching in a blink. The accent is a gradient now, and the primary buttons,
+switches, sliders, the highlight in the sidebar and the chosen cards take it; text on the accent
+turns dark or light on its own, with a faint layer behind it when a gradient is too uneven for
+either, so it stays readable. Text, status colours and the focus ring are held to a readable
+contrast whatever colours you pick, even over the brightest lights (the cards turn more solid
+when they have to), and the busiest days of the activity chart are always the
+strongest. Cards frost against soft lights that drift behind them and stop when the window is
+hidden or unfocused. The window opens in your theme from the first frame. Your old theme is carried
+over to its match, and a change you make is kept with the rest of your settings. The recording
+overlay settings sit on their own tab and are unchanged.
+
 - (window) Move the navigation into a wider sidebar and slim the title bar down to the window buttons
 
 The sidebar now names its pages, shows the account you are signed in with at the bottom (it opens
