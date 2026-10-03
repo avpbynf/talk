@@ -84,7 +84,12 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
       { duration: 0.56, delay: stagger(0.05), ease: EASE_OUT },
     );
     // A filter left on a block would turn it into the frame of any fixed dialog inside.
-    run.then(() => blocks.forEach(clearStyles));
+    // Motion writes the final keyframe of the last animations as it settles them, which can
+    // land after this promise has resolved, so the styles are cleared again a frame later.
+    run.then(() => {
+      blocks.forEach(clearStyles);
+      requestAnimationFrame(() => blocks.forEach(clearStyles));
+    });
     return () => {
       run.stop();
       blocks.forEach(clearStyles);
