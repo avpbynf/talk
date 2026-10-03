@@ -209,7 +209,10 @@
     "emptyTitle": "Nothing here yet",
     "emptyHint": "Whisper is guessing on its own",
     "reorder": "Reorder {{word}}",
-    "remove": "Remove {{word}}"
+    "remove": "Remove {{word}}",
+    "listHint": "Drag the grip to reorder your terms, click a word to remove it.",
+    "removed": "Removed {{word}}.",
+    "undo": "Undo"
   },
   "transcription": {
     "title": "Engine",

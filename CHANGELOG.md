@@ -179,6 +179,15 @@ Spacing inside cards and between them is the same everywhere. The save, cancel, 
 use, revoke, refresh and play buttons now share one size and style, and the fields share one focus
 ring.
 
+- Reorder and remove vocabulary terms by hand
+
+Each term now has a six-dot grip on its left: drag it to put the terms in the order you want, and the
+others slide aside. The cross is gone; hover the word and a line strikes it through, click it to
+remove it. A new term pops in, typing one that is already there makes the existing one shake, and a
+line under the list says how to reorder and remove. A press on a word that moves before you let go
+does not count as a click, and a removed term can be put back with Undo, at its old place, for a few
+seconds. Everything holds still if your system is set to reduce motion.
+
 ### Bug Fixes
 
 - (preferences) Never lose your vocabulary to a sync

@@ -26,3 +26,17 @@ export function parseVocabularyInput(input: string, existing: readonly string[])
 
   return words;
 }
+
+/**
+ * The terms already in the list that the input names again, spelled as the
+ * list has them, so the interface can point at the chip that is already there.
+ */
+export function repeatedTerms(input: string, existing: readonly string[]): string[] {
+  const known = new Map(existing.map((v) => [v.toLowerCase(), v]));
+  const found = new Set<string>();
+  for (const raw of input.split(/[,\s]+/)) {
+    const hit = known.get(raw.trim().toLowerCase());
+    if (hit) found.add(hit);
+  }
+  return [...found];
+}

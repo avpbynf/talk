@@ -209,7 +209,10 @@
     "emptyTitle": "Rien ici pour le moment",
     "emptyHint": "Whisper devine tout seul",
     "reorder": "Déplacer {{word}}",
-    "remove": "Retirer {{word}}"
+    "remove": "Retirer {{word}}",
+    "listHint": "Glissez la poignée pour ranger vos termes, cliquez un mot pour le retirer.",
+    "removed": "{{word}} retiré.",
+    "undo": "Annuler"
   },
   "transcription": {
     "title": "Moteur",

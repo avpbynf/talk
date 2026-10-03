@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseVocabularyInput } from "./vocabulary";
+import { parseVocabularyInput, repeatedTerms } from "./vocabulary";
 
 describe("parseVocabularyInput", () => {
   it("takes several terms separated by commas or spaces", () => {
@@ -41,5 +41,15 @@ describe("parseVocabularyInput", () => {
     const existing = ["Tauri"];
     parseVocabularyInput("Vulkan", existing);
     expect(existing).toEqual(["Tauri"]);
+  });
+});
+
+describe("repeatedTerms", () => {
+  it("names the existing spelling of every term typed again", () => {
+    expect(repeatedTerms("tauri, new VULKAN", ["Tauri", "Vulkan"])).toEqual(["Tauri", "Vulkan"]);
+  });
+
+  it("returns nothing for terms that are new", () => {
+    expect(repeatedTerms("new", ["Tauri"])).toEqual([]);
   });
 });
