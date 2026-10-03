@@ -23,10 +23,10 @@ function daysSince(iso: string): number {
 function Fact({ value, label }: { value: string; label: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-sm font-medium truncate" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <div className="text-sm font-medium" style={{ fontVariantNumeric: "tabular-nums" }}>
         {value}
       </div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 truncate">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
         {label}
       </div>
     </div>
@@ -48,7 +48,7 @@ export function Facts({ summary }: FactsProps) {
   const localShare = dictated > 0 ? Math.round((summary.localCount / dictated) * 100) : 100;
 
   return (
-    <div className="grid grid-cols-4 gap-3 px-4 py-3 rounded-xl border border-border-card bg-surface-raised/50">
+    <div className="grid grid-cols-4 gap-3 @max-[700px]:grid-cols-2 px-4 py-3 rounded-xl border border-border-card bg-surface-raised/50">
       <Fact
         value={summary.firstDay ? t("dashboard.facts.days", { count: daysSince(summary.firstDay) }) : "--"}
         label={summary.firstDay ? t("dashboard.facts.since", { date: formatDay(summary.firstDay) }) : t("dashboard.facts.dictating")}

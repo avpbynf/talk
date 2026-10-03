@@ -13,7 +13,7 @@ interface PeriodFilterProps {
 export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex p-[3px] rounded-lg bg-surface-inset border border-border-card">
+    <div className="flex p-[3px] rounded-lg bg-surface-inset border border-border-card @max-[700px]:w-full">
       {ORDER.map((id) => {
         const isActive = value === id;
 
@@ -22,7 +22,7 @@ export function PeriodFilter({ value, onChange }: PeriodFilterProps) {
             key={id}
             onClick={() => onChange(id)}
             className={cn(
-              "px-3 py-1 rounded-md text-xs transition-colors duration-150",
+              "px-3 py-1 rounded-md text-xs whitespace-nowrap transition-colors duration-150 @max-[700px]:flex-1 @max-[700px]:px-1.5",
               isActive
                 ? "bg-surface-active text-[var(--color-active)] font-medium"
                 : "text-muted-foreground hover:text-foreground"
