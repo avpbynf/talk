@@ -87,7 +87,7 @@ recording in progress, and once there is none, what is still transcribing.
 **Servers on the network are found for you.** A Talk-Server announces itself, and the
 Transcription page lists the ones it hears with their model and address, so pointing Talk at
 one is a click. The first time a new server shows up while dictation runs locally, a strip under
-the titlebar offers to switch to it. A server that requires a token can be paired instead of
+the window buttons offers to switch to it. A server that requires a token can be paired instead of
 copied from: Talk asks for a code, you read it off the server, and the token fills itself in.
 
 **This PC can be the server.** With Share this PC on, the model loaded here answers other
@@ -124,7 +124,7 @@ set to either one on the Preferences page.
 
 **It updates itself from the releases page.** Shortly after launch, then once an hour
 for a window left open, it asks GitHub what the newest release is. A strip under the
-titlebar offers to install it, and installing runs the same installer you would have
+window buttons offers to install it, and installing runs the same installer you would have
 downloaded by hand, closes the window and opens it again. The Preferences page carries
 the version that is running and a button that asks straight away. Nothing installs
 unless it was signed by the key the release was built with, and a version installed
