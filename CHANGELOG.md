@@ -313,6 +313,11 @@ launch, while the last model was coming back, it stayed empty. It now shows for 
 The extra options under feedback sounds, companion shortcuts and the system settings slid in even
 with reduced motion on. They now appear at once.
 
+- (window) Name the switches, lists and icon buttons for screen readers
+
+Every switch and drop-down on the Engine, Dictation and Settings pages, and the buttons that only
+carry an icon (check the connection, delete a model), now announce what they are for.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

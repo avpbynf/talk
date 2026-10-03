@@ -297,6 +297,7 @@
       "fallback": "Secours local",
       "fallbackHint": "Bascule sur le modèle local quand le serveur ne répond pas",
       "pairWith": "Appairer avec ce serveur",
+      "recheck": "Vérifier la connexion",
       "model": "Modèle",
       "modelHint": "Laissez vide pour que le serveur choisisse, ce qui convient à un serveur Talk. OpenAI en exige un et utilise whisper-1 quand le champ est vide.",
       "network": "Serveurs sur ce réseau",

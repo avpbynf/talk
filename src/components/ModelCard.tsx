@@ -114,6 +114,7 @@ export function ModelCard({
                   }
                 }}
                 disabled={isDeleting}
+                aria-label={`${t("transcription.local.delete")} ${model.name}`}
                 className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               >
                 {isDeleting ? (

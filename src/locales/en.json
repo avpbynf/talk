@@ -297,6 +297,7 @@
       "fallback": "Local fallback",
       "fallbackHint": "Fall back to the local model when the server does not answer",
       "pairWith": "Pair with this server",
+      "recheck": "Check the connection",
       "model": "Model",
       "modelHint": "Leave empty to let the server choose, which is right for a Talk server. OpenAI needs one and uses whisper-1 when this is empty.",
       "network": "Servers on this network",

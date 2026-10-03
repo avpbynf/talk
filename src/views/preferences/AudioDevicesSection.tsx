@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useId, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Mic, RefreshCw, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -130,11 +130,12 @@ function DeviceRow({
   onRefresh,
 }: DeviceRowProps) {
   const { t } = useTranslation();
+  const labelId = useId();
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2 min-w-0">
-          <span className="text-sm font-medium">{label}</span>
+          <span id={labelId} className="text-sm font-medium">{label}</span>
           <span className="text-xs text-muted-foreground truncate">{hint}</span>
         </div>
         <span className="text-[11px] text-muted-foreground/60 font-mono shrink-0">
@@ -155,7 +156,7 @@ function DeviceRow({
             if (open) onOpen();
           }}
         >
-          <SelectTrigger className="w-full bg-surface-inset border-border-card">
+          <SelectTrigger aria-labelledby={labelId} className="w-full bg-surface-inset border-border-card">
             <SelectValue placeholder={t("preferences.audio.systemDefault")} />
           </SelectTrigger>
           <SelectContent>
