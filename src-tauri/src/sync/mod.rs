@@ -527,8 +527,7 @@ fn apply_remote_settings(
 /// Tell the window and the overlay that settings arrived.
 fn announce_remote_settings(app: &tauri::AppHandle, remote: &SyncedSettings) {
     if let Some(overlay) = app.get_webview_window("overlay") {
-        let (width, height) = remote.overlay_size.dimensions();
-        let _ = overlay.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
+        crate::overlay::place(app, &overlay);
         crate::overlay::raise(&overlay);
     }
     let _ = app.emit("overlay-theme-changed", remote.overlay_theme);
