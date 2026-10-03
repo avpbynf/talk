@@ -47,6 +47,8 @@ function TypingTest({
   const [misses, setMisses] = useState(0);
   const [finished, setFinished] = useState(false);
   const [finalWpm, setFinalWpm] = useState(0);
+  // Counts the restarts: the same sentence can come up again, and it is not a change of sentence.
+  const [attempt, setAttempt] = useState(0);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +64,7 @@ function TypingTest({
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, [sentence]);
+  }, [sentence, attempt]);
 
   useEffect(() => {
     if (startTime === null || finished) return;
@@ -123,6 +125,7 @@ function TypingTest({
     setMisses(0);
     setFinished(false);
     setFinalWpm(0);
+    setAttempt((n) => n + 1);
   }
 
   function keep() {
