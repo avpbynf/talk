@@ -7,6 +7,10 @@ import { PageShell } from "@/components/PageShell";
 import { Segmented } from "@/components/ui/segmented";
 import OverlaySection from "./preferences/OverlaySection";
 import PresetGrid from "./appearance/PresetGrid";
+import GradientEditor from "./appearance/GradientEditor";
+import AtmosphereCard from "./appearance/AtmosphereCard";
+import BaseColorsCard from "./appearance/BaseColorsCard";
+import ShapeCard from "./appearance/ShapeCard";
 
 interface AppearanceViewProps {
   overlayTheme: OverlayThemeId;
@@ -42,7 +46,13 @@ export default function AppearanceView({
       />
 
       {tab === "application" ? (
-        <PresetGrid theme={appTheme} />
+        <>
+          <PresetGrid theme={appTheme} />
+          <GradientEditor theme={appTheme} />
+          <AtmosphereCard theme={appTheme} />
+          <BaseColorsCard theme={appTheme} />
+          <ShapeCard theme={appTheme} />
+        </>
       ) : (
         <OverlaySection
           overlayTheme={overlayTheme}
