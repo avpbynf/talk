@@ -98,7 +98,7 @@ workflows run that same file.
   binaries were Git LFS objects and the objects are gone from the remote. Fetch
   VB-Cable from vb-audio.com and unpack it there before building an installer.
 - **There are two modes and `Local` is the default.** `TranscriptionMode` is picked in
-  the setup wizard and changed on the Transcription page. Neither is a degraded
+  the setup wizard and changed on the Engine page. Neither is a degraded
   version of the other. `server_fallback` applies inside server mode only, so a
   machine dictating badly may be in server mode falling back silently, or in local
   mode with a bad model. Check which mode it is in before anything else.

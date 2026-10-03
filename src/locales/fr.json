@@ -10,8 +10,8 @@
       "history": "Historique",
       "vocabulary": "Vocabulaire",
       "appearance": "Apparence",
-      "transcription": "Transcription",
-      "preferences": "Préférences"
+      "engine": "Moteur",
+      "settings": "Paramètres"
     }
   },
   "titlebar": {
@@ -211,7 +211,7 @@
     "remove": "Retirer {{word}}"
   },
   "transcription": {
-    "title": "Transcription",
+    "title": "Moteur",
     "subtitle": "Où la parole devient du texte, et avec quoi",
     "modes": {
       "local": "Local",
@@ -336,7 +336,7 @@
     }
   },
   "preferences": {
-    "title": "Préférences",
+    "title": "Paramètres",
     "subtitle": "Enregistrement, raccourcis et comportement dans le système",
     "audio": {
       "title": "Périphériques audio",
@@ -565,7 +565,7 @@
     },
     "google": {
       "title": "Synchroniser vos machines",
-      "subtitle": "Facultatif, et vous pourrez le faire plus tard dans les Préférences",
+      "subtitle": "Facultatif, et vous pourrez le faire plus tard dans les Paramètres",
       "skip": "Passer"
     },
     "complete": {

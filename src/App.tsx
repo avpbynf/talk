@@ -509,9 +509,9 @@ function App() {
     { id: "vocabulary", icon: BookA, label: t("common.nav.vocabulary") },
   ];
   const navItemsBottom: NavItem<View>[] = [
+    { id: "transcription", icon: Cpu, label: t("common.nav.engine") },
     { id: "appearance", icon: Palette, label: t("common.nav.appearance") },
-    { id: "transcription", icon: Cpu, label: t("common.nav.transcription") },
-    { id: "preferences", icon: Settings, label: t("common.nav.preferences") },
+    { id: "preferences", icon: Settings, label: t("common.nav.settings") },
   ];
   const navOrder = [...navItemsTop, ...navItemsBottom].map((item) => item.id);
 

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (window) Call the Transcription page Engine and the Preferences page Settings
+
+The page that picks the model, the backend and the server is now named Engine (Moteur in French),
+and Preferences is Settings (Paramètres). Engine comes first in the group at the bottom of the
+sidebar, ahead of Appearance.
+
 - (window) Move the navigation into a wider sidebar and slim the title bar down to the window buttons
 
 The sidebar now names its pages, shows the account you are signed in with at the bottom (it opens
@@ -18,7 +24,7 @@ unless your system is set to reduce motion. The strip along the top is only the 
 and close buttons now. The title bar's model and server label is gone; when dictation is not
 ready (no model, a model loading, server unreachable, token refused, or a fall back to the local
 model) a small coloured pill says so above the settings pages in the sidebar, and a click opens
-Transcription.
+Engine.
 
 - (preferences) Show an avatar drawn from your address on the Account card
 
@@ -68,7 +74,7 @@ files in place.
 - (preferences) Settings follow you from one computer to the other, within seconds
 
 Start with Windows, Start minimized and Meeting mode are now synced too. Meeting mode only changes where the virtual cable is installed, and the chosen model stays a
-choice per computer. A change in Preferences reaches your Google account about ten seconds later
+choice per computer. A change in Settings reaches your Google account about ten seconds later
 instead of at the next five minute round, and bringing the
 Talk window to the front syncs when the last round is over a minute old. Settings arriving from
 another computer show up in the open window without restarting Talk.
@@ -104,7 +110,7 @@ to ask for: leave it empty for a Talk server, and OpenAI falls back to whisper-1
 
 - (server) Find servers on the local network
 
-A Talk-Server announces itself on the network, and the Transcription page now lists the ones it
+A Talk-Server announces itself on the network, and the Engine page now lists the ones it
 hears, with their name, model and address. Pressing Use fills the server URL, so there is nothing
 to type. A server that goes away drops off the list by itself.
 
@@ -116,14 +122,14 @@ or close the strip.
 
 - (server) Pair with a server instead of pasting its token
 
-A server that offers pairing now shows a Pair button in the list on the Transcription page, and
+A server that offers pairing now shows a Pair button in the list on the Engine page, and
 the token field has a Pair with this server link for an address you typed. Talk asks the server for
 a code, you read the 6 digit code in the server's log or on its admin page and type it in, and the
 token fills itself in. The connection is tested straight after, so the status reads Connected.
 
 - (server) Share this PC with other machines
 
-A new Share this PC card on the Transcription page lets other computers dictate through the model
+A new Share this PC card on the Engine page lets other computers dictate through the model
 loaded here, with no Docker or Python on this side. Turn the switch on and Talk listens on port
 8000, or the port you pick, and announces itself on the network, so another Talk running in Server
 mode finds it in its list. That machine asks to pair, a strip under the title bar here shows a
@@ -139,16 +145,16 @@ machine is told to retry shortly.
 - (preferences) Play any feedback sound again from its own button
 
 Hearing the sound already picked meant choosing another one and coming back. Each sound on the
-Preferences page now has a play button beside it, the refusal sound included.
+Dictation page now has a play button beside it, the refusal sound included.
 
 - (preferences) Use the application in French as well as English
 
 The whole interface, the tray menu included, now comes in English and French. It follows the
-language of Windows by default, and anything that is not French shows in English. The Preferences
+language of Windows by default, and anything that is not French shows in English. The Settings
 page has a Language setting to pick one of the two whatever Windows is set to, and the change
 applies at once, without a restart. Dates, times and numbers follow the same language.
 
-- (server) Lay out the Transcription page in the order it is used
+- (server) Lay out the Engine page in the order it is used
 
 In Server mode the servers found on the network now come first, then the connection, then a single
 card holding the timeout and the fallback to this machine. In Local mode the Share this PC card
@@ -157,7 +163,7 @@ if there still are some to revoke.
 
 - Give every page and card the same look
 
-Cards on the Transcription, Preferences, Appearance and dashboard pages now share one header: a small
+Cards on the Engine, Dictation, Settings, Appearance and dashboard pages now share one header: a small
 icon and an uppercase title, with the switch or button that belongs to the card on the right and the
 explanation under it. The server cards keep their blue icon and the model cards their cyan one.
 Spacing inside cards and between them is the same everywhere. The save, cancel, edit, add, pair,
@@ -220,14 +226,14 @@ The keys of the main shortcut and of Cancel sat at different heights whenever on
 to two lines; they now both sit at the foot of their card. Cancel's description still said it only
 stopped the recording, when it also throws away dictations not pasted yet.
 
-- (preferences) Keep the Updates card at the bottom of Preferences
+- (preferences) Keep the Updates card at the bottom of Settings
 
 Cards were added to the page in the order they were written, so Companion shortcuts had landed
 below Updates. Updates is now the last card, whatever comes next.
 
 - (server) Send the server token, so server mode transcribes on the server again
 
-The token typed on the Transcription page was saved and never sent. The server refuses every
+The token typed on the Engine page was saved and never sent. The server refuses every
 transcription without one, so each dictation in server mode was turned away and quietly done on
 this machine instead, while the connection indicator, which asks a route that needs no token, kept
 showing the server as reachable.
@@ -236,7 +242,7 @@ showing the server as reachable.
 
 The connection test used to ask a route that needs no token, so a wrong token still showed the
 server as connected. It now asks one that does. A server that is there but turns the token away
-says so on the Transcription page, the dashboard and the title bar, and "Server unreachable" is
+says so on the Engine page, the dashboard and the title bar, and "Server unreachable" is
 kept for a server that does not answer. A server too old to check the token on still shows as
 connected, as it always did.
 
@@ -246,7 +252,7 @@ In local mode with no model loaded, the shortcut used to start a recording as us
 simply never came, which looked exactly like a microphone that heard nothing. It now plays a short
 low double note and the overlay says "No model loaded", or "Model still loading" in the seconds
 after launch, and nothing is recorded. The main window also shows a strip saying no model is
-loaded, with a button to the Transcription page, for as long as that stays true.
+loaded, with a button to the Engine page, for as long as that stays true.
 
 - (installer) Keep the downloaded models when installing a newer version
 
