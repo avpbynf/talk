@@ -8,7 +8,7 @@
 //!
 //! Left on their machine: the chosen model (switching it reloads the engine,
 //! which a sync must not do on its own), the graphics card and accelerator, the input and
-//! output devices, the overlay position (screens differ), the volume saved
+//! output devices, the overlay position and screen (screens differ), the volume saved
 //! while ducking, the setup flag, the servers already offered, the sharing
 //! settings, and the server token. A pairing token belongs to one machine, so
 //! the server address, model and timeout, the fallback and the transcription
@@ -18,6 +18,7 @@
 use super::vocabulary::{self, VocabLedger};
 use crate::dictation_queue::QueueSettings;
 use crate::hotkeys::HotkeyConfig;
+use crate::overlay_settings::{look_readable, OverlayLook};
 use crate::settings::{AppSettings, CompanionShortcut, OverlaySize, OverlayTheme, WindowButtons};
 use crate::theme::{self, SavedTheme, ThemeSettings, Tombstone};
 use crate::RecordingMode;
@@ -54,6 +55,14 @@ pub struct SyncedSettings {
     pub autostart_enabled: bool,
     pub start_minimized: bool,
     pub meeting_mode_enabled: bool,
+    /// The look follows the account on its own clock: it is the newer edit that wins, whatever
+    /// stamp the file around it carries. These two come last, so that the shape before them is
+    /// the start of what is written.
+    #[serde(deserialize_with = "crate::theme::lenient")]
+    pub overlay_look: OverlayLook,
+    /// Unix milliseconds of the last edit of the look, zero for one never edited.
+    #[serde(deserialize_with = "crate::theme::lenient")]
+    pub overlay_look_modified: i64,
 }
 
 impl Default for SyncedSettings {
@@ -88,6 +97,8 @@ impl SyncedSettings {
             autostart_enabled: settings.autostart_enabled,
             start_minimized: settings.start_minimized,
             meeting_mode_enabled: settings.meeting_mode_enabled,
+            overlay_look: settings.overlay_look.clone(),
+            overlay_look_modified: settings.overlay_look_modified,
         }
     }
 
@@ -120,6 +131,8 @@ impl SyncedSettings {
         settings.autostart_enabled = self.autostart_enabled;
         settings.start_minimized = self.start_minimized;
         settings.meeting_mode_enabled = self.meeting_mode_enabled;
+        settings.overlay_look = self.overlay_look.clone();
+        settings.overlay_look_modified = self.overlay_look_modified;
     }
 
     /// Changes whenever any synced value does, and only then.
@@ -137,6 +150,8 @@ impl SyncedSettings {
             || !self.saved_themes.is_empty()
             || !self.removed_themes.is_empty()
             || self.window_buttons != WindowButtons::Right
+            || self.overlay_look != OverlayLook::default()
+            || self.overlay_look_modified != 0
         {
             return None;
         }
@@ -170,7 +185,21 @@ impl SyncedSettings {
     /// Whether these settings differ from what a hash stored earlier stood for. The upgrade
     /// from the release that hashed the old shape is not a difference.
     pub fn changed_since(&self, stored: &str) -> bool {
-        self.fingerprint() != stored && self.legacy_fingerprint().as_deref() != Some(stored)
+        self.fingerprint() != stored
+            && self.legacy_fingerprint().as_deref() != Some(stored)
+            && self.themed_fingerprint().as_deref() != Some(stored)
+    }
+
+    /// What a build that had themes but no overlay look hashed these settings to, or nothing
+    /// when they hold a look that build could not have. The look is written last, so what that
+    /// build wrote is these settings cut off in front of it.
+    pub fn themed_fingerprint(&self) -> Option<String> {
+        if self.overlay_look != OverlayLook::default() || self.overlay_look_modified != 0 {
+            return None;
+        }
+        let json = serde_json::to_string(self).ok()?;
+        let cut = json.find(",\"overlay_look\":")?;
+        Some(format!("{:x}", Sha256::digest(format!("{}}}", &json[..cut]).as_bytes())))
     }
 }
 
@@ -266,6 +295,10 @@ impl SettingsFile {
                 file.foreign.insert(key.to_string(), value.clone());
             }
         }
+        // A look this build cannot read leaves this machine's own standing, with its own time.
+        if file.foreign.contains_key("overlay_look") {
+            carried.remove("overlay_look_modified");
+        }
         // A copy from the release before themes were values names its theme the old way. It only
         // matters to a machine signing in for the first time, which has no theme of its own yet.
         if !carried.contains("theme") {
@@ -293,15 +326,16 @@ impl SettingsFile {
 }
 
 /// Fields read only when this build can read all of them.
-const READABLE: [(&str, fn(&serde_json::Value) -> bool); 4] = [
+const READABLE: [(&str, fn(&serde_json::Value) -> bool); 5] = [
     ("theme", theme::theme_readable),
     ("saved_themes", theme::saved_readable),
     ("removed_themes", |value| serde_json::from_value::<Vec<Tombstone>>(value.clone()).is_ok()),
     ("window_buttons", |value| serde_json::from_value::<WindowButtons>(value.clone()).is_ok()),
+    ("overlay_look", look_readable),
 ];
 
 /// Fields a file written by the release before them lacks, and which go back on the account.
-const AFTER_THEMES: [&str; 4] = ["theme", "saved_themes", "removed_themes", "window_buttons"];
+const AFTER_THEMES: [&str; 6] = ["theme", "saved_themes", "removed_themes", "window_buttons", "overlay_look", "overlay_look_modified"];
 
 /// The `settings.json` file in Drive.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -434,6 +468,19 @@ pub fn plan(
     } else {
         local.clone()
     };
+    // The look has a clock of its own, whichever side the rest of the values follow: a copy
+    // that says nothing of it, or a stale one written under a newer stamp, never promotes an
+    // older look over a newer edit. A first sign-in keeps the rule the rest of the settings
+    // follow: a look made here stays, and only a default one takes the account's.
+    if synced_before {
+        if local.overlay_look_modified > remote.settings.overlay_look_modified {
+            merged.overlay_look = local.overlay_look.clone();
+            merged.overlay_look_modified = local.overlay_look_modified;
+        } else if remote.settings.overlay_look_modified > local.overlay_look_modified {
+            merged.overlay_look = remote.settings.overlay_look.clone();
+            merged.overlay_look_modified = remote.settings.overlay_look_modified;
+        }
+    }
     let (vocabulary, ledger) = vocabulary::merge(
         &local.vocabulary,
         ledger,
@@ -485,7 +532,7 @@ mod tests {
         SavedTheme { id: id.to_string(), name: id.to_string(), values: Default::default(), modified, ..Default::default() }
     }
 
-    const SYNCED_KEYS: [&str; 23] = [
+    const SYNCED_KEYS: [&str; 25] = [
         "shortcut",
         "cancel_shortcut",
         "paste_shortcut",
@@ -501,6 +548,8 @@ mod tests {
         "window_buttons",
         "overlay_size",
         "overlay_theme",
+        "overlay_look",
+        "overlay_look_modified",
         "language",
         "duck_audio_on_record",
         "duck_volume_percent",
@@ -511,7 +560,7 @@ mod tests {
         "meeting_mode_enabled",
     ];
 
-    const KEPT_ON_THE_MACHINE: [&str; 16] = [
+    const KEPT_ON_THE_MACHINE: [&str; 17] = [
         "last_model",
         "accelerator_backend",
         "gpu_vendor",
@@ -519,6 +568,7 @@ mod tests {
         "input_device_name",
         "output_device_name",
         "overlay_position",
+        "overlay_placement",
         "volume_before_duck",
         "setup_completed",
         "offered_servers",
@@ -1205,5 +1255,208 @@ mod tests {
         }
         assert!(json.contains(r#""app_theme":"zed""#));
         assert!(!json.contains("theme\":{"));
+    }
+
+    fn orb_here() -> SyncedSettings {
+        let mut local = SyncedSettings::default();
+        local.overlay_look.style = crate::overlay_settings::OverlayStyle::Orb;
+        local.overlay_look.end_text = true;
+        local
+    }
+
+    #[test]
+    fn a_copy_from_an_older_build_says_nothing_of_the_overlay_look_and_gets_it_back() {
+        let local = orb_here();
+        let remote = SettingsFile::parse(&account_copy(r#"{"start_sound": "ding"}"#), &local).expect("parse");
+        assert_eq!(remote.settings.overlay_look, local.overlay_look, "this machine's own stands");
+        assert!(remote.incomplete);
+
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan.merged.overlay_look, local.overlay_look);
+        assert_eq!(plan.merged.start_sound, "ding");
+        assert!(plan.upload, "the account gets the look it lost");
+        let out = uploaded(plan, 100);
+        assert_eq!(out["settings"]["overlay_look"]["style"], "orb");
+        assert_eq!(out["settings"]["overlay_look"]["end_text"], true);
+    }
+
+    #[test]
+    fn an_older_machine_syncing_does_not_reset_the_look_on_an_upgraded_one() {
+        // The older build never writes the field, so each of its uploads is a copy without it.
+        let upgraded = orb_here();
+        let older_upload = SettingsFile::parse(&account_copy(r#"{"language": "fr"}"#), &upgraded).expect("parse");
+        let plan = plan(&upgraded, 5, true, &VocabLedger::default(), Some(&older_upload), 100);
+        assert_eq!(plan.merged.overlay_look.style, crate::overlay_settings::OverlayStyle::Orb);
+        assert_eq!(plan.merged.language.as_deref(), Some("fr"));
+    }
+
+    #[test]
+    fn the_overlay_look_follows_the_account() {
+        let local = SyncedSettings::default();
+        let remote = SettingsFile::parse(
+            &account_copy(r#"{"overlay_look": {"style": "capsule", "background": "light", "end_text": true}}"#),
+            &local,
+        )
+        .expect("parse");
+        assert!(remote.foreign.is_empty());
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        let mut settings = AppSettings::default();
+        plan.merged.apply_to_settings(&mut settings);
+        assert_eq!(settings.overlay_look.style, crate::overlay_settings::OverlayStyle::Capsule);
+        assert_eq!(settings.overlay_look.background, crate::overlay_settings::OverlayBackground::Light);
+        assert!(settings.overlay_look.end_text);
+    }
+
+    #[test]
+    fn a_look_from_a_later_build_is_kept_untouched_and_this_machines_own_stands() {
+        let local = orb_here();
+        let theirs = r#"{"overlay_look": {"style": "ribbon", "end_text": false, "sparkle": 3}}"#;
+        let remote = SettingsFile::parse(&account_copy(theirs), &local).expect("parse");
+        assert!(remote.foreign.contains_key("overlay_look"));
+        assert_eq!(remote.settings.overlay_look, local.overlay_look);
+
+        let out = uploaded(plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100), 100);
+        assert_eq!(out["settings"]["overlay_look"]["style"], "ribbon", "written back as it was");
+        assert_eq!(out["settings"]["overlay_look"]["sparkle"], 3);
+    }
+
+    #[test]
+    fn keys_a_later_build_added_to_a_readable_look_are_carried() {
+        let local = SyncedSettings::default();
+        let theirs = r#"{"overlay_look": {"style": "orb", "sparkle": 3}}"#;
+        let remote = SettingsFile::parse(&account_copy(theirs), &local).expect("parse");
+        assert!(remote.foreign.is_empty());
+        let out = uploaded(plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100), 100);
+        assert_eq!(out["settings"]["overlay_look"]["sparkle"], 3);
+        assert_eq!(out["settings"]["overlay_look"]["style"], "orb");
+    }
+
+    #[test]
+    fn upgrading_with_the_default_look_is_not_an_edit_and_a_changed_one_is() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings::from_legacy("dracula");
+        let stored = upgraded.legacy_fingerprint().expect("hash");
+        assert!(!upgraded.changed_since(&stored));
+
+        upgraded.overlay_look.end_text = true;
+        assert!(upgraded.changed_since(&stored));
+        assert!(upgraded.legacy_fingerprint().is_none());
+    }
+
+    fn with_look(style: crate::overlay_settings::OverlayStyle, at: i64) -> SyncedSettings {
+        let mut settings = SyncedSettings::default();
+        settings.overlay_look.style = style;
+        settings.overlay_look_modified = at;
+        settings
+    }
+
+    #[test]
+    fn a_stale_look_re_uploaded_under_an_older_builds_stamp_does_not_cost_the_newer_edit() {
+        use crate::overlay_settings::OverlayStyle::{Capsule, Orb};
+        // A edits the look at 100 and uploads. C, an older build that knows nothing of the
+        // look, uploads a copy without it under a newer stamp. B, stale, syncs next.
+        let a = with_look(Orb, 100);
+        let mut c_copy = file_with(&[], 300);
+        c_copy.settings = a.clone();
+        let mut uploaded_by_c: serde_json::Value = serde_json::from_str(&c_copy.body().expect("body")).expect("json");
+        for key in ["overlay_look", "overlay_look_modified"] {
+            uploaded_by_c["settings"].as_object_mut().expect("object").remove(key);
+        }
+        let c_body = uploaded_by_c.to_string();
+
+        let b = with_look(Capsule, 40);
+        let seen_by_b = SettingsFile::parse(&c_body, &b).expect("parse");
+        assert_eq!(seen_by_b.settings.overlay_look, b.overlay_look, "absent says nothing: B's own");
+        let b_plan = plan(&b, 50, true, &VocabLedger::default(), Some(&seen_by_b), 400);
+        assert!(b_plan.upload, "the account gets the field it lacks");
+        let b_upload = uploaded(b_plan, 400);
+        assert_eq!(b_upload["settings"]["overlay_look"]["style"], "capsule", "B writes what it has, with its own time");
+        assert_eq!(b_upload["settings"]["overlay_look_modified"], 40);
+
+        // A syncs: the stamp on the file is newer than A's, and the look in it is older than A's.
+        let seen_by_a = SettingsFile::parse(&serde_json::to_string(&b_upload).expect("json"), &a).expect("parse");
+        let a_plan = plan(&a, 120, true, &VocabLedger::default(), Some(&seen_by_a), 500);
+        assert_eq!(a_plan.merged.overlay_look.style, Orb, "A keeps its edit");
+        assert_eq!(a_plan.merged.overlay_look_modified, 100);
+        assert!(a_plan.upload, "and puts it back on the account");
+        assert_eq!(uploaded(a_plan, 500)["settings"]["overlay_look"]["style"], "orb");
+    }
+
+    #[test]
+    fn the_newer_look_wins_on_its_own_whichever_side_has_the_newer_stamp() {
+        use crate::overlay_settings::OverlayStyle::{Capsule, Orb};
+        // Here the file is newer, and so is the look in it.
+        let mut remote = file_with(&[], 90);
+        remote.settings = with_look(Capsule, 80);
+        let here = with_look(Orb, 70);
+        let plan_one = plan(&here, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan_one.merged.overlay_look.style, Capsule);
+        assert!(plan_one.apply);
+
+        // Here the file is newer, but the look in it is older than ours.
+        let here = with_look(Orb, 85);
+        let plan_two = plan(&here, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan_two.merged.overlay_look.style, Orb);
+        assert!(plan_two.upload);
+    }
+
+    #[test]
+    fn a_first_sign_in_keeps_a_look_made_here_whatever_the_clocks_say() {
+        use crate::overlay_settings::OverlayStyle::{Capsule, Orb};
+        let mut remote = file_with(&[], 90);
+        remote.settings = with_look(Capsule, 80);
+        let here = with_look(Orb, 5);
+        let first = plan(&here, 0, false, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(first.merged.overlay_look.style, Orb, "the look made here is not replaced");
+        assert_eq!(first.merged.overlay_look_modified, 5);
+
+        // A look still at its defaults takes the account's, as every other setting does.
+        let untouched = SyncedSettings::default();
+        let first = plan(&untouched, 0, false, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(first.merged.overlay_look.style, Capsule);
+    }
+
+    #[test]
+    fn a_look_this_build_cannot_read_keeps_this_machines_own_time_with_its_own_look() {
+        use crate::overlay_settings::OverlayStyle::Orb;
+        let local = with_look(Orb, 10);
+        let theirs = r#"{"overlay_look": {"style": "ribbon"}, "overlay_look_modified": 999}"#;
+        let remote = SettingsFile::parse(&account_copy(theirs), &local).expect("parse");
+        assert_eq!(remote.settings.overlay_look_modified, 10);
+        assert_eq!(remote.settings.overlay_look.style, Orb);
+    }
+
+    #[test]
+    fn a_hash_stored_by_a_build_with_themes_and_no_look_is_not_an_edit() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings { preset: "nord".to_string(), custom: None, ..Default::default() };
+        upgraded.window_buttons = WindowButtons::Left;
+        // What that build hashed: the same settings, cut off where the look would have begun.
+        let json = serde_json::to_string(&upgraded).expect("json");
+        let cut = json.find(",\"overlay_look\":").expect("the look is written last");
+        let stored = format!("{:x}", Sha256::digest(format!("{}}}", &json[..cut]).as_bytes()));
+        assert_ne!(stored, upgraded.fingerprint());
+        assert_eq!(upgraded.legacy_fingerprint(), None, "it has themes the old release did not");
+        assert!(!upgraded.changed_since(&stored), "upgrading alone is not an edit");
+        let (hash, stamp) = restamp(&upgraded, &stored, 777, 5_000);
+        assert_eq!((hash, stamp), (upgraded.fingerprint(), 777));
+
+        let mut edited = upgraded.clone();
+        edited.start_sound = "chime".to_string();
+        assert!(edited.changed_since(&stored));
+        let mut looked = upgraded.clone();
+        looked.overlay_look.end_text = true;
+        looked.overlay_look_modified = 5;
+        assert!(looked.changed_since(&stored), "a look edited since is one");
+    }
+
+    #[test]
+    fn the_placement_never_leaves_the_machine() {
+        let mut settings = AppSettings::default();
+        settings.overlay_placement.spot = crate::overlay_settings::Spot::Free;
+        settings.overlay_placement.chosen_screen = Some("DISPLAY7".to_string());
+        let json = serde_json::to_string(&SyncedSettings::from_parts(&settings, &HotkeyConfig::default()))
+            .expect("should serialise");
+        assert!(!json.contains("DISPLAY7") && !json.contains("placement") && !json.contains("free"));
     }
 }

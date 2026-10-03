@@ -9,6 +9,7 @@ mod hotkeys;
 mod keystroke;
 mod models;
 mod overlay;
+mod overlay_settings;
 mod paths;
 mod server_transcription;
 mod settings;
@@ -619,6 +620,37 @@ fn set_overlay_theme(app: tauri::AppHandle, theme: settings::OverlayTheme) -> Re
     app_settings.overlay_theme = theme;
     settings::save_settings(&app_settings)?;
     let _ = app.emit("overlay-theme-changed", theme);
+    overlay::announce(&app);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_overlay_settings() -> overlay::OverlaySettingsView {
+    overlay::OverlaySettingsView::of(&settings::load_settings())
+}
+
+#[tauri::command]
+fn set_overlay_look(app: tauri::AppHandle, look: overlay_settings::OverlayLook) -> Result<(), String> {
+    let mut app_settings = settings::load_settings();
+    // What the frontend does not carry, keys a later build wrote, stays as it was.
+    let mut look = look.sanitized();
+    look.extra = app_settings.overlay_look.extra.clone();
+    let changed = look != app_settings.overlay_look;
+    app_settings.overlay_look = look;
+    if changed {
+        app_settings.overlay_look_modified = chrono::Utc::now().timestamp_millis();
+    }
+    settings::save_settings(&app_settings)?;
+    overlay::announce(&app);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_overlay_placement(app: tauri::AppHandle, placement: overlay_settings::OverlayPlacement) -> Result<(), String> {
+    let mut app_settings = settings::load_settings();
+    app_settings.overlay_placement = placement.sanitized();
+    settings::save_settings(&app_settings)?;
+    overlay::announce(&app);
     Ok(())
 }
 
@@ -1374,6 +1406,9 @@ pub fn run() {
             set_overlay_size,
             get_overlay_theme,
             set_overlay_theme,
+            get_overlay_settings,
+            set_overlay_look,
+            set_overlay_placement,
             set_saved_themes,
             restore_saved_theme,
             set_window_buttons,

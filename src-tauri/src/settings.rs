@@ -1,3 +1,4 @@
+use crate::overlay_settings::{OverlayLook, OverlayPlacement, Spot};
 use crate::theme::{SavedTheme, ThemeSettings, Tombstone};
 use crate::transcription::{AcceleratorBackend, GpuDevicePreference, GpuVendor};
 use serde::{Deserialize, Serialize};
@@ -40,18 +41,28 @@ impl Default for OverlaySize {
 }
 
 impl OverlaySize {
+    /// The window the overlay is drawn in, in logical pixels.
+    ///
+    /// Every style is drawn on the same stage, a pill with room round it for the
+    /// glow and the shadow, and what is inside is scaled to the window rather
+    /// than laid out again for it. The factor is the pill each size has always
+    /// been: 160, 220 and 341 pixels wide against the 220 it is drawn at.
     pub fn dimensions(&self) -> (f64, f64) {
-        match self {
-            // In the proportions the overlay is drawn at, since what is inside
-            // is scaled to the window rather than laid out again for it. Large
-            // is a real step up, for a reader who picked it to be able to see
+        let factor = match self {
+            Self::Small => 160.0 / 220.0,
+            Self::Medium => 1.0,
+            // A real step up, for a reader who picked it to be able to see
             // the thing from where they sit.
-            Self::Small => (160.0, 44.0),
-            Self::Medium => (220.0, 60.0),
-            Self::Large => (341.0, 93.0),
-        }
+            Self::Large => 341.0 / 220.0,
+        };
+        ((STAGE_WIDTH * factor).round(), (STAGE_HEIGHT * factor).round())
     }
 }
+
+/// The stage every overlay style is drawn on, at the medium size. The overlay
+/// page measures its window against the same two numbers.
+const STAGE_WIDTH: f64 = 244.0;
+const STAGE_HEIGHT: f64 = 92.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -95,12 +106,22 @@ pub struct AppSettings {
     /// Which GPU the local engine runs on, when the machine carries several
     #[serde(default)]
     pub gpu_device: Option<GpuDevicePreference>,
-    #[serde(default, deserialize_with = "crate::theme::lenient")]
+    /// Where an earlier build left a dragged overlay, in screen pixels. Read once
+    /// and turned into `overlay_placement` when the overlay is next placed.
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::theme::lenient")]
     pub overlay_position: Option<OverlayPosition>,
     #[serde(default, deserialize_with = "crate::theme::lenient")]
     pub overlay_size: OverlaySize,
+    /// The palette `overlay_look.palette` points at when it says `preset`.
     #[serde(default, deserialize_with = "crate::theme::lenient")]
     pub overlay_theme: OverlayTheme,
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
+    pub overlay_look: OverlayLook,
+    /// Unix milliseconds of the last edit of the look, which the sync compares on its own.
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
+    pub overlay_look_modified: i64,
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
+    pub overlay_placement: OverlayPlacement,
     /// The look of the window. Settings written before themes were values carry
     /// `app_theme` instead, which is read once and turned into this on load.
     #[serde(default, deserialize_with = "crate::theme::lenient")]
@@ -260,6 +281,9 @@ impl Default for AppSettings {
             overlay_position: None,
             overlay_size: OverlaySize::default(),
             overlay_theme: OverlayTheme::default(),
+            overlay_look: OverlayLook::default(),
+            overlay_look_modified: 0,
+            overlay_placement: OverlayPlacement::default(),
             theme: ThemeSettings::default(),
             saved_themes: Vec::new(),
             removed_themes: Vec::new(),
@@ -338,7 +362,12 @@ fn parse_settings(content: &str) -> Result<AppSettings, String> {
     };
     let value: serde_json::Value = serde_json::from_str(content).map_err(unreadable)?;
     let has_theme = value.get("theme").is_some_and(|theme| !theme.is_null());
+    let has_placement = value.get("overlay_placement").is_some_and(|placement| !placement.is_null());
     let mut settings: AppSettings = serde_json::from_value(value).map_err(unreadable)?;
+    // An overlay an earlier build left dragged somewhere stays where it was dropped.
+    if !has_placement && settings.overlay_position.is_some() {
+        settings.overlay_placement.spot = Spot::Free;
+    }
     if let Some(old) = settings.legacy_app_theme.take() {
         if !has_theme {
             settings.theme = ThemeSettings::from_legacy(old.as_str().unwrap_or_default());
@@ -609,7 +638,18 @@ mod tests {
             assert!(!seen.contains(&(w as u32, h as u32)), "{:?} duplicates another size", size);
             seen.push((w as u32, h as u32));
         }
-        assert_eq!(OverlaySize::default().dimensions(), (160.0, 44.0));
+        assert_eq!(OverlaySize::default().dimensions(), (177.0, 67.0));
+    }
+
+    #[test]
+    fn a_pill_keeps_the_width_each_size_always_gave_it() {
+        // The stage carries 12 pixels of room each side of the 220 pixel pill at
+        // medium, which scales along with it.
+        for (size, pill) in [(OverlaySize::Small, 160.0), (OverlaySize::Medium, 220.0), (OverlaySize::Large, 341.0)] {
+            let (stage, _) = size.dimensions();
+            let drawn = stage * 220.0 / 244.0;
+            assert!((drawn - pill).abs() < 1.5, "{:?} draws a {:.1} pixel pill, not {}", size, drawn, pill);
+        }
     }
 
     #[test]
@@ -667,5 +707,127 @@ mod tests {
         let s = parse(r#"{"overlay_position": {"x": 12.0, "y": 34.0}}"#);
         let position = s.overlay_position.expect("a readable position stays");
         assert_eq!((position.x, position.y), (12.0, 34.0));
+    }
+
+    /// A settings file as the release before the overlay styles wrote it, with
+    /// every kind of value the overlay change must leave alone.
+    fn before_the_overlay_styles(theme: &str) -> String {
+        format!(
+            r##"{{
+                "last_model": "large-v3-turbo-q5_0",
+                "overlay_size": "large",
+                "overlay_theme": "{theme}",
+                "overlay_position": {{ "x": 1210.0, "y": 640.0 }},
+                "theme": {{ "preset": "nord", "custom": null }},
+                "window_buttons": "left",
+                "language": "fr",
+                "vocabulary": ["Tauri", "Whisper"],
+                "server_url": "http://office:4060",
+                "server_token": "sk-test",
+                "setup_completed": true,
+                "companion_shortcuts": [
+                    {{ "id": "mute", "label": "Mute", "keys": "Ctrl+Shift+M", "trigger": "both" }}
+                ],
+                "history_limit": 250
+            }}"##
+        )
+    }
+
+    #[test]
+    fn a_file_from_before_the_overlay_styles_loads_whole_with_each_old_theme() {
+        for (name, theme) in [
+            ("aurora", OverlayTheme::Aurora),
+            ("sunset", OverlayTheme::Sunset),
+            ("ocean", OverlayTheme::Ocean),
+            ("neon", OverlayTheme::Neon),
+            ("frost", OverlayTheme::Frost),
+            ("neutral", OverlayTheme::Neutral),
+        ] {
+            let s = parse(&before_the_overlay_styles(name));
+
+            // The theme keeps its meaning: it is the palette the new look points at.
+            assert_eq!(s.overlay_theme, theme, "{name}");
+            assert_eq!(s.overlay_look.palette, crate::overlay_settings::OverlayPalette::Preset, "{name}");
+            assert_eq!(s.overlay_look, OverlayLook::default(), "{name}");
+            assert!(!s.overlay_look.end_text, "{name}");
+
+            // Nothing else of the file is lost.
+            assert_eq!(s.overlay_size, OverlaySize::Large);
+            assert_eq!(s.theme.preset, "nord");
+            assert_eq!(s.window_buttons, WindowButtons::Left);
+            assert_eq!(s.language.as_deref(), Some("fr"));
+            assert_eq!(s.vocabulary, vec!["Tauri".to_string(), "Whisper".to_string()]);
+            assert_eq!(s.server_url, "http://office:4060");
+            assert_eq!(s.server_token, "sk-test");
+            assert!(s.setup_completed);
+            assert_eq!(s.companion_shortcuts.len(), 1);
+            assert_eq!(s.history_limit, 250);
+            assert_eq!(s.last_model.as_deref(), Some("large-v3-turbo-q5_0"));
+        }
+    }
+
+    #[test]
+    fn an_overlay_dragged_by_an_earlier_build_stays_free_where_it_was_dropped() {
+        let s = parse(&before_the_overlay_styles("frost"));
+        assert_eq!(s.overlay_placement.spot, Spot::Free);
+        assert_eq!(s.overlay_placement.free, None);
+        let position = s.overlay_position.expect("the old position is kept until it is converted");
+        assert_eq!((position.x, position.y), (1210.0, 640.0));
+    }
+
+    #[test]
+    fn a_file_with_no_dragged_overlay_gets_the_default_spot() {
+        let s = parse(r#"{"overlay_theme": "neon"}"#);
+        assert_eq!(s.overlay_placement.spot, Spot::BottomCenter);
+        assert!(s.overlay_position.is_none());
+    }
+
+    #[test]
+    fn a_placement_already_written_wins_over_the_old_position() {
+        let s = parse(r#"{"overlay_position": {"x": 5, "y": 5}, "overlay_placement": {"spot": "top_left"}}"#);
+        assert_eq!(s.overlay_placement.spot, Spot::TopLeft);
+    }
+
+    #[test]
+    fn an_overlay_value_nobody_can_read_does_not_cost_the_file() {
+        // Written by a later build, or by hand: the file still loads, and what
+        // was readable in it is kept.
+        let s = parse(
+            r#"{
+                "server_url": "http://office:4060",
+                "overlay_look": { "style": "ribbon", "end_text": true },
+                "overlay_placement": { "spot": "orbit", "screen": 7 }
+            }"#,
+        );
+        assert_eq!(s.server_url, "http://office:4060");
+        assert_eq!(s.overlay_look.style, crate::overlay_settings::OverlayStyle::Halo);
+        assert!(s.overlay_look.end_text);
+        assert_eq!(s.overlay_placement, OverlayPlacement::default());
+
+        let s = parse(r#"{"server_url": "http://office:4060", "overlay_look": "orb", "overlay_placement": 3}"#);
+        assert_eq!(s.server_url, "http://office:4060");
+        assert_eq!(s.overlay_look, OverlayLook::default());
+    }
+
+    #[test]
+    fn the_overlay_look_and_placement_round_trip() {
+        use crate::overlay_settings::{FreePosition, OverlayBackground, OverlayStyle, ScreenChoice};
+        let mut original = AppSettings::default();
+        original.overlay_look.style = OverlayStyle::Orb;
+        original.overlay_look.background = OverlayBackground::Glass;
+        original.overlay_look.end_text = true;
+        original.overlay_look.reaction = 140;
+        original.overlay_placement = OverlayPlacement {
+            spot: Spot::Free,
+            free: Some(FreePosition { x: 0.2, y: 0.9 }),
+            screen: ScreenChoice::Chosen,
+            free_screen: Some("monitor-b".to_string()),
+            chosen_screen: Some("DISPLAY2".to_string()),
+        };
+
+        let restored = parse(&serde_json::to_string(&original).expect("should serialise"));
+
+        assert_eq!(restored.overlay_look, original.overlay_look);
+        assert_eq!(restored.overlay_placement, original.overlay_placement);
     }
 }

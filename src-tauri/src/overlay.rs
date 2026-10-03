@@ -1,6 +1,34 @@
 //! The overlay window, and the one thing Windows will not keep on its own.
 
-use tauri::{AppHandle, Manager, WebviewWindow};
+use crate::overlay_settings::{OverlayLook, OverlayPlacement};
+use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
+
+/// Everything the overlay and its settings tab read, in one answer.
+#[derive(Debug, Clone, Serialize)]
+pub struct OverlaySettingsView {
+    pub look: OverlayLook,
+    pub theme: OverlayTheme,
+    pub size: OverlaySize,
+    pub placement: OverlayPlacement,
+}
+
+impl OverlaySettingsView {
+    pub fn of(settings: &AppSettings) -> Self {
+        Self {
+            look: settings.overlay_look.clone(),
+            theme: settings.overlay_theme,
+            size: settings.overlay_size,
+            placement: settings.overlay_placement.clone(),
+        }
+    }
+}
+
+/// Tell every window what the overlay settings are now.
+pub fn announce(app: &AppHandle) {
+    let _ = app.emit("overlay-settings-changed", OverlaySettingsView::of(&settings::load_settings()));
+}
 
 /// Show the overlay, and put it back on top, which is a second thing.
 ///
