@@ -69,7 +69,10 @@ Then hold the shortcut and talk.
 ## What it does
 
 **Recording is a global shortcut**, push-to-talk or toggle, from any window. A small
-overlay shows what is being heard, and it can be dragged wherever it is not in the way.
+overlay shows what is being heard, then that the text was pasted, or that the dictation
+was turned away. It comes in three styles (Halo, Capsule and Orb), appears on the screen
+where you are typing, and can be pinned to one of six spots or dragged wherever it is
+not in the way. All of it is on the Recording overlay tab of the Appearance page.
 
 **The text goes in by keystroke or through the clipboard.** Typing it straight into the
 focused window is the default and needs no paste. The clipboard route is there for the
