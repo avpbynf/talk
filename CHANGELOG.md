@@ -15,6 +15,13 @@ The page that picks the model, the backend and the server is now named Engine (M
 and Preferences is Settings (Paramètres). Engine comes first in the group at the bottom of the
 sidebar, ahead of Appearance.
 
+- (preferences) Give dictation its own page
+
+Everything about how you dictate moved out of Settings onto a new Dictation page between Engine
+and Appearance: the shortcuts, the recording mode, chained dictations, the feedback sounds, the
+companion shortcuts and meeting mode. Settings keeps the audio devices, the system options, the
+language and the updates.
+
 - (window) Move the navigation into a wider sidebar and slim the title bar down to the window buttons
 
 The sidebar now names its pages, shows the account you are signed in with at the bottom (it opens

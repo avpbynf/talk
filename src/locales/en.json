@@ -11,6 +11,7 @@
       "vocabulary": "Vocabulary",
       "appearance": "Appearance",
       "engine": "Engine",
+      "dictation": "Dictation",
       "settings": "Settings"
     }
   },
@@ -335,9 +336,13 @@
       "revoke": "Revoke"
     }
   },
+  "dictation": {
+    "title": "Dictation",
+    "subtitle": "Shortcuts, recording and the sounds around a dictation"
+  },
   "preferences": {
     "title": "Settings",
-    "subtitle": "Recording, shortcuts and how it behaves on the system",
+    "subtitle": "Devices, the system, language and updates",
     "audio": {
       "title": "Audio devices",
       "microphone": "Microphone",

@@ -11,6 +11,7 @@
       "vocabulary": "Vocabulaire",
       "appearance": "Apparence",
       "engine": "Moteur",
+      "dictation": "Dictée",
       "settings": "Paramètres"
     }
   },
@@ -335,9 +336,13 @@
       "revoke": "Révoquer"
     }
   },
+  "dictation": {
+    "title": "Dictée",
+    "subtitle": "Raccourcis, enregistrement et sons autour d'une dictée"
+  },
   "preferences": {
     "title": "Paramètres",
-    "subtitle": "Enregistrement, raccourcis et comportement dans le système",
+    "subtitle": "Périphériques, système, langue et mises à jour",
     "audio": {
       "title": "Périphériques audio",
       "microphone": "Microphone",
