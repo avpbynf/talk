@@ -188,6 +188,16 @@ line under the list says how to reorder and remove. A press on a word that moves
 does not count as a click, and a removed term can be put back with Undo, at its old place, for a few
 seconds. Everything holds still if your system is set to reduce motion.
 
+- (dashboard) Run the typing test in a dialog
+
+The button that starts the typing test moved to the top right of the Time saved card, and the test
+now opens in a dialog over the window instead of unfolding at the bottom of the page. It marks each
+character right or wrong as you type and shows your words per minute, your accuracy and the time
+as you go. Escape closes it and puts you back on the button, "Start over" gives you a new sentence,
+and the result only replaces your typing speed when you keep it. Once the sentence is finished,
+Escape and a click outside do nothing, so a result is never lost by accident: keep it or discard it.
+The full-width button at the bottom of the dashboard is gone.
+
 ### Bug Fixes
 
 - (preferences) Never lose your vocabulary to a sync

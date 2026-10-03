@@ -46,7 +46,6 @@
   "dashboard": {
     "empty": "Nothing dictated yet. This starts counting on the first one.",
     "wpm": "{{wpm}} wpm",
-    "testTypingSpeed": "Test your typing speed",
     "period": {
       "today": "Today",
       "week": "7 days",
@@ -154,13 +153,17 @@
       "cell_other": "{{date}}: {{count}} transcriptions"
     },
     "typingGame": {
-      "title": "Measure your typing speed",
-      "subtitle": "Type the line below as fast as you comfortably can",
+      "title": "Typing test",
+      "subtitle": "Copy the sentence at your usual pace. The clock starts on your first key.",
+      "sentenceLabel": "Sentence to copy",
+      "inputLabel": "Type the sentence here",
       "wordsPerMinute": "words per minute",
-      "placeholder": "Start typing...",
-      "result": "{{wpm}} words per minute",
-      "tryAgain": "Try again",
-      "useResult": "Use this result",
+      "accuracy": "accuracy",
+      "time": "time",
+      "seconds": "{{s}} s",
+      "startOver": "Start over",
+      "keep": "Keep this result",
+      "discard": "Discard",
       "sentences": [
         "Productivity is the art of doing more with less effort.",
         "Every minute saved is a minute put back into making something.",

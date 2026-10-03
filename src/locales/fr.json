@@ -46,7 +46,6 @@
   "dashboard": {
     "empty": "Rien n'a encore été dicté. Le compte démarre à la première dictée.",
     "wpm": "{{wpm}} mots/min",
-    "testTypingSpeed": "Tester votre vitesse de frappe",
     "period": {
       "today": "Aujourd'hui",
       "week": "7 jours",
@@ -154,13 +153,17 @@
       "cell_other": "{{date}} : {{count}} transcriptions"
     },
     "typingGame": {
-      "title": "Mesurer votre vitesse de frappe",
-      "subtitle": "Recopiez la ligne ci-dessous aussi vite que vous le pouvez sans forcer",
+      "title": "Test de frappe",
+      "subtitle": "Recopiez la phrase à votre rythme. Le chrono part à la première touche.",
+      "sentenceLabel": "Phrase à recopier",
+      "inputLabel": "Tapez la phrase ici",
       "wordsPerMinute": "mots par minute",
-      "placeholder": "Commencez à taper...",
-      "result": "{{wpm}} mots par minute",
-      "tryAgain": "Réessayer",
-      "useResult": "Utiliser ce résultat",
+      "accuracy": "précision",
+      "time": "temps",
+      "seconds": "{{s}} s",
+      "startOver": "Recommencer",
+      "keep": "Garder ce résultat",
+      "discard": "Abandonner",
       "sentences": [
         "La productivité, c'est l'art de faire plus avec moins d'effort.",
         "Chaque minute gagnée est une minute rendue à ce que l'on veut créer.",
