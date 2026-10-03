@@ -95,11 +95,11 @@ pub struct AppSettings {
     /// Which GPU the local engine runs on, when the machine carries several
     #[serde(default)]
     pub gpu_device: Option<GpuDevicePreference>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
     pub overlay_position: Option<OverlayPosition>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
     pub overlay_size: OverlaySize,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
     pub overlay_theme: OverlayTheme,
     /// The look of the window. Settings written before themes were values carry
     /// `app_theme` instead, which is read once and turned into this on load.
@@ -631,5 +631,41 @@ mod tests {
                 reference
             );
         }
+    }
+
+    #[test]
+    fn an_overlay_value_nobody_can_read_costs_only_itself() {
+        // A null coordinate, a theme or a size name a later build wrote: the file still
+        // loads whole, and what could not be read takes its default.
+        let s = parse(
+            r#"{
+                "server_url": "http://office:4060",
+                "overlay_position": {"x": null, "y": 3},
+                "overlay_theme": "rainbow",
+                "overlay_size": "huge"
+            }"#,
+        );
+        assert_eq!(s.server_url, "http://office:4060");
+        assert!(s.overlay_position.is_none());
+        assert_eq!(s.overlay_theme, OverlayTheme::Frost);
+        assert_eq!(s.overlay_size, OverlaySize::Small);
+
+        let s = parse(r#"{"server_url": "http://office:4060", "overlay_position": "here", "overlay_size": 3, "overlay_theme": []}"#);
+        assert_eq!(s.server_url, "http://office:4060");
+        assert!(s.overlay_position.is_none());
+    }
+
+    #[test]
+    fn a_readable_value_beside_an_unreadable_one_is_kept() {
+        let s = parse(r#"{"overlay_theme": "neon", "overlay_size": "huge"}"#);
+        assert_eq!(s.overlay_theme, OverlayTheme::Neon);
+        assert_eq!(s.overlay_size, OverlaySize::Small);
+    }
+
+    #[test]
+    fn a_dragged_position_that_reads_is_kept() {
+        let s = parse(r#"{"overlay_position": {"x": 12.0, "y": 34.0}}"#);
+        let position = s.overlay_position.expect("a readable position stays");
+        assert_eq!((position.x, position.y), (12.0, 34.0));
     }
 }
