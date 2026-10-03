@@ -58,6 +58,7 @@ describe("AccountSection", () => {
 
     expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeInTheDocument();
     expect(screen.getByText(/only syncs your settings, statistics and history/)).toBeInTheDocument();
+    expect(document.querySelector("svg.rounded-full")).toBeNull();
   });
 
   it("says so when the build carries no Google credentials", async () => {
@@ -74,6 +75,7 @@ describe("AccountSection", () => {
 
     expect(await screen.findByText("Signed in as me@example.com")).toBeInTheDocument();
     expect(screen.getByText(/Last synced at/)).toBeInTheDocument();
+    expect(document.querySelector('svg[aria-hidden="true"].rounded-full')).not.toBeNull();
     expect(screen.getByRole("button", { name: "Sync now" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
   });
