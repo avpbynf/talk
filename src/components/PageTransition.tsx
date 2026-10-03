@@ -73,6 +73,14 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
     if (!swap || swap.epoch !== epoch || !el) return;
 
     const blocks = blocksOf(el);
+    // motion writes its first keyframe on the next frame, and a staggered block waits for its
+    // delay first. Until then the new page would be painted at rest for a frame and would
+    // read as arrived, so the starting pose is set here, before anything is painted.
+    for (const block of blocks) {
+      block.style.opacity = "0";
+      block.style.transform = `translateY(${18 * swap.dir}px) scale(0.985)`;
+      block.style.filter = "blur(3px)";
+    }
     const run = animate(
       blocks,
       {

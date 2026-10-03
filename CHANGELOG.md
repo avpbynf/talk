@@ -207,6 +207,11 @@ wrap between words instead of being cut off.
 
 ### Bug Fixes
 
+- (window) Stop a page flashing before it slides in
+
+When you opened a page it could be painted in its final place for a frame, then jump back and slide
+in. The page now starts from its faded pose before anything is drawn.
+
 - (preferences) Never lose your vocabulary to a sync
 
 Signing in on a second computer replaced its vocabulary with the account's, so a list built by hand
