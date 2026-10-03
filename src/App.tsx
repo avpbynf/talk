@@ -3,13 +3,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/server";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
-import { History, Cpu, Settings, BookA, Palette, LayoutDashboard } from "lucide-react";
+import { History, Cpu, Mic, Settings, BookA, Palette, LayoutDashboard } from "lucide-react";
 import { CaptionStrip } from "@/components/CaptionStrip";
 import { Sidebar, type EngineStatus, type NavItem } from "@/components/Sidebar";
 import { PageTransition } from "@/components/PageTransition";
 import HistoryView from "@/views/HistoryView";
 import TranscriptionView from "@/views/transcription/TranscriptionView";
 import VocabularyView from "@/views/VocabularyView";
+import DictationView from "@/views/DictationView";
 import PreferencesView from "@/views/PreferencesView";
 import AppearanceView from "@/views/AppearanceView";
 import AnalyticsView from "@/views/AnalyticsView";
@@ -122,7 +123,7 @@ interface SavedTranscription {
   charCount: number;
 }
 
-type View = "analytics" | "history" | "transcription" | "vocabulary" | "preferences" | "appearance";
+type View = "analytics" | "history" | "transcription" | "vocabulary" | "dictation" | "preferences" | "appearance";
 
 function App() {
   const { t } = useTranslation();
@@ -178,7 +179,7 @@ function App() {
   // loaded, so this one starts where Rust starts.
   const [historyLimit, setHistoryLimit] = useState(100);
 
-  // Looks at the GitHub releases on its own; the banner and the Preferences page
+  // Looks at the GitHub releases on its own; the banner and the Settings page
   // are two views of the same state.
   const updater = useUpdater();
 
@@ -510,6 +511,7 @@ function App() {
   ];
   const navItemsBottom: NavItem<View>[] = [
     { id: "transcription", icon: Cpu, label: t("common.nav.engine") },
+    { id: "dictation", icon: Mic, label: t("common.nav.dictation") },
     { id: "appearance", icon: Palette, label: t("common.nav.appearance") },
     { id: "preferences", icon: Settings, label: t("common.nav.settings") },
   ];
@@ -799,8 +801,8 @@ function App() {
             }}
           />
         )}
-        {view === "preferences" && (
-          <PreferencesView
+        {view === "dictation" && (
+          <DictationView
             recordingMode={recordingMode}
             onRecordingModeChange={async (mode) => {
               setRecordingMode(mode);
@@ -821,6 +823,30 @@ function App() {
               await invoke("update_paste_shortcut", { shortcut: newShortcut });
               setPasteShortcut(newShortcut);
             }}
+            companionShortcuts={companionShortcuts}
+            onCompanionShortcutsChange={async (shortcuts) => {
+              setCompanionShortcuts(shortcuts);
+              await invoke("set_companion_shortcuts", { shortcuts });
+            }}
+            soundFeedback={soundFeedback}
+            onSoundFeedbackChange={async (enabled) => {
+              setSoundFeedback(enabled);
+              await invoke("set_sound_feedback", { enabled });
+            }}
+            startSound={startSound}
+            onStartSoundChange={async (preset) => {
+              setStartSound(preset);
+              await invoke("set_start_sound", { preset });
+            }}
+            stopSound={stopSound}
+            onStopSoundChange={async (preset) => {
+              setStopSound(preset);
+              await invoke("set_stop_sound", { preset });
+            }}
+          />
+        )}
+        {view === "preferences" && (
+          <PreferencesView
             autostartEnabled={autostartEnabled}
             onAutostartChange={async (enabled) => {
               setAutostartEnabled(enabled);
@@ -845,26 +871,6 @@ function App() {
             onPreserveClipboardChange={async (enabled) => {
               setPreserveClipboard(enabled);
               await invoke("set_preserve_clipboard", { enabled });
-            }}
-            companionShortcuts={companionShortcuts}
-            onCompanionShortcutsChange={async (shortcuts) => {
-              setCompanionShortcuts(shortcuts);
-              await invoke("set_companion_shortcuts", { shortcuts });
-            }}
-            soundFeedback={soundFeedback}
-            onSoundFeedbackChange={async (enabled) => {
-              setSoundFeedback(enabled);
-              await invoke("set_sound_feedback", { enabled });
-            }}
-            startSound={startSound}
-            onStartSoundChange={async (preset) => {
-              setStartSound(preset);
-              await invoke("set_start_sound", { preset });
-            }}
-            stopSound={stopSound}
-            onStopSoundChange={async (preset) => {
-              setStopSound(preset);
-              await invoke("set_stop_sound", { preset });
             }}
             updater={updater}
           />

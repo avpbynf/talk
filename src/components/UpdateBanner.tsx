@@ -13,7 +13,7 @@ interface UpdateBannerProps {
  *
  * It shows up for a version that was found and not waved away, and it stays for
  * the download, which is short but not instant. A failed check never appears
- * here: the Preferences page is where a check that was asked for answers.
+ * here: the Settings page is where a check that was asked for answers.
  */
 export function UpdateBanner({ updater }: UpdateBannerProps) {
   const { t } = useTranslation();
