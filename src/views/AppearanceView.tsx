@@ -1,22 +1,19 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { OverlaySize, WindowButtonsSide } from "@/App";
-import type { OverlayThemeId } from "@/lib/overlay-themes";
+import type { WindowButtonsSide } from "@/App";
 import type { AppThemeController } from "@/lib/use-app-theme";
 import { PageShell } from "@/components/PageShell";
 import { Segmented } from "@/components/ui/segmented";
-import OverlaySection from "./preferences/OverlaySection";
 import PresetGrid from "./appearance/PresetGrid";
 import GradientEditor from "./appearance/GradientEditor";
 import AtmosphereCard from "./appearance/AtmosphereCard";
 import BaseColorsCard from "./appearance/BaseColorsCard";
 import ShapeCard from "./appearance/ShapeCard";
 
+// Its three styles, the engine and the avatar library are the overlay's: no other page pays for them.
+const OverlayTab = lazy(() => import("./appearance/OverlayTab"));
+
 interface AppearanceViewProps {
-  overlayTheme: OverlayThemeId;
-  onOverlayThemeChange: (theme: OverlayThemeId) => void;
-  overlaySize: OverlaySize;
-  onOverlaySizeChange: (size: OverlaySize) => void;
   appTheme: AppThemeController;
   windowButtons: WindowButtonsSide;
   onWindowButtonsChange: (side: WindowButtonsSide) => void;
@@ -24,15 +21,7 @@ interface AppearanceViewProps {
 
 type Tab = "application" | "overlay";
 
-export default function AppearanceView({
-  overlayTheme,
-  onOverlayThemeChange,
-  overlaySize,
-  onOverlaySizeChange,
-  appTheme,
-  windowButtons,
-  onWindowButtonsChange,
-}: AppearanceViewProps) {
+export default function AppearanceView({ appTheme, windowButtons, onWindowButtonsChange }: AppearanceViewProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("application");
 
@@ -62,12 +51,9 @@ export default function AppearanceView({
           />
         </>
       ) : (
-        <OverlaySection
-          overlayTheme={overlayTheme}
-          onOverlayThemeChange={onOverlayThemeChange}
-          overlaySize={overlaySize}
-          onOverlaySizeChange={onOverlaySizeChange}
-        />
+        <Suspense fallback={null}>
+          <OverlayTab appTheme={appTheme} />
+        </Suspense>
       )}
     </PageShell>
   );

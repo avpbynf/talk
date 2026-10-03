@@ -22,7 +22,7 @@ test.describe("the Appearance page", () => {
       await app.go(APPEARANCE);
       await expect.poll(async () => (await findLayoutProblems(page)).map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
       await page.getByRole("radio", { name: "Recording overlay" }).click();
-      await expect(page.getByText("Size of the window shown while recording.")).toBeVisible();
+      await expect(page.getByRole("button", { name: /^Halo/ })).toBeVisible();
       await expect.poll(async () => (await findLayoutProblems(page)).map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
     });
   }
