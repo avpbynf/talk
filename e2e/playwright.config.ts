@@ -1,0 +1,37 @@
+import { defineConfig, devices } from "@playwright/test";
+
+// Its own port, so a `tauri dev` running on 1421 is never the server under test.
+const PORT = 1431;
+
+export default defineConfig({
+  testDir: ".",
+  testMatch: "**/*.spec.ts",
+  outputDir: "../test-results",
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}{ext}",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: 0,
+  workers: process.env.CI ? 2 : undefined,
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never", outputFolder: "../playwright-report" }]]
+    : [["list"]],
+  expect: {
+    toHaveScreenshot: { maxDiffPixelRatio: 0.002, animations: "disabled", caret: "hide" },
+  },
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    ...devices["Desktop Chrome"],
+    locale: "en-US",
+    timezoneId: "UTC",
+    deviceScaleFactor: 1,
+    trace: "retain-on-failure",
+  },
+  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  webServer: {
+    command: `bunx vite --port ${PORT} --strictPort`,
+    cwd: "..",
+    url: `http://localhost:${PORT}`,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
+});
