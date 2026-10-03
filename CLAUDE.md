@@ -60,6 +60,9 @@ build fails in ways that read like a Rust error.
 - `src-tauri/src/server_transcription.rs` is the remote path
 - `src-tauri/src/virtual_mic/` detects and routes through VB-Cable
 - `src/views/` are the settings pages, `src/pages/` the overlay and setup wizard
+- `src/overlay/` draws the three overlay styles on one engine, and `src/views/appearance/overlay/`
+  is their settings tab with its preview. `src-tauri/src/placement.rs` is the pure arithmetic of
+  where the overlay goes, `overlay_settings.rs` the settings it reads
 
 ## Branches
 
@@ -119,6 +122,34 @@ workflows run that same file.
   own account, and the overlay then draws behind everything on screen until the process
   restarts and builds the window again. `overlay::raise()` asks for `HWND_TOPMOST`
   itself, and anything else that has to stay in front needs the same.
+- **The overlay is placed before it is shown, and a move it reports is not always a drag.**
+  `overlay::show()` calls `overlay::place()`, which picks the screen, sizes the window for that
+  screen's scale and positions it inside its work area; the window then reports that it moved.
+  Only a move the user started counts as a drag: the overlay page arms on a mouse press, and
+  `dragged_to()` ignores a move that lands where `place()` put it, and forgets that corner once a
+  drag is taken in. A position is kept as a share of the room on a screen's work area
+  (`FreePosition`), never as pixels, and belongs to the screen it was dropped on (`free_screen`),
+  whatever the screen rule says; a spot goes back to the rule. A screen is remembered by the
+  monitor's device path and not by `\\.\DISPLAYn`, which Windows renumbers. The path names the
+  same monitor on the same connection: it embeds an id derived from the output, so another
+  port or dock may read as a new screen, and a free position then falls back to the rule. An earlier build's
+  absolute position is converted by `place()` the first time the screens are known, keeping its
+  monitor, which is why `overlay_position` is still read and never written. What ends a hold after
+  a paste or a refusal is judged by `overlay_feedback::Generation`, so an old timer cannot hide a
+  newer state.
+- **Nothing in the overlay may repaint every frame.** It sits over whatever the user is working
+  in, so each style moves by transform and opacity only, from the one loop in
+  `src/overlay/engine.ts`, which stops when nothing is shown. A conic gradient rotated by a
+  custom property, a blur over something that moves, or a `backdrop-filter` (which blurs
+  nothing over a transparent window anyway, so Glass is a translucent fill) cost a repaint of
+  the whole window. The stylesheet's class names must not collide with `index.css`: a second
+  `.shimmer` there silently took the capsule's text clip away.
+- **The overlay look follows the account and reads leniently.** `overlay_look` carries
+  `serde` defaults field by field, so a value this build cannot read costs that value and not
+  the settings file. The look has its own modified time, compared on its own whatever stamp the
+  file around it carries, so a stale look re-uploaded by another PC never beats a newer edit.
+  A synced copy without it says nothing and gets this PC's own back;
+  one this build cannot read in full is written back as it was (`sync/portable.rs`).
 - **The VB-Cable payload is absent.** `src-tauri/nsis-hooks.nsh` ships
   `src-tauri/resources/VBCABLE_Driver/` and runs its setup at install time, but those
   binaries were Git LFS objects and the objects are gone from the remote. Fetch

@@ -23,7 +23,8 @@ slide or fade), its size, the timer, the microphone icon and, off by default, th
 Position is one of six spots or free: drag the overlay, in the preview or on screen, and it stays where
 you drop it with none of the six selected, until you pick a spot again. With several screens, choose the
 one where you are typing, the one with the mouse pointer, the primary, or always one in particular; if
-that one is unplugged the overlay falls back to where you are typing. The style, colours and movement
+that one is unplugged, or plugged into another port, the overlay falls back to where you are typing.
+A screen is recognised as the same monitor on the same connection. The style, colours and movement
 follow your account, and the position and the screen stay on each PC.
 
 - (overlay) Say when the text is pasted, and turn a refused dictation away with a shake
@@ -31,7 +32,8 @@ follow your account, and the position and the screen stay on each PC.
 Once the text is in the window you were typing in, the overlay stays up for a moment with a tick
 instead of vanishing the instant it is done, unless another dictation is still transcribing, which then
 keeps the overlay. A paste that fails (a locked clipboard, a window that will not take it) never shows
-the tick: the overlay says "Paste failed". When a dictation cannot start, the overlay appears in red,
+the tick: the overlay says "Paste failed" and the refusal sound plays, even over a recording or another
+transcription, which then gets the overlay back. When a dictation cannot start, the overlay appears in red,
 shakes side to side like a head saying no, says why in a few words (no model, model still loading, no
 microphone) and the refusal sound plays as before; a second refusal while the first is showing shakes
 again. The words after a paste ("Pasted, 14 words") are off by default and the tick carries it. The
