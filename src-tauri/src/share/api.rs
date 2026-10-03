@@ -164,7 +164,7 @@ impl ApiError {
     fn no_model() -> Self {
         Self::new(
             StatusCode::SERVICE_UNAVAILABLE,
-            "No model is loaded on this PC. Load one in the Transcription page.",
+            "No model is loaded on this PC. Load one in the Engine page.",
             "ModelNotLoaded",
         )
     }

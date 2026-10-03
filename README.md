@@ -39,13 +39,13 @@ endpoint, OpenAI included: give it the URL (with or without `/v1`), the API key,
 optionally a model name (`whisper-1` is used for OpenAI when it is empty). A server without
 the streaming route is detected on the first dictation and the standard route is used from
 then on, so the overlay shows its state without live segments. Local is the default, and
-either mode can be changed later on the Transcription page.
+either mode can be changed later on the Engine page.
 
 **Server mode carries a fallback**, on unless you turn it off: when the server does not
 answer, the local engine takes over mid-shortcut and you keep dictating. Its price is
 that a real bug and an unreachable server look identical from the outside, since both
 end in the same quiet switch. When transcriptions get worse for no reason, the
-Transcription page and the server URL on it are the first place to look.
+Engine page and the server URL on it are the first place to look.
 
 ## Quick start
 
@@ -85,7 +85,7 @@ either one by one or held and pasted as a single paragraph. The cancel shortcut 
 recording in progress, and once there is none, what is still transcribing.
 
 **Servers on the network are found for you.** A Talk-Server announces itself, and the
-Transcription page lists the ones it hears with their model and address, so pointing Talk at
+Engine page lists the ones it hears with their model and address, so pointing Talk at
 one is a click. The first time a new server shows up while dictation runs locally, a strip under
 the window buttons offers to switch to it. A server that requires a token can be paired instead of
 copied from: Talk asks for a code, you read it off the server, and the token fills itself in.
@@ -109,7 +109,7 @@ typing it, and where it went.
 
 **On a machine with two graphics cards, you say which one works.** Which card comes
 first depends on the driver and on what Windows was told to prefer, so Talk takes the
-discrete one rather than the first one, and the Transcription page lists them by name to
+discrete one rather than the first one, and the Engine page lists them by name to
 change that. Memory alone would not decide it: an integrated chip reports the shared
 system memory as its own and comes out ahead of a discrete card carrying half as much of
 its own. The model reloads on the card you pick, without restarting the app.
@@ -120,12 +120,12 @@ the length of a recording, to a share of where it already was, and put back at t
 rather than after the transcription.
 
 **The interface is in English and French**, follows the language of the system, and can be
-set to either one on the Preferences page.
+set to either one on the Settings page.
 
 **It updates itself from the releases page.** Shortly after launch, then once an hour
 for a window left open, it asks GitHub what the newest release is. A strip under the
 window buttons offers to install it, and installing runs the same installer you would have
-downloaded by hand, closes the window and opens it again. The Preferences page carries
+downloaded by hand, closes the window and opens it again. The Settings page carries
 the version that is running and a button that asks straight away. Nothing installs
 unless it was signed by the key the release was built with, and a version installed
 before any of this existed has to be replaced by hand once.

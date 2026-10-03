@@ -10,8 +10,8 @@
       "history": "History",
       "vocabulary": "Vocabulary",
       "appearance": "Appearance",
-      "transcription": "Transcription",
-      "preferences": "Preferences"
+      "engine": "Engine",
+      "settings": "Settings"
     }
   },
   "titlebar": {
@@ -211,7 +211,7 @@
     "remove": "Remove {{word}}"
   },
   "transcription": {
-    "title": "Transcription",
+    "title": "Engine",
     "subtitle": "Where speech gets turned into text, and by what",
     "modes": {
       "local": "Local",
@@ -336,7 +336,7 @@
     }
   },
   "preferences": {
-    "title": "Preferences",
+    "title": "Settings",
     "subtitle": "Recording, shortcuts and how it behaves on the system",
     "audio": {
       "title": "Audio devices",
@@ -565,7 +565,7 @@
     },
     "google": {
       "title": "Sync your machines",
-      "subtitle": "Optional, and you can do it later in Preferences",
+      "subtitle": "Optional, and you can do it later in Settings",
       "skip": "Skip"
     },
     "complete": {
