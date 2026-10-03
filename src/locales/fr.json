@@ -570,7 +570,7 @@
     },
     "google": {
       "title": "Synchroniser vos machines",
-      "subtitle": "Facultatif, et vous pourrez le faire plus tard dans les Paramètres",
+      "subtitle": "Facultatif, et vous pourrez le faire plus tard dans la page Compte",
       "skip": "Passer"
     },
     "complete": {
@@ -594,6 +594,7 @@
     }
   },
   "account": {
+    "subtitle": "Gardez vos réglages et vos statistiques alignés d'une machine à l'autre",
     "title": "Compte",
     "hint": "Facultatif. La connexion synchronise seulement vos réglages, vos statistiques et votre historique entre vos machines, via votre propre Google Drive.",
     "unavailable": "La connexion n'est pas disponible dans cette version.",
@@ -601,6 +602,28 @@
     "signingIn": "En attente du navigateur",
     "cancelSignIn": "Annuler",
     "signedInAs": "Connecté en tant que {{email}}",
+    "provider": "Google Drive",
+    "follows": {
+      "title": "Ce qui suit votre compte",
+      "shortcuts": "Raccourcis et raccourcis associés",
+      "recording": "Mode d'enregistrement et dictées enchaînées",
+      "vocabulary": "Vocabulaire",
+      "sounds": "Sons de retour",
+      "themes": "Apparence de l'application et du bandeau",
+      "language": "Langue",
+      "startup": "Lancement avec Windows et démarrage réduit",
+      "system": "Baisse du volume et presse-papiers",
+      "meeting": "Mode réunion"
+    },
+    "stays": {
+      "title": "Reste propre à chaque PC",
+      "audio": "Microphone et sortie",
+      "gpu": "Carte graphique",
+      "model": "Modèle",
+      "server": "Serveur et jeton",
+      "overlay": "Position du bandeau",
+      "history": "Taille de l'historique"
+    },
     "syncNow": "Synchroniser",
     "signOut": "Se déconnecter",
     "syncing": "Synchronisation en cours",

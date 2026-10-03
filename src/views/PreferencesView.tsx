@@ -3,7 +3,6 @@ import { PageShell } from "@/components/PageShell";
 import AudioDevicesSection from "./preferences/AudioDevicesSection";
 import SystemSection from "./preferences/SystemSection";
 import LanguageSection from "./preferences/LanguageSection";
-import AccountSection from "./preferences/AccountSection";
 import UpdatesSection from "./preferences/UpdatesSection";
 import type { Updater } from "@/lib/use-updater";
 
@@ -51,7 +50,6 @@ export default function PreferencesView({
         onPreserveClipboardChange={onPreserveClipboardChange}
       />
       <LanguageSection />
-      <AccountSection />
       {/* Last on the page, whatever is added above it */}
       <UpdatesSection updater={updater} />
     </PageShell>

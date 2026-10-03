@@ -15,6 +15,14 @@ The page that picks the model, the backend and the server is now named Engine (M
 and Preferences is Settings (Paramètres). Engine comes first in the group at the bottom of the
 sidebar, ahead of Appearance.
 
+- (preferences) Give the account its own page
+
+The account entry at the bottom of the sidebar opens an Account page instead of Settings. It shows
+your avatar large, drawn from your address, with the provider, the address and when the last sync
+ran, and the same actions as before: sign in (and cancel while it waits), sync now and sign out,
+with a sync error written out where you can read it. Under it, a card lists what follows your
+account from one PC to the other and what stays on each PC. The Account card is gone from Settings.
+
 - (preferences) Give dictation its own page
 
 Everything about how you dictate moved out of Settings onto a new Dictation page between Engine
@@ -25,19 +33,13 @@ language and the updates.
 - (window) Move the navigation into a wider sidebar and slim the title bar down to the window buttons
 
 The sidebar now names its pages, shows the account you are signed in with at the bottom (it opens
-Preferences), and collapses to icons with the thin handle on its right edge; it remembers which
+the Account page), and collapses to icons with the thin handle on its right edge; it remembers which
 way you left it. A highlight glides to the page you pick, and pages ease in when you switch,
 unless your system is set to reduce motion. The strip along the top is only the minimize, maximize
 and close buttons now. The title bar's model and server label is gone; when dictation is not
 ready (no model, a model loading, server unreachable, token refused, or a fall back to the local
 model) a small coloured pill says so above the settings pages in the sidebar, and a click opens
 Engine.
-
-- (preferences) Show an avatar drawn from your address on the Account card
-
-The Account card now shows a small avatar next to the address you are signed in with. It is
-generated from the address, so it is always the same one, and it moves gently unless your system is
-set to reduce motion.
 
 - (transcription) Confirm before a change of backend or graphics card reloads the model
 
@@ -67,7 +69,7 @@ second machine has synced.
 
 - (preferences) Sign in with Google to keep several machines in step
 
-A new Account card in Preferences signs in with Google, which is entirely optional: nothing in Talk
+A new Account page signs in with Google, which is entirely optional: nothing in Talk
 needs it. Signed in, each machine keeps its settings, its statistics and its history in the app's
 own hidden folder of your Google Drive, and shows the sum of all your machines: 98 hours saved on
 one PC and 66 on another read 164 on both, and syncing again never counts anything twice. The
@@ -90,7 +92,7 @@ another computer show up in the open window without restarting Talk.
 
 Recording again while a long dictation is still on its way through the model no longer risks the
 texts landing out of order: they now come out in the order they were spoken. A new Chained
-dictations card in Preferences decides whether each one is pasted as soon as it is ready or the
+dictations card on the Dictation page decides whether each one is pasted as soon as it is ready or the
 whole run is held and pasted once as a single paragraph, and whether the paste shortcut brings back
 the last dictation or the whole last run.
 
@@ -187,7 +189,7 @@ the other, and a word you remove disappears from both at the next sync. The firs
 computer also keeps the settings you already chose there, and only fills in the ones still at their
 default from the account. Shortcuts for companion apps are combined the same way.
 
-- (preferences) Show a readable sync error on the Account card
+- (preferences) Show a readable sync error on the Account page
 
 A failed sync used to print Google's whole answer, thirty lines of it. It now shows the message
 Google gave, cut to a sentence, on at most three lines with the full text on hover, and an address
@@ -215,7 +217,7 @@ sometimes flashed them almost black. The highlight now simply follows the pointe
 
 When Google refuses a sign-in on its own page and never sends you back, Talk used to sit on
 Waiting for the browser with every button disabled until the wait ran out. A Cancel button now
-sits next to it on the Account card, on the strip under the title bar and in the setup wizard, and
+sits next to it on the Account page, on the strip under the title bar and in the setup wizard, and
 puts things back as they were without an error. The wait itself now gives up after three minutes
 instead of five.
 

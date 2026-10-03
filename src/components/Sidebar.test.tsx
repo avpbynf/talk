@@ -12,7 +12,7 @@ const top: NavItem<Id>[] = [
   { id: "dash", icon: LayoutDashboard, label: "Dashboard" },
   { id: "history", icon: History, label: "History" },
 ];
-const bottom: NavItem<Id>[] = [{ id: "prefs", icon: Settings, label: "Preferences" }];
+const bottom: NavItem<Id>[] = [{ id: "prefs", icon: Settings, label: "Settings" }];
 
 function answer(status: GoogleStatus) {
   vi.mocked(invoke).mockImplementation(async (command: string) =>
