@@ -303,6 +303,11 @@ term being dragged. They now only slide. The list of terms also used to stop aft
 a scroll of its own in the middle of the page; it now grows with the terms it holds, and only
 scrolls once it reaches the bottom of the window, while the field to add terms stays in view.
 
+- (window) Say that the model is loading while the application starts
+
+The sidebar pill that reads Loading model only ever appeared when you loaded a model by hand. At
+launch, while the last model was coming back, it stayed empty. It now shows for that wait too.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

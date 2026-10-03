@@ -521,7 +521,9 @@ function App() {
 
   // Only what is wrong or under way; nothing at all when dictation is ready.
   const engineStatus: EngineStatus | null = (() => {
-    if (!initialized) return null;
+    // The launch loads the last model before it counts as initialized, and that wait is
+    // the one the pill exists to explain.
+    if (!initialized && !isLoading) return null;
     const serverMode = transcriptionMode === "server";
     if (serverMode && serverStatus === "unauthorized") return { label: t("sidebar.status.tokenRefused"), tone: "bad" };
     if (serverMode && serverStatus === "offline") {
