@@ -58,6 +58,13 @@ background, and the text is kept readable), the corners, the text size and the s
 is marked as modified with a way back, and Save as my theme keeps it in the grid and on your
 account.
 
+- (window) Put the window buttons on the left, in the top row of the sidebar
+
+Shape and motion on the Appearance page has a new choice for the window buttons. On the left they
+become three small dots next to the name in the sidebar, which show their symbols when you point at
+them or tab to them; the strip across the top of the page stays as the part you drag. On the right is the same as
+before. The choice follows your Google account.
+
 - (window) Move the navigation into a wider sidebar and slim the title bar down to the window buttons
 
 The sidebar now names its pages, shows the account you are signed in with at the bottom (it opens

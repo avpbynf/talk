@@ -634,6 +634,13 @@ fn set_app_theme(theme: theme::ThemeSettings) -> Result<(), String> {
     settings::save_settings(&app_settings)
 }
 
+#[tauri::command]
+fn set_window_buttons(side: settings::WindowButtons) -> Result<(), String> {
+    let mut app_settings = settings::load_settings();
+    app_settings.window_buttons = side;
+    settings::save_settings(&app_settings)
+}
+
 /// Replaces the saved themes with the list the page holds, and answers with the list as stored.
 #[tauri::command]
 fn set_saved_themes(themes: Vec<theme::SavedTheme>) -> Result<Vec<theme::SavedTheme>, String> {
@@ -1369,6 +1376,7 @@ pub fn run() {
             set_overlay_theme,
             set_saved_themes,
             restore_saved_theme,
+            set_window_buttons,
             set_app_theme,
             get_language,
             set_language,

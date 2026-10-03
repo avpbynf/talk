@@ -70,6 +70,15 @@ impl Default for OverlayTheme {
     }
 }
 
+/// Which side of the window the minimize, maximize and close buttons sit on
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WindowButtons {
+    #[default]
+    Right,
+    Left,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OverlayPosition {
     pub x: f64,
@@ -102,6 +111,8 @@ pub struct AppSettings {
     /// Marks left by removed saved themes, so a sync does not bring them back
     #[serde(default, deserialize_with = "crate::theme::lenient")]
     pub removed_themes: Vec<Tombstone>,
+    #[serde(default, deserialize_with = "crate::theme::lenient")]
+    pub window_buttons: WindowButtons,
     #[serde(default, rename = "app_theme", skip_serializing)]
     legacy_app_theme: Option<serde_json::Value>,
     /// Interface language, "en" or "fr". None follows the system language.
@@ -252,6 +263,7 @@ impl Default for AppSettings {
             theme: ThemeSettings::default(),
             saved_themes: Vec::new(),
             removed_themes: Vec::new(),
+            window_buttons: WindowButtons::default(),
             legacy_app_theme: None,
             language: None,
             vocabulary: default_vocabulary(),
@@ -545,6 +557,15 @@ mod tests {
         let json = serde_json::to_value(&s).expect("should serialise");
         assert!(json.get("app_theme").is_none());
         assert_eq!(json["theme"]["preset"], "dracula");
+    }
+
+    #[test]
+    fn the_window_buttons_default_to_the_right_and_survive_nonsense() {
+        assert_eq!(parse("{}").window_buttons, WindowButtons::Right);
+        assert_eq!(parse(r#"{"window_buttons": "left"}"#).window_buttons, WindowButtons::Left);
+        let s = parse(r#"{"window_buttons": "top", "server_url": "http://localhost:4060"}"#);
+        assert_eq!(s.window_buttons, WindowButtons::Right);
+        assert_eq!(s.server_url, "http://localhost:4060");
     }
 
     #[test]

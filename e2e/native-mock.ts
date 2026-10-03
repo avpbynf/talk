@@ -289,6 +289,7 @@ export function installNativeMock(init: MockInit): void {
 
     // Appearance and overlay
     set_app_theme: field("theme", "theme"),
+    set_window_buttons: field("window_buttons", "side"),
     // Like the real ones: a changed theme is stamped, and the list as stored comes back.
     set_saved_themes: (a) => {
       const now = Date.now();

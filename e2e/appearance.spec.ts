@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { test, expect, PAGES } from "./harness";
 import { CONTRAST, serious } from "./axe";
 import { findLayoutProblems } from "./layout-checks";
@@ -213,5 +213,67 @@ test.describe("the gradient editor, by keyboard", () => {
     await expect(dial).toHaveAttribute("aria-disabled", "true");
     await dial.dispatchEvent("keydown", { key: "ArrowRight" });
     await expect(dial).toHaveAttribute("aria-valuenow", "130");
+  });
+});
+
+test.describe("the window buttons", () => {
+  test.use({ viewport: { width: DEFAULT_SIZE.width, height: DEFAULT_SIZE.height } });
+
+  const NAMES = ["Minimize", "Maximize", "Close"];
+
+  async function insideSidebar(app: { sidebar: Locator }) {
+    return Promise.all(NAMES.map((name) => app.sidebar.getByRole("button", { name }).count()));
+  }
+
+  test("sit on the right, in the strip, by default", async ({ app, page }) => {
+    await app.open();
+    for (const name of NAMES) await expect(page.getByRole("button", { name })).toBeVisible();
+    expect(await insideSidebar(app)).toEqual([0, 0, 0]);
+  });
+
+  test("move to the top row of the sidebar, and come back", async ({ app, page }) => {
+    await app.open();
+    await app.go(APPEARANCE);
+    await page.getByRole("radio", { name: "On the left" }).click();
+    await expect.poll(() => insideSidebar(app)).toEqual([1, 1, 1]);
+    expect((await app.calls("set_window_buttons")).at(-1)?.args).toEqual({ side: "left" });
+    // The strip stays as the part that drags, without the buttons.
+    for (const name of NAMES) await expect(page.getByRole("button", { name })).toHaveCount(1);
+    await expect.poll(async () => (await findLayoutProblems(page)).map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
+
+    await page.getByRole("radio", { name: "On the right" }).click();
+    await expect.poll(() => insideSidebar(app)).toEqual([0, 0, 0]);
+    expect((await app.calls("set_window_buttons")).at(-1)?.args).toEqual({ side: "right" });
+  });
+
+  test("stay inside a collapsed sidebar", async ({ app, page }) => {
+    await app.open({ state: { settings: { window_buttons: "left" } } });
+    await expect.poll(() => insideSidebar(app)).toEqual([1, 1, 1]);
+    await app.sidebar.getByRole("button", { name: "Collapse the sidebar" }).click();
+    await expect(app.sidebar).toHaveAttribute("data-collapsed", "true");
+    await app.settle();
+    const box = await app.sidebar.boundingBox();
+    for (const name of NAMES) {
+      const dot = await app.sidebar.getByRole("button", { name }).boundingBox();
+      expect(dot && box && dot.x >= box.x && dot.x + dot.width <= box.x + box.width, `${name} is inside`).toBe(true);
+    }
+    await expect.poll(async () => (await findLayoutProblems(page)).map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
+  });
+
+  test("show their symbols when reached from the keyboard", async ({ app, page }) => {
+    await app.open({ state: { settings: { window_buttons: "left" } } });
+    const minimize = app.sidebar.getByRole("button", { name: "Minimize" });
+    const colour = () => minimize.evaluate((el) => getComputedStyle(el).color);
+    const before = await colour();
+    await minimize.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await expect.poll(colour).not.toBe(before);
+  });
+
+  test("keep the page readable with them on the left", async ({ app, page }) => {
+    await app.open({ state: { settings: { window_buttons: "left" } } });
+    expect(await serious(page, { without: [CONTRAST] })).toEqual([]);
+    expect(await serious(page, { only: [CONTRAST] })).toEqual([]);
   });
 });

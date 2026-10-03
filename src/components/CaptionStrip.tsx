@@ -8,8 +8,9 @@ const BUTTON = "h-8 w-[42px] flex items-center justify-center text-muted-foregro
 /**
  * The strip across the top of the content, on the same surface as the sidebar.
  * It carries the window controls and nothing else; everything around them drags the window.
+ * With the controls in the sidebar instead, it stays as the part that drags.
  */
-export function CaptionStrip() {
+export function CaptionStrip({ buttons = true }: { buttons?: boolean }) {
   const { t } = useTranslation();
   const { isMaximized, minimize, toggleMaximize, close } = useWindowControls();
 
@@ -19,6 +20,8 @@ export function CaptionStrip() {
       onDoubleClick={toggleMaximize}
       className="h-8 shrink-0 flex justify-end bg-surface-inset border-b border-border-subtle select-none"
     >
+      {buttons && (
+        <>
       <button
         onClick={minimize}
         className={cn(BUTTON, "hover:bg-foreground/10 hover:text-foreground")}
@@ -45,6 +48,8 @@ export function CaptionStrip() {
       >
         <X className="h-4 w-4" strokeWidth={1.5} />
       </button>
+        </>
+      )}
     </div>
   );
 }
