@@ -318,6 +318,11 @@ with reduced motion on. They now appear at once.
 Every switch and drop-down on the Engine, Dictation and Settings pages, and the buttons that only
 carry an icon (check the connection, delete a model), now announce what they are for.
 
+- (dashboard) Keep typing after Start over in the typing test
+
+When Start over drew the same sentence again, the focus stayed on the button and the keys went
+nowhere until you clicked the sentence. The field has the focus back every time.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

@@ -107,6 +107,23 @@ describe("TypingTestDialog", () => {
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
 
+  it("puts the focus back in the field when it starts over on the same sentence", async () => {
+    // The first sentence of the list every time, so the restart cannot change the sentence.
+    const random = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      const { user } = await openTest();
+      const field = screen.getByLabelText("Type the sentence here");
+      const first = sentence();
+
+      await user.click(screen.getByRole("button", { name: "Start over" }));
+
+      expect(sentence()).toBe(first);
+      expect(field).toHaveFocus();
+    } finally {
+      random.mockRestore();
+    }
+  });
+
   it("closes on Escape and gives the focus back to the button", async () => {
     const { user } = await openTest();
 
