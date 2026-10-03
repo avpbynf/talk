@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (overlay) Place the overlay on a screen's work area and keep it whole on the screen
+
+The overlay now appears at the bottom centre of the screen where you are typing, above the taskbar,
+instead of in the middle of the screen. With several screens it follows the window you dictate into,
+and falls back to the one with the mouse pointer and then the primary screen. A position is kept as a
+share of that screen's usable area, so a change of resolution or display scale no longer strands it
+off screen, and on a screen at a different scale it keeps the same size. Drag it and it stays where you
+drop it, on the screen you dropped it on. An overlay you had already moved keeps its place and its screen.
+When the desktop itself is in front, it goes where the mouse pointer is.
+
 - (window) Call the Transcription page Engine and the Preferences page Settings
 
 The page that picks the model, the backend and the server is now named Engine (Moteur in French),

@@ -10,6 +10,7 @@ mod keystroke;
 mod models;
 mod overlay;
 mod overlay_settings;
+mod placement;
 mod paths;
 mod server_transcription;
 mod settings;
@@ -576,20 +577,13 @@ fn enable_shortcuts(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn save_overlay_position(x: f64, y: f64) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.overlay_position = Some(settings::OverlayPosition { x, y });
-    settings::save_settings(&app_settings)
+fn save_overlay_position(app: tauri::AppHandle, x: f64, y: f64) -> Result<(), String> {
+    overlay::dragged_to(&app, (x.round() as i32, y.round() as i32))
 }
 
 #[tauri::command]
-fn get_overlay_position() -> Option<settings::OverlayPosition> {
-    settings::load_settings().overlay_position
-}
-
-#[tauri::command]
-fn get_overlay_size() -> settings::OverlaySize {
-    settings::load_settings().overlay_size
+fn list_screens(app: tauri::AppHandle) -> Vec<placement::ScreenView> {
+    overlay::screens(&app).iter().map(placement::ScreenView::from).collect()
 }
 
 #[tauri::command]
@@ -600,11 +594,11 @@ fn set_overlay_size(app: tauri::AppHandle, size: settings::OverlaySize) -> Resul
 
     // Resize existing overlay if it exists
     if let Some(overlay) = app.get_webview_window("overlay") {
-        let (width, height) = size.dimensions();
-        let _ = overlay.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
+        overlay::place(&app, &overlay);
         // Re-apply always on top after resize
         overlay::raise(&overlay);
     }
+    overlay::announce(&app);
 
     Ok(())
 }
@@ -800,43 +794,6 @@ fn clear_vocabulary(terms: Vec<String>, state: tauri::State<'_, AppState>) {
         eprintln!("Failed to save settings: {}", e);
     }
     sync::note_vocabulary_removed(&terms);
-}
-
-#[tauri::command]
-async fn show_overlay(app: tauri::AppHandle) -> Result<(), String> {
-    // Check if overlay already exists
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        overlay.show().map_err(|e| e.to_string())?;
-        overlay::raise(&overlay);
-        return Ok(());
-    }
-
-    // Create new overlay window. Same size as the one built at startup: a
-    // hardcoded one here matched no OverlaySize variant, so an overlay that had
-    // to be re-created came back ignoring the setting.
-    let (width, height) = settings::load_settings().overlay_size.dimensions();
-    WebviewWindowBuilder::new(&app, "overlay", WebviewUrl::App("/overlay".into()))
-        .title("")
-        .inner_size(width, height)
-        .decorations(false)
-        .transparent(true)
-        .shadow(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .resizable(false)
-        .center()
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-#[tauri::command]
-async fn hide_overlay(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        overlay.hide().map_err(|e| e.to_string())?;
-    }
-    Ok(())
 }
 
 // ============================================================================
@@ -1378,8 +1335,6 @@ pub fn run() {
             update_paste_shortcut,
             disable_shortcuts,
             enable_shortcuts,
-            show_overlay,
-            hide_overlay,
             get_saved_settings,
             db_delete_transcription,
             get_history_limit,
@@ -1401,8 +1356,7 @@ pub fn run() {
             set_gpu_device,
             set_accelerator_backend,
             save_overlay_position,
-            get_overlay_position,
-            get_overlay_size,
+            list_screens,
             set_overlay_size,
             get_overlay_theme,
             set_overlay_theme,
@@ -1644,7 +1598,7 @@ pub fn run() {
             // so nothing is visible on screen. Hide after a short delay
             // to let the rendering pipeline fully initialize.
             let (width, height) = app_settings.overlay_size.dimensions();
-            let mut overlay_builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("/overlay".into()))
+            let overlay_builder = WebviewWindowBuilder::new(app, "overlay", WebviewUrl::App("/overlay".into()))
                 .title("")
                 .inner_size(width, height)
                 .decorations(false)
@@ -1655,13 +1609,8 @@ pub fn run() {
                 .resizable(false)
                 .focused(false);
 
-            if let Some(pos) = app_settings.overlay_position {
-                overlay_builder = overlay_builder.position(pos.x, pos.y);
-            } else {
-                overlay_builder = overlay_builder.center();
-            }
-
             if let Ok(overlay_window) = overlay_builder.build() {
+                overlay::place(app.handle(), &overlay_window);
                 let w = overlay_window.clone();
                 std::thread::spawn(move || {
                     // Give WebView2 time to load and render React

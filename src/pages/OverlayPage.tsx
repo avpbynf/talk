@@ -23,6 +23,9 @@ type ProcessingState =
  */
 const BASE_WIDTH = 220;
 const BASE_HEIGHT = 60;
+/** The window is this stage, a margin round the pill for the glow. Mirrors OverlaySize::dimensions() on the Rust side. */
+const STAGE_WIDTH = 244;
+const STAGE_HEIGHT = 92;
 
 function OverlayPage() {
   const { t } = useTranslation();
@@ -60,8 +63,8 @@ function OverlayPage() {
   // and the scale is right before the setting has been read back.
   useEffect(() => {
     const measure = () => {
-      const width = window.innerWidth / BASE_WIDTH;
-      const height = window.innerHeight / BASE_HEIGHT;
+      const width = window.innerWidth / STAGE_WIDTH;
+      const height = window.innerHeight / STAGE_HEIGHT;
       // The smaller of the two, so the pill never runs past the edge it would
       // be clipped against. The two sizes are near enough in proportion that
       // what is left over is under a pixel.
