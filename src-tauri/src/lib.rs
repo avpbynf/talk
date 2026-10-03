@@ -15,6 +15,7 @@ mod settings;
 mod share;
 mod sound;
 mod sync;
+mod theme;
 mod transcription;
 mod virtual_mic;
 
@@ -622,16 +623,41 @@ fn set_overlay_theme(app: tauri::AppHandle, theme: settings::OverlayTheme) -> Re
 }
 
 #[tauri::command]
-fn get_app_theme() -> settings::AppTheme {
-    settings::load_settings().app_theme
+fn set_app_theme(theme: theme::ThemeSettings) -> Result<(), String> {
+    let mut app_settings = settings::load_settings();
+    // What the frontend does not carry, fields a later build wrote, stays as it was.
+    let mut theme = theme.sanitized();
+    if theme.extra.is_empty() {
+        theme.extra = std::mem::take(&mut app_settings.theme.extra);
+    }
+    app_settings.theme = theme;
+    settings::save_settings(&app_settings)
 }
 
+/// Replaces the saved themes with the list the page holds, and answers with the list as stored.
 #[tauri::command]
-fn set_app_theme(theme: settings::AppTheme) -> Result<(), String> {
+fn set_saved_themes(themes: Vec<theme::SavedTheme>) -> Result<Vec<theme::SavedTheme>, String> {
     let mut app_settings = settings::load_settings();
-    app_settings.app_theme = theme;
+    let now = chrono::Utc::now().timestamp_millis();
+    let (saved, removed) =
+        theme::apply_saved_edit(&app_settings.saved_themes, &app_settings.removed_themes, themes, now)?;
+    app_settings.saved_themes = saved.clone();
+    app_settings.removed_themes = removed;
     settings::save_settings(&app_settings)?;
-    Ok(())
+    Ok(saved)
+}
+
+/// Puts back a saved theme that was just removed. Always allowed, the limit being for new saves.
+#[tauri::command]
+fn restore_saved_theme(theme: theme::SavedTheme) -> Result<Vec<theme::SavedTheme>, String> {
+    let mut app_settings = settings::load_settings();
+    let now = chrono::Utc::now().timestamp_millis();
+    let (saved, removed) =
+        theme::restore_saved(&app_settings.saved_themes, &app_settings.removed_themes, theme, now);
+    app_settings.saved_themes = saved.clone();
+    app_settings.removed_themes = removed;
+    settings::save_settings(&app_settings)?;
+    Ok(saved)
 }
 
 #[tauri::command]
@@ -1341,7 +1367,8 @@ pub fn run() {
             set_overlay_size,
             get_overlay_theme,
             set_overlay_theme,
-            get_app_theme,
+            set_saved_themes,
+            restore_saved_theme,
             set_app_theme,
             get_language,
             set_language,

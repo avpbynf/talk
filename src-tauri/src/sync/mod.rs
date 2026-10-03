@@ -71,14 +71,16 @@ pub fn note_local_change() {
     let Ok(local) = SyncedSettings::collect() else { return };
     let _guard = state_lock();
     let mut state = SyncState::load();
-    let print = local.with_refused(&state.refused).fingerprint();
-    if print != state.settings_hash {
-        let now = now_ms();
-        state.settings_hash = print;
-        state.settings_updated_ms = now;
+    let local = local.with_refused(&state.refused);
+    if local.fingerprint() != state.settings_hash {
+        let edited = local.changed_since(&state.settings_hash);
+        (state.settings_hash, state.settings_updated_ms) =
+            portable::restamp(&local, &state.settings_hash, state.settings_updated_ms, now_ms());
         state.save();
         drop(_guard);
-        push_settings_soon();
+        if edited {
+            push_settings_soon();
+        }
     }
 }
 
@@ -375,11 +377,10 @@ async fn sync_settings(
                 state.vocabulary.absorb(&fresh.vocabulary);
             }
         }
-        let print = local.fingerprint();
-        if print != state.settings_hash {
-            state.settings_hash = print;
-            state.settings_updated_ms = now_ms();
-        }
+        // The hash stored by the release before themes were values is still on disk after
+        // an upgrade: that is not an edit, and must not be stamped as one.
+        (state.settings_hash, state.settings_updated_ms) =
+            portable::restamp(&local, &state.settings_hash, state.settings_updated_ms, now_ms());
 
         // Defaults standing in for an unreadable file are older than anything
         // the account holds.
@@ -416,12 +417,15 @@ async fn sync_settings(
     }
 
     if plan.upload {
-        let body = serde_json::to_string(&SettingsFile {
+        let body = SettingsFile {
             updated_at: plan.updated_at,
             settings: plan.merged,
             vocabulary: plan.ledger,
-        })
-        .map_err(|e| e.to_string())?;
+            foreign: plan.foreign,
+            incomplete: false,
+            legacy_theme: None,
+        }
+        .body()?;
         drive.upload(SETTINGS_FILE, remote_file.map(|f| f.id.as_str()), body).await?;
     }
     state.settings_synced = true;

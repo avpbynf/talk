@@ -130,10 +130,22 @@ workflows run that same file.
   identifier `com.avpbynf.t4lk` is a separate string that names the WebView2 profile
   under `%LOCALAPPDATA%`; it still says t4lk, nothing worth keeping is under it, and
   changing it needs a migration of its own. Never add a path under the old name.
-- **`AppTheme` carries a `serde(alias)` on each of its two renamed variants.**
-  `load_settings()` drops the whole file on a parse error and returns the defaults,
-  so a settings file still holding `t4lk-dark` would take the server URL, the token
-  and the shortcuts down with it.
+- **The theme is values, and the old theme names are still read.** `theme.rs` stores a
+  preset id plus the values edited on top of it, and reads them field by field, so a
+  field this build cannot parse costs that field and not the file. `load_settings()`
+  drops the whole file on a parse error and returns the defaults, which would take the
+  server URL, the token and the shortcuts with it. Settings written before this carry
+  `app_theme` as a string (`t4lk-dark` among them); `parse_settings` turns it into the
+  matching preset and never writes it back. A synced copy is different: one without a
+  `theme` (a machine on the old release) says nothing about it, so the local theme
+  stands and goes back up (a fresh machine signing in adopts the old name's preset), and
+  a theme or saved theme this build cannot read in full, which includes one it would have
+  to clamp or truncate, is not applied and is written back untouched; fields it does not
+  know are carried and written back too. Saved themes merge one by one, by id and
+  modification time, with tombstones for removals that are forgotten after ninety days. The old release's settings hash is
+  still on disk after an upgrade, and `legacy_fingerprint` is what keeps that from
+  reading as an edit. The preset ids live in `src/lib/theme.ts`, so a preset renamed
+  there needs the mapping in `ThemeSettings::from_legacy` kept in step.
 - **A new settings field needs `#[serde(default)]`, always.** `load_settings()` drops the
   whole file on a parse error, so `offered_servers` without its default would turn every
   existing install back to the defaults on the first launch after the update, server URL

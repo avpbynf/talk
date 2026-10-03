@@ -18,7 +18,8 @@
 use super::vocabulary::{self, VocabLedger};
 use crate::dictation_queue::QueueSettings;
 use crate::hotkeys::HotkeyConfig;
-use crate::settings::{AppSettings, AppTheme, CompanionShortcut, OverlaySize, OverlayTheme};
+use crate::settings::{AppSettings, CompanionShortcut, OverlaySize, OverlayTheme};
+use crate::theme::{self, SavedTheme, ThemeSettings, Tombstone};
 use crate::RecordingMode;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -35,7 +36,12 @@ pub struct SyncedSettings {
     pub sound_feedback: bool,
     pub start_sound: String,
     pub stop_sound: String,
-    pub app_theme: AppTheme,
+    #[serde(deserialize_with = "crate::theme::lenient")]
+    pub theme: ThemeSettings,
+    #[serde(deserialize_with = "crate::theme::lenient_saved")]
+    pub saved_themes: Vec<SavedTheme>,
+    #[serde(deserialize_with = "crate::theme::lenient")]
+    pub removed_themes: Vec<Tombstone>,
     pub overlay_size: OverlaySize,
     pub overlay_theme: OverlayTheme,
     pub language: Option<String>,
@@ -66,7 +72,9 @@ impl SyncedSettings {
             sound_feedback: settings.sound_feedback,
             start_sound: settings.start_sound.clone(),
             stop_sound: settings.stop_sound.clone(),
-            app_theme: settings.app_theme,
+            theme: settings.theme.clone(),
+            saved_themes: settings.saved_themes.clone(),
+            removed_themes: settings.removed_themes.clone(),
             overlay_size: settings.overlay_size,
             overlay_theme: settings.overlay_theme,
             language: settings.language.clone(),
@@ -95,7 +103,9 @@ impl SyncedSettings {
         settings.sound_feedback = self.sound_feedback;
         settings.start_sound = self.start_sound.clone();
         settings.stop_sound = self.stop_sound.clone();
-        settings.app_theme = self.app_theme;
+        settings.theme = self.theme.clone();
+        settings.saved_themes = self.saved_themes.clone();
+        settings.removed_themes = self.removed_themes.clone();
         settings.overlay_size = self.overlay_size;
         settings.overlay_theme = self.overlay_theme;
         settings.language = self.language.clone();
@@ -113,6 +123,79 @@ impl SyncedSettings {
         let json = serde_json::to_string(self).unwrap_or_default();
         format!("{:x}", Sha256::digest(json.as_bytes()))
     }
+
+    /// What the release before themes were values would have hashed these settings to, or
+    /// nothing when they hold something that release could not have. The hash it stored on
+    /// disk is still there after an upgrade, and without this the first sync would take the
+    /// new shape for an edit and upload over what other machines changed.
+    pub fn legacy_fingerprint(&self) -> Option<String> {
+        if self.theme.custom.is_some() || !self.saved_themes.is_empty() || !self.removed_themes.is_empty() {
+            return None;
+        }
+        let app_theme = self.theme.legacy_name()?;
+        let json = serde_json::to_string(&LegacySynced {
+            shortcut: &self.shortcut,
+            cancel_shortcut: &self.cancel_shortcut,
+            paste_shortcut: &self.paste_shortcut,
+            recording_mode: &self.recording_mode,
+            companion_shortcuts: &self.companion_shortcuts,
+            vocabulary: &self.vocabulary,
+            sound_feedback: self.sound_feedback,
+            start_sound: &self.start_sound,
+            stop_sound: &self.stop_sound,
+            app_theme,
+            overlay_size: &self.overlay_size,
+            overlay_theme: &self.overlay_theme,
+            language: &self.language,
+            duck_audio_on_record: self.duck_audio_on_record,
+            duck_volume_percent: self.duck_volume_percent,
+            preserve_clipboard: self.preserve_clipboard,
+            queue: &self.queue,
+            autostart_enabled: self.autostart_enabled,
+            start_minimized: self.start_minimized,
+            meeting_mode_enabled: self.meeting_mode_enabled,
+        })
+        .ok()?;
+        Some(format!("{:x}", Sha256::digest(json.as_bytes())))
+    }
+
+    /// Whether these settings differ from what a hash stored earlier stood for. The upgrade
+    /// from the release that hashed the old shape is not a difference.
+    pub fn changed_since(&self, stored: &str) -> bool {
+        self.fingerprint() != stored && self.legacy_fingerprint().as_deref() != Some(stored)
+    }
+}
+
+/// The stored hash and the stamp of the last edit, after reading the local settings. An edit
+/// stamps `now`; the upgrade from the old shape only replaces the hash and keeps the stamp.
+pub fn restamp(local: &SyncedSettings, stored_hash: &str, stamp: i64, now: i64) -> (String, i64) {
+    let stamp = if local.changed_since(stored_hash) { now } else { stamp };
+    (local.fingerprint(), stamp)
+}
+
+/// The synced settings as the release before themes were values wrote them, in its order.
+#[derive(Serialize)]
+struct LegacySynced<'a> {
+    shortcut: &'a String,
+    cancel_shortcut: &'a String,
+    paste_shortcut: &'a String,
+    recording_mode: &'a RecordingMode,
+    companion_shortcuts: &'a Vec<CompanionShortcut>,
+    vocabulary: &'a Vec<String>,
+    sound_feedback: bool,
+    start_sound: &'a String,
+    stop_sound: &'a String,
+    app_theme: &'a str,
+    overlay_size: &'a OverlaySize,
+    overlay_theme: &'a OverlayTheme,
+    language: &'a Option<String>,
+    duck_audio_on_record: bool,
+    duck_volume_percent: u8,
+    preserve_clipboard: bool,
+    queue: &'a QueueSettings,
+    autostart_enabled: bool,
+    start_minimized: bool,
+    meeting_mode_enabled: bool,
 }
 
 /// A synced field this machine could not apply (no virtual cable, a shortcut
@@ -162,10 +245,29 @@ impl SettingsFile {
     /// it never reads as a change or resets a setting to its default.
     pub fn parse(body: &str, local: &SyncedSettings) -> Result<Self, String> {
         let mut file: SettingsFile = serde_json::from_str(body).map_err(|e| e.to_string())?;
-        let carried: std::collections::HashSet<String> = serde_json::from_str::<serde_json::Value>(body)
+        let raw = serde_json::from_str::<serde_json::Value>(body)
             .ok()
-            .and_then(|value| value.get("settings")?.as_object().map(|o| o.keys().cloned().collect()))
+            .and_then(|value| value.get("settings")?.as_object().cloned())
             .unwrap_or_default();
+        let mut carried: std::collections::HashSet<String> = raw.keys().cloned().collect();
+        // A field this build cannot read in full says nothing it can act on: this machine's
+        // own stands, and the account's is kept as it is for whoever can read it.
+        for (key, readable) in READABLE {
+            if let Some(value) = raw.get(key).filter(|value| !readable(value)) {
+                carried.remove(key);
+                file.foreign.insert(key.to_string(), value.clone());
+            }
+        }
+        // A copy from the release before themes were values names its theme the old way. It only
+        // matters to a machine signing in for the first time, which has no theme of its own yet.
+        if !carried.contains("theme") {
+            file.legacy_theme = raw
+                .get("app_theme")
+                .and_then(serde_json::Value::as_str)
+                .map(ThemeSettings::from_legacy)
+                .filter(|theme| *theme != ThemeSettings::default());
+        }
+        file.incomplete = AFTER_THEMES.iter().any(|key| !carried.contains(*key) && !file.foreign.contains_key(*key));
         if let (Ok(mut theirs), Ok(mine)) = (serde_json::to_value(&file.settings), serde_json::to_value(local)) {
             if let (Some(theirs), Some(mine)) = (theirs.as_object_mut(), mine.as_object()) {
                 for (key, value) in mine {
@@ -182,6 +284,16 @@ impl SettingsFile {
     }
 }
 
+/// Fields read only when this build can read all of them.
+const READABLE: [(&str, fn(&serde_json::Value) -> bool); 3] = [
+    ("theme", theme::theme_readable),
+    ("saved_themes", theme::saved_readable),
+    ("removed_themes", |value| serde_json::from_value::<Vec<Tombstone>>(value.clone()).is_ok()),
+];
+
+/// Fields a file written by the release before them lacks, and which go back on the account.
+const AFTER_THEMES: [&str; 3] = ["theme", "saved_themes", "removed_themes"];
+
 /// The `settings.json` file in Drive.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SettingsFile {
@@ -191,6 +303,29 @@ pub struct SettingsFile {
     /// What lets the vocabulary merge. Absent from a file an older build wrote.
     #[serde(default)]
     pub vocabulary: VocabLedger,
+    /// Fields of the file this build could not read, as they were, written back untouched.
+    #[serde(skip)]
+    pub foreign: serde_json::Map<String, serde_json::Value>,
+    /// The file lacks fields this build writes, so it goes back up even with nothing else to say.
+    #[serde(skip)]
+    pub incomplete: bool,
+    /// The theme the copy names the way the release before themes were values did, when it names
+    /// no other.
+    #[serde(skip)]
+    pub legacy_theme: Option<ThemeSettings>,
+}
+
+impl SettingsFile {
+    /// The JSON to upload, with the fields this build could not read put back as they were.
+    pub fn body(&self) -> Result<String, String> {
+        let mut value = serde_json::to_value(self).map_err(|e| e.to_string())?;
+        if let Some(fields) = value.get_mut("settings").and_then(serde_json::Value::as_object_mut) {
+            for (key, foreign) in &self.foreign {
+                fields.insert(key.clone(), foreign.clone());
+            }
+        }
+        serde_json::to_string(&value).map_err(|e| e.to_string())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -218,6 +353,8 @@ pub struct Plan {
     pub upload: bool,
     pub apply: bool,
     pub updated_at: i64,
+    /// What the account holds in fields this build cannot read, to go back up as it is.
+    pub foreign: serde_json::Map<String, serde_json::Value>,
 }
 
 /// A machine that never synced keeps what it configured itself: a value still
@@ -272,12 +409,17 @@ pub fn plan(
             upload: true,
             apply: false,
             updated_at: if local_updated_at == 0 { now } else { local_updated_at },
+            foreign: Default::default(),
         };
     };
 
     let action = decide(local_updated_at, Some(remote.updated_at));
     let mut merged = if !synced_before {
-        first_sign_in(local, &remote.settings)
+        let mut first = first_sign_in(local, &remote.settings);
+        if let Some(old) = remote.legacy_theme.as_ref().filter(|_| local.theme == ThemeSettings::default()) {
+            first.theme = old.clone();
+        }
+        first
     } else if action == SettingsAction::Apply {
         remote.settings.clone()
     } else {
@@ -292,9 +434,17 @@ pub fn plan(
         now,
     );
     merged.vocabulary = vocabulary;
+    // Like the terms, the saved themes merge one by one whichever side the rest follows.
+    (merged.saved_themes, merged.removed_themes) = theme::merge_saved(
+        (&local.saved_themes, &local.removed_themes),
+        (&remote.settings.saved_themes, &remote.settings.removed_themes),
+        now,
+    );
 
     let mut scalars_only = merged.clone();
     scalars_only.vocabulary = remote.settings.vocabulary.clone();
+    scalars_only.saved_themes = remote.settings.saved_themes.clone();
+    scalars_only.removed_themes = remote.settings.removed_themes.clone();
     let scalars_differ = scalars_only.fingerprint() != remote.settings.fingerprint();
     let updated_at = if !scalars_differ {
         remote.updated_at
@@ -305,10 +455,16 @@ pub fn plan(
     };
     Plan {
         apply: merged.fingerprint() != local.fingerprint(),
-        upload: scalars_differ || merged.vocabulary != remote.settings.vocabulary || ledger != remote.vocabulary,
+        upload: scalars_differ
+            || merged.vocabulary != remote.settings.vocabulary
+            || merged.saved_themes != remote.settings.saved_themes
+            || merged.removed_themes != remote.settings.removed_themes
+            || ledger != remote.vocabulary
+            || remote.incomplete,
         merged,
         ledger,
         updated_at,
+        foreign: remote.foreign.clone(),
     }
 }
 
@@ -316,7 +472,11 @@ pub fn plan(
 mod tests {
     use super::*;
 
-    const SYNCED_KEYS: [&str; 20] = [
+    fn saved(id: &str, modified: i64) -> SavedTheme {
+        SavedTheme { id: id.to_string(), name: id.to_string(), values: Default::default(), modified, ..Default::default() }
+    }
+
+    const SYNCED_KEYS: [&str; 22] = [
         "shortcut",
         "cancel_shortcut",
         "paste_shortcut",
@@ -326,7 +486,9 @@ mod tests {
         "sound_feedback",
         "start_sound",
         "stop_sound",
-        "app_theme",
+        "theme",
+        "saved_themes",
+        "removed_themes",
         "overlay_size",
         "overlay_theme",
         "language",
@@ -473,7 +635,7 @@ mod tests {
         settings.vocabulary = terms(vocabulary);
         let mut ledger = VocabLedger::default();
         ledger.learn(&settings.vocabulary, updated_at);
-        SettingsFile { updated_at, settings, vocabulary: ledger }
+        SettingsFile { updated_at, settings, vocabulary: ledger, foreign: Default::default(), incomplete: false, legacy_theme: None }
     }
 
     #[test]
@@ -610,5 +772,395 @@ mod tests {
 
         let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&parsed), 100);
         assert!(plan.merged.autostart_enabled && plan.merged.meeting_mode_enabled);
+    }
+
+    #[test]
+    fn a_copy_from_a_machine_still_on_the_old_theme_names_leaves_this_machines_theme_alone() {
+        let mut local = SyncedSettings::default();
+        local.theme = ThemeSettings { preset: "nord".to_string(), custom: None, ..Default::default() };
+        for old in ["t4lk-light", "dracula", "zed", "from-the-future"] {
+            let body = format!(r#"{{"updated_at": 50, "settings": {{"app_theme": "{old}", "start_sound": "ding"}}}}"#);
+            let parsed = SettingsFile::parse(&body, &local).expect("should parse");
+            assert_eq!(parsed.settings.theme.preset, "nord", "{old}");
+            assert_eq!(parsed.settings.start_sound, "ding");
+            let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&parsed), 100);
+            assert_eq!(plan.merged.theme.preset, "nord", "{old}");
+            assert!(plan.upload, "the theme goes back on the account");
+        }
+    }
+
+    #[test]
+    fn a_copy_without_a_theme_keeps_the_local_one_and_the_saved_themes_too() {
+        let mut local = SyncedSettings::default();
+        local.theme = ThemeSettings { preset: "nord".to_string(), custom: None, ..Default::default() };
+        local.saved_themes = vec![saved("mine", 5)];
+        let parsed = SettingsFile::parse(r#"{"updated_at": 50, "settings": {"start_sound": "ding"}}"#, &local)
+            .expect("should parse");
+        assert_eq!(parsed.settings.theme.preset, "nord");
+        assert_eq!(parsed.settings.saved_themes.len(), 1);
+        assert!(parsed.incomplete);
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&parsed), 100);
+        assert_eq!(plan.merged.saved_themes.len(), 1);
+    }
+
+    #[test]
+    fn a_complete_copy_is_not_uploaded_for_that_reason() {
+        let local = SyncedSettings::default();
+        let body = serde_json::to_string(&file_with(&[], 50)).expect("should serialise");
+        let parsed = SettingsFile::parse(&body, &local).expect("should parse");
+        assert!(!parsed.incomplete);
+    }
+
+    #[test]
+    fn a_theme_this_build_cannot_read_is_neither_applied_nor_overwritten() {
+        let mut local = SyncedSettings::default();
+        local.theme = ThemeSettings { preset: "nord".to_string(), custom: None, ..Default::default() };
+        for theme in [r#"{"preset": 7}"#, r#"{"preset": "x", "custom": {"kind": "mesh"}}"#, r#""just a name""#] {
+            let body = format!(r#"{{"updated_at": 50, "settings": {{"theme": {theme}, "start_sound": "ding"}}}}"#);
+            let parsed = SettingsFile::parse(&body, &local).expect("should parse");
+            assert_eq!(parsed.settings.theme.preset, "nord", "{theme}");
+            assert!(parsed.foreign.contains_key("theme"));
+            assert!(!parsed.incomplete || !parsed.foreign.is_empty());
+
+            let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&parsed), 100);
+            assert_eq!(plan.merged.theme.preset, "nord");
+            assert_eq!(plan.merged.start_sound, "ding");
+            let uploaded: serde_json::Value = serde_json::from_str(
+                &SettingsFile {
+                    updated_at: plan.updated_at,
+                    settings: plan.merged,
+                    vocabulary: plan.ledger,
+                    foreign: plan.foreign,
+                    incomplete: false,
+                    legacy_theme: None,
+                }
+                .body()
+                .expect("body"),
+            )
+            .expect("json");
+            assert_eq!(uploaded["settings"]["theme"], serde_json::from_str::<serde_json::Value>(theme).expect("json"));
+        }
+    }
+
+    #[test]
+    fn saved_themes_of_another_shape_are_left_alone_the_same_way() {
+        let mut local = SyncedSettings::default();
+        local.saved_themes = vec![saved("mine", 5)];
+        for shape in [r#"{}"#, r#"[{"id": "a", "name": "A", "values": {"radius": "huge"}}]"#, r#"[7]"#] {
+            let body = format!(r#"{{"updated_at": 50, "settings": {{"saved_themes": {shape}}}}}"#);
+            let parsed = SettingsFile::parse(&body, &local).expect("should parse");
+            assert_eq!(parsed.settings.saved_themes, local.saved_themes, "{shape}");
+            assert!(parsed.foreign.contains_key("saved_themes"));
+        }
+    }
+
+    #[test]
+    fn the_theme_and_the_saved_themes_travel_and_apply() {
+        let mut remote = SyncedSettings::default();
+        remote.theme = ThemeSettings { preset: "mine".to_string(), custom: None, ..Default::default() };
+        remote.saved_themes = vec![saved("mine", 5)];
+        let mut local = AppSettings::default();
+        local.server_token = "keep-me".to_string();
+
+        remote.apply_to_settings(&mut local);
+
+        assert_eq!(local.theme.preset, "mine");
+        assert_eq!(local.saved_themes.len(), 1);
+        assert_eq!(local.server_token, "keep-me");
+    }
+
+    #[test]
+    fn a_first_sign_in_keeps_the_saved_themes_of_both_sides() {
+        let mut local = SyncedSettings::default();
+        local.saved_themes = vec![saved("a", 5)];
+        let mut remote = file_with(&[], 10);
+        remote.settings.saved_themes = vec![saved("a", 5), saved("b", 6)];
+
+        let plan = plan(&local, 0, false, &VocabLedger::default(), Some(&remote), 100);
+        let mut ids: Vec<&str> = plan.merged.saved_themes.iter().map(|t| t.id.as_str()).collect();
+        ids.sort_unstable();
+        assert_eq!(ids, ["a", "b"]);
+    }
+
+    #[test]
+    fn a_theme_saved_here_survives_a_newer_account_that_does_not_have_it() {
+        let mut local = SyncedSettings::default();
+        local.saved_themes = vec![saved("fresh", 5)];
+        let mut remote = file_with(&[], 9_999_999);
+        remote.settings.start_sound = "ding".to_string();
+
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan.merged.start_sound, "ding");
+        assert_eq!(plan.merged.saved_themes.len(), 1);
+        assert!(plan.upload);
+    }
+
+    #[test]
+    fn a_removed_theme_does_not_come_back_from_the_other_machine() {
+        let mut local = SyncedSettings::default();
+        local.removed_themes = vec![Tombstone { id: "gone".to_string(), at: 50, extra: Default::default() }];
+        let mut remote = file_with(&[], 20);
+        remote.settings.saved_themes = vec![saved("gone", 10)];
+
+        let plan = plan(&local, 60, true, &VocabLedger::default(), Some(&remote), 100);
+        assert!(plan.merged.saved_themes.is_empty());
+        assert!(plan.upload);
+    }
+
+    #[test]
+    fn a_merge_over_the_limit_keeps_everything_and_is_not_a_local_edit() {
+        let many: Vec<SavedTheme> = (0..theme::MAX_SAVED_THEMES as i64 + 3).rev().map(|i| saved(&format!("t{i}"), i)).collect();
+        let mut local = SyncedSettings::default();
+        local.saved_themes = many.clone();
+        let mut remote = file_with(&[], 10);
+        remote.settings.saved_themes = many;
+
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan.merged.saved_themes.len(), theme::MAX_SAVED_THEMES + 3);
+        assert!(!plan.upload && !plan.apply);
+    }
+
+    fn uploaded(plan: Plan, updated_at: i64) -> serde_json::Value {
+        let body = SettingsFile {
+            updated_at,
+            settings: plan.merged,
+            vocabulary: plan.ledger,
+            foreign: plan.foreign,
+            incomplete: false,
+            legacy_theme: None,
+        }
+        .body()
+        .expect("body");
+        serde_json::from_str(&body).expect("json")
+    }
+
+    fn account_copy(settings: &str) -> String {
+        format!(r#"{{"updated_at": 50, "settings": {settings}}}"#)
+    }
+
+    #[test]
+    fn a_fresh_machine_adopts_the_theme_an_old_copy_names() {
+        let remote = SettingsFile::parse(&account_copy(r#"{"app_theme": "dracula"}"#), &SyncedSettings::default())
+            .expect("should parse");
+        assert_eq!(remote.legacy_theme.as_ref().map(|t| t.preset.as_str()), Some("dracula"));
+
+        let local = SyncedSettings::default();
+        let plan = plan(&local, 0, false, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan.merged.theme.preset, "dracula");
+        assert!(plan.apply && plan.upload);
+        assert_eq!(uploaded(plan, 100)["settings"]["theme"]["preset"], "dracula");
+    }
+
+    #[test]
+    fn a_machine_that_chose_a_theme_keeps_it_against_an_old_copy() {
+        let remote = SettingsFile::parse(&account_copy(r#"{"app_theme": "dracula"}"#), &SyncedSettings::default())
+            .expect("should parse");
+        let mut local = SyncedSettings::default();
+        local.theme = ThemeSettings { preset: "nord".to_string(), custom: None, ..Default::default() };
+        let plan = plan(&local, 0, false, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan.merged.theme.preset, "nord");
+    }
+
+    #[test]
+    fn an_old_machine_uploading_between_two_upgraded_ones_costs_no_theme() {
+        // A saved nord and uploaded; the old release then wrote its own copy; B, upgraded, syncs.
+        let mut b = SyncedSettings::default();
+        b.theme = ThemeSettings { preset: "nord".to_string(), custom: None, ..Default::default() };
+        let old_copy = SettingsFile::parse(&account_copy(r#"{"app_theme": "dracula", "start_sound": "ding"}"#), &b)
+            .expect("should parse");
+        let plan = plan(&b, 10, true, &VocabLedger::default(), Some(&old_copy), 100);
+        assert_eq!(plan.merged.theme.preset, "nord");
+        assert_eq!(plan.merged.start_sound, "ding");
+        assert!(plan.upload, "the theme goes back on the account");
+        assert_eq!(uploaded(plan, 100)["settings"]["theme"]["preset"], "nord");
+    }
+
+    #[test]
+    fn what_a_later_build_wrote_goes_back_up_as_it_was() {
+        let mut local = SyncedSettings::default();
+        local.start_sound = "chime".to_string();
+        let settings = r##"{
+            "theme": {"preset": "x", "mood": "calm", "custom": {"bg": "#101010", "blur": 5}},
+            "saved_themes": [{"id": "a", "name": "A", "modified": 5, "pinned": true, "values": {"blur": 2}}],
+            "removed_themes": [{"id": "b", "at": 9, "why": "tidy"}]
+        }"##;
+        let remote = SettingsFile::parse(&account_copy(settings), &local).expect("should parse");
+        assert!(remote.foreign.is_empty(), "readable in full, so carried and not set aside");
+        let out = uploaded(plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100), 100);
+        assert_eq!(out["settings"]["theme"]["mood"], "calm");
+        assert_eq!(out["settings"]["theme"]["custom"]["blur"], 5);
+        assert_eq!(out["settings"]["saved_themes"][0]["pinned"], true);
+        assert_eq!(out["settings"]["saved_themes"][0]["values"]["blur"], 2);
+        assert_eq!(out["settings"]["removed_themes"][0]["why"], "tidy");
+    }
+
+    #[test]
+    fn what_this_build_would_clamp_goes_back_up_untouched() {
+        let mut local = SyncedSettings::default();
+        local.start_sound = "chime".to_string();
+        local.saved_themes = vec![saved("mine", 5)];
+        let settings = r##"{
+            "theme": {"preset": "x", "custom": {"glass": 20, "bg": "#101010"}},
+            "saved_themes": [{"id": "a", "name": "A", "modified": 5, "values": {"ambient": 250}}],
+            "removed_themes": [{"id": "b", "at": "yesterday"}]
+        }"##;
+        let remote = SettingsFile::parse(&account_copy(settings), &local).expect("should parse");
+        for key in ["theme", "saved_themes", "removed_themes"] {
+            assert!(remote.foreign.contains_key(key), "{key}");
+        }
+        let original: serde_json::Value = serde_json::from_str(settings).expect("json");
+        let out = uploaded(plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100), 100);
+        for key in ["theme", "saved_themes", "removed_themes"] {
+            assert_eq!(out["settings"][key], original[key], "{key}");
+        }
+    }
+
+    #[test]
+    fn five_stops_from_a_later_build_are_not_applied_nor_cut() {
+        let local = SyncedSettings::default();
+        let five = r##"{"preset": "x", "custom": {"stops": [{"color": "#111111", "pos": 0}, {"color": "#222222", "pos": 25}, {"color": "#333333", "pos": 50}, {"color": "#444444", "pos": 75}, {"color": "#555555", "pos": 100}]}}"##;
+        let remote = SettingsFile::parse(&account_copy(&format!(r#"{{"theme": {five}}}"#)), &local).expect("parse");
+        assert_eq!(remote.settings.theme, local.theme);
+        let out = uploaded(plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100), 100);
+        assert_eq!(out["settings"]["theme"]["custom"]["stops"].as_array().map(Vec::len), Some(5));
+    }
+
+    #[test]
+    fn an_edit_on_one_machine_against_a_removal_on_the_other() {
+        // Edited at 20 here, removed at 15 there: the edit wins and the theme stays.
+        let mut here = SyncedSettings::default();
+        here.saved_themes = vec![saved("t", 20)];
+        let mut there = file_with(&[], 30);
+        there.settings.removed_themes = vec![Tombstone { id: "t".to_string(), at: 15, extra: Default::default() }];
+        let kept = plan(&here, 10, true, &VocabLedger::default(), Some(&there), 100);
+        assert_eq!(kept.merged.saved_themes.len(), 1);
+        assert!(kept.merged.removed_themes.is_empty());
+        assert!(kept.upload);
+
+        // Removed at 25 there, edited at 20 here: the removal wins on both.
+        there.settings.removed_themes = vec![Tombstone { id: "t".to_string(), at: 25, extra: Default::default() }];
+        let gone = plan(&here, 10, true, &VocabLedger::default(), Some(&there), 100);
+        assert!(gone.merged.saved_themes.is_empty());
+        assert!(gone.apply);
+    }
+
+    #[test]
+    fn the_first_sync_after_an_upgrade_keeps_the_stamp_and_replaces_the_hash() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings::from_legacy("dracula");
+        let stored = upgraded.legacy_fingerprint().expect("hash");
+        let (hash, stamp) = restamp(&upgraded, &stored, 777, 5_000);
+        assert_eq!(hash, upgraded.fingerprint());
+        assert_eq!(stamp, 777, "the upgrade is not an edit");
+    }
+
+    #[test]
+    fn an_edit_made_offline_before_the_first_sync_after_the_upgrade_still_uploads() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings::from_legacy("dracula");
+        let stored = upgraded.legacy_fingerprint().expect("hash");
+        let mut edited = upgraded.clone();
+        edited.start_sound = "chime".to_string();
+
+        let (_, stamp) = restamp(&edited, &stored, 777, 5_000);
+        assert_eq!(stamp, 5_000);
+        let remote = file_with(&[], 1_000);
+        let plan = plan(&edited, stamp, true, &VocabLedger::default(), Some(&remote), 6_000);
+        assert!(plan.upload);
+        assert_eq!(plan.merged.start_sound, "chime");
+    }
+
+    #[test]
+    fn an_untouched_upgrade_does_not_overwrite_a_newer_account() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings::from_legacy("dracula");
+        let stored = upgraded.legacy_fingerprint().expect("hash");
+        let (_, stamp) = restamp(&upgraded, &stored, 100, 9_000);
+        let mut remote = file_with(&[], 500);
+        remote.settings.start_sound = "ding".to_string();
+        let plan = plan(&upgraded, stamp, true, &VocabLedger::default(), Some(&remote), 9_500);
+        assert_eq!(plan.merged.start_sound, "ding", "the account's newer edit is applied here");
+    }
+
+    #[test]
+    fn upgrading_alone_is_not_an_edit() {
+        // The hash the release before themes were values stored, for a machine on dracula.
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings::from_legacy("dracula");
+        let stored = upgraded.legacy_fingerprint().expect("a legacy theme has a legacy hash");
+        assert_ne!(stored, upgraded.fingerprint());
+        assert!(!upgraded.changed_since(&stored));
+        assert!(!upgraded.changed_since(&upgraded.fingerprint()));
+    }
+
+    #[test]
+    fn a_real_edit_after_the_upgrade_is_still_one() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme = ThemeSettings::from_legacy("dracula");
+        let stored = upgraded.legacy_fingerprint().expect("hash");
+
+        let mut other_theme = upgraded.clone();
+        other_theme.theme = ThemeSettings::from_legacy("nord");
+        assert!(other_theme.changed_since(&stored));
+
+        let mut aurora = upgraded.clone();
+        aurora.theme = ThemeSettings::default();
+        assert!(aurora.changed_since(&stored), "a theme the old release had no name for is an edit");
+
+        let mut edited = upgraded.clone();
+        edited.theme.custom = Some(Default::default());
+        assert!(edited.changed_since(&stored));
+
+        let mut saved_one = upgraded.clone();
+        saved_one.saved_themes = vec![saved("a", 1)];
+        assert!(saved_one.changed_since(&stored));
+
+        let mut sound = upgraded.clone();
+        sound.start_sound = "chime".to_string();
+        assert!(sound.changed_since(&stored));
+    }
+
+    #[test]
+    fn the_legacy_hash_follows_the_shape_the_old_release_wrote() {
+        // Same keys in the same order, with the theme under its old name and the new fields absent.
+        let mut settings = SyncedSettings::default();
+        settings.theme = ThemeSettings::from_legacy("zed");
+        let json = serde_json::to_string(&LegacySynced {
+            shortcut: &settings.shortcut,
+            cancel_shortcut: &settings.cancel_shortcut,
+            paste_shortcut: &settings.paste_shortcut,
+            recording_mode: &settings.recording_mode,
+            companion_shortcuts: &settings.companion_shortcuts,
+            vocabulary: &settings.vocabulary,
+            sound_feedback: settings.sound_feedback,
+            start_sound: &settings.start_sound,
+            stop_sound: &settings.stop_sound,
+            app_theme: "zed",
+            overlay_size: &settings.overlay_size,
+            overlay_theme: &settings.overlay_theme,
+            language: &settings.language,
+            duck_audio_on_record: settings.duck_audio_on_record,
+            duck_volume_percent: settings.duck_volume_percent,
+            preserve_clipboard: settings.preserve_clipboard,
+            queue: &settings.queue,
+            autostart_enabled: settings.autostart_enabled,
+            start_minimized: settings.start_minimized,
+            meeting_mode_enabled: settings.meeting_mode_enabled,
+        })
+        .expect("json");
+        let keys: Vec<&str> = [
+            "shortcut", "cancel_shortcut", "paste_shortcut", "recording_mode", "companion_shortcuts", "vocabulary",
+            "sound_feedback", "start_sound", "stop_sound", "app_theme", "overlay_size", "overlay_theme", "language",
+            "duck_audio_on_record", "duck_volume_percent", "preserve_clipboard", "queue", "autostart_enabled",
+            "start_minimized", "meeting_mode_enabled",
+        ]
+        .to_vec();
+        let mut at = 0;
+        for key in keys {
+            let found = json[at..].find(&format!("\"{key}\":")).unwrap_or_else(|| panic!("{key} out of place"));
+            at += found;
+        }
+        assert!(json.contains(r#""app_theme":"zed""#));
+        assert!(!json.contains("theme\":{"));
     }
 }
