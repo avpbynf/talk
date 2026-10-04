@@ -388,6 +388,14 @@ a line inviting you to sign in, and the button carries the Google mark. "What fo
 lists short chips: shortcuts, vocabulary, sounds, theme and gradients, language, startup, dictation
 preferences, volume and clipboard, statistics and history, and a second row says what stays on each PC.
 
+- (window) Say a failed sync and a waiting update in the sidebar
+
+The pill above the Settings link also appears when the last sync with Google Drive failed, and opens
+the Account page, or when an update is waiting, and opens Settings. A problem with the engine still
+comes first, then the sync, then the update. The account entry reads "Not signed in" and "Offline"
+when you are signed out and "Sync failed" after a failed sync, and the fallback pill reads "Local
+fallback".
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded

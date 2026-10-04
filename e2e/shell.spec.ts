@@ -1,5 +1,6 @@
 import type { Locator } from "@playwright/test";
 import { test, expect, PAGES, type App, type OpenOptions } from "./harness";
+import { SIGNED_IN } from "./data";
 
 const [dashboard, history, vocabulary, engine, dictation, appearance, settings, account] = PAGES;
 
@@ -129,7 +130,7 @@ test.describe("caption strip", () => {
 });
 
 test.describe("engine status pill", () => {
-  const PILLS = ["No model", "No fallback model", "Loading model", "Server unreachable", "Token refused", "Using local model"];
+  const PILLS = ["No model", "No fallback model", "Loading model", "Server unreachable", "Token refused", "Local fallback", "Sync failed", "Update ready"];
 
   async function shown(app: App) {
     const found: string[] = [];
@@ -164,7 +165,7 @@ test.describe("engine status pill", () => {
     {
       name: "the server is unreachable and the local model takes over",
       open: { state: { serverCheck: "unreachable", settings: { transcription_mode: "server", server_fallback: true } } },
-      pill: "Using local model",
+      pill: "Local fallback",
     },
     {
       name: "the server answers but the fallback has no model",
@@ -200,6 +201,32 @@ test.describe("engine status pill", () => {
     await app.sidebar.getByRole("button", { name: "No model", exact: true }).click();
     await expect(app.link(engine)).toHaveAttribute("aria-current", "page");
     await expect(app.marker(engine)).toBeVisible();
+  });
+
+  test("a failed sync puts a pill up that opens the Account page", async ({ app }) => {
+    await app.open({ state: { google: { ...SIGNED_IN, lastError: "Drive refused the upload" } } });
+    const pill = app.sidebar.getByRole("button", { name: "Sync failed", exact: true });
+    await expect(pill).toBeVisible();
+    await pill.click();
+    await expect(app.link(account)).toHaveAttribute("aria-current", "page");
+  });
+
+  test("an update on offer puts a pill up that opens Settings", async ({ app, page }) => {
+    await page.clock.install();
+    await app.open({ state: { update: { version: "0.11.0", date: "2026-09-14T00:00:00Z", body: "Fixes" } } });
+    await page.clock.fastForward(11_000);
+    const pill = app.sidebar.getByRole("button", { name: "Update ready", exact: true });
+    await expect(pill).toBeVisible();
+    await pill.click();
+    await expect(app.link(settings)).toHaveAttribute("aria-current", "page");
+  });
+
+  test("the engine pill wins over a failed sync", async ({ app }) => {
+    await app.open({
+      state: { currentModel: null, settings: { last_model: null }, google: { ...SIGNED_IN, lastError: "Drive refused" } },
+    });
+    await expect(app.sidebar.getByRole("button", { name: "No model", exact: true })).toBeVisible();
+    await expect(app.sidebar.getByRole("button", { name: "Sync failed", exact: true })).toHaveCount(0);
   });
 });
 

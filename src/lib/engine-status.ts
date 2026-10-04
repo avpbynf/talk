@@ -47,3 +47,27 @@ export function engineStatus(state: EngineState): EngineStatusKey | null {
   if (!currentModel) return { key: "noModel", tone: "warn" };
   return null;
 }
+
+export interface SidebarPillKey {
+  /** A key under sidebar.status. */
+  key: EngineStatusKey["key"] | "syncFailed" | "updateReady";
+  tone: Tone | "accent";
+  busy?: boolean;
+  /** The page the pill opens. */
+  page: "engine" | "account" | "settings";
+}
+
+/**
+ * The one pill of the sidebar. The engine comes first because dictation is what the application is
+ * for, a failed sync second, and an update waiting last.
+ */
+export function sidebarPill(
+  state: EngineState,
+  other: { syncFailed: boolean; updateReady: boolean },
+): SidebarPillKey | null {
+  const engine = engineStatus(state);
+  if (engine) return { ...engine, page: "engine" };
+  if (other.syncFailed) return { key: "syncFailed", tone: "warn", page: "account" };
+  if (other.updateReady) return { key: "updateReady", tone: "accent", page: "settings" };
+  return null;
+}

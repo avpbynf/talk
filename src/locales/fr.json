@@ -27,20 +27,23 @@
     "expand": "Déplier la barre latérale",
     "status": {
       "noModel": "Aucun modèle",
-      "loadingModel": "Chargement du modèle",
+      "loadingModel": "Modèle en chargement",
       "serverUnreachable": "Serveur injoignable",
       "tokenRefused": "Jeton refusé",
-      "fallingBack": "Modèle local utilisé",
-      "noFallbackModel": "Aucun modèle de secours"
+      "fallingBack": "Secours local",
+      "noFallbackModel": "Aucun modèle de secours",
+      "syncFailed": "Synchro en échec",
+      "updateReady": "Mise à jour prête"
     },
     "account": {
       "title": "Compte",
-      "signedOut": "Déconnecté"
+      "signedOut": "Hors ligne",
+      "signedOutTitle": "Non connecté"
     },
     "sync": {
       "synced": "Synchronisé",
       "syncing": "Synchronisation",
-      "error": "Échec",
+      "error": "Synchro en échec",
       "notSynced": "Non synchronisé"
     }
   },
