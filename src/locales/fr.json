@@ -847,6 +847,26 @@
         "failed": "Impossible d'enregistrer le nom."
       }
     },
+    "reconnect": "Reconnecter",
+    "errors": {
+      "offline": "Google Drive est injoignable. Vérifiez votre connexion à Internet.",
+      "grant_revoked": "L'accès de Talk à votre compte Google a été révoqué ou a expiré.",
+      "api_disabled": "Google Drive a refusé la demande, car son API n'est pas activée pour cette application ou l'accès a été refusé.",
+      "quota": "Google limite les requêtes pour le moment. Talk réessaiera plus tard.",
+      "drive_full": "Votre Google Drive est plein, Talk ne peut donc pas y enregistrer ses fichiers. Libérez de la place et synchronisez à nouveau.",
+      "remote_unreadable": "Les réglages de ce compte ont été écrits par une version plus récente de Talk, ou n'ont pas pu être lus. Mettez Talk à jour, il réessaiera.",
+      "settings_unreadable": "Le fichier de réglages de cet ordinateur n'a pas pu être lu, rien n'a donc été synchronisé.",
+      "database": "La base de données de Talk sur cet ordinateur a échoué pendant la synchronisation.",
+      "sign_in_timeout": "La connexion a pris trop de temps et a été abandonnée. Réessayez.",
+      "sign_in_refused": "Google a indiqué que la connexion a été refusée.",
+      "remote_devices_unreadable": "La liste des appareils de ce compte a été écrite par une version plus récente de Talk, ou n'a pas pu être lue. Mettez Talk à jour, il réessaiera.",
+      "sign_in_failed": "Google n'a pas terminé la connexion.",
+      "sign_in_no_email": "Google n'a pas indiqué quel compte s'est connecté, Talk n'a donc rien gardé. Réessayez.",
+      "other": "Un problème est survenu en parlant à Google."
+    },
+    "notices": {
+      "device_data_unreadable": "Les statistiques ou l'historique de l'un de vos appareils n'ont pas pu être lus."
+    },
     "syncNow": "Synchroniser",
     "signOut": "Se déconnecter",
     "syncing": "Synchronisation en cours",

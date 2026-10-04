@@ -207,6 +207,7 @@ export function defaultState() {
       syncing: false,
       lastSyncMs: null as number | null,
       lastError: null as string | null,
+      lastErrorDetail: null as string | null,
       settingsUploadBlocked: false,
     },
     googleInvited: true,
