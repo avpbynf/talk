@@ -2,7 +2,9 @@ import { Transcription } from "@/App";
 import { useTranslation } from "react-i18next";
 import { locale } from "@/i18n";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { matches, matchSpans, wordsOf } from "@/lib/history-search";
 import { RETENTION_OPTIONS, retentionWouldDelete } from "@/lib/retention";
 import {
   Select,
@@ -12,8 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageShell } from "@/components/PageShell";
-import { Trash2, Sparkles, ClipboardCheck } from "lucide-react";
-import { useState } from "react";
+import { Check, Search, Sparkles, Trash2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface HistoryViewProps {
@@ -23,6 +25,25 @@ interface HistoryViewProps {
   shortcut: string;
   historyLimit: number;
   onHistoryLimitChange: (limit: number) => void;
+}
+
+/** The text with every searched word marked. */
+function highlight(text: string, words: string[]) {
+  const spans = matchSpans(text, words);
+  if (spans.length === 0) return text;
+  const parts: ReactNode[] = [];
+  let from = 0;
+  for (const [start, end] of spans) {
+    if (start > from) parts.push(text.slice(from, start));
+    parts.push(
+      <mark key={start} className="rounded-[3px] bg-[color-mix(in_oklch,var(--s1)_30%,transparent)] px-0.5 text-inherit">
+        {text.slice(start, end)}
+      </mark>,
+    );
+    from = end;
+  }
+  if (from < text.length) parts.push(text.slice(from));
+  return parts.map((part, i) => <Fragment key={i}>{part}</Fragment>);
 }
 
 export default function HistoryView({
@@ -37,6 +58,7 @@ export default function HistoryView({
   const { t: tr } = useTranslation();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [query, setQuery] = useState("");
   // A retention choice waiting on the reader, set only when applying it
   // would delete something.
   const [pendingLimit, setPendingLimit] = useState<number | null>(null);
@@ -68,6 +90,21 @@ export default function HistoryView({
   };
 
   const isEmpty = transcriptions.length === 0;
+  const words = useMemo(() => wordsOf(query), [query]);
+  const shown = useMemo(() => {
+    if (words.length === 0) return transcriptions;
+    return transcriptions.filter((entry) => matches(entry.text, words));
+  }, [transcriptions, words]);
+
+  // A row that comes back when the filter is cleared is not a new dictation and does not arrive again.
+  const seen = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    seen.current = new Set(transcriptions.map((entry) => entry.id));
+  }, [transcriptions]);
+
+  useEffect(() => {
+    if (isEmpty) setQuery("");
+  }, [isEmpty]);
 
   return (
     <PageShell
@@ -101,14 +138,33 @@ export default function HistoryView({
         </>
       }
     >
-      {/* The retention is read far more often than it is changed, so it sits beside the count it governs. */}
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-        <p className="text-[13px] text-muted-foreground">
-          {isEmpty
-            ? tr("history.empty")
-            : tr("history.kept", { number: transcriptions.length, limit: historyLimit })}
-        </p>
-        <span className="ml-auto flex items-center gap-2">
+        {isEmpty ? (
+          <p className="text-[13px] text-muted-foreground">{tr("history.empty")}</p>
+        ) : (
+          <label className="relative flex flex-[1_1_240px]">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute left-[11px] top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-faint"
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && query) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setQuery("");
+                }
+              }}
+              placeholder={tr("history.search", { count: transcriptions.length, number: transcriptions.length })}
+              aria-label={tr("history.searchLabel")}
+              autoComplete="off"
+              className="w-full pl-[34px]"
+            />
+          </label>
+        )}
+        <span className="ml-auto flex items-center gap-2 @max-[700px]:w-full">
           <span className="text-xs text-muted-foreground">{tr("history.keep")}</span>
           <Select
             value={String(historyLimit)}
@@ -165,13 +221,17 @@ export default function HistoryView({
           </span>
           {tr("history.startTalking")}
         </p>
+      ) : shown.length === 0 ? (
+        <p role="status" className="py-7 text-center text-[13px] text-muted-foreground">
+          {tr("history.noMatch", { query: query.trim() })}
+        </p>
       ) : (
         <div className="flex flex-col gap-3">
         <AnimatePresence initial={false}>
-        {transcriptions.map((t) => (
+        {shown.map((t) => (
           <motion.div
             key={t.id}
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={seen.current && !seen.current.has(t.id) ? { opacity: 0, y: -20, scale: 0.95 } : false}
             animate={{
               opacity: 1,
               y: 0,
@@ -179,30 +239,14 @@ export default function HistoryView({
             }}
             exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            whileHover={{ y: -2 }}
             whileTap={{ scale: 0.99 }}
             layout
             onClick={() => copyToClipboard(t.text, t.id)}
             className="group relative flex cursor-pointer flex-col gap-2.5 overflow-hidden rounded-[calc(var(--radius)+4px)] border border-border-card bg-surface-raised px-[18px] py-[14px] shadow-[var(--shadow)] transition-colors hover:border-[color-mix(in_oklch,var(--s1)_35%,var(--line))]"
           >
-            {/* Copy feedback — floating ghost label */}
-            <AnimatePresence>
-              {copiedId === t.id && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.85 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -14, scale: 0.9 }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                  className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-elevated border border-border-card shadow-lg pointer-events-none"
-                >
-                  <ClipboardCheck size={14} className="text-[var(--color-success)]" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* Text content */}
-            <p className="selectable text-sm break-words leading-[1.6]">
-              {t.text}
-            </p>
+            <p className="selectable text-sm break-words leading-[1.6]">{highlight(t.text, words)}</p>
 
             {/* Footer */}
             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -213,6 +257,21 @@ export default function HistoryView({
               </div>
 
               <div className="flex items-center gap-1.5">
+                <AnimatePresence>
+                  {copiedId === t.id && (
+                    <motion.span
+                      role="status"
+                      initial={{ opacity: 0, scale: 0.4 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="inline-flex items-center gap-[5px] font-medium text-success-text"
+                    >
+                      <Check className="h-[13px] w-[13px]" />
+                      {tr("history.copied")}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
                 {t.model && t.source !== "server" && <span>{t.model}</span>}
                 {(() => {
                   const source = t.source || "local";

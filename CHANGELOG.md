@@ -402,6 +402,14 @@ The "At the keyboard" line of the typing card says when the speed was measured, 
 you keep (with the year when it is not this one), and the line below it says over how many dictations your voice speed was taken. The two
 comparison cards are titled "Hosted APIs" and "Subscriptions".
 
+- (history) Search the history
+
+The History page opens on a search field instead of the "12 of 100 kept" line: typing narrows the
+list to the dictations containing every word you typed, in any order and without regard to case or
+accents, marks them, and a line says when none does; Escape clears the field. An
+entry lifts a little under the pointer, and clicking it shows "Copied" with a check on its footer
+line.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded

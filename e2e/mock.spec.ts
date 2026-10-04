@@ -39,7 +39,7 @@ test.describe("the native mock", () => {
   test("lets a test emit an event the page listens for", async ({ app, page }) => {
     await app.open();
     await app.go(PAGES[1]);
-    await expect(page.getByText("12 of 100 kept")).toBeVisible();
+    await expect(page.getByPlaceholder("Search 12 dictations")).toBeVisible();
     await app.emit("transcription-complete", {
       id: "t-new",
       text: "A dictation that just arrived.",
@@ -53,7 +53,7 @@ test.describe("the native mock", () => {
       charCount: 30,
     });
     await expect(page.getByText("A dictation that just arrived.")).toBeVisible();
-    await expect(page.getByText("13 of 100 kept")).toBeVisible();
+    await expect(page.getByPlaceholder("Search 13 dictations")).toBeVisible();
   });
 
   test("keeps listeners honest: a page that left stops hearing", async ({ app, page }) => {
