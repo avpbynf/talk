@@ -1,8 +1,6 @@
-import { useTranslation } from "react-i18next";
 import { PageShell } from "@/components/PageShell";
 import AudioDevicesSection from "./preferences/AudioDevicesSection";
 import SystemSection from "./preferences/SystemSection";
-import LanguageSection from "./preferences/LanguageSection";
 import UpdatesSection from "./preferences/UpdatesSection";
 import type { Updater } from "@/lib/use-updater";
 
@@ -33,9 +31,8 @@ export default function PreferencesView({
   onPreserveClipboardChange,
   updater,
 }: PreferencesViewProps) {
-  const { t } = useTranslation();
   return (
-    <PageShell title={t("preferences.title")} subtitle={t("preferences.subtitle")}>
+    <PageShell>
       <AudioDevicesSection />
       <SystemSection
         autostartEnabled={autostartEnabled}
@@ -49,7 +46,6 @@ export default function PreferencesView({
         preserveClipboard={preserveClipboard}
         onPreserveClipboardChange={onPreserveClipboardChange}
       />
-      <LanguageSection />
       {/* Last on the page, whatever is added above it */}
       <UpdatesSection updater={updater} />
     </PageShell>

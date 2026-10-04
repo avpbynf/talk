@@ -1,8 +1,9 @@
-import { useEffect, useId, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Mic, RefreshCw, Volume2 } from "lucide-react";
+import { RefreshCw, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
+import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -76,7 +77,6 @@ export default function AudioDevicesSection() {
   return (
     <SectionCard icon={Volume2} title={t("preferences.audio.title")}>
       <DeviceRow
-        icon={<Mic className="h-4 w-4 text-[var(--color-active)]" />}
         label={t("preferences.audio.microphone")}
         hint={t("preferences.audio.microphoneHint")}
         devices={inputs}
@@ -89,7 +89,6 @@ export default function AudioDevicesSection() {
       />
 
       <DeviceRow
-        icon={<Volume2 className="h-4 w-4 text-[var(--color-active)]" />}
         label={t("preferences.audio.output")}
         hint={t("preferences.audio.outputHint")}
         devices={outputs}
@@ -105,7 +104,6 @@ export default function AudioDevicesSection() {
 }
 
 interface DeviceRowProps {
-  icon: React.ReactNode;
   label: string;
   hint: string;
   devices: string[];
@@ -118,7 +116,6 @@ interface DeviceRowProps {
 }
 
 function DeviceRow({
-  icon,
   label,
   hint,
   devices,
@@ -130,23 +127,9 @@ function DeviceRow({
   onRefresh,
 }: DeviceRowProps) {
   const { t } = useTranslation();
-  const labelId = useId();
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-2 min-w-0">
-          <span id={labelId} className="text-sm font-medium">{label}</span>
-          <span className="text-xs text-muted-foreground truncate">{hint}</span>
-        </div>
-        <span className="text-[11px] text-muted-foreground/60 font-mono shrink-0">
-          {t("preferences.audio.devices", { count: devices.length })}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-lg bg-[var(--color-active)]/10 border border-[var(--color-active)]/20 flex items-center justify-center shrink-0">
-          {icon}
-        </div>
+    <SettingRow label={label} hint={`${hint} · ${t("preferences.audio.devices", { count: devices.length })}`}>
+      <span className="flex min-w-0 items-center gap-2">
         <Select
           value={selected ?? SYSTEM_DEFAULT}
           onValueChange={onChange}
@@ -156,7 +139,7 @@ function DeviceRow({
             if (open) onOpen();
           }}
         >
-          <SelectTrigger aria-labelledby={labelId} className="w-full bg-surface-inset border-border-card">
+          <SelectTrigger className="w-[240px] max-w-full">
             <SelectValue placeholder={t("preferences.audio.systemDefault")} />
           </SelectTrigger>
           <SelectContent>
@@ -173,7 +156,7 @@ function DeviceRow({
           </SelectContent>
         </Select>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={onRefresh}
           disabled={isRefreshing}
@@ -183,7 +166,7 @@ function DeviceRow({
         >
           <RefreshCw className={isRefreshing ? "animate-spin" : undefined} />
         </Button>
-      </div>
-    </div>
+      </span>
+    </SettingRow>
   );
 }

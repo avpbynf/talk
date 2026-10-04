@@ -334,8 +334,6 @@
   },
   "dictation": {},
   "preferences": {
-    "title": "Settings",
-    "subtitle": "Devices, the system, language and updates",
     "audio": {
       "title": "Audio devices",
       "microphone": "Microphone",
@@ -425,7 +423,6 @@
       }
     },
     "language": {
-      "title": "Language",
       "label": "Interface language",
       "description": "Menus, messages and the recording overlay",
       "system": "System"
