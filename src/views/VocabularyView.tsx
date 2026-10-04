@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import { AnimatePresence, animate, motion } from "motion/react";
 import { useReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageShell } from "@/components/PageShell";
+import { SectionCard } from "@/components/SectionCard";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { BookText, Plus, Trash2 } from "lucide-react";
+import { BookText, Plus } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -96,16 +98,15 @@ function SortableVocabularyItem({
                 scale: 0.4,
                 opacity: 0,
                 width: 0,
-                marginRight: 0,
                 transition: { duration: 0.22, ease: "easeIn" },
               }
         }
         transition={{ duration: 0.45, ease: [0.2, 0.9, 0.3, 1] }}
         className={cn(
-          "mr-2 mb-2 inline-flex h-[30px] items-center gap-[3px] overflow-hidden rounded-full border border-border-card bg-surface-active pl-[5px] pr-3 text-[13px] whitespace-nowrap",
-          "transition-[border-color,background-color] duration-300 motion-reduce:transition-none hover:border-border-hover",
-          "has-[.term:hover]:border-[color-mix(in_oklch,var(--color-destructive)_35%,var(--color-border-card))] has-[.term:hover]:bg-[color-mix(in_oklch,var(--color-destructive)_7%,var(--color-surface-active))]",
-          "has-[.term:focus-visible]:border-[color-mix(in_oklch,var(--color-destructive)_35%,var(--color-border-card))] has-[.term:focus-visible]:bg-[color-mix(in_oklch,var(--color-destructive)_7%,var(--color-surface-active))]",
+          "inline-flex h-[30px] items-center gap-[3px] overflow-hidden rounded-full border border-border-subtle bg-surface pl-[5px] pr-3 text-[13px] whitespace-nowrap",
+          "transition-[border-color,background-color] duration-300 motion-reduce:transition-none hover:border-input",
+          "has-[.term:hover]:border-[color-mix(in_oklch,var(--color-destructive)_35%,var(--line))] has-[.term:hover]:bg-[color-mix(in_oklch,var(--color-destructive)_7%,var(--surface))]",
+          "has-[.term:focus-visible]:border-[color-mix(in_oklch,var(--color-destructive)_35%,var(--line))] has-[.term:focus-visible]:bg-[color-mix(in_oklch,var(--color-destructive)_7%,var(--surface))]",
           isDragging && "border-[var(--color-active)]",
         )}
       >
@@ -115,7 +116,7 @@ function SortableVocabularyItem({
           {...listeners}
           aria-label={t("vocabulary.reorder", { word })}
           className={cn(
-            "flex h-[22px] w-4 shrink-0 touch-none items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:text-foreground motion-reduce:transition-none",
+            "flex h-[22px] w-4 shrink-0 touch-none items-center justify-center rounded-md text-faint transition-colors hover:text-foreground motion-reduce:transition-none",
             isDragging ? "cursor-grabbing text-[var(--color-active)]" : "cursor-grab",
           )}
         >
@@ -135,7 +136,7 @@ function SortableVocabularyItem({
             if (!moved) onRemove();
           }}
           aria-label={t("vocabulary.remove", { word })}
-          className="term relative cursor-pointer rounded-sm transition-colors duration-200 hover:text-muted-foreground focus-visible:text-muted-foreground focus-visible:outline-none after:absolute after:-inset-x-0.5 after:top-[54%] after:h-[1.5px] after:origin-left after:scale-x-0 after:rounded-sm after:bg-[var(--color-destructive)] after:transition-transform after:duration-[280ms] after:ease-[cubic-bezier(.22,1,.36,1)] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-reduce:after:transition-none"
+          className="term relative cursor-pointer rounded-sm transition-colors duration-200 hover:text-faint focus-visible:text-faint focus-visible:outline-none after:absolute after:-inset-x-0.5 after:top-[54%] after:h-[1.5px] after:origin-left after:scale-x-0 after:rounded-sm after:bg-[var(--color-destructive)] after:transition-transform after:duration-[280ms] after:ease-[cubic-bezier(.22,1,.36,1)] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-reduce:after:transition-none"
         >
           {word}
         </button>
@@ -222,117 +223,75 @@ export default function VocabularyView({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-6">
-      <div data-page-blocks className="max-w-2xl w-full mx-auto flex-1 min-h-0 flex flex-col gap-6">
-        {/* Page title */}
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t("vocabulary.title")}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {t("vocabulary.subtitle")}
-          </p>
+    <PageShell>
+      <SectionCard icon={Plus} title={t("vocabulary.addTerms")}>
+        <div className="flex flex-col gap-3">
+          <p className="max-w-[64ch] text-[13px] leading-[1.55] text-muted-foreground">{t("vocabulary.help")}</p>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              value={newWord}
+              onChange={(e) => setNewWord(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addWord())}
+              placeholder={t("vocabulary.placeholder")}
+              aria-label={t("vocabulary.addTerms")}
+              className="h-10 flex-[1_1_240px] text-sm"
+            />
+            <Button size="lg" onClick={addWord} disabled={!newWord.trim()}>
+              <Plus />
+              {t("vocabulary.add")}
+            </Button>
+          </div>
+          <span className="text-xs text-muted-foreground">{t("vocabulary.addHint")}</span>
         </div>
+      </SectionCard>
 
-        {/* Separator */}
-        <div className="h-px bg-border-subtle" />
-        {/* Add words input */}
-        <div className="p-5 rounded-xl border border-border-card bg-surface-raised space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            <Plus className="h-4 w-4" />
-            {t("vocabulary.yourWords")}
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm font-medium">{t("vocabulary.addTerms")}</label>
-            <p className="text-xs text-muted-foreground">
-              {t("vocabulary.help")}
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newWord}
-                onChange={(e) => setNewWord(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addWord())}
-                placeholder={t("vocabulary.placeholder")}
-                className="flex-1 px-3 py-2.5 text-sm rounded-lg border border-border-card bg-surface-inset focus:outline-none focus:ring-2 focus:ring-[var(--color-active)]/30 focus:border-[var(--color-active)]"
-              />
-              <Button
-                onClick={addWord}
-                disabled={!newWord.trim()}
-                className="bg-[var(--color-active)] text-background hover:bg-[var(--color-active)]/90"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                {t("vocabulary.add")}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Word list */}
-        <div className="min-h-0 flex flex-col pt-5 px-5 pb-3 rounded-xl border border-border-card bg-surface-raised gap-3">
-          <div className="flex items-center justify-between pb-2">
-            <label className="text-sm font-medium">
-              {t("vocabulary.yourTerms", { number: vocabulary.length })}
-            </label>
-            {vocabulary.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAll}
-                className="cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t("vocabulary.clearAll")}
-              </Button>
-            )}
-          </div>
-
+      <SectionCard
+        icon={BookText}
+        title={t("vocabulary.yourTerms")}
+        count={vocabulary.length}
+        action={
+          vocabulary.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearAll}>
+              {t("vocabulary.clearAll")}
+            </Button>
+          )
+        }
+      >
+        <div className="flex flex-col gap-3">
           {vocabulary.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground border border-dashed border-border-card rounded-lg">
-              <BookText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">{t("vocabulary.emptyTitle")}</p>
-              <p className="text-xs mt-1">{t("vocabulary.emptyHint")}</p>
+            <div className="p-7 text-center text-[13px] text-muted-foreground">
+              <p>{t("vocabulary.emptyTitle")}</p>
+              <p className="mt-1">{t("vocabulary.emptyHint")}</p>
             </div>
           ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={vocabulary} strategy={rectSortingStrategy}>
-                <ScrollArea className="min-h-0">
-                  <div className="flex flex-wrap content-start p-0.5 pr-3">
-                    <AnimatePresence initial={false}>
-                      {vocabulary.map((word) => (
-                        <SortableVocabularyItem
-                          key={word}
-                          word={word}
-                          shake={shakes[word] ?? 0}
-                          onRemove={() => removeWord(word)}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </ScrollArea>
+                <div className="flex flex-wrap content-start gap-[7px]">
+                  <AnimatePresence initial={false}>
+                    {vocabulary.map((word) => (
+                      <SortableVocabularyItem
+                        key={word}
+                        word={word}
+                        shake={shakes[word] ?? 0}
+                        onRemove={() => removeWord(word)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
               </SortableContext>
             </DndContext>
           )}
-          {vocabulary.length > 0 && (
-            <p className="text-xs text-muted-foreground/70">{t("vocabulary.listHint")}</p>
-          )}
+          {vocabulary.length > 0 && <span className="text-xs text-muted-foreground">{t("vocabulary.listHint")}</span>}
           {removed && (
             <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
               {t("vocabulary.removed", { word: removed.word })}
-              <button
-                onClick={undoRemove}
-                className="font-medium text-[var(--color-active)] hover:underline"
-              >
+              <button onClick={undoRemove} className="font-medium text-[var(--color-active)] hover:underline">
                 {t("vocabulary.undo")}
               </button>
             </p>
           )}
         </div>
-
-      </div>
-    </div>
+      </SectionCard>
+    </PageShell>
   );
 }

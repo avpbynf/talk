@@ -47,6 +47,12 @@ the left and the sidebar folded the three dots now stand in a column with room a
 The number of transcriptions to keep is a visible menu next to the clear button, and each entry shows
 its time, its date and where it was run on one line.
 
+- (preferences) Add vocabulary terms from their own card
+
+The Vocabulary page is two cards: one with the field, the Add button and a hint to add terms, and one
+listing them with their count next to the title and Clear all on the right. The page scrolls as a
+whole instead of the list scrolling inside its card.
+
 - (preferences) Choose the overlay's style, colours, movement and position
 
 The overlay tab of Appearance is rebuilt around a live preview on a fake desktop, which loops through

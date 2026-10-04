@@ -193,14 +193,11 @@
     "enhanced": "Enhanced"
   },
   "vocabulary": {
-    "title": "Vocabulary",
-    "subtitle": "The words you use that Whisper would otherwise guess at",
-    "yourWords": "Your words",
-    "addTerms": "Add your terms",
+    "addTerms": "Add terms",
     "help": "Proper nouns, acronyms, anything from your trade. They bias the model toward what you actually say.",
     "placeholder": "e.g. MyProject, ACME Corp...",
     "add": "Add",
-    "yourTerms": "Your terms ({{number}})",
+    "yourTerms": "Your terms",
     "clearAll": "Clear all",
     "emptyTitle": "Nothing here yet",
     "emptyHint": "Whisper is guessing on its own",
@@ -208,7 +205,8 @@
     "remove": "Remove {{word}}",
     "listHint": "Drag the grip to reorder your terms, click a word to remove it.",
     "removed": "Removed {{word}}.",
-    "undo": "Undo"
+    "undo": "Undo",
+    "addHint": "Press Enter to add. Commas or spaces add several at once."
   },
   "transcription": {
     "title": "Engine",
