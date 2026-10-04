@@ -46,6 +46,12 @@ gradients that are soft by construction and move by transform alone, the cards a
 carry no `backdrop-filter`, and `frame-budget.ts` pauses the lights when the frames come too slow.
 A blur on a moving layer, or a backdrop blur over one, took that from 60 to 16 frames a second.
 
+A check that walks the whole page (`e2e/layout-checks.ts`) reads each element's style once and
+keeps the answer, since every question it asks climbs the ancestors and a read per ancestor per
+element makes the size of the page the multiplier. Slow tests on the runner are mostly the pages
+mounting in the development build, not these checks: look at a profile of the test before
+suspecting its assertions.
+
 The suite walks every page, and the Appearance page in particular: it opens clean at the three
 window sizes, every shipped preset keeps the dashboard past the axe contrast check, an unreadable
 base colour is corrected and announced, saved themes can be saved, removed and undone, the gradient

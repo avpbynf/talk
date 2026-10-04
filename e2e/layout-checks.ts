@@ -26,14 +26,33 @@ export async function findLayoutProblems(page: Page): Promise<Finding[]> {
       return `<${el.tagName.toLowerCase()}${cls ? "." + cls : ""}> "${text || label}"`;
     };
 
+    // What a style says is read once per element: every question below walks up the ancestors,
+    // and asking each ancestor again for every descendant made the page's size the multiplier.
+    const reads = new Map<Element, { hides: boolean; clipsX: boolean }>();
+    const read = (el: Element) => {
+      let known = reads.get(el);
+      if (!known) {
+        const style = getComputedStyle(el);
+        known = {
+          hides: style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0,
+          clipsX: style.overflowX !== "visible",
+        };
+        reads.set(el, known);
+      }
+      return known;
+    };
+    const hiding = new Map<Element, boolean>();
+    const hidden = (el: Element): boolean => {
+      let known = hiding.get(el);
+      if (known === undefined) {
+        known = read(el).hides || (el.parentElement !== null && hidden(el.parentElement));
+        hiding.set(el, known);
+      }
+      return known;
+    };
     const visible = (el: Element) => {
       const rect = el.getBoundingClientRect();
-      if (rect.width <= 2 || rect.height <= 2) return false;
-      for (let node: Element | null = el; node; node = node.parentElement) {
-        const style = getComputedStyle(node);
-        if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
-      }
-      return true;
+      return rect.width > 2 && rect.height > 2 && !hidden(el);
     };
 
     // Horizontal overflow of the document itself.
@@ -43,12 +62,16 @@ export async function findLayoutProblems(page: Page): Promise<Finding[]> {
     }
 
     // Anything that hangs past the window and is not inside a box that clips it.
-    const clippedByAncestor = (el: Element) => {
-      for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
-        const style = getComputedStyle(node);
-        if (style.overflowX !== "visible") return true;
+    const clipping = new Map<Element, boolean>();
+    const clippedByAncestor = (el: Element): boolean => {
+      const parent = el.parentElement;
+      if (!parent || parent === document.body) return false;
+      let known = clipping.get(el);
+      if (known === undefined) {
+        known = read(parent).clipsX || clippedByAncestor(parent);
+        clipping.set(el, known);
       }
-      return false;
+      return known;
     };
     for (const el of Array.from(document.body.querySelectorAll("*"))) {
       if (!visible(el) || el.closest("svg") !== null && el.tagName.toLowerCase() !== "svg") continue;
@@ -82,8 +105,7 @@ export async function findLayoutProblems(page: Page): Promise<Finding[]> {
       // Ellipsis or a hard cut on the element carrying the text, or on a box between it and the holder.
       let ownClip = false;
       for (let el: Element | null = parent; el; el = el === holder ? null : el.parentElement) {
-        const style = getComputedStyle(el);
-        const clips = style.overflowX !== "visible";
+        const clips = read(el).clipsX;
         const html = el as HTMLElement;
         if (clips) ownClip = true;
         if (clips && html.scrollWidth > html.clientWidth + 1 && !titled) {
@@ -96,8 +118,7 @@ export async function findLayoutProblems(page: Page): Promise<Finding[]> {
 
       // Cut by an ancestor further out, whatever the holder itself does.
       for (let el = holder.parentElement; el && el !== document.body; el = el.parentElement) {
-        const style = getComputedStyle(el);
-        if (style.overflowX === "visible") continue;
+        if (!read(el).clipsX) continue;
         const r = el.getBoundingClientRect();
         if (box.right > r.right + 1 || box.left < r.left - 1) {
           out.push({ kind: "clipped-text", what: `${describe(holder)} runs ${Math.round(box.left)}..${Math.round(box.right)} past ${describe(el)} (${Math.round(r.left)}..${Math.round(r.right)})` });
