@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import { Keyboard, Edit3, Check, X } from "lucide-react";
 import { Keys } from "@/components/Keys";
+import { hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
@@ -45,39 +46,7 @@ export default function ShortcutsSection({
     e.preventDefault();
     e.stopPropagation();
 
-    const keys: string[] = [];
-    if (e.ctrlKey) keys.push("Ctrl");
-    if (e.shiftKey) keys.push("Shift");
-    if (e.altKey) keys.push("Alt");
-    if (e.metaKey) keys.push("Win");
-
-    const key = e.key;
-    const modifierKeys = ["Control", "Shift", "Alt", "Meta"];
-
-    if (!modifierKeys.includes(key)) {
-      const keyMap: Record<string, string> = {
-        " ": "Space",
-        "Enter": "Enter",
-        "Tab": "Tab",
-        "Escape": "Escape",
-        "Backspace": "Backspace",
-        "Delete": "Delete",
-        "ArrowUp": "Up",
-        "ArrowDown": "Down",
-        "ArrowLeft": "Left",
-        "ArrowRight": "Right",
-      };
-
-      if (keyMap[key]) {
-        keys.push(keyMap[key]);
-      } else if (key.startsWith("F") && key.length <= 3) {
-        keys.push(key);
-      } else if (key.length === 1) {
-        keys.push(key.toUpperCase());
-      }
-    }
-
-    setPendingShortcut(keys);
+    setPendingShortcut(parseKeyEvent(e));
   };
 
   const startEdit = async (type: ShortcutKind) => {
@@ -95,15 +64,7 @@ export default function ShortcutsSection({
   };
 
   const saveShortcut = async () => {
-    if (pendingShortcut.length < 2) {
-      setShortcutError(t("preferences.shortcuts.errors.needModifier"));
-      return;
-    }
-
-    const hasModifier = pendingShortcut.some((k) => ["Ctrl", "Shift", "Alt", "Win"].includes(k));
-    const hasKey = pendingShortcut.some((k) => !["Ctrl", "Shift", "Alt", "Win"].includes(k));
-
-    if (!hasModifier || !hasKey) {
+    if (!hasValidCombo(pendingShortcut)) {
       setShortcutError(t("preferences.shortcuts.errors.needModifier"));
       return;
     }
