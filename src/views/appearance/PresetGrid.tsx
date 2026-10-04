@@ -16,7 +16,7 @@ import type { AppThemeController } from "@/lib/use-app-theme";
 function Preview({ values }: { values: ThemeValues }) {
   const gradient = gradientCss(values.stops, values.angle, values.kind);
   return (
-    <span className="relative block h-[70px] overflow-hidden rounded-lg" style={{ background: values.bg }}>
+    <span className="relative block h-[70px] overflow-hidden rounded-[var(--radius)]" style={{ background: values.bg }}>
       <span
         className="absolute -top-[30%] -right-[10%] block aspect-square w-4/5 rounded-full opacity-55 blur-[16px]"
         style={{ backgroundImage: gradient }}
@@ -58,7 +58,7 @@ function Tile({
       >
         <span
           className={cn(
-            "block rounded-lg shadow-[0_0_0_1px_var(--line)] transition-shadow duration-300",
+            "block rounded-[var(--radius)] shadow-[0_0_0_1px_var(--line)] transition-shadow duration-300",
             on && "shadow-[0_0_0_2px_var(--bg),0_0_0_4px_var(--s1)]",
           )}
         >

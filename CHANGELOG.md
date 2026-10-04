@@ -29,6 +29,11 @@ depending on which the gradient carries with the lighter touch, so buttons keep 
 Secondary text is dimmer, the green of a working engine is a little greener, and text takes the
 typeface's own line height, so cards are no longer padded with air.
 
+- (preferences) Give buttons and menus a little more height
+
+Buttons and drop-down menus are two pixels taller, the theme previews and the sidebar entries follow
+the corner roundness of the theme instead of a fixed one.
+
 - (window) Say in the sidebar what is wrong with the engine
 
 The pill above the bottom links now says the server is unreachable even when no local model is
