@@ -871,6 +871,7 @@
     "signOut": "Se déconnecter",
     "syncing": "Synchronisation en cours",
     "lastSync": "Dernière synchronisation à {{time}}",
+    "lastSyncAgo": "Dernière synchronisation {{ago}}",
     "neverSynced": "Pas encore synchronisé",
     "syncFailed": "Échec de la dernière synchronisation : {{error}}",
     "settingsNotUploaded": "Vos réglages ne sont pas envoyés, car le fichier de réglages de cet ordinateur n'a pas pu être lu."

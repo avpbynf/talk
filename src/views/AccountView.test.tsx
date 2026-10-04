@@ -253,6 +253,14 @@ describe("AccountView", () => {
     expect(screen.queryByRole("button", { name: "Sign in with Google" })).not.toBeInTheDocument();
   });
 
+  it("says how long ago the last sync was once it is not from today", async () => {
+    answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now() - 3 * 24 * 3_600_000 });
+    render(<AccountView />);
+
+    expect(await screen.findByText("Last synced 3 days ago")).toBeInTheDocument();
+    expect(screen.queryByText(/Last synced at/)).not.toBeInTheDocument();
+  });
+
   it("shows who is signed in and when it last synced", async () => {
     answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now() });
     render(<AccountView />);
