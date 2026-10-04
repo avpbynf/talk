@@ -182,16 +182,8 @@ export default function CompanionShortcutsSection({
     <SectionCard
       icon={Keyboard}
       fold={{ open, onToggle: () => setOpen(!open) }}
-      title={
-        <>
-          {t("preferences.companion.title")}
-          {companionShortcuts.length > 0 && (
-            <span className="text-[11px] font-mono normal-case text-muted-foreground/60">
-              {companionShortcuts.length}
-            </span>
-          )}
-        </>
-      }
+      title={t("preferences.companion.title")}
+      count={companionShortcuts.length > 0 ? companionShortcuts.length : undefined}
       action={
         <Button
           variant="outline"

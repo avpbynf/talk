@@ -332,10 +332,7 @@
       "revoke": "Revoke"
     }
   },
-  "dictation": {
-    "title": "Dictation",
-    "subtitle": "Shortcuts, recording and the sounds around a dictation"
-  },
+  "dictation": {},
   "preferences": {
     "title": "Settings",
     "subtitle": "Devices, the system, language and updates",

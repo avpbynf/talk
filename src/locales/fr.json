@@ -332,10 +332,7 @@
       "revoke": "Révoquer"
     }
   },
-  "dictation": {
-    "title": "Dictée",
-    "subtitle": "Raccourcis, enregistrement et sons autour d'une dictée"
-  },
+  "dictation": {},
   "preferences": {
     "title": "Paramètres",
     "subtitle": "Périphériques, système, langue et mises à jour",

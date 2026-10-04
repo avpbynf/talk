@@ -59,6 +59,12 @@ Models come first, then acceleration, then sharing. The Local and Server choice 
 switch at the top, the graphics card is picked from a menu, and each model is a row with its action on
 the right.
 
+- (preferences) Lay Dictation and Settings out as rows
+
+Each setting is a bold name with a muted line under it and its control on the right, separated by
+hairlines inside one card per subject. Shortcuts are rows with their keys, the chained dictation
+choices are menus, and the interface language moved into the System card.
+
 - (preferences) Choose the overlay's style, colours, movement and position
 
 The overlay tab of Appearance is rebuilt around a live preview on a fake desktop, which loops through

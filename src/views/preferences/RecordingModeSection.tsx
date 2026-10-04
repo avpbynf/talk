@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
-import { Keyboard, Hand, ToggleLeft } from "lucide-react";
+import { Mic } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
-import { cn } from "@/lib/utils";
 
 interface RecordingModeSectionProps {
   recordingMode: RecordingMode;
@@ -14,46 +13,26 @@ export default function RecordingModeSection({
   onRecordingModeChange,
 }: RecordingModeSectionProps) {
   const { t } = useTranslation();
-  return (
-    <SectionCard icon={Keyboard} title={t("preferences.recordingMode.title")}>
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() => onRecordingModeChange("push_to_talk")}
-          className={cn(
-            "cursor-pointer p-4 rounded-xl border text-left transition-all duration-200 flex items-center gap-3",
-            recordingMode === "push_to_talk"
-              ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
-              : "border-border-card bg-surface-inset card-interactive"
-          )}
-        >
-          <Hand className={cn(
-            "h-5 w-5",
-            recordingMode === "push_to_talk" ? "text-[var(--color-active)]" : "text-muted-foreground"
-          )} />
-          <div>
-            <div className="font-medium text-sm">{t("preferences.recordingMode.hold")}</div>
-            <div className="text-xs text-muted-foreground">{t("preferences.recordingMode.holdHint")}</div>
-          </div>
-        </button>
+  const modes: { value: RecordingMode; label: string; hint: string }[] = [
+    { value: "push_to_talk", label: t("preferences.recordingMode.hold"), hint: t("preferences.recordingMode.holdHint") },
+    { value: "toggle", label: t("preferences.recordingMode.toggle"), hint: t("preferences.recordingMode.toggleHint") },
+  ];
 
-        <button
-          onClick={() => onRecordingModeChange("toggle")}
-          className={cn(
-            "cursor-pointer p-4 rounded-xl border text-left transition-all duration-200 flex items-center gap-3",
-            recordingMode === "toggle"
-              ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
-              : "border-border-card bg-surface-inset card-interactive"
-          )}
-        >
-          <ToggleLeft className={cn(
-            "h-5 w-5",
-            recordingMode === "toggle" ? "text-[var(--color-active)]" : "text-muted-foreground"
-          )} />
-          <div>
-            <div className="font-medium text-sm">{t("preferences.recordingMode.toggle")}</div>
-            <div className="text-xs text-muted-foreground">{t("preferences.recordingMode.toggleHint")}</div>
-          </div>
-        </button>
+  return (
+    <SectionCard icon={Mic} title={t("preferences.recordingMode.title")}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
+        {modes.map((mode) => (
+          <button
+            key={mode.value}
+            type="button"
+            aria-pressed={recordingMode === mode.value}
+            onClick={() => onRecordingModeChange(mode.value)}
+            className="choice-card cursor-pointer"
+          >
+            <b className="text-[13px] font-medium">{mode.label}</b>
+            <small className="text-xs text-muted-foreground">{mode.hint}</small>
+          </button>
+        ))}
       </div>
     </SectionCard>
   );

@@ -1,6 +1,6 @@
-import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
+import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -43,41 +43,33 @@ export default function SoundFeedbackSection({
       }
     >
       {soundFeedback && (
-        <div className="space-y-4 pt-4 border-t border-border-subtle slide-enter">
-          <div className="grid grid-cols-2 gap-4">
-            <SoundRow
-              label={t("preferences.sound.whenStarts")}
-              playLabel={t("preferences.sound.playStart")}
-              value={startSound}
-              onChange={(value) => {
-                onStartSoundChange(value);
-                preview("start", value);
-              }}
-              onPlay={() => preview("start", startSound)}
-            />
-            <SoundRow
-              label={t("preferences.sound.whenStops")}
-              playLabel={t("preferences.sound.playStop")}
-              value={stopSound}
-              onChange={(value) => {
-                onStopSoundChange(value);
-                preview("stop", value);
-              }}
-              onPlay={() => preview("stop", stopSound)}
-            />
-          </div>
+        <>
+          <SoundRow
+            label={t("preferences.sound.whenStarts")}
+            playLabel={t("preferences.sound.playStart")}
+            value={startSound}
+            onChange={(value) => {
+              onStartSoundChange(value);
+              preview("start", value);
+            }}
+            onPlay={() => preview("start", startSound)}
+          />
+          <SoundRow
+            label={t("preferences.sound.whenStops")}
+            playLabel={t("preferences.sound.playStop")}
+            value={stopSound}
+            onChange={(value) => {
+              onStopSoundChange(value);
+              preview("stop", value);
+            }}
+            onPlay={() => preview("stop", stopSound)}
+          />
 
           {/* Fixed on purpose: a refusal has to sound like one whatever the presets are */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">{t("preferences.sound.whenRefuses")}</label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-9 px-3 flex items-center rounded-md border border-border-card bg-surface-deep text-sm text-muted-foreground">
-                {t("preferences.sound.refusedHint")}
-              </div>
-              <PlayButton label={t("preferences.sound.playRefused")} onClick={() => preview("refused", "")} />
-            </div>
-          </div>
-        </div>
+          <SettingRow label={t("preferences.sound.whenRefuses")} hint={t("preferences.sound.refusedHint")}>
+            <PlayButton label={t("preferences.sound.playRefused")} onClick={() => preview("refused", "")} />
+          </SettingRow>
+        </>
       )}
     </SectionCard>
   );
@@ -93,13 +85,11 @@ interface SoundRowProps {
 
 function SoundRow({ label, playLabel, value, onChange, onPlay }: SoundRowProps) {
   const { t } = useTranslation();
-  const labelId = useId();
   return (
-    <div className="space-y-2">
-      <label id={labelId} className="text-xs font-medium text-muted-foreground">{label}</label>
-      <div className="flex items-center gap-2">
+    <SettingRow label={label}>
+      <span className="flex items-center gap-2">
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger aria-labelledby={labelId} className="flex-1 cursor-pointer bg-surface-deep border-border-card text-foreground">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -110,15 +100,15 @@ function SoundRow({ label, playLabel, value, onChange, onPlay }: SoundRowProps) 
           </SelectContent>
         </Select>
         <PlayButton label={playLabel} onClick={onPlay} disabled={value === "none"} />
-      </div>
-    </div>
+      </span>
+    </SettingRow>
   );
 }
 
 function PlayButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="icon"
       onClick={onClick}
       disabled={disabled}
@@ -126,7 +116,7 @@ function PlayButton({ label, onClick, disabled }: { label: string; onClick: () =
       title={label}
       className="shrink-0"
     >
-      <Play />
+      <Play className="fill-current" />
     </Button>
   );
 }
