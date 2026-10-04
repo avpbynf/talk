@@ -57,9 +57,19 @@ export default function Orb({ subscribe, phase, look, jobs, progress, label, red
 
   // The avatar sits in the middle of the stage and what is written hangs beside it. Words too
   // long for that side move the pair over, just far enough for the two to be centred together.
+  // The words are measured again whenever their box changes, which is also when the typeface
+  // arrives after the first paint.
   useLayoutEffect(() => {
-    const width = phase === "done" || phase === "refuse" ? (words.current?.offsetWidth ?? 0) : 0;
-    setShift(width > ROOM ? (width + GAP) / 2 : 0);
+    const el = words.current;
+    const measure = () => {
+      const width = phase === "done" || phase === "refuse" ? (el?.offsetWidth ?? 0) : 0;
+      setShift(width > ROOM ? (width + GAP) / 2 : 0);
+    };
+    measure();
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [phase, label, look.end_text]);
 
   useEffect(() => hop(body.current, phase, reduced), [phase, reduced]);
