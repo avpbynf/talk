@@ -18,6 +18,7 @@ use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
 use super::auth_page::{self, Page};
+use super::failure::{Failure, SyncError};
 
 const CLIENT_ID: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_ID");
 const CLIENT_SECRET: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_SECRET");
@@ -85,6 +86,11 @@ pub fn sign_out() {
     if let Ok(entry) = entry() {
         let _ = entry.delete_credential();
     }
+    forget_access_token();
+}
+
+/// Drop the cached bearer token, so that the next call asks Google for a new one.
+pub fn forget_access_token() {
     *ACCESS_TOKEN.lock() = None;
 }
 
@@ -177,7 +183,7 @@ async fn wait_for_redirect(
     listener: TcpListener,
     expected_state: &str,
     mut cancel: oneshot::Receiver<()>,
-) -> Result<Wait, String> {
+) -> Result<Wait, SyncError> {
     let deadline = Instant::now() + SIGN_IN_TIMEOUT;
     loop {
         let remaining = deadline.saturating_duration_since(Instant::now());
@@ -186,7 +192,7 @@ async fn wait_for_redirect(
             _ = &mut cancel => return Ok(Wait::Cancelled),
         };
         let (mut stream, _) = accepted
-            .map_err(|_| "Sign-in timed out".to_string())?
+            .map_err(|_| SyncError::new(Failure::SignInTimeout, "Sign-in timed out"))?
             .map_err(|e| e.to_string())?;
 
         let mut buf = vec![0u8; 8192];
@@ -215,7 +221,7 @@ async fn wait_for_redirect(
         match parsed {
             Redirect::Code { code, .. } if !wrong_state => return Ok(Wait::Code(code)),
             Redirect::Denied { error, .. } if !wrong_state => {
-                return Err(format!("Google refused the sign-in: {}", error))
+                return Err(SyncError::new(Failure::SignInRefused, format!("Google refused the sign-in: {}", error)))
             }
             _ => continue,
         }
@@ -230,21 +236,32 @@ struct TokenResponse {
     id_token: Option<String>,
 }
 
-async fn token_request(form: &[(&str, &str)]) -> Result<TokenResponse, String> {
+/// A failed answer of the token endpoint. `invalid_grant` means a revoked grant only when
+/// a refresh token is what was refused; for the first exchange of a consent it is a
+/// sign-in that did not complete.
+fn token_error(exchange: bool, status: reqwest::StatusCode, body: &str) -> SyncError {
+    let error = SyncError::from_response(status, body);
+    if exchange {
+        SyncError::new(Failure::SignInFailed, error.detail)
+    } else {
+        error
+    }
+}
+
+async fn token_request(form: &[(&str, &str)], exchange: bool) -> Result<TokenResponse, SyncError> {
     let response = reqwest::Client::new()
         .post(TOKEN_URL)
         .form(form)
         .timeout(Duration::from_secs(30))
         .send()
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
         // invalid_grant is what a revoked or expired refresh token answers.
-        return Err(super::drive::describe_error(status, &body));
+        return Err(token_error(exchange, status, &body));
     }
-    response.json().await.map_err(|e| e.to_string())
+    Ok(response.json().await?)
 }
 
 /// The email claim of an id token received straight from Google over TLS.
@@ -255,16 +272,49 @@ fn email_from_id_token(id_token: &str) -> Option<String> {
     claims.get("email")?.as_str().map(str::to_string)
 }
 
+fn account_email(id_token: Option<&str>) -> Result<String, SyncError> {
+    id_token
+        .and_then(email_from_id_token)
+        .filter(|email| !email.is_empty())
+        .ok_or_else(|| SyncError::new(Failure::SignInNoEmail, "Google's answer did not say which account signed in"))
+}
+
 /// A completed sign-in that has not been kept yet.
 pub struct PendingSignIn {
     account: StoredAccount,
     token: CachedToken,
 }
 
+/// How a completed sign-in stands to the account already on this machine.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Relation {
+    /// Nobody was signed in.
+    Fresh,
+    /// The same account again, as when a revoked grant is renewed.
+    Same,
+    /// Another account, or one whose email cannot be compared: nothing of the
+    /// old account may reach the new one.
+    Different,
+}
+
+impl PendingSignIn {
+    pub fn relation(&self) -> Relation {
+        relation(signed_in_email().as_deref(), &self.account.email)
+    }
+}
+
+fn relation(current: Option<&str>, new: &str) -> Relation {
+    match current {
+        None => Relation::Fresh,
+        Some(current) if !current.is_empty() && current.eq_ignore_ascii_case(new) => Relation::Same,
+        Some(_) => Relation::Different,
+    }
+}
+
 /// Run the browser round trip and the code exchange. Nothing is stored until
 /// `store` is called, so the caller can get its own state in order first.
 /// None means the user cancelled while the browser was open.
-pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, String> {
+pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, SyncError> {
     let (client_id, client_secret) = credentials().ok_or("Sign-in is not available in this build")?;
 
     let listener = TcpListener::bind("127.0.0.1:0").await.map_err(|e| e.to_string())?;
@@ -280,7 +330,7 @@ pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, 
 
     let waited = match app.opener().open_url(url, None::<&str>) {
         Ok(()) => wait_for_redirect(listener, &state, cancel_rx).await,
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err(SyncError::from(e.to_string())),
     };
     *CANCEL.lock() = None;
     let code = match waited? {
@@ -296,18 +346,16 @@ pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, 
         ("code_verifier", &verifier),
         ("redirect_uri", &redirect),
         ("grant_type", "authorization_code"),
-    ])
+    ], true)
     .await?;
+    // Read before anything is stored or wiped: an account that cannot be named is
+    // never kept, and the one already here is left as it is.
+    let email = account_email(tokens.id_token.as_deref())?;
 
     let refresh_token = tokens
         .refresh_token
         .clone()
         .ok_or("Google did not return a refresh token")?;
-    let email = tokens
-        .id_token
-        .as_deref()
-        .and_then(email_from_id_token)
-        .unwrap_or_default();
 
     Ok(Some(PendingSignIn {
         account: StoredAccount { refresh_token, email },
@@ -339,7 +387,7 @@ pub fn store(pending: PendingSignIn) -> Result<(), String> {
 
 /// A bearer token for Drive, renewed from the stored refresh token when the
 /// last one has run out.
-pub async fn access_token() -> Result<String, String> {
+pub async fn access_token() -> Result<String, SyncError> {
     if let Some(cached) = ACCESS_TOKEN.lock().as_ref() {
         if cached.expires > Instant::now() {
             return Ok(cached.value.clone());
@@ -353,7 +401,7 @@ pub async fn access_token() -> Result<String, String> {
         ("client_secret", client_secret),
         ("refresh_token", &account.refresh_token),
         ("grant_type", "refresh_token"),
-    ])
+    ], false)
     .await?;
 
     *ACCESS_TOKEN.lock() = Some(CachedToken {
@@ -430,6 +478,44 @@ mod tests {
         let (head, sent) = response.split_once("\r\n\r\n").unwrap();
         assert!(head.contains(&format!("Content-Length: {}", body.len())));
         assert_eq!(sent.len(), body.len());
+    }
+
+    #[test]
+    fn a_sign_in_is_fresh_the_same_account_or_a_different_one() {
+        assert_eq!(relation(None, "me@example.com"), Relation::Fresh);
+        assert_eq!(relation(Some("Me@Example.com"), "me@example.com"), Relation::Same);
+        assert_eq!(relation(Some("me@example.com"), "you@example.com"), Relation::Different);
+        // An email Google did not give cannot vouch for anything.
+        assert_eq!(relation(Some("me@example.com"), ""), Relation::Different);
+        assert_eq!(relation(Some(""), ""), Relation::Different);
+    }
+
+    #[test]
+    fn a_401_drops_the_cached_token() {
+        *ACCESS_TOKEN.lock() =
+            Some(CachedToken { value: "old".to_string(), expires: Instant::now() + Duration::from_secs(600) });
+        forget_access_token();
+        assert!(ACCESS_TOKEN.lock().is_none());
+    }
+
+    #[test]
+    fn a_sign_in_whose_token_names_no_account_fails_with_its_own_code() {
+        let payload = URL_SAFE_NO_PAD.encode(r#"{"email":"me@example.com"}"#);
+        assert_eq!(account_email(Some(&format!("h.{}.s", payload))).unwrap(), "me@example.com");
+        let empty = URL_SAFE_NO_PAD.encode(r#"{"email":""}"#);
+        for token in [None, Some("garbage"), Some(format!("h.{}.s", empty).as_str())] {
+            assert_eq!(account_email(token).unwrap_err().failure, Failure::SignInNoEmail);
+        }
+    }
+
+    #[test]
+    fn invalid_grant_is_a_revoked_grant_for_a_refresh_and_a_failed_sign_in_for_a_first_exchange() {
+        let body = r#"{"error": "invalid_grant", "error_description": "Bad Request"}"#;
+        let status = reqwest::StatusCode::BAD_REQUEST;
+        assert_eq!(token_error(false, status, body).failure, Failure::GrantRevoked);
+        let exchange = token_error(true, status, body);
+        assert_eq!(exchange.failure, Failure::SignInFailed);
+        assert_eq!(exchange.detail, "Bad Request");
     }
 
     #[test]

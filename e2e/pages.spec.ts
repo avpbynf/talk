@@ -346,20 +346,45 @@ test.describe("account page", () => {
     expect(await app.calls("rename_device")).toHaveLength(0);
   });
 
-  test("says what went wrong when a sync failed, and when the sign-in did", async ({ app, page }) => {
-    await app.open({
-      state: { google: { ...SIGNED_IN, lastError: "Drive said no: https://example.com/help." } },
-    });
+  test("words a failed sync in the interface language and keeps Google's text out of the page", async ({ app, page }) => {
+    await app.open({ state: { google: { ...SIGNED_IN, lastError: "offline" } } });
     await app.go(account);
-    await expect(page.getByText("Last sync failed")).toBeVisible();
-    await expect(page.getByRole("link", { name: "https://example.com/help" })).toBeVisible();
+
+    await expect(
+      page.getByText("Last sync failed: Google Drive could not be reached. Check your internet connection."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sync now" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reconnect" })).toHaveCount(0);
   });
 
-  test("reports a sign-in that failed", async ({ app, page }) => {
-    await app.open({ failing: { google_sign_in: "The browser was closed" } });
+  test("reconnects a revoked account by signing in again, without signing out", async ({ app, page }) => {
+    await app.open({ state: { google: { ...SIGNED_IN, lastError: "grant_revoked" } } });
+    await app.go(account);
+
+    await expect(page.getByText(/Talk's access to your Google account was revoked or has expired/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sync now" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Reconnect" }).click();
+
+    await expect(page.getByRole("button", { name: "Sync now" })).toBeVisible();
+    await expect(page.getByText(/Last sync failed/)).toHaveCount(0);
+    await expect(page.getByText("nicolas.example@gmail.com").first()).toBeVisible();
+    expect(await app.calls("google_sign_in")).toHaveLength(1);
+    expect(await app.calls("google_sign_out")).toHaveLength(0);
+  });
+
+  test("keeps the raw text of an unclassified failure under its wording", async ({ app, page }) => {
+    await app.open({ state: { google: { ...SIGNED_IN, lastError: "other", lastErrorDetail: "Drive answered 502" } } });
+    await app.go(account);
+
+    await expect(page.getByText("Last sync failed: Something went wrong while talking to Google.")).toBeVisible();
+    await expect(page.getByText("Drive answered 502")).toBeVisible();
+  });
+
+  test("words a sign-in that failed", async ({ app, page }) => {
+    await app.open({ failing: { google_sign_in: "offline" } });
     await app.go(account);
     await page.getByRole("button", { name: "Sign in with Google" }).click();
-    await expect(page.getByText("The browser was closed")).toBeVisible();
+    await expect(page.getByText("Google Drive could not be reached. Check your internet connection.")).toBeVisible();
   });
 
   test("says so when sign-in is not part of the build", async ({ app, page }) => {

@@ -85,7 +85,7 @@ pub fn is_valid_name(name: &str) -> bool {
 }
 
 pub fn parse(body: &str) -> Result<DeviceNames, String> {
-    serde_json::from_str(body).map_err(|e| format!("devices.json: {}", e))
+    serde_json::from_str(body).map_err(|e| e.to_string())
 }
 
 pub fn body(names: &DeviceNames) -> String {

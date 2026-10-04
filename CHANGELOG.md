@@ -526,6 +526,29 @@ choices, then finishing the setup put the wizard's own switches over them and se
 account. The two switches now start from the account's values once you have signed in, and
 finishing the setup writes only a switch you moved yourself.
 
+- (preferences) Carry on past a damaged file on your Drive
+
+A settings file left empty on the account blocked the settings sync on every computer until somebody
+deleted it by hand. A file Drive lists as empty is now filled in by the computer that finds it, and the
+same goes for the device list. A file that has content but cannot be read is never written over: it
+may come from a newer Talk, so the settings or device sync is skipped for that round and retried at
+the next one, while statistics and history carry on. An unreadable statistics or history file from
+another computer is left out, keeps what was held for that computer, and does not stop the rest of
+the sync.
+
+- (preferences) Say in plain words why a sync or a sign-in failed
+
+The Account page showed Google's own text, or a raw network error. It now says in your language
+whether Google Drive could not be reached, whether Talk's access to the account was revoked or has
+expired, whether the Drive API is switched off or refused, whether your Drive is full, whether the
+account's settings or list of devices come from a newer Talk, or whether Google is limiting requests.
+Google's own text stays under the wording when it adds something. An expired access token is renewed
+once before anything is reported. A sign-in that Google cannot name an account for is refused before
+anything of the connected account is touched. When another computer's statistics or history cannot be
+read, the sync still succeeds and the page says so under the last sync time. When the access is gone the page offers Reconnect, which signs in again without
+signing you out and keeps what the account already synced. Reconnecting with a different Google
+account does what signing out and in again does.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

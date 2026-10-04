@@ -11,7 +11,9 @@ mod auth;
 mod auth_page;
 mod devices;
 mod drive;
+mod failure;
 mod portable;
+mod remote;
 mod state;
 mod vocabulary;
 
@@ -19,7 +21,9 @@ use crate::database::{
     Database, DeviceInfo, StatsRow, TranscriptionRow, META_HISTORY_CLEARED, META_STATS_RESET,
 };
 use drive::{Drive, DriveFile};
+use failure::{Failure, SyncError};
 use portable::{SettingsFile, SyncedSettings};
+use remote::{read_remote, Fetched};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use state::SyncState;
@@ -147,6 +151,11 @@ pub struct GoogleStatus {
     pub syncing: bool,
     pub last_sync_ms: Option<i64>,
     pub last_error: Option<String>,
+    /// Google's or the system's own text for `last_error`.
+    pub last_error_detail: Option<String>,
+    /// A code for something the last round got past, such as another device's
+    /// unreadable file. The sync still counts as a success.
+    pub last_notice: Option<String>,
     /// The settings file could not be read, so what is on this machine is not
     /// uploaded.
     pub settings_upload_blocked: bool,
@@ -161,6 +170,8 @@ fn status() -> GoogleStatus {
         syncing: SYNCING.load(Ordering::Relaxed),
         last_sync_ms: state.last_sync_ms,
         last_error: state.last_error,
+        last_error_detail: state.last_error_detail,
+        last_notice: state.last_notice,
         settings_upload_blocked: crate::settings::was_unreadable(),
     }
 }
@@ -175,6 +186,14 @@ struct StatsFile {
 struct HistoryFile {
     updated_at: i64,
     rows: Vec<TranscriptionRow>,
+}
+
+fn parse_stats(body: &str) -> Result<StatsFile, String> {
+    serde_json::from_str(body).map_err(|e| e.to_string())
+}
+
+fn parse_history(body: &str) -> Result<HistoryFile, String> {
+    serde_json::from_str(body).map_err(|e| e.to_string())
 }
 
 fn now_ms() -> i64 {
@@ -205,7 +224,7 @@ async fn push_own(
     fingerprint: String,
     last_pushed: &mut String,
     content: impl FnOnce() -> String,
-) -> Result<(), String> {
+) -> Result<(), SyncError> {
     let existing = drive::find(files, name);
     if empty {
         if reset_requested {
@@ -224,6 +243,65 @@ async fn push_own(
     Ok(())
 }
 
+/// What the Account page says under the last sync when a round succeeded all the same.
+const NOTICE_DEVICE_DATA_UNREADABLE: &str = "device_data_unreadable";
+
+/// How handing another device's file to the database ended.
+enum Pulled {
+    Applied,
+    /// The file is empty or unreadable. The rows held for that device stay.
+    Unreadable(String),
+    Failed(SyncError),
+}
+
+/// Note the outcome of one pulled file. A file that cannot be read is not marked
+/// as pulled: it may be a download cut short, or a newer build's shape this one
+/// will read after an update, so it is looked at again every round.
+fn settle(state: &mut SyncState, file: &DriveFile, pulled: Pulled) -> Option<SyncError> {
+    match pulled {
+        Pulled::Applied => {
+            state.pulled.insert(file.name.clone(), file.modified_time.clone());
+        }
+        Pulled::Unreadable(why) => {
+            eprintln!("Keeping what is held for a file that cannot be read, {}", why);
+            state.last_notice = Some(NOTICE_DEVICE_DATA_UNREADABLE.to_string());
+        }
+        Pulled::Failed(e) => return Some(e),
+    }
+    None
+}
+
+/// What a pull has to do: which devices have a file, and which files changed since
+/// the last pull. A device is present whatever becomes of its download, so the
+/// loops that drop the rows of devices that left never drop one that is only
+/// unreadable.
+struct PullPlan<'a> {
+    present: Vec<String>,
+    fetch: Vec<(&'a str, &'a DriveFile)>,
+}
+
+fn plan_pulls<'a>(
+    files: &'a [DriveFile],
+    prefix: &str,
+    own_device: &str,
+    pulled: &std::collections::HashMap<String, String>,
+) -> PullPlan<'a> {
+    let mut plan = PullPlan { present: Vec::new(), fetch: Vec::new() };
+    let mut seen = std::collections::HashSet::new();
+    for file in files {
+        let Some(device) = device_of(&file.name, prefix) else { continue };
+        if device == own_device || !seen.insert(file.name.clone()) {
+            continue;
+        }
+        plan.present.push(device.to_string());
+        let unchanged = !file.modified_time.is_empty() && pulled.get(&file.name) == Some(&file.modified_time);
+        if !unchanged {
+            plan.fetch.push((device, file));
+        }
+    }
+    plan
+}
+
 /// Download every other device's file with this prefix that changed since the
 /// last pull and hand it to `apply`. Returns the devices that have a file.
 async fn pull_others(
@@ -232,35 +310,18 @@ async fn pull_others(
     prefix: &str,
     own_device: &str,
     state: &mut SyncState,
-    apply: impl Fn(&str, &str) -> Result<(), String>,
-) -> Result<Vec<String>, String> {
-    let mut present = Vec::new();
+    apply: impl Fn(&str, &str, &str) -> Pulled,
+) -> Result<Vec<String>, SyncError> {
+    let PullPlan { present, fetch } = plan_pulls(files, prefix, own_device, &state.pulled);
     let mut first_error = None;
-    let mut seen = std::collections::HashSet::new();
 
-    for file in files {
-        let Some(device) = device_of(&file.name, prefix) else { continue };
-        if device == own_device || !seen.insert(file.name.clone()) {
-            continue;
-        }
-        present.push(device.to_string());
-
-        let unchanged = !file.modified_time.is_empty()
-            && state.pulled.get(&file.name) == Some(&file.modified_time);
-        if unchanged {
-            continue;
-        }
+    for (device, file) in fetch {
         let pulled = match drive.download(&file.id).await {
-            Ok(body) => apply(device, &body),
-            Err(e) => Err(e),
+            Ok(body) => apply(device, &file.name, &body),
+            Err(e) => Pulled::Failed(e),
         };
-        match pulled {
-            Ok(()) => {
-                state.pulled.insert(file.name.clone(), file.modified_time.clone());
-            }
-            Err(e) => {
-                first_error.get_or_insert(e);
-            }
+        if let Some(e) = settle(state, file, pulled) {
+            first_error.get_or_insert(e);
         }
     }
 
@@ -276,12 +337,12 @@ async fn sync_stats(
     db: &Database,
     own_device: &str,
     state: &mut SyncState,
-) -> Result<(), String> {
-    let rows = db.local_daily_stats().map_err(|e| e.to_string())?;
+) -> Result<(), SyncError> {
+    let rows = db.local_daily_stats().map_err(SyncError::database)?;
     let print = fingerprint(&serde_json::to_string(&rows).unwrap_or_default());
     let name = format!("{}{}.json", STATS_PREFIX, own_device);
     let empty = rows.is_empty();
-    let reset = db.get_meta(META_STATS_RESET).map_err(|e| e.to_string())?.is_some();
+    let reset = db.get_meta(META_STATS_RESET).map_err(SyncError::database)?.is_some();
     let mut stats_hash = std::mem::take(&mut state.stats_hash);
     let pushed = push_own(drive, files, &name, empty, reset, print, &mut stats_hash, || {
         serde_json::to_string(&StatsFile { updated_at: now_ms(), rows }).unwrap_or_default()
@@ -290,18 +351,23 @@ async fn sync_stats(
     state.stats_hash = stats_hash;
     pushed?;
     if reset {
-        db.delete_meta(META_STATS_RESET).map_err(|e| e.to_string())?;
+        db.delete_meta(META_STATS_RESET).map_err(SyncError::database)?;
     }
 
-    let present = pull_others(drive, files, STATS_PREFIX, own_device, state, |device, body| {
-        let file: StatsFile = serde_json::from_str(body).map_err(|e| e.to_string())?;
-        db.replace_remote_stats(device, &file.rows).map_err(|e| e.to_string())
+    let present = pull_others(drive, files, STATS_PREFIX, own_device, state, |device, name, body| {
+        match read_remote(name, body, parse_stats) {
+            Ok(file) => match db.replace_remote_stats(device, &file.rows) {
+                Ok(()) => Pulled::Applied,
+                Err(e) => Pulled::Failed(e.to_string().into()),
+            },
+            Err(e) => Pulled::Unreadable(e),
+        }
     })
     .await?;
 
-    for device in db.remote_stats_devices().map_err(|e| e.to_string())? {
+    for device in db.remote_stats_devices().map_err(SyncError::database)? {
         if !present.contains(&device) {
-            db.delete_remote_stats_device(&device).map_err(|e| e.to_string())?;
+            db.delete_remote_stats_device(&device).map_err(SyncError::database)?;
         }
     }
     Ok(())
@@ -313,12 +379,12 @@ async fn sync_history(
     db: &Database,
     own_device: &str,
     state: &mut SyncState,
-) -> Result<(), String> {
-    let rows = db.local_transcriptions().map_err(|e| e.to_string())?;
+) -> Result<(), SyncError> {
+    let rows = db.local_transcriptions().map_err(SyncError::database)?;
     let print = fingerprint(&serde_json::to_string(&rows).unwrap_or_default());
     let name = format!("{}{}.json", HISTORY_PREFIX, own_device);
     let empty = rows.is_empty();
-    let cleared = db.get_meta(META_HISTORY_CLEARED).map_err(|e| e.to_string())?.is_some();
+    let cleared = db.get_meta(META_HISTORY_CLEARED).map_err(SyncError::database)?.is_some();
     let mut history_hash = std::mem::take(&mut state.history_hash);
     let pushed = push_own(drive, files, &name, empty, cleared, print, &mut history_hash, || {
         serde_json::to_string(&HistoryFile { updated_at: now_ms(), rows }).unwrap_or_default()
@@ -327,18 +393,23 @@ async fn sync_history(
     state.history_hash = history_hash;
     pushed?;
     if cleared {
-        db.delete_meta(META_HISTORY_CLEARED).map_err(|e| e.to_string())?;
+        db.delete_meta(META_HISTORY_CLEARED).map_err(SyncError::database)?;
     }
 
-    let present = pull_others(drive, files, HISTORY_PREFIX, own_device, state, |device, body| {
-        let file: HistoryFile = serde_json::from_str(body).map_err(|e| e.to_string())?;
-        db.replace_remote_history(device, &file.rows).map_err(|e| e.to_string())
+    let present = pull_others(drive, files, HISTORY_PREFIX, own_device, state, |device, name, body| {
+        match read_remote(name, body, parse_history) {
+            Ok(file) => match db.replace_remote_history(device, &file.rows) {
+                Ok(()) => Pulled::Applied,
+                Err(e) => Pulled::Failed(e.to_string().into()),
+            },
+            Err(e) => Pulled::Unreadable(e),
+        }
     })
     .await?;
 
-    for device in db.remote_history_devices().map_err(|e| e.to_string())? {
+    for device in db.remote_history_devices().map_err(SyncError::database)? {
         if !present.contains(&device) {
-            db.delete_remote_history_device(&device).map_err(|e| e.to_string())?;
+            db.delete_remote_history_device(&device).map_err(SyncError::database)?;
         }
     }
     Ok(())
@@ -352,21 +423,24 @@ async fn sync_devices(
     files: &[DriveFile],
     db: &Database,
     own_device: &str,
-) -> Result<(), String> {
-    db.ensure_device_name(own_device, &devices::host_name()).map_err(|e| e.to_string())?;
-    let remote_file = drive::find(files, DEVICES_FILE);
-    let remote = match remote_file {
-        Some(file) => devices::parse(&drive.download(&file.id).await?)?,
-        None => devices::DeviceNames::new(),
-    };
+) -> Result<(), SyncError> {
+    db.ensure_device_name(own_device, &devices::host_name()).map_err(SyncError::database)?;
+    let remote_file = drive::find_with_content(files, DEVICES_FILE);
+    // A file that is there and does not read ends this part of the round with an
+    // error before anything is uploaded over it.
+    let remote = Fetched::from_drive(drive, remote_file)
+        .await?
+        .read(DEVICES_FILE, Failure::RemoteDevicesUnreadable, devices::parse)
+        .into_usable()?
+        .unwrap_or_default();
     let now = now_ms();
-    let mut merged = devices::merge(&db.device_names().map_err(|e| e.to_string())?, &remote, now);
+    let mut merged = devices::merge(&db.device_names().map_err(SyncError::database)?, &remote, now);
     devices::touch_own(&mut merged, own_device, now);
     if remote_file.is_none() || merged != remote {
         let id = remote_file.map(|f| f.id.as_str());
         drive.upload(DEVICES_FILE, id, devices::body(&merged)).await?;
     }
-    db.store_devices(&merged).map_err(|e| e.to_string())
+    Ok(db.store_devices(&merged).map_err(SyncError::database)?)
 }
 
 async fn sync_settings(
@@ -374,31 +448,35 @@ async fn sync_settings(
     drive: &Drive,
     files: &[DriveFile],
     state: &mut SyncState,
-) -> Result<(), String> {
+) -> Result<(), SyncError> {
     // The download comes first: nothing local is read until the network is done
     // with, so an edit made while it ran is part of what gets merged.
-    let remote_file = drive::find(files, SETTINGS_FILE);
-    let remote_body = match remote_file {
-        Some(file) => Some(drive.download(&file.id).await?),
-        None => None,
-    };
+    let remote_file = drive::find_with_content(files, SETTINGS_FILE);
+    let fetched = Fetched::from_drive(drive, remote_file).await?;
 
     // From here to the end of the block nothing waits. The vocabulary lock is
     // the one every edit of the list takes, so reading the local settings,
     // merging, writing them and updating the running application happen
     // without an edit slipping in between.
-    let (plan, applied) = {
+    let (plan, applied, proof) = {
         let app_state = app.state::<crate::AppState>();
         let mut vocabulary = app_state.vocabulary.lock();
-        let local = SyncedSettings::collect()
-            .map_err(|e| format!("Local settings could not be read, so they were not synced: {}", e))?;
+        let local = SyncedSettings::collect().map_err(|e| {
+            SyncError::new(
+                Failure::SettingsUnreadable,
+                format!("Local settings could not be read, so they were not synced: {}", e),
+            )
+        })?;
         let real = local.values();
         state.refused.retain(|key, refusal| real.get(key) == Some(&refusal.local));
         let local = local.with_refused(&state.refused);
-        let remote = match &remote_body {
-            Some(body) => Some(SettingsFile::parse(body, &local).map_err(|e| format!("settings.json: {}", e))?),
-            None => None,
-        };
+        // Only an account with no settings, or a file Drive lists as empty, is planned
+        // as one. A file that is there and does not read ends the round here: nothing
+        // is uploaded over it and the first-sync merge is still to come.
+        let remote = fetched.read(SETTINGS_FILE, Failure::RemoteUnreadable, |b| SettingsFile::parse(b, &local));
+        let remote = remote.usable()?;
+        let proof = remote.proof;
+        let remote = remote.value;
 
         // An edit made while this sync was running was stamped on disk.
         {
@@ -423,7 +501,7 @@ async fn sync_settings(
             if unreadable { 0 } else { state.settings_updated_ms },
             state.settings_synced,
             &state.vocabulary,
-            remote.as_ref(),
+            remote,
             now_ms(),
         );
         portable::block_push(&mut plan, unreadable);
@@ -443,7 +521,7 @@ async fn sync_settings(
         state.vocabulary = plan.ledger.clone();
         state.settings_updated_ms = plan.updated_at;
         let applied = plan.apply;
-        (plan, applied)
+        (plan, applied, proof)
     };
     if applied {
         announce_remote_settings(app, &plan.merged);
@@ -461,8 +539,15 @@ async fn sync_settings(
         .body()?;
         drive.upload(SETTINGS_FILE, remote_file.map(|f| f.id.as_str()), body).await?;
     }
-    state.settings_synced = true;
+    mark_synced(state, proof);
     Ok(())
+}
+
+/// A round that read the account's settings, or found it holding none, counts as the
+/// first sync done. The proof only comes from `Remote::usable`, so a round whose
+/// remote was unreadable cannot get here and the first-sign-in merge is still to come.
+fn mark_synced(state: &mut SyncState, _proof: remote::ReadProof) {
+    state.settings_synced = true;
 }
 
 /// A meeting mode value this machine could not switch to, so that it is not
@@ -568,12 +653,12 @@ fn announce_remote_settings(app: &tauri::AppHandle, remote: &SyncedSettings) {
     let _ = app.emit("settings-synced", ());
 }
 
-async fn sync_inner(app: &tauri::AppHandle, state: &mut SyncState, scope: Scope) -> Result<(), String> {
+async fn sync_inner(app: &tauri::AppHandle, state: &mut SyncState, scope: Scope) -> Result<(), SyncError> {
     let token = auth::access_token().await?;
     let drive = Drive::new(token);
     let files = drive.list().await?;
     let db = app.state::<Database>();
-    let own_device = db.device_id().map_err(|e| e.to_string())?;
+    let own_device = db.device_id().map_err(SyncError::database)?;
     // What is remembered about another database's pulls does not apply to this one.
     if state.device_id != own_device {
         *state = SyncState { device_id: own_device.clone(), ..SyncState::default() };
@@ -583,6 +668,7 @@ async fn sync_inner(app: &tauri::AppHandle, state: &mut SyncState, scope: Scope)
     // what gets reported.
     let mut results = Vec::new();
     if scope == Scope::Everything {
+        state.last_notice = None;
         results.push(sync_stats(&drive, &files, &db, &own_device, state).await);
         results.push(sync_history(&drive, &files, &db, &own_device, state).await);
     }
@@ -611,8 +697,13 @@ async fn run_sync(app: &tauri::AppHandle, scope: Scope) {
         Ok(()) => {
             state.last_sync_ms = Some(now_ms());
             state.last_error = None;
+            state.last_error_detail = None;
         }
-        Err(e) => state.last_error = Some(e),
+        Err(e) => {
+            eprintln!("Sync failed: {}", e.encode());
+            state.last_error = Some(e.failure.code().to_string());
+            state.last_error_detail = Some(e.detail);
+        }
     }
     {
         let _guard = state_lock();
@@ -658,19 +749,52 @@ pub fn google_status() -> GoogleStatus {
 }
 
 #[tauri::command]
-pub async fn google_sign_in(app: tauri::AppHandle) -> Result<GoogleStatus, String> {
-    let Some(pending) = auth::authorize(&app).await? else {
+pub async fn google_sign_in(
+    app: tauri::AppHandle,
+    db: tauri::State<'_, Database>,
+) -> Result<GoogleStatus, String> {
+    let fail = |e: SyncError| {
+        eprintln!("Sign-in failed: {}", e.encode());
+        e.encode()
+    };
+    let Some(pending) = auth::authorize(&app).await.map_err(fail)? else {
         return Ok(status());
     };
-    {
-        // Under the same lock as a sync, so none in flight writes the old
-        // account's bookkeeping back after the new one is kept.
-        let _run = RUN.lock().await;
-        SyncState::forget();
-        auth::store(pending)?;
-    }
+    take_over(
+        pending.relation(),
+        || leave_account(&app, &db),
+        SyncState::forget,
+        || auth::store(pending),
+    )
+    .await
+    .map_err(fail)?;
     run_sync(&app, Scope::Everything).await;
     Ok(status())
+}
+
+/// Keep the account that just signed in. Another account than the one connected takes
+/// the road of signing out and in again: the old account is left, and its rows and
+/// names forgotten, before the new token is stored and before anything syncs. The
+/// same account signing in again, to renew a grant, keeps its bookkeeping.
+async fn take_over<Left>(
+    relation: auth::Relation,
+    leave: impl FnOnce() -> Left,
+    forget: impl FnOnce(),
+    store: impl FnOnce() -> Result<(), String>,
+) -> Result<(), SyncError>
+where
+    Left: std::future::Future<Output = Result<(), String>>,
+{
+    if relation == auth::Relation::Different {
+        leave().await.map_err(SyncError::database)?;
+    }
+    // Under the same lock as a sync, so none in flight writes the old account's
+    // bookkeeping back after the new one is kept.
+    let _run = RUN.lock().await;
+    if relation != auth::Relation::Same {
+        forget();
+    }
+    store().map_err(SyncError::from)
 }
 
 /// Abandon the sign-in waiting for the browser. Does nothing when none is.
@@ -701,15 +825,12 @@ pub async fn google_sync_now(app: tauri::AppHandle) -> Result<GoogleStatus, Stri
     Ok(status())
 }
 
-#[tauri::command]
-pub async fn google_sign_out(
-    app: tauri::AppHandle,
-    db: tauri::State<'_, Database>,
-) -> Result<GoogleStatus, String> {
+/// Forget the account on this machine and everything that came from it.
+async fn leave_account(app: &tauri::AppHandle, db: &Database) -> Result<(), String> {
     // A rename or a settings edit still waiting out its delay goes up now, while
     // there is an account to take it. Past five seconds it is lost, and signing out goes on.
     if PUSH_PENDING.load(Ordering::SeqCst) {
-        let _ = tokio::time::timeout(SIGN_OUT_FLUSH, run_sync(&app, Scope::Settings)).await;
+        let _ = tokio::time::timeout(SIGN_OUT_FLUSH, run_sync(app, Scope::Settings)).await;
     }
     // Waits for a sync in flight, which would otherwise fill the tables again.
     let _run = RUN.lock().await;
@@ -718,7 +839,15 @@ pub async fn google_sign_out(
     db.clear_remote_stats().map_err(|e| e.to_string())?;
     db.clear_remote_history().map_err(|e| e.to_string())?;
     let own = db.device_id().map_err(|e| e.to_string())?;
-    db.clear_other_devices(&own).map_err(|e| e.to_string())?;
+    db.clear_other_devices(&own).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn google_sign_out(
+    app: tauri::AppHandle,
+    db: tauri::State<'_, Database>,
+) -> Result<GoogleStatus, String> {
+    leave_account(&app, &db).await?;
     Ok(status())
 }
 
@@ -765,6 +894,153 @@ mod tests {
         assert_eq!(device_of("history-abc123.json", STATS_PREFIX), None);
         assert_eq!(device_of("stats-.json", STATS_PREFIX), None);
         assert_eq!(device_of("settings.json", STATS_PREFIX), None);
+    }
+
+    fn file(name: &str) -> DriveFile {
+        DriveFile { id: "id".to_string(), name: name.to_string(), modified_time: "t1".to_string(), size: None }
+    }
+
+    const UNREADABLE: [&str; 6] = ["", "  \n", r#"{"updated_at": 5, "rows": [{"#, "[1, 2, 3]", r#""text""#, "<html>Sign in</html>"];
+
+    #[test]
+    fn an_unreadable_settings_file_is_never_planned_as_an_account_with_no_settings() {
+        let local = SyncedSettings::default();
+        for body in UNREADABLE.into_iter().chain([r#"{"settings": 3}"#]) {
+            let remote = Fetched::Body(body.to_string())
+                .read(SETTINGS_FILE, Failure::RemoteUnreadable, |b| SettingsFile::parse(b, &local));
+            let error = remote.usable().err().unwrap_or_else(|| panic!("{:?} should not read", body));
+            assert_eq!(error.failure, Failure::RemoteUnreadable);
+            assert!(error.detail.starts_with("settings.json: "), "{}", error.detail);
+        }
+        let good = Fetched::Body(r#"{"updated_at": 9, "settings": {}}"#.to_string())
+            .read(SETTINGS_FILE, Failure::RemoteUnreadable, |b| SettingsFile::parse(b, &local));
+        assert!(matches!(good.usable(), Ok(u) if u.value.is_some()));
+        let empty = Fetched::Empty.read(SETTINGS_FILE, Failure::RemoteUnreadable, |b| SettingsFile::parse(b, &local));
+        assert!(matches!(empty.usable(), Ok(u) if u.value.is_none()));
+    }
+
+    #[test]
+    fn an_unreadable_devices_file_stops_the_device_part_and_an_empty_one_starts_it_over() {
+        for body in UNREADABLE.into_iter().chain(["[]", r#"{"a": 3}"#]) {
+            let read = Fetched::Body(body.to_string())
+                .read(DEVICES_FILE, Failure::RemoteDevicesUnreadable, devices::parse)
+                .into_usable();
+            assert_eq!(read.err().unwrap_or_else(|| panic!("{:?}", body)).failure, Failure::RemoteDevicesUnreadable);
+        }
+        let empty = Fetched::Empty.read(DEVICES_FILE, Failure::RemoteDevicesUnreadable, devices::parse).into_usable();
+        assert!(empty.unwrap().unwrap_or_default().is_empty());
+    }
+
+    #[test]
+    fn an_unreadable_statistics_or_history_file_names_itself() {
+        for body in UNREADABLE.into_iter().chain([r#"{"rows": []}"#, r#"{"updated_at": 1, "rows": 4}"#]) {
+            let stats = read_remote("stats-pc2.json", body, parse_stats);
+            assert!(stats.err().unwrap_or_else(|| panic!("{:?}", body)).starts_with("stats-pc2.json: "));
+            let history = read_remote("history-pc2.json", body, parse_history);
+            assert!(history.err().unwrap_or_else(|| panic!("{:?}", body)).starts_with("history-pc2.json: "));
+        }
+        let good = r#"{"updated_at": 1, "rows": []}"#;
+        assert!(read_remote("stats-pc2.json", good, parse_stats).is_ok());
+        assert!(read_remote("history-pc2.json", good, parse_history).is_ok());
+    }
+
+    #[test]
+    fn an_unreadable_device_file_is_kept_out_looked_at_again_and_noticed() {
+        let mut state = SyncState::default();
+        let skipped = settle(&mut state, &file("stats-pc2.json"), Pulled::Unreadable("empty".to_string()));
+        assert!(skipped.is_none());
+        assert!(state.pulled.is_empty());
+        assert_eq!(state.last_notice.as_deref(), Some("device_data_unreadable"));
+    }
+
+    #[test]
+    fn a_round_that_read_nothing_usable_never_marks_the_first_sync_as_done() {
+        let mut state = SyncState::default();
+        let unreadable: remote::Remote<u8> = remote::Remote::Unreadable(Failure::RemoteUnreadable, "cut".into());
+        match unreadable.usable() {
+            Ok(usable) => mark_synced(&mut state, usable.proof),
+            Err(e) => assert_eq!(e.failure, Failure::RemoteUnreadable),
+        }
+        assert!(!state.settings_synced);
+
+        let absent: remote::Remote<u8> = remote::Remote::Absent;
+        mark_synced(&mut state, absent.usable().unwrap().proof);
+        assert!(state.settings_synced);
+    }
+
+    fn listed(name: &str, modified: &str) -> DriveFile {
+        DriveFile { modified_time: modified.to_string(), ..file(name) }
+    }
+
+    #[test]
+    fn a_device_counts_as_present_whether_or_not_its_file_is_fetched_or_readable() {
+        let files = vec![
+            listed("stats-new.json", "t2"),
+            listed("stats-same.json", "t1"),
+            listed("stats-own.json", "t1"),
+            listed("history-new.json", "t1"),
+            listed("settings.json", "t1"),
+        ];
+        let pulled = std::collections::HashMap::from([("stats-same.json".to_string(), "t1".to_string())]);
+
+        let plan = plan_pulls(&files, STATS_PREFIX, "own", &pulled);
+        assert_eq!(plan.present, ["new", "same"]);
+        let fetched: Vec<&str> = plan.fetch.iter().map(|(device, _)| *device).collect();
+        assert_eq!(fetched, ["new"], "only a file that changed since its last pull is downloaded");
+    }
+
+    #[tokio::test]
+    async fn another_account_is_left_and_forgotten_before_the_new_token_is_stored() {
+        use std::cell::RefCell;
+        for (relation, expected) in [
+            (auth::Relation::Different, vec!["leave", "forget", "store"]),
+            (auth::Relation::Fresh, vec!["forget", "store"]),
+            (auth::Relation::Same, vec!["store"]),
+        ] {
+            let log = RefCell::new(Vec::new());
+            take_over(
+                relation,
+                || async {
+                    log.borrow_mut().push("leave");
+                    Ok(())
+                },
+                || log.borrow_mut().push("forget"),
+                || {
+                    log.borrow_mut().push("store");
+                    Ok(())
+                },
+            )
+            .await
+            .unwrap();
+            assert_eq!(log.into_inner(), expected);
+        }
+    }
+
+    #[tokio::test]
+    async fn a_failure_to_leave_the_old_account_stores_nothing() {
+        let stored = std::cell::Cell::new(false);
+        let result = take_over(
+            auth::Relation::Different,
+            || async { Err("disk".to_string()) },
+            || {},
+            || {
+                stored.set(true);
+                Ok(())
+            },
+        )
+        .await;
+        assert_eq!(result.unwrap_err().failure, Failure::Database);
+        assert!(!stored.get());
+    }
+
+    #[test]
+    fn a_failure_to_store_a_pulled_file_is_reported_and_retried() {
+        let mut state = SyncState::default();
+        let failed = settle(&mut state, &file("stats-pc2.json"), Pulled::Failed("disk full".into()));
+        assert_eq!(failed.map(|e| e.detail).as_deref(), Some("disk full"));
+        assert!(state.pulled.is_empty());
+        assert!(settle(&mut state, &file("stats-pc3.json"), Pulled::Applied).is_none());
+        assert_eq!(state.pulled.get("stats-pc3.json").map(String::as_str), Some("t1"));
     }
 
     #[test]

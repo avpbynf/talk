@@ -1,11 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import i18n from "@/i18n";
 import AccountView, { type GoogleStatus } from "./AccountView";
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn().mockResolvedValue(undefined) }));
+
+// code, English wording, French wording
+const WORDING: [string, string, string][] = [
+  ["offline", "Google Drive could not be reached. Check your internet connection.", "Google Drive est injoignable. Vérifiez votre connexion à Internet."],
+  ["grant_revoked", "Talk's access to your Google account was revoked or has expired.", "L'accès de Talk à votre compte Google a été révoqué ou a expiré."],
+  ["api_disabled", "Google Drive refused the request, because its API is not enabled for this app or access was denied.", "Google Drive a refusé la demande, car son API n'est pas activée pour cette application ou l'accès a été refusé."],
+  ["quota", "Google is limiting requests for now. Talk will try again later.", "Google limite les requêtes pour le moment. Talk réessaiera plus tard."],
+  ["drive_full", "Your Google Drive is full, so Talk cannot save its files there. Free some space and sync again.", "Votre Google Drive est plein, Talk ne peut donc pas y enregistrer ses fichiers. Libérez de la place et synchronisez à nouveau."],
+  ["remote_unreadable", "This account's settings were written by a newer version of Talk, or could not be read. Update Talk, it will try again.", "Les réglages de ce compte ont été écrits par une version plus récente de Talk, ou n'ont pas pu être lus. Mettez Talk à jour, il réessaiera."],
+  ["remote_devices_unreadable", "This account's list of devices was written by a newer version of Talk, or could not be read. Update Talk, it will try again.", "La liste des appareils de ce compte a été écrite par une version plus récente de Talk, ou n'a pas pu être lue. Mettez Talk à jour, il réessaiera."],
+  ["sign_in_failed", "Google would not complete the sign-in.", "Google n'a pas terminé la connexion."],
+  ["sign_in_no_email", "Google did not say which account signed in, so Talk kept nothing. Try again.", "Google n'a pas indiqué quel compte s'est connecté, Talk n'a donc rien gardé. Réessayez."],
+  ["settings_unreadable", "The settings file on this computer could not be read, so nothing was synced.", "Le fichier de réglages de cet ordinateur n'a pas pu être lu, rien n'a donc été synchronisé."],
+  ["database", "Talk's database on this computer failed during the sync.", "La base de données de Talk sur cet ordinateur a échoué pendant la synchronisation."],
+  ["sign_in_timeout", "The sign-in took too long and was abandoned. Try again.", "La connexion a pris trop de temps et a été abandonnée. Réessayez."],
+  ["sign_in_refused", "Google reported that the sign-in was refused.", "Google a indiqué que la connexion a été refusée."],
+  ["other", "Something went wrong while talking to Google.", "Un problème est survenu en parlant à Google."],
+];
 
 const signedOut: GoogleStatus = {
   available: true,
@@ -38,28 +57,162 @@ beforeEach(() => {
 });
 
 describe("AccountView", () => {
-  it("clamps a long sync error to three lines and keeps the whole text in the tooltip", async () => {
-    const long = "Something went wrong with Drive. ".repeat(40).trim();
-    answer({ ...signedOut, email: "me@example.com", lastError: long });
+  it.each(WORDING)("words the sync failure %s exactly, in English", async (code, en) => {
+    answer({ ...signedOut, email: "me@example.com", lastError: code });
     render(<AccountView />);
 
-    const line = await screen.findByText(/Last sync failed: Something went wrong/);
-    expect(line).toHaveClass("line-clamp-3");
+    const line = await screen.findByText(`Last sync failed: ${en}`, { exact: true });
     expect(line).toHaveClass("text-destructive");
-    expect(line).toHaveAttribute("title", `Last sync failed: ${long}`);
+    const reconnect = code === "grant_revoked";
+    expect(screen.queryByRole("button", { name: "Reconnect" }) !== null).toBe(reconnect);
+    expect(screen.queryByRole("button", { name: "Sync now" }) !== null).toBe(!reconnect);
   });
 
-  it("turns an address in the sync error into a link opened outside the app", async () => {
+  it.each(WORDING)("words the sync failure %s exactly, in French", async (code, _en, fr) => {
+    await act(() => i18n.changeLanguage("fr"));
+    try {
+      answer({ ...signedOut, email: "me@example.com", lastError: code });
+      render(<AccountView />);
+
+      expect(
+        await screen.findByText(`Échec de la dernière synchronisation : ${fr}`, { exact: true }),
+      ).toBeInTheDocument();
+    } finally {
+      await act(() => i18n.changeLanguage("en"));
+    }
+  });
+
+  it("keeps the raw text under the wording, clamped to three lines with the whole of it as a tooltip", async () => {
+    const long = "Something went wrong with Drive. ".repeat(40).trim();
+    answer({ ...signedOut, email: "me@example.com", lastError: "other", lastErrorDetail: long });
+    render(<AccountView />);
+
+    const raw = await screen.findByText(/^Something went wrong with Drive\./);
+    expect(raw).toHaveClass("line-clamp-3");
+    expect(raw).toHaveClass("text-destructive");
+    expect(raw).toHaveAttribute("title", long);
+    expect(screen.getByText("Last sync failed: Something went wrong while talking to Google.")).toBeInTheDocument();
+  });
+
+  it("turns an address in the raw text into a link opened outside the app", async () => {
     answer({
       ...signedOut,
       email: "me@example.com",
-      lastError: "API disabled. Enable it by visiting https://console.example.com/apis?project=1 then retry.",
+      lastError: "api_disabled",
+      lastErrorDetail: "API disabled. Enable it by visiting https://console.example.com/apis?project=1 then retry.",
     });
     render(<AccountView />);
 
     const link = await screen.findByRole("link", { name: "https://console.example.com/apis?project=1" });
     await userEvent.click(link);
     expect(openUrl).toHaveBeenCalledWith("https://console.example.com/apis?project=1");
+  });
+
+  it("shows no raw text under a wording that says it all", async () => {
+    answer({ ...signedOut, email: "me@example.com", lastError: "offline", lastErrorDetail: "error sending request for url" });
+    render(<AccountView />);
+
+    await screen.findByText(/^Last sync failed: /);
+    expect(screen.queryByText(/error sending request/)).not.toBeInTheDocument();
+  });
+
+  it("says under the last sync time when another device's data could not be read, in both languages", async () => {
+    answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now(), lastNotice: "device_data_unreadable" });
+    const view = render(<AccountView />);
+
+    expect(await screen.findByText("The statistics or history of one of your devices could not be read.")).toBeInTheDocument();
+    expect(screen.getByText(/^Last synced at/)).toBeInTheDocument();
+    view.unmount();
+
+    await act(() => i18n.changeLanguage("fr"));
+    try {
+      render(<AccountView />);
+      expect(
+        await screen.findByText("Les statistiques ou l'historique de l'un de vos appareils n'ont pas pu être lus."),
+      ).toBeInTheDocument();
+    } finally {
+      await act(() => i18n.changeLanguage("en"));
+    }
+  });
+
+  it("shows no notice when the last round read everything", async () => {
+    answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now(), lastNotice: null });
+    render(<AccountView />);
+
+    await screen.findByText(/^Last synced at/);
+    expect(screen.queryByText(/could not be read/)).not.toBeInTheDocument();
+  });
+
+  it("reads Google's own text, as an earlier version saved it, as an unknown failure shown raw", async () => {
+    answer({ ...signedOut, email: "me@example.com", lastError: "Google Drive API has not been used in project 1" });
+    render(<AccountView />);
+
+    expect(await screen.findByText("Last sync failed: Something went wrong while talking to Google.")).toBeInTheDocument();
+    expect(screen.getByText("Google Drive API has not been used in project 1")).toBeInTheDocument();
+  });
+
+  it("offers to reconnect when the grant was revoked, and signs in again without signing out", async () => {
+    answer(
+      { ...signedOut, email: "me@example.com", lastError: "grant_revoked" },
+      { google_sign_in: { ...signedOut, email: "me@example.com", lastSyncMs: Date.now() } },
+    );
+    render(<AccountView />);
+
+    expect(await screen.findByText("Last sync failed: Talk's access to your Google account was revoked or has expired.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sync now" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reconnect" }));
+
+    expect(invoke).toHaveBeenCalledWith("google_sign_in");
+    expect(invoke).not.toHaveBeenCalledWith("google_sign_out");
+    expect(await screen.findByRole("button", { name: "Sync now" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reconnect" })).not.toBeInTheDocument();
+  });
+
+  it("lets a reconnect that waits for the browser be cancelled", async () => {
+    let release: (status: GoogleStatus) => void = () => {};
+    const revoked = { ...signedOut, email: "me@example.com", lastError: "grant_revoked" };
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return revoked;
+      if (command === "google_sign_in") return new Promise<GoogleStatus>((resolve) => (release = resolve));
+      if (command === "google_sign_in_cancel") {
+        release(revoked);
+        return undefined;
+      }
+      return undefined;
+    });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Reconnect" }));
+    expect(await screen.findByText("Waiting for the browser")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(invoke).toHaveBeenCalledWith("google_sign_in_cancel");
+    expect(await screen.findByRole("button", { name: "Reconnect" })).toBeEnabled();
+  });
+
+  it("words a sign-in that failed from its code, and keeps the system's text under it when it adds something", async () => {
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return signedOut;
+      if (command === "google_sign_in") throw "offline: error sending request for url (https://oauth2.googleapis.com/token)";
+      return undefined;
+    });
+    render(<AccountView />);
+    await userEvent.click(await screen.findByRole("button", { name: "Sign in with Google" }));
+    expect(await screen.findByText("Google Drive could not be reached. Check your internet connection.")).toBeInTheDocument();
+    expect(screen.queryByText(/error sending request/)).not.toBeInTheDocument();
+  });
+
+  it("shows the raw text of a sign-in failure that has no wording of its own", async () => {
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return signedOut;
+      if (command === "google_sign_in") throw "other: Sign-in is not available in this build";
+      return undefined;
+    });
+    render(<AccountView />);
+    await userEvent.click(await screen.findByRole("button", { name: "Sign in with Google" }));
+
+    expect(await screen.findByText("Something went wrong while talking to Google.")).toBeInTheDocument();
+    expect(screen.getByText("Sign-in is not available in this build")).toBeInTheDocument();
   });
 
   it("offers to sign in, and says what signing in does", async () => {
@@ -112,10 +265,11 @@ describe("AccountView", () => {
   });
 
   it("shows the error of the last sync instead of a time", async () => {
-    answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now(), lastError: "offline" });
+    answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now(), lastError: "quota" });
     render(<AccountView />);
 
-    expect(await screen.findByText("Last sync failed: offline")).toBeInTheDocument();
+    expect(await screen.findByText(/^Last sync failed: /)).toBeInTheDocument();
+    expect(screen.queryByText(/Last synced at/)).not.toBeInTheDocument();
   });
 
   it("says when the settings are not uploaded because the file could not be read", async () => {

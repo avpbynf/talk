@@ -8,12 +8,11 @@ import { formatTime } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/PageShell";
 import { SectionCard } from "@/components/SectionCard";
+import { statusFailure } from "@/lib/google-errors";
 import { useGoogleAccount, type GoogleStatus } from "@/lib/use-google-account";
 import { DevicesCard } from "@/views/account/DevicesCard";
 
 export type { GoogleStatus };
-
-const URL_PATTERN = /https:\/\/[^\s]+/g;
 
 // What travels with the account, and what stays on each machine. The first
 // list mirrors the synced settings in the backend's sync module.
@@ -29,6 +28,8 @@ const FOLLOWS = [
   "meeting",
 ] as const;
 const STAYS = ["audio", "gpu", "model", "server", "overlay", "history"] as const;
+
+const URL_PATTERN = /https:\/\/[^\s]+/g;
 
 /** The text, with each https address turned into a link the system browser opens. */
 function withLinks(text: string) {
@@ -55,6 +56,16 @@ function withLinks(text: string) {
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
+}
+
+/** What Google or the system said, under the wording, for whoever has to report it. */
+function RawText({ text }: { text: string | null }) {
+  if (!text) return null;
+  return (
+    <p title={text} className="text-sm text-destructive line-clamp-3 break-words">
+      {withLinks(text)}
+    </p>
+  );
 }
 
 function GoogleMark() {
@@ -84,11 +95,12 @@ function Chip({ children, off }: { children: ReactNode; off?: boolean }) {
 
 export default function AccountView() {
   const { t } = useTranslation();
-  const { status, busy, failure, run, signOut, cancelSignIn } = useGoogleAccount();
+  const { status, busy, failure, failureDetail, run, signOut, cancelSignIn } = useGoogleAccount();
 
   function syncLine(current: GoogleStatus): string {
     if (busy === "sync" || current.syncing) return t("account.syncing");
-    if (current.lastError) return t("account.syncFailed", { error: current.lastError });
+    const failed = statusFailure(current.lastError, current.lastErrorDetail);
+    if (failed) return t("account.syncFailed", { error: t(`account.errors.${failed.code}`) });
     if (current.lastSyncMs) return t("account.lastSync", { time: formatTime(new Date(current.lastSyncMs)) });
     return t("account.neverSynced");
   }
@@ -96,6 +108,9 @@ export default function AccountView() {
   const line = status ? syncLine(status) : "";
   const showsError = Boolean(status?.lastError) && busy !== "sync" && !status?.syncing;
   const syncing = busy === "sync" || Boolean(status?.syncing);
+  // Only a new sign-in mends a grant Google no longer honours.
+  const syncFailure = status ? statusFailure(status.lastError, status.lastErrorDetail) : null;
+  const needsReconnect = showsError && syncFailure?.code === "grant_revoked";
 
   return (
     <PageShell>
@@ -141,13 +156,16 @@ export default function AccountView() {
                   </span>
                   <b className="break-all text-xl font-semibold tracking-tight">{status.email}</b>
                   <p
-                    title={showsError ? line : undefined}
                     className={`text-sm ${
                       showsError ? "text-destructive line-clamp-3 break-words" : "text-muted-foreground"
                     }`}
                   >
-                    {showsError ? withLinks(line) : line}
+                    {line}
                   </p>
+                  {showsError && <RawText text={syncFailure?.detail ?? null} />}
+                  {!showsError && !syncing && status.lastNotice === "device_data_unreadable" && (
+                    <p className="text-sm text-muted-foreground">{t(`account.notices.${status.lastNotice}`)}</p>
+                  )}
                   {status.settingsUploadBlocked && (
                     <p className="text-sm text-destructive">{t("account.settingsNotUploaded")}</p>
                   )}
@@ -170,10 +188,23 @@ export default function AccountView() {
 
             {status.available && status.email && (
               <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <Button onClick={() => run("sync")} disabled={busy !== null || syncing}>
-                  {syncing ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-                  {t("account.syncNow")}
-                </Button>
+                {needsReconnect ? (
+                  <>
+                    <Button onClick={() => run("signIn")} disabled={busy !== null}>
+                      {busy === "signIn" ? t("account.signingIn") : t("account.reconnect")}
+                    </Button>
+                    {busy === "signIn" && (
+                      <Button variant="outline" onClick={cancelSignIn}>
+                        {t("account.cancelSignIn")}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Button onClick={() => run("sync")} disabled={busy !== null || syncing}>
+                    {syncing ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+                    {t("account.syncNow")}
+                  </Button>
+                )}
                 <Button variant="ghost" onClick={signOut} disabled={busy !== null}>
                   {t("account.signOut")}
                 </Button>
@@ -183,7 +214,12 @@ export default function AccountView() {
         </div>
       )}
 
-      {failure && <p className="text-sm text-destructive">{failure}</p>}
+      {failure && (
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-destructive">{failure}</p>
+          <RawText text={failureDetail} />
+        </div>
+      )}
 
       {status?.available && status.email && <DevicesCard />}
 

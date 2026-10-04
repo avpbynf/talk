@@ -364,6 +364,7 @@ export function installNativeMock(init: MockInit): void {
         ...s.google,
         email: "nicolas.example@gmail.com",
         lastSyncMs: Date.parse("2026-09-15T10:00:00.000Z"),
+        lastError: null,
       };
       return s.google;
     },

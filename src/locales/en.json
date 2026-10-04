@@ -847,6 +847,26 @@
         "failed": "Could not save the name."
       }
     },
+    "reconnect": "Reconnect",
+    "errors": {
+      "offline": "Google Drive could not be reached. Check your internet connection.",
+      "grant_revoked": "Talk's access to your Google account was revoked or has expired.",
+      "api_disabled": "Google Drive refused the request, because its API is not enabled for this app or access was denied.",
+      "quota": "Google is limiting requests for now. Talk will try again later.",
+      "drive_full": "Your Google Drive is full, so Talk cannot save its files there. Free some space and sync again.",
+      "remote_unreadable": "This account's settings were written by a newer version of Talk, or could not be read. Update Talk, it will try again.",
+      "settings_unreadable": "The settings file on this computer could not be read, so nothing was synced.",
+      "database": "Talk's database on this computer failed during the sync.",
+      "sign_in_timeout": "The sign-in took too long and was abandoned. Try again.",
+      "sign_in_refused": "Google reported that the sign-in was refused.",
+      "remote_devices_unreadable": "This account's list of devices was written by a newer version of Talk, or could not be read. Update Talk, it will try again.",
+      "sign_in_failed": "Google would not complete the sign-in.",
+      "sign_in_no_email": "Google did not say which account signed in, so Talk kept nothing. Try again.",
+      "other": "Something went wrong while talking to Google."
+    },
+    "notices": {
+      "device_data_unreadable": "The statistics or history of one of your devices could not be read."
+    },
     "syncNow": "Sync now",
     "signOut": "Sign out",
     "syncing": "Syncing",

@@ -15,6 +15,10 @@ pub struct SyncState {
     pub device_id: String,
     pub last_sync_ms: Option<i64>,
     pub last_error: Option<String>,
+    /// Google's or the system's own text for `last_error`.
+    pub last_error_detail: Option<String>,
+    /// What the last round got past without failing, as a code.
+    pub last_notice: Option<String>,
     /// Fingerprint of the synced settings at the last look, and when they last
     /// changed here or were last applied from Drive.
     pub settings_hash: String,
