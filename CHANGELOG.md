@@ -366,6 +366,14 @@ wrap between words instead of being cut off.
 
 ### Bug Fixes
 
+- (models) A failed model download no longer counts as downloaded
+
+When the model server answered with an error, its message was saved as the model and listed as
+downloaded, then failed to load. The download now stops with a readable error and leaves nothing
+behind. Asking for a model that is already downloading is refused, a download that stalls ends in
+an error instead of blocking that model until you restart, cancelling takes effect at once, and
+partial files left by an earlier crash are removed at launch.
+
 - (window) Stop a page flashing before it slides in
 
 When you opened a page it could be painted in its final place for a frame, then jump back and slide
