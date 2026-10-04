@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
@@ -111,19 +112,47 @@ function buildGrid(yearlyActivity: YearlyDayActivity[]): {
   return { cells, weekCount: totalWeeks, monthPositions };
 }
 
-export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
+const CELL_SIZE = 11;
+const CELL_GAP = 3;
+const STEP = CELL_SIZE + CELL_GAP;
+const DAY_LABEL_WIDTH = 30;
+const MONTH_LABEL_HEIGHT = 16;
+
+/**
+ * Memoized because the page above it re-renders for every figure it fetches and for every
+ * transition it plays, and a year of days is three hundred and sixty five translated tooltips,
+ * which was the dearest component of the dashboard.
+ */
+export const ActivityChart = memo(function ActivityChart({ yearlyActivity }: ActivityChartProps) {
   const { t } = useTranslation();
-  const { cells, weekCount, monthPositions } = buildGrid(yearlyActivity);
-  const maxCount = Math.max(...cells.map((c) => c.count), 1);
-  const cellSize = 11;
-  const cellGap = 3;
-  const step = cellSize + cellGap;
-  const dayLabelWidth = 30;
-  const monthLabelHeight = 16;
-  const svgWidth = dayLabelWidth + weekCount * step;
-  const svgHeight = monthLabelHeight + 7 * step;
+  const { cells, weekCount, monthPositions, maxCount } = useMemo(() => {
+    const grid = buildGrid(yearlyActivity);
+    return { ...grid, maxCount: Math.max(...grid.cells.map((c) => c.count), 1) };
+  }, [yearlyActivity]);
+  const svgWidth = DAY_LABEL_WIDTH + weekCount * STEP;
+  const svgHeight = MONTH_LABEL_HEIGHT + 7 * STEP;
   const monthYear = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(locale(), { month: "short", year: "numeric" });
+  const squares = useMemo(
+    () =>
+      cells.map((cell) => {
+        const level = intensityLevel(cell.count, maxCount);
+        return (
+          <rect
+            key={cell.date}
+            x={DAY_LABEL_WIDTH + cell.weekIndex * STEP}
+            y={MONTH_LABEL_HEIGHT + cell.dayOfWeek * STEP}
+            width={CELL_SIZE}
+            height={CELL_SIZE}
+            rx={2}
+            fill={LEVEL_BG[level]}
+          >
+            <title>{t("dashboard.activity.cell", { date: cell.date, count: cell.count })}</title>
+          </rect>
+        );
+      }),
+    [cells, maxCount, t],
+  );
 
   return (
     <SectionCard
@@ -145,7 +174,7 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
           return (
             <text
               key={`${label}-${wIdx}`}
-              x={dayLabelWidth + wIdx * step}
+              x={DAY_LABEL_WIDTH + wIdx * STEP}
               y={11}
               className="fill-muted-foreground/50"
               style={{ fontSize: "9px" }}
@@ -161,7 +190,7 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
             <text
               key={dow}
               x={0}
-              y={monthLabelHeight + dow * step + cellSize - 1}
+              y={MONTH_LABEL_HEIGHT + dow * STEP + CELL_SIZE - 1}
               className="fill-muted-foreground/40"
               style={{ fontSize: "9px" }}
             >
@@ -171,24 +200,7 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
         )}
 
         {/* Grid cells */}
-        {cells.map((cell) => {
-          const level = intensityLevel(cell.count, maxCount);
-          return (
-            <rect
-              key={cell.date}
-              x={dayLabelWidth + cell.weekIndex * step}
-              y={monthLabelHeight + cell.dayOfWeek * step}
-              width={cellSize}
-              height={cellSize}
-              rx={2}
-              fill={LEVEL_BG[level]}
-            >
-              <title>
-                {t("dashboard.activity.cell", { date: cell.date, count: cell.count })}
-              </title>
-            </rect>
-          );
-        })}
+        {squares}
       </svg>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{monthYear(cells[0].date)}</span>
@@ -209,4 +221,4 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
       </div>
     </SectionCard>
   );
-}
+});
