@@ -85,6 +85,28 @@ fn restore_audio() {
     });
 }
 
+/// Put the volume back now and wait for it, for a moment when nothing runs
+/// afterwards: the launch that finds a level left by a crash, and quitting.
+///
+/// The zero-length fade takes a ticket, so a slide still running stops, and
+/// the generation moves on, so a restore thread leaves the stored level alone.
+/// The level is cleared only once the volume is back.
+pub fn restore_audio_now() {
+    let Some(before) = crate::settings::load_settings().volume_before_duck else {
+        return;
+    };
+
+    DUCK_GENERATION.fetch_add(1, Ordering::SeqCst);
+
+    // The fade is what stops a slide still running, and the set lands the
+    // exact level whatever step it stopped on.
+    if crate::ducking::fade_volume(before, 0) && crate::ducking::set_volume(before) {
+        let mut settings = crate::settings::load_settings();
+        settings.volume_before_duck = None;
+        let _ = crate::settings::save_settings(&settings);
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum HotkeyError {
     #[error("IO error: {0}")]

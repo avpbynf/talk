@@ -379,6 +379,11 @@ partial files left by an earlier crash are removed at launch.
 When the history database could not be opened at launch, the app vanished without a word. It now
 shows a message with the file it tried and the reason, then closes.
 
+- (recording) Quit from the tray puts your volume back
+
+Quitting from the tray icon while a dictation had turned the volume down left it down. It now goes
+back to where it was before the app closes.
+
 - (window) Stop a page flashing before it slides in
 
 When you opened a page it could be painted in its final place for a frame, then jump back and slide
