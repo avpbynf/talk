@@ -15,14 +15,16 @@ export interface NavItem<Id extends string = string> {
   label: string;
 }
 
-export type StatusTone = "warn" | "bad";
+export type StatusTone = "warn" | "bad" | "accent";
 
-/** Something wrong or under way with the engine; there is no status when all is well. */
-export interface EngineStatus {
+/** Something wrong, under way or waiting; there is no status when all is well. */
+export interface SidebarStatus<Id extends string = string> {
   label: string;
   tone: StatusTone;
   /** Still in progress, so the dot pulses. */
   busy?: boolean;
+  /** The page that can do something about it. */
+  target: Id;
 }
 
 interface SidebarProps<Id extends string> {
@@ -32,8 +34,7 @@ interface SidebarProps<Id extends string> {
   /** The page the account entry opens. */
   accountTarget: Id;
   onNavigate: (id: Id) => void;
-  status: EngineStatus | null;
-  onStatusClick?: () => void;
+  status: SidebarStatus<Id> | null;
   /** Where the window buttons are. On the left they sit in the top row of the sidebar. */
   windowButtons?: "left" | "right";
 }
@@ -43,6 +44,8 @@ const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 const TONE_PILL: Record<StatusTone, string> = {
   warn: "text-warning border-warning/40 bg-warning/10",
   bad: "text-destructive border-destructive/40 bg-destructive/10",
+  accent:
+    "text-[var(--accent-text)] border-[color-mix(in_oklch,var(--s1)_40%,transparent)] bg-[color-mix(in_oklch,var(--s1)_14%,transparent)]",
 };
 
 const LABEL =
@@ -63,7 +66,6 @@ export function Sidebar<Id extends string>({
   accountTarget,
   onNavigate,
   status,
-  onStatusClick,
   windowButtons = "right",
 }: SidebarProps<Id>) {
   const { t } = useTranslation();
@@ -170,6 +172,7 @@ export function Sidebar<Id extends string>({
 
   const email = account?.available ? account.email : null;
   const accountActive = activeKey === "account";
+  const accountWord = email && account ? syncWord(account, t) : t("sidebar.account.signedOut");
 
   return (
     <motion.nav
@@ -214,7 +217,7 @@ export function Sidebar<Id extends string>({
 
         {status && (
           <button
-            onClick={onStatusClick}
+            onClick={() => onNavigate(status.target)}
             title={status.label}
             className={cn(
               "shrink-0 mx-1 mb-2 self-start max-w-[calc(100%-0.5rem)] flex items-center justify-center gap-[7px] h-[26px] pl-[9px] pr-[11px] rounded-full border text-xs font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)] group-data-[collapsed=true]/side:w-[26px] group-data-[collapsed=true]/side:self-center group-data-[collapsed=true]/side:px-0",
@@ -240,6 +243,7 @@ export function Sidebar<Id extends string>({
           onClick={() => onNavigate(accountTarget)}
           aria-current={accountActive ? "page" : undefined}
           title={email ?? t("sidebar.account.title")}
+          aria-label={[t("sidebar.account.title"), email, accountWord].filter(Boolean).join(", ")}
           className={cn(
             "relative z-[1] shrink-0 flex items-center gap-2.5 h-[46px] pl-[7px] pr-2 rounded-[var(--radius)] whitespace-nowrap text-left transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
             !accountActive && "hover:bg-surface-raised",
@@ -260,7 +264,7 @@ export function Sidebar<Id extends string>({
           )}
           <span className={cn("flex flex-col min-w-0 gap-px", LABEL)}>
             <b className="text-[13px] font-medium truncate max-w-[150px]">
-              {email ?? t("sidebar.account.title")}
+              {email ?? t("sidebar.account.signedOutTitle")}
             </b>
             <small className="inline-flex items-center gap-[5px] text-[11px] text-muted-foreground">
               <i
@@ -270,7 +274,7 @@ export function Sidebar<Id extends string>({
                   email && account ? SYNC_DOT[syncTone(account)] : SYNC_DOT.off,
                 )}
               />
-              {email && account ? syncWord(account, t) : t("sidebar.account.signedOut")}
+              {accountWord}
             </small>
           </span>
         </button>

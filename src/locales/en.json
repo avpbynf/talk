@@ -30,17 +30,20 @@
       "loadingModel": "Loading model",
       "serverUnreachable": "Server unreachable",
       "tokenRefused": "Token refused",
-      "fallingBack": "Using local model",
-      "noFallbackModel": "No fallback model"
+      "fallingBack": "Local fallback",
+      "noFallbackModel": "No fallback model",
+      "syncFailed": "Sync failed",
+      "updateReady": "Update ready"
     },
     "account": {
       "title": "Account",
-      "signedOut": "Signed out"
+      "signedOut": "Offline",
+      "signedOutTitle": "Not signed in"
     },
     "sync": {
       "synced": "Synced",
       "syncing": "Syncing",
-      "error": "Failed",
+      "error": "Sync failed",
       "notSynced": "Not synced"
     }
   },

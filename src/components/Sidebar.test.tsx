@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import { History, LayoutDashboard, Settings } from "lucide-react";
-import { Sidebar, type EngineStatus, type NavItem } from "./Sidebar";
+import { Sidebar, type NavItem, type SidebarStatus } from "./Sidebar";
 import type { GoogleStatus } from "@/lib/use-google-account";
 
 type Id = "dash" | "history" | "prefs";
@@ -20,7 +20,7 @@ function answer(status: GoogleStatus) {
   );
 }
 
-function setup(current: Id = "dash", status: EngineStatus | null = null) {
+function setup(current: Id = "dash", status: SidebarStatus<Id> | null = null) {
   const onNavigate = vi.fn();
   render(
     <Sidebar
@@ -51,7 +51,7 @@ describe("Sidebar", () => {
 
   it("shows a neutral entry when signed out, and opens the account page from it", async () => {
     const onNavigate = setup();
-    expect(await screen.findByText("Signed out")).toBeInTheDocument();
+    expect(await screen.findByText("Offline")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /^Account/ }));
     expect(onNavigate).toHaveBeenCalledWith("prefs");
@@ -70,21 +70,16 @@ describe("Sidebar", () => {
     expect(screen.queryByTitle("No model")).not.toBeInTheDocument();
   });
 
-  it("shows a status pill that opens the transcription page's handler", async () => {
-    const onStatusClick = vi.fn();
-    render(
-      <Sidebar
-        top={top}
-        bottom={bottom}
-        current="dash"
-        accountTarget="prefs"
-        onNavigate={vi.fn()}
-        status={{ label: "No model", tone: "warn" }}
-        onStatusClick={onStatusClick}
-      />,
-    );
+  it("shows a status pill that opens the page it points to", async () => {
+    const onNavigate = setup("dash", { label: "No model", tone: "warn", target: "history" });
     await userEvent.click(screen.getByRole("button", { name: "No model" }));
-    expect(onStatusClick).toHaveBeenCalled();
+    expect(onNavigate).toHaveBeenCalledWith("history");
+  });
+
+  it("says a sync failed in the account entry", async () => {
+    answer({ available: true, email: "me@example.com", syncing: false, lastSyncMs: 1, lastError: "denied" });
+    setup();
+    expect(await screen.findByText("Sync failed")).toBeInTheDocument();
   });
 
   it("remembers the collapsed state", async () => {

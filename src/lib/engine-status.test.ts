@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { engineStatus, type EngineState } from "./engine-status";
+import { engineStatus, sidebarPill, type EngineState } from "./engine-status";
 
 const READY: EngineState = {
   initialized: true,
@@ -68,5 +68,26 @@ describe("engineStatus", () => {
       expect(engineStatus({ ...READY, ...server, serverStatus: "online", currentModel: null })?.tone).toBe("warn");
       expect(engineStatus({ ...READY, currentModel: null, isLoading: true })?.busy).toBe(true);
     });
+  });
+});
+
+describe("sidebarPill", () => {
+  const quiet = { syncFailed: false, updateReady: false };
+  const pill = (patch: Partial<EngineState>, other = quiet) => sidebarPill({ ...READY, ...patch }, other);
+
+  it("says nothing when all is well", () => {
+    expect(pill({})).toBeNull();
+  });
+
+  it("opens the page that can mend what it names", () => {
+    expect(pill({ currentModel: null })).toMatchObject({ key: "noModel", page: "engine" });
+    expect(pill({}, { ...quiet, syncFailed: true })).toMatchObject({ key: "syncFailed", tone: "warn", page: "account" });
+    expect(pill({}, { ...quiet, updateReady: true })).toMatchObject({ key: "updateReady", tone: "accent", page: "settings" });
+  });
+
+  it("puts the engine before a failed sync, and a failed sync before an update", () => {
+    const both = { syncFailed: true, updateReady: true };
+    expect(pill({ currentModel: null }, both)?.key).toBe("noModel");
+    expect(pill({}, both)?.key).toBe("syncFailed");
   });
 });

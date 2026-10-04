@@ -268,7 +268,7 @@ test.describe("engine page", () => {
 test.describe("account page", () => {
   test("signed out, offers the sign-in and signs in", async ({ app, page }) => {
     await app.open();
-    await expect(app.sidebar).toContainText("Signed out");
+    await expect(app.sidebar).toContainText("Offline");
     await app.go(account);
 
     await expect(page.getByText("Sign in to find your settings on another PC")).toBeVisible();
@@ -293,7 +293,7 @@ test.describe("account page", () => {
 
     await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
     await expect(page.getByText("nicolas.example@gmail.com")).toHaveCount(0);
-    await expect(app.sidebar).toContainText("Signed out");
+    await expect(app.sidebar).toContainText("Offline");
     expect(await app.calls("google_sign_out")).toHaveLength(1);
   });
 

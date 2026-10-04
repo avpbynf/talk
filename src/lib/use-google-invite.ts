@@ -40,5 +40,5 @@ export function useGoogleInvite(enabled: boolean) {
 
   const open = enabled && offered === false && !!status?.available && !status.email;
 
-  return { open, busy: busy === "signIn", failure, signIn, cancelSignIn, dismiss };
+  return { open, status, busy: busy === "signIn", failure, signIn, cancelSignIn, dismiss };
 }

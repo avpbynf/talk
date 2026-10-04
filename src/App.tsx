@@ -2,11 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/server";
 import { listen } from "@tauri-apps/api/event";
-import { engineStatus } from "@/lib/engine-status";
+import { sidebarPill, type SidebarPillKey } from "@/lib/engine-status";
 import { useTranslation } from "react-i18next";
 import { History, Cpu, Mic, Settings, BookA, Palette, LayoutDashboard } from "lucide-react";
 import { CaptionStrip } from "@/components/CaptionStrip";
-import { Sidebar, type EngineStatus, type NavItem } from "@/components/Sidebar";
+import { Sidebar, type NavItem, type SidebarStatus } from "@/components/Sidebar";
 import { PageTransition } from "@/components/PageTransition";
 import HistoryView from "@/views/HistoryView";
 import TranscriptionView from "@/views/transcription/TranscriptionView";
@@ -127,6 +127,12 @@ interface SavedTranscription {
 
 type View = "analytics" | "history" | "transcription" | "vocabulary" | "dictation" | "preferences" | "appearance" | "account";
 
+const PILL_VIEW: Record<SidebarPillKey["page"], View> = {
+  engine: "transcription",
+  account: "account",
+  settings: "preferences",
+};
+
 function App() {
   const { t } = useTranslation();
   const [setupCompleted, setSetupCompleted] = useState<boolean | null>(null);
@@ -197,6 +203,7 @@ function App() {
     updater.status === "ready" ||
     (initialized && transcriptionMode === "local" && !currentModel && !isLoading);
   const googleInvite = useGoogleInvite(setupCompleted === true && !otherStripShowing);
+  const google = googleInvite.status;
 
   // Refs to avoid re-registering listeners
   const hasInitialized = useRef(false);
@@ -525,17 +532,23 @@ function App() {
   const navOrder: View[] = [...navItemsTop, ...navItemsBottom].map((item) => item.id);
   navOrder.push("account");
 
-  // Only what is wrong or under way; nothing at all when dictation is ready.
-  const pill = engineStatus({
-    initialized,
-    isLoading,
-    serverMode: transcriptionMode === "server",
-    serverStatus,
-    serverFallback,
-    currentModel,
-  });
-  const engineStatusLabel: EngineStatus | null = pill
-    ? { label: t(`sidebar.status.${pill.key}`), tone: pill.tone, busy: pill.busy }
+  // Only what is wrong, under way or waiting; nothing at all when all is well.
+  const pill = sidebarPill(
+    {
+      initialized,
+      isLoading,
+      serverMode: transcriptionMode === "server",
+      serverStatus,
+      serverFallback,
+      currentModel,
+    },
+    {
+      syncFailed: Boolean(google?.available && google.email && google.lastError && !google.syncing),
+      updateReady: updater.status === "available",
+    },
+  );
+  const sidebarStatus: SidebarStatus<View> | null = pill
+    ? { label: t(`sidebar.status.${pill.key}`), tone: pill.tone, busy: pill.busy, target: PILL_VIEW[pill.page] }
     : null;
 
   // Show loading state while checking setup status
@@ -576,8 +589,7 @@ function App() {
         current={currentView}
         accountTarget="account"
         onNavigate={setCurrentView}
-        status={engineStatusLabel}
-        onStatusClick={() => setCurrentView("transcription")}
+        status={sidebarStatus}
         windowButtons={windowButtons}
       />
 
