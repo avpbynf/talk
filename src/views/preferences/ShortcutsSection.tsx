@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import { Keyboard, Edit3, Check, X } from "lucide-react";
 import { Keys } from "@/components/Keys";
-import { hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
+import { captureAction, hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
@@ -35,18 +35,48 @@ export default function ShortcutsSection({
   const [pendingShortcut, setPendingShortcut] = useState<string[]>([]);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
   const inputRef = useRef<HTMLDivElement>(null);
+  // Where the focus goes when an edit ends on the keyboard: back to the Edit button it started from.
+  const editButtons = useRef<Partial<Record<ShortcutKind, HTMLButtonElement | null>>>({});
+  const returnTo = useRef<ShortcutKind | null>(null);
 
   useEffect(() => {
     if (editingShortcut && inputRef.current) {
       inputRef.current.focus();
+    } else if (!editingShortcut && returnTo.current) {
+      editButtons.current[returnTo.current]?.focus();
+      returnTo.current = null;
     }
   }, [editingShortcut]);
 
+  // The dictation shortcuts are off for as long as one is being edited, so every way
+  // out of the edit, the page itself included, has to turn them back on.
+  const editing = useRef(false);
+  editing.current = editingShortcut !== null;
+  useEffect(
+    () => () => {
+      if (editing.current) void invoke("enable_shortcuts");
+    },
+    [],
+  );
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    const action = captureAction(e);
+    // Tab moves on, and leaving the field ends the edit.
+    if (action === "leave") return;
     e.preventDefault();
     e.stopPropagation();
-
+    if (action === "cancel") {
+      void cancelEdit(true);
+      return;
+    }
     setPendingShortcut(parseKeyEvent(e));
+  };
+
+  // Save and Cancel belong to the edit: moving onto them keeps it, moving anywhere else ends it.
+  const leaveEdit = (e: React.FocusEvent) => {
+    const next = e.relatedTarget;
+    if (next instanceof Element && next.closest("[data-shortcut-edit]")) return;
+    void cancelEdit();
   };
 
   const startEdit = async (type: ShortcutKind) => {
@@ -56,7 +86,10 @@ export default function ShortcutsSection({
     setShortcutError(null);
   };
 
-  const cancelEdit = async () => {
+  const cancelEdit = async (restoreFocus = false) => {
+    if (!editing.current) return;
+    if (restoreFocus) returnTo.current = editingShortcut;
+    editing.current = false;
     setEditingShortcut(null);
     setPendingShortcut([]);
     setShortcutError(null);
@@ -78,13 +111,15 @@ export default function ShortcutsSection({
       } else if (editingShortcut === "paste") {
         await onPasteShortcutChange(newShortcut);
       }
+      returnTo.current = editingShortcut;
+      editing.current = false;
       setEditingShortcut(null);
       setShortcutError(null);
       setPendingShortcut([]);
       await invoke("enable_shortcuts");
     } catch {
+      // The edit is still open, so the dictation shortcuts stay off until it ends.
       setShortcutError(t("preferences.shortcuts.errors.invalid"));
-      await invoke("enable_shortcuts");
     }
   };
 
@@ -99,14 +134,14 @@ export default function ShortcutsSection({
         hint={description}
         below={
           isEditing && (
-            <div className="mt-3 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-3" data-shortcut-edit onBlur={leaveEdit}>
               {shortcutError && <p className="text-xs text-[var(--color-destructive)]">{shortcutError}</p>}
               <div className="flex gap-2">
                 <Button onClick={saveShortcut} disabled={pendingShortcut.length === 0}>
                   <Check />
                   {t("preferences.shortcuts.save")}
                 </Button>
-                <Button variant="outline" onClick={cancelEdit}>
+                <Button variant="outline" onClick={() => cancelEdit(true)}>
                   <X />
                   {t("common.cancel")}
                 </Button>
@@ -120,6 +155,8 @@ export default function ShortcutsSection({
             ref={inputRef}
             tabIndex={0}
             onKeyDown={handleKeyDown}
+            onBlur={leaveEdit}
+            data-shortcut-edit
             className="flex min-h-9 min-w-[160px] items-center gap-1 rounded-[var(--radius)] border border-[var(--accent)] bg-surface px-3 shadow-[0_0_0_4px_color-mix(in_oklch,var(--s1)_20%,transparent)] focus:outline-none"
           >
             {pendingShortcut.length > 0 ? (
@@ -132,6 +169,9 @@ export default function ShortcutsSection({
           <span className="flex items-center gap-1">
             <Keys parts={shortcutParts} />
             <Button
+              ref={(el) => {
+                editButtons.current[type] = el;
+              }}
               variant="ghost"
               size="icon"
               onClick={() => startEdit(type)}

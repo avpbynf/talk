@@ -638,6 +638,19 @@ really kept. These choices, the language and the meeting mode switch stay locked
 been read, and say so with Try again when they cannot be; the overlay tab no longer stays blank
 when its settings cannot be read. They follow the settings another PC brings.
 
+- (preferences) Keep the shortcuts working after editing one
+
+Leaving the Dictation page in the middle of editing a shortcut used to leave every dictation
+shortcut off until you restarted the application. They now come back when the edit ends, whether
+you click away or leave the page, and a refused save keeps them off while you try again.
+
+- (preferences) Let the keyboard leave a shortcut field
+
+While a shortcut field waited for keys, Tab and Escape were captured like any other key and the
+focus was stuck in it. Escape now gives the capture up and Tab moves on to the next control. In the
+shortcut editor, Escape, Cancel and a successful Save put the focus back on that shortcut's Edit
+button.
+
 - (history) Respect reduced motion in the history and its dialogs
 
 With motion reduced, the history rows, the "Copied" badge and the confirmation dialogs no longer
