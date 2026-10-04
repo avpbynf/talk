@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HardDrive, Trash2 } from "lucide-react";
+import { Cpu, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Segmented } from "@/components/ui/segmented";
@@ -87,10 +87,8 @@ export function LocalTab({
     <div className="relative flex flex-col gap-4">
       {/* Models Selection */}
       <SectionCard
-        icon={HardDrive}
-        accent="active"
+        icon={Cpu}
         title={t("transcription.local.title")}
-        count={t("transcription.local.downloaded", { count: downloadedModels.length, number: downloadedModels.length })}
         action={
           <Segmented
             label={t("transcription.local.title")}

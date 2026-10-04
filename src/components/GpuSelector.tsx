@@ -1,4 +1,4 @@
-import { Zap, Loader2 } from "lucide-react";
+import { Cpu, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { cn } from "@/lib/utils";
@@ -69,7 +69,7 @@ export function GpuSelector({
   const busy = isLoading || switching;
 
   return (
-    <SectionCard accent="warning" icon={Zap} title={t("transcription.gpu.title")}>
+    <SectionCard icon={Cpu} title={t("transcription.gpu.title")}>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
         {mergedGpus.map((gpu) => {
           const chosen = currentVendor === gpu.vendor;
@@ -129,6 +129,8 @@ export function GpuSelector({
             {t("transcription.gpu.runningOn", { name: devices[0].name, details: describeDevice(devices[0], t) })}
           </p>
         ))}
+
+      <p className="text-[13px] leading-[1.55] text-muted-foreground">{t("transcription.gpu.note")}</p>
     </SectionCard>
   );
 }

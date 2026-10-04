@@ -77,7 +77,6 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
 
   return (
     <SectionCard
-      accent="server"
       icon={KeyRound}
       title={
         <Trans
@@ -111,7 +110,6 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
         <div className="space-y-2">
           <div className="flex gap-2">
             <Input
-              accent="server"
               inputMode="numeric"
               autoComplete="off"
               maxLength={6}

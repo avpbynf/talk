@@ -211,14 +211,12 @@
   "transcription": {
     "title": "Moteur",
     "modes": {
-      "local": "Local",
-      "server": "Serveur"
+      "local": "Sur ce PC",
+      "server": "Sur un serveur"
     },
     "fallbackSettings": "Réglages du modèle local de secours",
     "local": {
       "title": "Modèles Whisper",
-      "downloaded_one": "{{number}} téléchargé",
-      "downloaded_other": "{{number}} téléchargés",
       "quantised": "Quantifiés",
       "standard": "Standard",
       "deleteTitle": "Supprimer {{name}} ?",
@@ -226,7 +224,6 @@
       "delete": "Supprimer"
     },
     "model": {
-      "active": "Actif",
       "size": "{{size}} Mo",
       "download": "Télécharger",
       "unload": "Décharger",
@@ -247,7 +244,8 @@
         "large-v3-turbo-q5_0": "Turbo, quantifié. La meilleure précision par mégaoctet",
         "large-v3": "Le plus précis, et le plus lent",
         "large-v3-q5_0": "Large, quantifié"
-      }
+      },
+      "loaded": "Chargé"
     },
     "gpu": {
       "title": "Accélération",
@@ -263,7 +261,8 @@
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
         "cpu": "Partout, plus lent"
-      }
+      },
+      "note": "Changer de moteur ou de carte demande toujours confirmation tant qu'un modèle est chargé."
     },
     "server": {
       "status": {
@@ -313,7 +312,7 @@
     },
     "share": {
       "title": "Partager ce PC",
-      "subtitle": "Laisse d'autres machines dicter avec le modèle chargé ici",
+      "subtitle": "Laisse d'autres ordinateurs dicter avec le modèle chargé ici, sans Docker ni Python. Allumez pour choisir le port et appairer des machines.",
       "port": "Port",
       "portRange": "Saisissez un port entre 1 et 65535",
       "portFailed": "Impossible de changer le port",

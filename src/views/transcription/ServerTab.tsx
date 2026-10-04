@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Clock, Radar, RefreshCw, Server } from "lucide-react";
+import { Clock, Cloud, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
@@ -30,10 +30,10 @@ interface ServerTabProps {
 }
 
 const TIMEOUT_OPTIONS = [
-  { value: 10000, label: "10s" },
-  { value: 30000, label: "30s" },
-  { value: 60000, label: "1min" },
-  { value: 120000, label: "2min" },
+  { value: 10000, label: "10 s" },
+  { value: 30000, label: "30 s" },
+  { value: 60000, label: "1 min" },
+  { value: 120000, label: "2 min" },
 ];
 
 const STATUS_TONE: Record<ServerStatus, string> = {
@@ -118,8 +118,7 @@ export function ServerTab({
     <div className="flex flex-col gap-4">
       {/* Servers on this network */}
       <SectionCard
-        accent="server"
-        icon={Radar}
+        icon={Cloud}
         title={t("transcription.server.network")}
         description={t("transcription.server.networkHint")}
       >
@@ -171,8 +170,7 @@ export function ServerTab({
 
       {/* Server Connection */}
       <SectionCard
-        accent="server"
-        icon={Server}
+        icon={Cloud}
         title={t("transcription.server.connection")}
         description={t("transcription.server.endpoint")}
       >
@@ -181,7 +179,6 @@ export function ServerTab({
           <label className="text-xs text-muted-foreground">{t("transcription.server.url")}</label>
           <div className="flex gap-2">
             <Input
-              accent="server"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               onBlur={() => urlInput !== serverUrl && saveServerUrl()}
@@ -216,16 +213,17 @@ export function ServerTab({
 
         {/* API token */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-baseline gap-x-1.5 text-xs text-muted-foreground">
+            <label htmlFor="server-token">
               {t("transcription.server.token")} {t("transcription.server.optional")}
             </label>
-            <Button variant="link" onClick={pairTyped} className="h-auto p-0 text-xs text-server">
+            <span aria-hidden="true">·</span>
+            <Button variant="link" onClick={pairTyped} className="h-auto p-0 text-xs">
               {t("transcription.server.pairWith")}
             </Button>
           </div>
           <Input
-            accent="server"
+            id="server-token"
             type="password"
             value={tokenInput}
             onChange={(e) => setTokenInput(e.target.value)}
@@ -242,7 +240,6 @@ export function ServerTab({
             {t("transcription.server.model")} {t("transcription.server.optional")}
           </label>
           <Input
-            accent="server"
             value={modelInput}
             onChange={(e) => setModelInput(e.target.value)}
             onBlur={() => { if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim()); }}
@@ -255,7 +252,6 @@ export function ServerTab({
 
       {/* Timeout */}
       <SectionCard
-        accent="server"
         icon={Clock}
         title={t("transcription.server.timeout")}
         description={t("transcription.server.timeoutHint")}
