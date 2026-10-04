@@ -1,6 +1,6 @@
-import type { Page } from "@playwright/test";
-import { test, expect, PAGES } from "./harness";
-import type { OpenOptions } from "./harness";
+import type { BrowserContext, Page } from "@playwright/test";
+import { test, expect, PAGES, openWindow, expectNoComplaints } from "./harness";
+import type { App, OpenOptions } from "./harness";
 import { findLayoutProblems } from "./layout-checks";
 import { SIZES } from "./sizes";
 import { SIGNED_IN, emptyAnalytics, longVocabulary } from "./data";
@@ -35,6 +35,16 @@ const FRESH: OpenOptions = {
   },
 };
 
+/** What the page before left behind: a scrolled box, the pointer on the sidebar, a focused control. */
+async function leaveNoTrace(page: Page) {
+  await page.mouse.move(-10, -10);
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    for (const el of document.querySelectorAll("*")) if (el.scrollTop || el.scrollLeft) (el.scrollTop = 0), (el.scrollLeft = 0);
+    window.scrollTo(0, 0);
+  });
+}
+
 for (const [label, options] of [
   ["a normal day", {}],
   ["a crowded one", CROWDED],
@@ -42,15 +52,31 @@ for (const [label, options] of [
 ] as const) {
   test.describe(label, () => {
     for (const size of SIZES) {
+      // One window per size and state, the pages visited in the order of PAGES by the sidebar, as a
+      // person would: booting the application is most of what a page's test cost. The tests of the
+      // group run one after another in one worker, and a failure does not skip the rest: Playwright
+      // starts a new worker for what follows, which boots a fresh window.
       test.describe(`${size.name} window (${size.width}x${size.height})`, () => {
-        test.use({ viewport: { width: size.width, height: size.height } });
+        test.describe.configure({ mode: "default" });
+        let shared: { context: BrowserContext; app: App } | undefined;
+
+        test.beforeAll(async ({ browser }, testInfo) => {
+          shared = await openWindow(browser, testInfo, size);
+          await shared.app.open(options);
+        });
+        test.afterAll(async () => {
+          await shared?.context.close();
+          shared = undefined;
+        });
 
         for (const entry of PAGES) {
-          test(`${entry.id}: nothing overflows, is cut off or is out of reach`, async ({ app, page }) => {
-            await app.open(options);
+          test(`${entry.id}: nothing overflows, is cut off or is out of reach`, async () => {
+            const { app } = shared!;
             await app.go(entry);
-            const problems = await findLayoutProblems(page);
+            await leaveNoTrace(app.page);
+            const problems = await findLayoutProblems(app.page);
             expect(problems.map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
+            await expectNoComplaints(app);
           });
         }
       });
