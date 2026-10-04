@@ -116,31 +116,30 @@ impl Drive {
 
     /// Write `content` under `name`, replacing the file `existing` points at
     /// or creating one when there is none.
+    ///
+    /// A new file goes up in one request, metadata and content together, so
+    /// that a failure part way never leaves an empty file behind for the other
+    /// machines to read.
     pub async fn upload(&self, name: &str, existing: Option<&str>, content: String) -> Result<(), String> {
-        let id = match existing {
-            Some(id) => id.to_string(),
+        let request = match existing {
+            Some(id) => self
+                .http
+                .patch(format!("{}/{}", UPLOAD_URL, id))
+                .query(&[("uploadType", "media")])
+                .header("Content-Type", "application/json")
+                .body(content),
             None => {
-                let response = self
-                    .http
-                    .post(FILES_URL)
-                    .bearer_auth(&self.token)
-                    .query(&[("fields", "id")])
-                    .json(&serde_json::json!({ "name": name, "parents": ["appDataFolder"] }))
-                    .send()
-                    .await
-                    .map_err(|e| e.to_string())?;
-                let created: serde_json::Value = check(response).await?.json().await.map_err(|e| e.to_string())?;
-                created["id"].as_str().ok_or("Drive returned no file id")?.to_string()
+                let boundary = multipart_boundary();
+                let body = multipart_body(&boundary, name, &content);
+                self.http
+                    .post(UPLOAD_URL)
+                    .query(&[("uploadType", "multipart"), ("fields", "id")])
+                    .header("Content-Type", format!("multipart/related; boundary={}", boundary))
+                    .body(body)
             }
         };
-
-        let response = self
-            .http
-            .patch(format!("{}/{}", UPLOAD_URL, id))
+        let response = request
             .bearer_auth(&self.token)
-            .query(&[("uploadType", "media")])
-            .header("Content-Type", "application/json")
-            .body(content)
             .send()
             .await
             .map_err(|e| e.to_string())?;
@@ -159,6 +158,21 @@ impl Drive {
         check(response).await?;
         Ok(())
     }
+}
+
+fn multipart_boundary() -> String {
+    format!("talk-{:032x}", rand::random::<u128>())
+}
+
+/// The body of a Drive multipart upload: the metadata of a new file in the app
+/// data folder, then its content.
+fn multipart_body(boundary: &str, name: &str, content: &str) -> String {
+    let metadata = serde_json::json!({ "name": name, "parents": ["appDataFolder"] });
+    format!(
+        "--{b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n{metadata}\r\n\
+         --{b}\r\nContent-Type: application/json\r\n\r\n{content}\r\n--{b}--",
+        b = boundary
+    )
 }
 
 /// The first file called `name`, which with the newest-first listing is the
@@ -180,6 +194,26 @@ mod tests {
         let files = vec![file("new", "settings.json"), file("old", "settings.json")];
         assert_eq!(find(&files, "settings.json").map(|f| f.id.as_str()), Some("new"));
         assert!(find(&files, "stats-x.json").is_none());
+    }
+
+    #[test]
+    fn a_new_file_goes_up_as_metadata_then_content_in_one_body() {
+        let body = multipart_body("B", "settings.json", r#"{"a":"é"}"#);
+        assert!(body.starts_with("--B\r\n") && body.ends_with("\r\n--B--"));
+        let parts: Vec<&str> = body.split("--B").collect();
+        assert_eq!(parts.len(), 4);
+        let (head, metadata) = parts[1].split_once("\r\n\r\n").unwrap();
+        assert!(head.contains("application/json"));
+        let metadata: serde_json::Value = serde_json::from_str(metadata.trim_end()).unwrap();
+        assert_eq!(metadata["name"], "settings.json");
+        assert_eq!(metadata["parents"][0], "appDataFolder");
+        let (_, content) = parts[2].split_once("\r\n\r\n").unwrap();
+        assert_eq!(content, "{\"a\":\"é\"}\r\n");
+    }
+
+    #[test]
+    fn two_boundaries_differ() {
+        assert_ne!(multipart_boundary(), multipart_boundary());
     }
 
     fn status(code: u16) -> reqwest::StatusCode {
