@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import { RecordingMode } from "@/App";
 import type { CompanionShortcut } from "@/App";
 import { PageShell } from "@/components/PageShell";
@@ -46,9 +45,8 @@ export default function DictationView({
   stopSound,
   onStopSoundChange,
 }: DictationViewProps) {
-  const { t } = useTranslation();
   return (
-    <PageShell title={t("dictation.title")} subtitle={t("dictation.subtitle")}>
+    <PageShell>
       <ShortcutsSection
         shortcut={shortcut}
         onShortcutChange={onShortcutChange}

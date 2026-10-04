@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ListOrdered } from "lucide-react";
+import { Mic } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
-import { cn } from "@/lib/utils";
+import { SettingRow } from "@/components/SettingRow";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface QueueSettings {
   delivery: "each" | "paragraph";
@@ -38,7 +39,7 @@ export default function ChainedDictationsSection() {
 
   return (
     <SectionCard
-      icon={ListOrdered}
+      icon={Mic}
       title={t("preferences.chained.title")}
       description={t("preferences.chained.description")}
     >
@@ -88,29 +89,19 @@ interface ChoiceRowProps<T extends string> {
 
 function ChoiceRow<T extends string>({ label, hint, choices, value, onChange }: ChoiceRowProps<T>) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline gap-2 min-w-0">
-        <span className="text-sm font-medium">{label}</span>
-        <span className="text-xs text-muted-foreground truncate">{hint}</span>
-      </div>
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={label}>
-        {choices.map((choice) => (
-          <button
-            key={choice.value}
-            role="radio"
-            aria-checked={value === choice.value}
-            onClick={() => onChange(choice.value)}
-            className={cn(
-              "cursor-pointer px-3 py-2 rounded-lg border text-left text-sm transition-all duration-200",
-              value === choice.value
-                ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
-                : "border-border-card bg-surface-inset card-interactive"
-            )}
-          >
-            {choice.label}
-          </button>
-        ))}
-      </div>
-    </div>
+    <SettingRow label={label} hint={hint}>
+      <Select value={value} onValueChange={(next) => onChange(next as T)}>
+        <SelectTrigger className="max-w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {choices.map((choice) => (
+            <SelectItem key={choice.value} value={choice.value}>
+              {choice.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingRow>
   );
 }
