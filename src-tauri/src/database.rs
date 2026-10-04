@@ -452,7 +452,7 @@ impl Database {
 
     pub fn add_transcription(&self, entry: &NewTranscription) -> Result<()> {
         let word_count = entry.text.split_whitespace().count() as i32;
-        let char_count = entry.text.len() as i32;
+        let char_count = entry.text.chars().count() as i32;
         let is_local = if entry.source == "local" { 1 } else { 0 };
         let is_server = if entry.source == "server" { 1 } else { 0 };
 
@@ -1308,6 +1308,25 @@ mod tests {
 
         assert!(db.add_transcription(&entry).is_err());
         assert!(ids(&db).is_empty());
+    }
+
+    #[test]
+    fn accented_text_is_counted_in_characters() {
+        let db = in_memory();
+        db.add_transcription(&NewTranscription {
+            id: "t1".to_string(),
+            text: "\u{e9}t\u{e9}".to_string(),
+            timestamp: "2026-08-01T10:00:00Z".to_string(),
+            model: None,
+            source: "local".to_string(),
+            enhanced: false,
+            audio_duration_ms: None,
+            processing_time_ms: None,
+        })
+        .expect("should insert");
+
+        assert_eq!(db.get_transcriptions(10, 0).expect("should read")[0].char_count, 3);
+        assert_eq!(db.local_daily_stats().expect("should read")[0].char_count, 3);
     }
 
     #[test]
