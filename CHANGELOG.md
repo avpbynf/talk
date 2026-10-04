@@ -519,6 +519,13 @@ A new file was created empty and filled in a second request, so a dropped connec
 app in between left an empty file that the other computers then choked on. A file now reaches Drive
 in one request, with its content.
 
+- (preferences) Keep the account's startup settings after the setup
+
+Signing in with Google during the setup applied the account's Start with Windows and Start minimized
+choices, then finishing the setup put the wizard's own switches over them and sent those up to the
+account. The two switches now start from the account's values once you have signed in, and
+finishing the setup writes only a switch you moved yourself.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
