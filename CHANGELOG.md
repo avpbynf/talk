@@ -373,6 +373,13 @@ switching engine or card asks for confirmation while a model is loaded, sharing 
 needs no Docker or Python, the timeouts read "10 s" and "1 min", and "Pair with this server" sits
 on the same line as the API key label.
 
+- (recording) Word the Dictation page as the design does
+
+Toggle mode says "One press to start, another to stop", the paste shortcut says "Wherever you are
+typing", the cancel shortcut offers "Everything waiting" or "The oldest", and the refusal sound says it
+plays when there is no model to dictate with. Meeting mode takes the microphone icon and says whether
+VB-Cable is installed inside its own sentence instead of on a line with a dot.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded
