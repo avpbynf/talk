@@ -39,6 +39,15 @@ export interface AnalyticsSummary {
   streak: number;
 }
 
+/** Time won as the dashboard prints it: "< 1 min", "42 min" or "98 h 03". */
+export function formatTimeSaved(minutes: number): string {
+  const rounded = Math.round(minutes);
+  if (rounded < 1) return i18n.t("dashboard.hero.lessThanMinute");
+  const hours = Math.floor(rounded / 60);
+  if (hours === 0) return `${rounded} ${i18n.t("dashboard.hero.minutes")}`;
+  return `${hours} ${i18n.t("dashboard.hero.hours")} ${String(rounded % 60).padStart(2, "0")}`;
+}
+
 /**
  * How fast you actually speak, in words per minute.
  *
