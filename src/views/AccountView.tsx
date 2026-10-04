@@ -30,6 +30,9 @@ const FOLLOWS = [
 ] as const;
 const STAYS = ["audio", "gpu", "model", "server", "overlay", "history"] as const;
 
+/** What the last round got past without failing, as the native side codes it, and has a line of its own. */
+const NOTICES = ["device_data_unreadable", "sync_after_dictation"];
+
 const URL_PATTERN = /https:\/\/[^\s]+/g;
 
 /** The text, with each https address turned into a link the system browser opens. */
@@ -175,7 +178,7 @@ export default function AccountView() {
                     {line}
                   </p>
                   {showsError && <RawText text={syncFailure?.detail ?? null} />}
-                  {!showsError && !syncing && status.lastNotice === "device_data_unreadable" && (
+                  {!showsError && !syncing && status.lastNotice && NOTICES.includes(status.lastNotice) && (
                     <p className="text-sm text-muted-foreground">{t(`account.notices.${status.lastNotice}`)}</p>
                   )}
                   {status.settingsUploadBlocked && (

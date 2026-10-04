@@ -883,7 +883,8 @@
       "other": "Something went wrong while talking to Google."
     },
     "notices": {
-      "device_data_unreadable": "The statistics or history of one of your devices could not be read."
+      "device_data_unreadable": "The statistics or history of one of your devices could not be read.",
+      "sync_after_dictation": "A dictation is under way: the settings of your account will be applied when it ends."
     },
     "syncNow": "Sync now",
     "signOut": "Sign out",
