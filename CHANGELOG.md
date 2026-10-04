@@ -559,6 +559,11 @@ this morning. When it is not from today the page now says how long ago it was.
 The Account page listed only settings under What follows your account, although statistics and
 history are synced between your computers too. Both are in the list now.
 
+- (window) Change pages without a blur
+
+Pages still fade out and fade in, but they no longer blur while they move, which is lighter to draw
+on a machine without a graphics card.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
