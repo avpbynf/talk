@@ -36,11 +36,9 @@
 
   /* Recording state */
   --color-recording: var(--rec);
-  --color-recording-glow: var(--rec-glow);
 
   /* Active state, which is the accent */
   --color-active: var(--accent-text);
-  --color-active-glow: color-mix(in oklch, var(--s1) 30%, transparent);
 
   /* Status colors */
   --color-success: var(--ok);
@@ -182,78 +180,7 @@
   z-index: 9999;
 }
 
-/* Glass card effect */
-.glass-card {
-  background: oklch(from var(--color-surface-elevated) l c h / 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid oklch(from var(--color-border-hover) l c h / 0.5);
-}
-
-/* ===== RECORDING ANIMATIONS ===== */
-
-@keyframes pulse-recording {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
-}
-
-@keyframes glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 8px var(--color-recording-glow),
-                0 0 16px var(--color-recording-glow),
-                0 0 24px var(--color-recording-glow);
-  }
-  50% {
-    box-shadow: 0 0 12px var(--color-recording-glow),
-                0 0 24px var(--color-recording-glow),
-                0 0 36px var(--color-recording-glow);
-  }
-}
-
-@keyframes ring-expand {
-  0% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
-}
-
-.recording-indicator {
-  animation: pulse-recording 1.5s ease-in-out infinite;
-}
-
-.recording-glow {
-  animation: glow-pulse 1.5s ease-in-out infinite;
-}
-
-.recording-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid var(--color-recording);
-  animation: ring-expand 1.5s ease-out infinite;
-}
-
 /* ===== VIEW TRANSITIONS ===== */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @keyframes slideIn {
   from {
@@ -270,85 +197,14 @@
   animation: slideIn 0.2s ease-out;
 }
 
-/* Staggered list items */
-.stagger-item {
-  animation: fadeIn 0.3s ease-out both;
-}
-
-.stagger-item:nth-child(1) { animation-delay: 0.02s; }
-.stagger-item:nth-child(2) { animation-delay: 0.04s; }
-.stagger-item:nth-child(3) { animation-delay: 0.06s; }
-.stagger-item:nth-child(4) { animation-delay: 0.08s; }
-.stagger-item:nth-child(5) { animation-delay: 0.10s; }
-.stagger-item:nth-child(6) { animation-delay: 0.12s; }
-.stagger-item:nth-child(7) { animation-delay: 0.14s; }
-.stagger-item:nth-child(8) { animation-delay: 0.16s; }
-
-/* The entrances above are CSS, so the motion library's own reduced-motion handling never sees them. */
+/* The entrance above is CSS, so the motion library's own reduced-motion handling never sees it. */
 @media (prefers-reduced-motion: reduce) {
-  .slide-enter,
-  .stagger-item,
-  .tooltip-enter {
+  .slide-enter {
     animation: none;
   }
 }
 
-/* ===== BUTTON & INTERACTIVE STATES ===== */
-
-/* Hover lift effect */
-.hover-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px oklch(0 0 0 / 0.3);
-}
-
-/* Active press effect */
-.press-effect:active {
-  transform: scale(0.97);
-}
-
-/* Glow on hover for primary actions */
-.glow-hover {
-  transition: box-shadow 0.2s ease;
-}
-
-.glow-hover:hover {
-  box-shadow: 0 0 0 3px var(--color-active-glow);
-}
-
-/* Sidebar nav item indicator */
-.nav-indicator {
-  position: relative;
-}
-
-.nav-indicator::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 50%;
-  transform: translateY(-50%) scaleY(0);
-  width: 3px;
-  height: 24px;
-  background: var(--color-active);
-  border-radius: 0 2px 2px 0;
-  transition: transform 0.2s ease;
-}
-
-.nav-indicator.active::before {
-  transform: translateY(-50%) scaleY(1);
-}
-
 /* ===== CARD STYLES ===== */
-
-/* Selected card glow */
-.card-selected {
-  border-color: var(--color-active) !important;
-  box-shadow: 0 0 0 1px var(--color-active-glow),
-              inset 0 1px 0 oklch(1 0 0 / 0.03);
-}
 
 /* A choice card: the chosen one wears the accent gradient as its outline, which fades in */
 .choice-card {
@@ -457,49 +313,6 @@ input[type="color"].swatch:focus-visible {
   outline-offset: 2px;
 }
 
-/* ===== TAB STYLES ===== */
-
-.tab-indicator {
-  position: relative;
-}
-
-.tab-indicator::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--color-active);
-  border-radius: 1px 1px 0 0;
-  transform: scaleX(0);
-  transition: transform 0.2s ease;
-}
-
-.tab-indicator.active::after {
-  transform: scaleX(1);
-}
-
-/* ===== STATUS BADGES ===== */
-
-.badge-recording {
-  background: oklch(from var(--color-recording) l c h / 0.15);
-  color: var(--color-recording);
-  border: 1px solid oklch(from var(--color-recording) l c h / 0.3);
-}
-
-.badge-success {
-  background: oklch(from var(--color-success) l c h / 0.15);
-  color: var(--color-success);
-  border: 1px solid oklch(from var(--color-success) l c h / 0.3);
-}
-
-/* ===== TOOLTIP STYLES ===== */
-
-.tooltip-enter {
-  animation: fadeIn 0.15s ease-out;
-}
-
 /* ===== KEYBOARD SHORTCUTS ===== */
 
 kbd {
@@ -511,43 +324,4 @@ kbd {
   border: 1px solid var(--line);
   border-bottom-width: 2px;
   border-radius: 6px;
-}
-
-/* ===== PROGRESS BAR ===== */
-
-.progress-glow {
-  box-shadow: 0 0 8px var(--color-active-glow);
-}
-
-/* ===== UTILITY ANIMATIONS ===== */
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin-slow {
-  animation: spin 2s linear infinite;
-}
-
-/* Shimmer loading effect */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--color-surface-active) 0%,
-    var(--color-border) 50%,
-    var(--color-surface-active) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
 }
