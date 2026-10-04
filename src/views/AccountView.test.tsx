@@ -61,12 +61,11 @@ describe("AccountView", () => {
     expect(document.querySelector("svg.rounded-full")).toBeNull();
   });
 
-  it("signed out, titles the page and lists what an account would carry", async () => {
+  it("signed out, lists what an account would carry", async () => {
     answer(signedOut);
     render(<AccountView />);
 
-    expect(await screen.findByRole("heading", { name: "Account" })).toBeInTheDocument();
-    expect(screen.getByText("What follows your account")).toBeInTheDocument();
+    expect(await screen.findByText("What follows your account")).toBeInTheDocument();
     expect(screen.getByText("Vocabulary")).toBeInTheDocument();
     expect(screen.getByText("Stays on each PC")).toBeInTheDocument();
     expect(screen.getByText("Graphics card")).toBeInTheDocument();

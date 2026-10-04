@@ -800,7 +800,6 @@
     }
   },
   "account": {
-    "subtitle": "Gardez vos réglages et vos statistiques alignés d'une machine à l'autre",
     "title": "Compte",
     "hint": "Facultatif. La connexion synchronise seulement vos réglages, vos statistiques et votre historique entre vos machines, via votre propre Google Drive.",
     "unavailable": "La connexion n'est pas disponible dans cette version.",
