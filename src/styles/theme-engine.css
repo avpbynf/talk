@@ -88,14 +88,20 @@
   --srv-glow: color-mix(in oklch, var(--srv) 30%, transparent);
   --hyb-glow: color-mix(in oklch, var(--hyb) 30%, transparent);
 
+  /*
+   * Every registered property that moves restyles the whole tree on each frame, so only what
+   * the eye follows is eased: the surfaces, the text, the status colours, the accent and the
+   * lights. Text is corrected against the surface it sits on, so the two move together. The stop
+   * positions, the angle and the ring take their new value at once.
+   */
   transition:
     --bg var(--tt), --card var(--tt), --fg var(--tt), --muted var(--tt), --border var(--tt),
     --s1 var(--tt), --s2 var(--tt), --s3 var(--tt), --s4 var(--tt),
-    --q1 var(--tt), --q2 var(--tt), --q3 var(--tt), --q4 var(--tt), --angle var(--tt),
     --m1 var(--tt), --m2 var(--tt), --m3 var(--tt), --on-accent var(--tt), --scrim var(--tt),
-    --accent-text var(--tt), --ring var(--tt), --rec var(--tt), --ok var(--tt), --ok-text var(--tt), --warn var(--tt),
+    --accent-text var(--tt), --rec var(--tt), --ok var(--tt), --ok-text var(--tt), --warn var(--tt),
     --bad var(--tt), --bad-on var(--tt), --srv var(--tt), --hyb var(--tt),
-    --glass var(--tt), --amb var(--tt), --radius 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    --glass var(--tt), --amb var(--tt),
+    --radius 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 :root[data-mode="light"] {
