@@ -95,6 +95,7 @@ function SortableRow({
       <button
         {...attributes}
         {...listeners}
+        aria-label={t("preferences.companion.reorder", { name: companion.label || t("preferences.companion.name") })}
         className="cursor-grab active:cursor-grabbing p-0.5 opacity-30 group-hover:opacity-70 transition-opacity shrink-0"
       >
         <GripVertical className="h-3.5 w-3.5" />

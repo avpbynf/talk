@@ -1,6 +1,7 @@
 import { Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { OverlaySize } from "@/App";
+import { formatPercent } from "@/i18n";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Range } from "@/components/ui/range";
@@ -34,7 +35,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
             value={look.reaction}
             onChange={(reaction) => onLook({ reaction })}
           />
-          <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{look.reaction} %</span>
+          <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{formatPercent(look.reaction / 100)}</span>
         </div>
       </SettingRow>
 

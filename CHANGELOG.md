@@ -668,6 +668,11 @@ Clicking the edge of the typing test no longer leaves you typing into nothing, a
 reaches the page behind it. A result that cannot be kept leaves the focus on Start over, and
 Escape discards it.
 
+- (preferences) Name the buttons that had no name
+
+The handle that reorders a companion shortcut now announces what it does, and the close button of
+the pairing panel reads "Close" instead of a raw key.
+
 - (history) Respect reduced motion in the history and its dialogs
 
 With motion reduced, the history rows, the "Copied" badge and the confirmation dialogs no longer
@@ -679,6 +684,11 @@ The history shows its first fifty dictations and loads fifty more on request, so
 hundreds no longer weighs on every refresh of the page. Search still looks through all of it, and
 showing more moves the focus to the first new dictation. Only a dictation that arrives on its own
 is animated.
+
+- (overlay) Write the reaction percentage in the interface language
+
+The reaction slider of the overlay used to print its percentage the same way in every language. It
+now follows the language's own spacing, like the dashboard.
 
 - (dashboard) Print a whole number of hours as "98 h"
 

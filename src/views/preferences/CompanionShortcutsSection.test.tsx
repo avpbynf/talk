@@ -1,8 +1,26 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import CompanionShortcutsSection from "./CompanionShortcutsSection";
 
 describe("CompanionShortcutsSection", () => {
+  it("names the drag handle of each row after the shortcut", async () => {
+    render(
+      <CompanionShortcutsSection
+        companionShortcuts={[
+          { id: "a", label: "Mute", keys: "Ctrl+M", trigger: "start" },
+          { id: "b", label: "", keys: "", trigger: "both" },
+        ]}
+        onCompanionShortcutsChange={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Companion shortcuts/ }));
+
+    expect(screen.getByRole("button", { name: "Reorder Mute" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reorder Name" })).toBeInTheDocument();
+  });
+
   describe("the name of a shortcut", () => {
     afterEach(() => {
       vi.useRealTimers();
