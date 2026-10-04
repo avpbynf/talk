@@ -61,6 +61,12 @@ export function formatUsd(value: number, fractionDigits = 2): string {
   });
 }
 
+/** A day and month in the interface language, with the year when it is not this one. */
+export function formatDay(date: Date): string {
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString(locale(), { day: "numeric", month: "long", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
 export function formatTime(date: Date): string {
   return date.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 }

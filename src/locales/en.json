@@ -100,7 +100,7 @@
       "neverLeft": "never left the machine"
     },
     "cost": {
-      "title": "Against a hosted API",
+      "title": "Hosted APIs",
       "audio": "~{{minutes}} min of audio, had it been sent away",
       "perMinute": "{{price}}/min",
       "footer": "Prices as published, {{date}}. Per minute of audio.",
@@ -108,7 +108,7 @@
       "serverNote_other": "{{number}} of these went through your server, which costs whatever that server costs."
     },
     "subscription": {
-      "title": "Against a subscription",
+      "title": "Subscriptions",
       "duration_one": "{{count}} month from {{start}}",
       "duration_other": "{{count}} months from {{start}}",
       "perMonth": "{{price}}/mo",
@@ -169,7 +169,10 @@
       "keyboard": "At the keyboard",
       "voice": "By voice",
       "retest": "Retest",
-      "retestTitle": "Redo the typing test"
+      "retestTitle": "Redo the typing test",
+      "measuredOn": "measured on {{date}}",
+      "overDictations_one": "over {{number}} dictation",
+      "overDictations_other": "over {{number}} dictations"
     }
   },
   "history": {

@@ -100,7 +100,7 @@
       "neverLeft": "rien n'a quitté la machine"
     },
     "cost": {
-      "title": "Face à une API hébergée",
+      "title": "API hébergées",
       "audio": "~{{minutes}} min d'audio, s'il avait été envoyé ailleurs",
       "perMinute": "{{price}}/min",
       "footer": "Tarifs publiés en {{date}}. Par minute d'audio.",
@@ -108,7 +108,7 @@
       "serverNote_other": "{{number}} dictées sont passées par votre serveur, qui coûte ce que coûte ce serveur."
     },
     "subscription": {
-      "title": "Face à un abonnement",
+      "title": "Abonnements",
       "duration_one": "{{count}} mois depuis {{start}}",
       "duration_other": "{{count}} mois depuis {{start}}",
       "perMonth": "{{price}}/mois",
@@ -169,7 +169,10 @@
       "keyboard": "Au clavier",
       "voice": "À la voix",
       "retest": "Refaire",
-      "retestTitle": "Refaire le test de frappe"
+      "retestTitle": "Refaire le test de frappe",
+      "measuredOn": "mesuré le {{date}}",
+      "overDictations_one": "sur {{number}} dictée",
+      "overDictations_other": "sur {{number}} dictées"
     }
   },
   "history": {

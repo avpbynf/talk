@@ -443,8 +443,8 @@ test.describe("dashboard", () => {
     const speak = await box(page.getByText("You speak at"));
     const faster = await box(page.getByText("Faster than real time"));
     const activity = await box(page.getByText("Activity", { exact: true }));
-    const cost = await box(page.getByText("Against a hosted API"));
-    const subscription = await box(page.getByText("Against a subscription"));
+    const cost = await box(page.getByText("Hosted APIs"));
+    const subscription = await box(page.getByText("Subscriptions"));
     const typing = await box(page.getByText("Your typing", { exact: true }));
 
     // Narrow, so the facts stack under the figure instead of standing beside it

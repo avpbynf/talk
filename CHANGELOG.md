@@ -396,6 +396,12 @@ comes first, then the sync, then the update. The account entry reads "Not signed
 when you are signed out and "Sync failed" after a failed sync, and the fallback pill reads "Local
 fallback".
 
+- (dashboard) Date the typing test and shorten two titles
+
+The "At the keyboard" line of the typing card says when the speed was measured, as from the next test
+you keep (with the year when it is not this one), and the line below it says over how many dictations your voice speed was taken. The two
+comparison cards are titled "Hosted APIs" and "Subscriptions".
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded

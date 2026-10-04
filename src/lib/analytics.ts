@@ -205,6 +205,7 @@ export function calculateWpm(charCount: number, elapsedMs: number): number {
 }
 
 const WPM_STORAGE_KEY = "talk-user-wpm";
+const WPM_DATE_STORAGE_KEY = "talk-user-wpm-date";
 
 export function loadUserWpm(): number {
   try {
@@ -222,7 +223,19 @@ export function loadUserWpm(): number {
 export function saveUserWpm(wpm: number): void {
   try {
     localStorage.setItem(WPM_STORAGE_KEY, String(wpm));
+    localStorage.setItem(WPM_DATE_STORAGE_KEY, new Date().toISOString());
   } catch {
     /* ignore */
+  }
+}
+
+/** When the typing speed was measured, or null for one that was never measured or predates the date. */
+export function loadUserWpmDate(): Date | null {
+  try {
+    const stored = localStorage.getItem(WPM_DATE_STORAGE_KEY);
+    const date = stored ? new Date(stored) : null;
+    return date && !Number.isNaN(date.getTime()) ? date : null;
+  } catch {
+    return null;
   }
 }

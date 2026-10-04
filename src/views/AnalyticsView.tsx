@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageShell } from "@/components/PageShell";
-import { loadUserWpm, PERIOD_DAYS } from "@/lib/analytics";
+import { loadUserWpm, loadUserWpmDate, PERIOD_DAYS } from "@/lib/analytics";
 import type { AnalyticsSummary, Period, YearlyDayActivity } from "@/lib/analytics";
 import { PeriodFilter } from "@/views/analytics/PeriodFilter";
 import { DeviceScopeFilter } from "@/views/analytics/DeviceScopeFilter";
@@ -22,6 +22,7 @@ import { TypingTestDialog } from "@/views/analytics/TypingTestDialog";
 export default function AnalyticsView() {
   const { t } = useTranslation();
   const [userWpm, setUserWpm] = useState<number>(() => loadUserWpm());
+  const [wpmDate, setWpmDate] = useState<Date | null>(() => loadUserWpmDate());
   const [testOpen, setTestOpen] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
   // Not persisted: every start opens on all devices.
@@ -103,6 +104,7 @@ export default function AnalyticsView() {
             onClose={() => setTestOpen(false)}
             onWpmMeasured={(wpm) => {
               setUserWpm(wpm);
+              setWpmDate(loadUserWpmDate());
               setTestOpen(false);
             }}
           />
@@ -138,7 +140,7 @@ export default function AnalyticsView() {
           <div className="grid grid-cols-3 gap-3 @max-[700px]:grid-cols-1">
             <CostComparison summary={summary} />
             <SubscriptionComparison summary={summary} />
-            <TypingCard summary={summary} userWpm={userWpm} onRecalibrate={() => setTestOpen(true)} />
+            <TypingCard summary={summary} userWpm={userWpm} measuredOn={wpmDate} onRecalibrate={() => setTestOpen(true)} />
           </div>
         </>
       ) : (
