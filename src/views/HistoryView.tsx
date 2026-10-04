@@ -9,9 +9,10 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { PageShell } from "@/components/PageShell";
-import { Trash2, Sparkles, Clock, Globe, HardDrive, ClipboardCheck } from "lucide-react";
+import { Trash2, Sparkles, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -70,59 +71,7 @@ export default function HistoryView({
 
   return (
     <PageShell
-      title={tr("history.title")}
       className="w-full"
-      /*
-        The retention lives behind the count rather than in a control
-        of its own. It is read far more often than it is changed, and
-        the line already says the number it governs.
-      */
-      subtitle={
-        <div className="flex items-baseline gap-1">
-          <p className="text-sm text-muted-foreground">
-            {isEmpty
-              ? tr("history.empty")
-              : tr("history.kept", { number: transcriptions.length, limit: historyLimit })}
-          </p>
-          <Select
-            value={String(historyLimit)}
-            onValueChange={(value) => {
-              const limit = Number(value);
-              if (retentionWouldDelete(transcriptions.length, limit) > 0) {
-                setPendingLimit(limit);
-              } else {
-                onHistoryLimitChange(limit);
-              }
-            }}
-          >
-            <SelectTrigger
-              aria-label={tr("history.keepHowMany")}
-              title={tr("history.keepHowMany")}
-              className="h-auto w-auto gap-0 border-0 bg-transparent p-0 text-muted-foreground/40 shadow-none hover:text-muted-foreground focus:ring-0 [&>span]:hidden"
-            />
-            <SelectContent>
-              {RETENTION_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={String(option.value)}>
-                  {tr("history.keepOption", { value: option.label })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      }
-      action={
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setConfirmClear(true)}
-          disabled={isEmpty}
-          aria-label={tr("history.clearAll")}
-          title={tr("history.clearAll")}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      }
       overlay={
         <>
           <ConfirmDialog
@@ -152,6 +101,55 @@ export default function HistoryView({
         </>
       }
     >
+      {/* The retention is read far more often than it is changed, so it sits beside the count it governs. */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+        <p className="text-[13px] text-muted-foreground">
+          {isEmpty
+            ? tr("history.empty")
+            : tr("history.kept", { number: transcriptions.length, limit: historyLimit })}
+        </p>
+        <span className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{tr("history.keep")}</span>
+          <Select
+            value={String(historyLimit)}
+            onValueChange={(value) => {
+              const limit = Number(value);
+              if (retentionWouldDelete(transcriptions.length, limit) > 0) {
+                setPendingLimit(limit);
+              } else {
+                onHistoryLimitChange(limit);
+              }
+            }}
+          >
+            <SelectTrigger
+              aria-label={tr("history.keepHowMany")}
+              title={tr("history.keepHowMany")}
+              className="min-w-[88px]"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RETENTION_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={String(option.value)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setConfirmClear(true)}
+            disabled={isEmpty}
+            aria-label={tr("history.clearAll")}
+            title={tr("history.clearAll")}
+            className="hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 />
+          </Button>
+        </span>
+      </div>
+
       {isEmpty ? (
         <p className="text-sm text-muted-foreground text-center leading-relaxed">
           {tr("history.press")}
@@ -168,7 +166,7 @@ export default function HistoryView({
           {tr("history.startTalking")}
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
         <AnimatePresence initial={false}>
         {transcriptions.map((t) => (
           <motion.div
@@ -181,10 +179,10 @@ export default function HistoryView({
             }}
             exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.99 }}
             layout
             onClick={() => copyToClipboard(t.text, t.id)}
-            className="group p-4 rounded-xl border border-border-card bg-surface-raised hover:bg-surface-active transition-colors overflow-hidden cursor-pointer relative"
+            className="group relative flex cursor-pointer flex-col gap-2.5 overflow-hidden rounded-[calc(var(--radius)+4px)] border border-border-card bg-surface-raised px-[18px] py-[14px] shadow-[var(--shadow)] transition-colors hover:border-[color-mix(in_oklch,var(--s1)_35%,var(--line))]"
           >
             {/* Copy feedback — floating ghost label */}
             <AnimatePresence>
@@ -202,44 +200,39 @@ export default function HistoryView({
             </AnimatePresence>
 
             {/* Text content */}
-            <p className="selectable text-sm break-words leading-relaxed text-foreground/90">
+            <p className="selectable text-sm break-words leading-[1.6]">
               {t.text}
             </p>
 
             {/* Footer */}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border-subtle">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="h-3 w-3" />
-                  {formatTime(t.timestamp)}
-                </span>
-                <span className="text-muted-foreground/40">·</span>
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span>{formatTime(t.timestamp)}</span>
+                <span>·</span>
                 <span>{formatDate(t.timestamp)}</span>
               </div>
 
-              <div className="flex items-center gap-2">
-                {t.model && t.source !== "server" && (
-                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-active">
-                    {t.model}
-                  </span>
-                )}
+              <div className="flex items-center gap-1.5">
+                {t.model && t.source !== "server" && <span>{t.model}</span>}
                 {(() => {
                   const source = t.source || "local";
                   return source === "server" ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-server)]/10 text-[var(--color-server)] border border-[var(--color-server)]/20">
-                      <Globe size={10} />
+                    <span className="whitespace-nowrap rounded-full bg-[color-mix(in_oklch,var(--color-server)_16%,transparent)] px-[9px] py-[3px] text-[11px] font-medium text-[var(--color-server)]">
                       {tr("history.server")}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-active)]/10 text-[var(--color-active)] border border-[var(--color-active)]/20">
-                      <HardDrive size={10} />
+                    <span className="whitespace-nowrap rounded-full bg-[var(--tint)] px-[9px] py-[3px] text-[11px] font-medium text-[var(--color-active)]">
                       {tr("history.local")}
                     </span>
                   );
                 })()}
                 {t.enhanced && (
-                  <span className="badge-active text-[10px] px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                    <Sparkles className="h-2.5 w-2.5" />
+                  <span
+                    role="img"
+                    aria-label={tr("history.enhanced")}
+                    className="grid h-[22px] w-[22px] place-items-center rounded-full bg-[var(--tint-2)] text-[var(--color-active)]"
+                  >
+                    <Sparkles className="h-3 w-3" />
                   </span>
                 )}
                 {/*

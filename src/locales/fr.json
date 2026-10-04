@@ -170,11 +170,9 @@
     }
   },
   "history": {
-    "title": "Historique",
     "empty": "Rien n'a encore été dicté",
     "kept": "{{number}} sur {{limit}} conservées",
     "keepHowMany": "Nombre de transcriptions à conserver",
-    "keepOption": "Conserver {{value}}",
     "clearAll": "Vider tout l'historique",
     "press": "Appuyez sur",
     "startTalking": "et commencez à parler",
@@ -190,7 +188,9 @@
     "limitConfirm": {
       "title": "Ne conserver que {{limit}} transcriptions ?",
       "description": "{{number}} transcriptions plus anciennes sont supprimées, sans retour possible. Les statistiques continuent de les compter."
-    }
+    },
+    "keep": "Garder",
+    "enhanced": "Améliorée"
   },
   "vocabulary": {
     "title": "Vocabulaire",
