@@ -117,7 +117,7 @@ export default function PreviewCard({ settings, colors, email, onFree }: Preview
         }}
       >
         <div aria-hidden="true" className="absolute bottom-[-10px] left-[7%] top-[14%] w-[56%] overflow-hidden rounded-[10px] bg-[#fbfbfd] text-[#23232b] shadow-[0_20px_50px_-14px_rgb(0_0_0/0.6)]">
-          <div className="flex h-[30px] items-center gap-1.5 border-b border-[#ececf1] px-3 text-[11px] text-[#8a8a96]">
+          <div className="flex h-[30px] items-center gap-1.5 border-b border-[#ececf1] px-3 text-[11px] text-[#6b6b78]">
             <i className="h-2 w-2 rounded-full bg-[#dcdce3]" />
             <i className="h-2 w-2 rounded-full bg-[#dcdce3]" />
             <i className="h-2 w-2 rounded-full bg-[#dcdce3]" />

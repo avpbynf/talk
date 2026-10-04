@@ -71,7 +71,7 @@ function Dial({
       onPointerMove={(event) => !disabled && event.currentTarget.hasPointerCapture(event.pointerId) && turn(event)}
       onKeyDown={onKeyDown}
       className={cn(
-        "relative h-[84px] w-[84px] shrink-0 cursor-grab touch-none rounded-full bg-foreground/[0.06] shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-opacity focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-ring active:cursor-grabbing",
+        "relative h-[84px] w-[84px] shrink-0 cursor-grab touch-none rounded-full bg-foreground/[0.06] shadow-[inset_0_0_0_1px_var(--line)] transition-opacity focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-ring active:cursor-grabbing",
         disabled && "cursor-not-allowed opacity-40 active:cursor-not-allowed",
       )}
     >
@@ -242,10 +242,10 @@ export default function GradientEditor({ theme }: { theme: AppThemeController })
         </div>
       }
     >
-      <div className="flex flex-col gap-4 border-t border-border-subtle pt-4">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-stretch gap-[18px]">
-          <div className="relative min-h-[120px] flex-[1_1_260px] overflow-hidden rounded-xl bg-[image:var(--grad)] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)]">
-            <span className="absolute bottom-3 left-3.5 rounded bg-[#101018]/80 px-1.5 py-0.5 font-mono text-xs text-white">
+          <div className="relative min-h-[120px] flex-[1_1_260px] overflow-hidden rounded-[calc(var(--radius)+2px)] bg-[image:var(--grad)] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)]">
+            <span className="absolute bottom-3 left-3.5 text-xs text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.4)]">
               {summary}
             </span>
           </div>
@@ -338,7 +338,7 @@ export default function GradientEditor({ theme }: { theme: AppThemeController })
                   change({ stops: evenStops(colors) });
                   setSelected(0);
                 }}
-                className="h-[38px] w-[38px] rounded-full shadow-[inset_0_0_0_1px_rgb(255_255_255/0.15)] outline-none transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:rotate-[-8deg] hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-90"
+                className="h-[38px] w-[38px] rounded-full shadow-[inset_0_0_0_1px_rgb(255_255_255/0.15)] transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:rotate-[-8deg] hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-90"
                 style={{ backgroundImage: gradientCss(evenStops(colors), 135) }}
               />
             ))}
