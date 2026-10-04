@@ -1456,8 +1456,37 @@ pub fn run() {
 
             // Initialize SQLite database
             let db_path = database::default_db_path();
-            let db = database::Database::open(&db_path)
-                .expect("Failed to open database");
+            let db = match database::Database::open(&db_path) {
+                Ok(db) => db,
+                Err(error) => {
+                    // The release build aborts on a panic with nothing on
+                    // screen, so this says what happened before it stops.
+                    let message = format!(
+                        "Talk could not open its database and has to close.\n\n{}\n\n{}",
+                        db_path.display(),
+                        error
+                    );
+                    eprintln!("{}", message);
+                    #[cfg(windows)]
+                    {
+                        use windows::core::PCWSTR;
+                        use windows::Win32::UI::WindowsAndMessaging::{
+                            MessageBoxW, MB_ICONERROR, MB_OK,
+                        };
+                        let text: Vec<u16> = message.encode_utf16().chain(Some(0)).collect();
+                        let title: Vec<u16> = "Talk".encode_utf16().chain(Some(0)).collect();
+                        unsafe {
+                            MessageBoxW(
+                                None,
+                                PCWSTR(text.as_ptr()),
+                                PCWSTR(title.as_ptr()),
+                                MB_OK | MB_ICONERROR,
+                            );
+                        }
+                    }
+                    std::process::exit(1);
+                }
+            };
             app.manage(db);
             sync::init(app.handle());
 
