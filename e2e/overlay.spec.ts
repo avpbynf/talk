@@ -321,12 +321,35 @@ test.describe("the overlay page", () => {
     });
   });
 
-  test("a click that is not a drag does not make the next placement a drag", async ({ app, page }) => {
+  test("a drag still counts after the window loses focus to the native move loop", async ({ app, page }) => {
+    await open(app, page);
+    await show(app, "rec");
+    await page.mouse.move(100, 40);
+    await page.mouse.down();
+    await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    await app.emit("tauri://move", { x: 300, y: 700 });
+    await expect.poll(async () => (await app.calls("save_overlay_position")).length).toBe(1);
+    expect((await app.calls("save_overlay_position"))[0].args).toEqual({ x: 300, y: 700 });
+  });
+
+  test("a drag counts although the release reaches the page before the move", async ({ app, page }) => {
     await open(app, page);
     await show(app, "rec");
     await page.mouse.move(100, 40);
     await page.mouse.down();
     await page.mouse.up();
+    await app.emit("tauri://move", { x: 300, y: 700 });
+    await expect.poll(async () => (await app.calls("save_overlay_position")).length).toBe(1);
+  });
+
+  test("a press left over from one dictation does not make the next placement a drag", async ({ app, page }) => {
+    await open(app, page);
+    await show(app, "rec");
+    await page.mouse.move(100, 40);
+    await page.mouse.down();
+    await page.mouse.up();
+    await app.emit("processing-state", "idle");
+    await expect(page.locator(".ovbox")).toHaveCount(0);
     await app.emit("tauri://move", { x: 40, y: 50 });
     await page.waitForTimeout(500);
     expect(await app.calls("save_overlay_position")).toHaveLength(0);
