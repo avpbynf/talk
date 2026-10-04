@@ -1,19 +1,44 @@
+mod config;
+
+pub use config::{
+    config, find, init, suspends_sync, tell_owed, update_config,
+    HotkeyConfig,
+};
+
 use crate::{audio, audio_encoder, database, overlay_feedback, server_transcription, AppState, RecordingMode};
 use crate::settings::TranscriptionMode;
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use crate::dictation_queue::{PasteTarget, Release, Transcript};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, EventTarget, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
-use thiserror::Error;
 
-/// Which duck or restore is allowed to have the last word on the stored level.
-///
-/// Both slide the volume on their own thread, so a recording started while the
-/// previous one is still coming back up leaves two of them in flight.
-static DUCK_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// Where the volume was before the machine was turned down, and which step has the
+/// last word. One lock, taken together with the fade ticket, for each transition.
+static DUCK: parking_lot::Mutex<crate::ducking::DuckState> =
+    parking_lot::Mutex::new(crate::ducking::DuckState::new());
+
+/// Held while what is persisted is made to say what memory says, so that two such
+/// steps on two threads cannot land in the opposite order.
+static PERSIST_IO: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
+
+/// Make the marker file say what memory says now: the level while the volume is
+/// down, nothing once it is back. It runs off the paths that wait for the volume,
+/// never goes through the settings store or the sync, and a failure leaves memory
+/// as it is.
+fn sync_persisted_level() {
+    let _io = PERSIST_IO.lock();
+    let level = DUCK.lock().level();
+    let marker = crate::ducking::DuckMarker::in_config_dir();
+    match level {
+        Some(level) => {
+            if let Err(e) = marker.write(level) {
+                eprintln!("Failed to write the volume marker: {}", e);
+            }
+        }
+        None => marker.clear(),
+    }
+}
 
 /// Take the machine down while the microphone is open, and remember where it was.
 ///
@@ -21,8 +46,9 @@ static DUCK_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::Atomic
 /// front, which hit the wrong application as often as the right one and had no
 /// way of knowing whether it had paused or resumed. Lowering the render
 /// endpoint touches everything at once and is exactly reversible.
-fn duck_audio(state: &AppState) {
-    if !*state.duck_audio_on_record.lock() {
+fn duck_audio() {
+    let (ducking, percent) = crate::settings::read(|s| (s.duck_audio_on_record, s.duck_volume_percent));
+    if !ducking {
         return;
     }
 
@@ -30,149 +56,86 @@ fn duck_audio(state: &AppState) {
         return;
     };
 
-    let target = crate::ducking::duck_level(before, *state.duck_volume_percent.lock());
+    let target = crate::ducking::duck_level(before, percent);
     // Nothing to do if it is already at or below where we would put it. Storing
     // the level anyway would restore somebody's volume upwards on stop.
     if before <= target {
         return;
     }
 
-    DUCK_GENERATION.fetch_add(1, Ordering::SeqCst);
+    // The ticket is taken with the transition: a restore that comes after takes a
+    // later one and stops this slide, and one that came before is stopped by it.
+    let (ducked, ticket) = {
+        let mut state = DUCK.lock();
+        (state.duck(before), crate::ducking::take_fade_ticket())
+    };
 
-    // On disk rather than in memory: if the process dies here, the next
-    // launch is the only thing left that can put it back.
-    //
-    // An existing value is left alone. Dictating again while the volume is
-    // still on its way up would otherwise store a level read halfway through
-    // the slide, and the machine would settle there instead of where it was.
-    let mut settings = crate::settings::load_settings();
-    if settings.volume_before_duck.is_none() {
-        settings.volume_before_duck = Some(before);
-        let _ = crate::settings::save_settings(&settings);
-    }
-
-    // The slide takes about a tenth of a second, and this path still has an
-    // overlay to show and an event to emit, so it runs on its own thread.
+    // The slide goes on its own thread, since this path still has an overlay to show
+    // and an event to emit.
     std::thread::spawn(move || {
-        crate::ducking::fade_volume(target, crate::ducking::FADE_DOWN_MS);
+        crate::ducking::fade_volume_with(ticket, target, crate::ducking::FADE_DOWN_MS);
     });
+
+    // The persisted level is for a process that dies while the volume is down: the
+    // next launch is the only thing left that can put it back. It is written off
+    // this path and off the slide.
+    if ducked.first {
+        std::thread::spawn(sync_persisted_level);
+    }
 }
 
 /// Put the volume back where it was, if this recording is what moved it.
 fn restore_audio() {
-    let settings = crate::settings::load_settings();
-    let Some(before) = settings.volume_before_duck else {
-        return;
+    let (restoring, ticket) = {
+        let mut state = DUCK.lock();
+        let Some(restoring) = state.restore(None) else {
+            return;
+        };
+        (restoring, crate::ducking::take_fade_ticket())
     };
 
-    let generation = DUCK_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
-
-    // The stored level is cleared once the volume is actually back, and not
-    // before: a process that dies halfway up would otherwise leave the machine
-    // quiet with nothing left saying where it came from. A recording started
-    // during the slide moves the generation on, and this slide then leaves the
-    // level where it is for the newer one to put back.
+    // The level is forgotten once the volume is actually back, and not before: a
+    // process that dies halfway up would otherwise leave the machine quiet with
+    // nothing left saying where it came from. A recording started during the slide
+    // moves the state on, and this slide then leaves the level for the newer one.
     std::thread::spawn(move || {
-        crate::ducking::fade_volume(before, crate::ducking::FADE_UP_MS);
-
-        if DUCK_GENERATION.load(Ordering::SeqCst) != generation {
-            return;
+        crate::ducking::fade_volume_with(ticket, restoring.level, crate::ducking::FADE_UP_MS);
+        if DUCK.lock().finish_restore(restoring.generation) {
+            sync_persisted_level();
         }
-
-        let mut settings = crate::settings::load_settings();
-        settings.volume_before_duck = None;
-        let _ = crate::settings::save_settings(&settings);
     });
 }
 
 /// Put the volume back now and wait for it, for a moment when nothing runs
 /// afterwards: the launch that finds a level left by a crash, and quitting.
+/// This is the one place that restores from what was persisted.
 ///
-/// The zero-length fade takes a ticket, so a slide still running stops, and
-/// the generation moves on, so a restore thread leaves the stored level alone.
-/// The level is cleared only once the volume is back.
+/// Its ticket stops a slide still running, and its step moves the state on, so a
+/// restore thread leaves the level alone. The level is forgotten only once the
+/// volume is back.
 pub fn restore_audio_now() {
-    let Some(before) = crate::settings::load_settings().volume_before_duck else {
-        return;
+    let known = DUCK.lock().level().is_some();
+    let left_by_a_crash = if known { None } else { crate::ducking::DuckMarker::in_config_dir().read() };
+    let (restoring, ticket) = {
+        let mut state = DUCK.lock();
+        let Some(restoring) = state.restore(left_by_a_crash) else {
+            return;
+        };
+        (restoring, crate::ducking::take_fade_ticket())
     };
-
-    DUCK_GENERATION.fetch_add(1, Ordering::SeqCst);
 
     // The fade is what stops a slide still running, and the set lands the
     // exact level whatever step it stopped on.
-    if crate::ducking::fade_volume(before, 0) && crate::ducking::set_volume(before) {
-        let mut settings = crate::settings::load_settings();
-        settings.volume_before_duck = None;
-        let _ = crate::settings::save_settings(&settings);
+    if crate::ducking::fade_volume_with(ticket, restoring.level, 0)
+        && crate::ducking::set_volume(restoring.level)
+        && DUCK.lock().finish_restore(restoring.generation)
+    {
+        sync_persisted_level();
     }
-}
-
-#[derive(Error, Debug)]
-pub enum HotkeyError {
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HotkeyConfig {
-    pub shortcut: String,
-    #[serde(default = "default_cancel_shortcut")]
-    pub cancel_shortcut: String,
-    #[serde(default = "default_paste_shortcut")]
-    pub paste_shortcut: String,
-    pub mode: RecordingMode,
-}
-
-fn default_cancel_shortcut() -> String {
-    "Ctrl+F1".to_string()
-}
-
-fn default_paste_shortcut() -> String {
-    "Ctrl+Shift+Space".to_string()
-}
-
-impl Default for HotkeyConfig {
-    fn default() -> Self {
-        Self {
-            shortcut: "Ctrl+Space".to_string(),
-            cancel_shortcut: default_cancel_shortcut(),
-            paste_shortcut: default_paste_shortcut(),
-            mode: RecordingMode::Toggle,
-        }
-    }
-}
-
-fn get_config_path() -> PathBuf {
-    crate::paths::config_dir()
-        .map(|dir| dir.join("hotkeys.json"))
-        .unwrap_or_else(|| PathBuf::from("hotkeys.json"))
-}
-
-pub fn load_config() -> Result<HotkeyConfig, HotkeyError> {
-    let path = get_config_path();
-    if path.exists() {
-        let content = std::fs::read_to_string(&path)?;
-        Ok(serde_json::from_str(&content)?)
-    } else {
-        Ok(HotkeyConfig::default())
-    }
-}
-
-pub fn save_config(config: &HotkeyConfig) -> Result<(), HotkeyError> {
-    let path = get_config_path();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let content = serde_json::to_string_pretty(config)?;
-    std::fs::write(&path, content)?;
-    crate::sync::note_local_change();
-    Ok(())
 }
 
 pub fn setup_shortcuts(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    let config = load_config().unwrap_or_default();
+    let config = config();
     let state = app.state::<AppState>();
 
     // Store the parsed shortcuts in AppState: the single handler in
@@ -233,41 +196,31 @@ pub fn enable_shortcuts(app: &AppHandle) {
     register_stored(app);
 }
 
+/// The three below write the file first, and put the combination in memory and
+/// register it with the system only once it is written. One that cannot be parsed
+/// or cannot be written is an error and changes nothing.
 pub fn update_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(), Box<dyn std::error::Error>> {
     let parsed = parse_shortcut(new_shortcut)?;
+    update_config(|config| config.shortcut = new_shortcut.to_string())?;
     *app.state::<AppState>().main_shortcut.lock() = Some(parsed);
     register_stored(app);
-    store_in_config(|config| config.shortcut = new_shortcut.to_string());
     Ok(())
 }
 
 pub fn update_cancel_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(), Box<dyn std::error::Error>> {
     let parsed = parse_shortcut(new_shortcut)?;
+    update_config(|config| config.cancel_shortcut = new_shortcut.to_string())?;
     *app.state::<AppState>().cancel_shortcut.lock() = Some(parsed);
     register_stored(app);
-    store_in_config(|config| config.cancel_shortcut = new_shortcut.to_string());
     Ok(())
 }
 
 pub fn update_paste_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(), Box<dyn std::error::Error>> {
     let parsed = parse_shortcut(new_shortcut)?;
+    update_config(|config| config.paste_shortcut = new_shortcut.to_string())?;
     *app.state::<AppState>().paste_shortcut.lock() = Some(parsed);
     register_stored(app);
-    store_in_config(|config| config.paste_shortcut = new_shortcut.to_string());
     Ok(())
-}
-
-/// Read the file, change the one field, write it back.
-///
-/// A shortcut that registered but was never written comes back as the old one
-/// at the next launch, which is worth a line in the log even though nothing
-/// here can do anything about it.
-fn store_in_config(change: impl FnOnce(&mut HotkeyConfig)) {
-    let mut config = load_config().unwrap_or_default();
-    change(&mut config);
-    if let Err(e) = save_config(&config) {
-        eprintln!("Warning: failed to save config: {}", e);
-    }
 }
 
 fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, Box<dyn std::error::Error>> {
@@ -572,7 +525,7 @@ pub fn cancel(app: &AppHandle) {
 
 fn cancel_transcriptions(app: &AppHandle) {
     let state = app.state::<AppState>();
-    let settings = *state.queue_settings.lock();
+    let settings = crate::settings::read(|s| s.queue);
 
     let mut queue = state.dictation_queue.lock();
     let (any, release) = queue.cancel(settings.cancel_scope, settings.delivery, false);
@@ -635,7 +588,7 @@ fn cancel_recording(app: &AppHandle) {
 
     // The dictation this recording would have added to a held paragraph
     // never comes, so the paragraph may be complete now.
-    let delivery = state.queue_settings.lock().delivery;
+    let delivery = crate::settings::read(|s| s.queue.delivery);
     let mut queue = state.dictation_queue.lock();
     let release = queue.settle(delivery, false);
     hand_out(app, release);
@@ -675,7 +628,7 @@ pub fn paste_last_transcription(app: &AppHandle) {
 
         // The batch lives in memory only, so after a restart this falls back
         // to the last row, which is all a single dictation ever was anyway.
-        let batch = match state.queue_settings.lock().paste_target {
+        let batch = match crate::settings::read(|s| s.queue.paste_target) {
             PasteTarget::Batch => state.dictation_queue.lock().latest_batch(),
             PasteTarget::Last => None,
         };
@@ -696,7 +649,7 @@ pub fn paste_last_transcription(app: &AppHandle) {
             },
         };
 
-        let preserve = *state.preserve_clipboard.lock();
+        let preserve = crate::settings::read(|s| s.preserve_clipboard);
         if let Err(e) = crate::clipboard::type_text(&text, preserve) {
             eprintln!("Failed to paste the last transcription: {}", e);
         }
@@ -705,22 +658,21 @@ pub fn paste_last_transcription(app: &AppHandle) {
 
 /// Play sound feedback if enabled in settings. Non-blocking.
 fn play_sound_feedback(app: &AppHandle, sound_type: &str) {
-    let settings = crate::settings::load_settings();
-    if !settings.sound_feedback {
-        return;
-    }
-    let preset = match sound_type {
-        "start" => &settings.start_sound,
-        "refused" => "",
-        _ => &settings.stop_sound,
-    };
-    if preset == "none" {
+    let (enabled, preset) = crate::settings::read(|s| {
+        let preset = match sound_type {
+            "start" => s.start_sound.clone(),
+            "refused" => String::new(),
+            _ => s.stop_sound.clone(),
+        };
+        (s.sound_feedback, preset)
+    });
+    if !enabled || preset == "none" {
         return;
     }
     let state = app.state::<AppState>();
     let engine_lock = state.sound_engine.lock();
     if let Some(ref engine) = *engine_lock {
-        engine.play(sound_type, preset);
+        engine.play(sound_type, &preset);
     }
 }
 
@@ -732,7 +684,7 @@ fn play_sound_feedback(app: &AppHandle, sound_type: &str) {
 /// fallback on, a missing model only matters once the server has failed.
 fn refuse_without_model(app: &AppHandle) -> bool {
     let state = app.state::<AppState>();
-    if *state.transcription_mode.lock() != TranscriptionMode::Local {
+    if crate::settings::read(|s| s.transcription_mode) != TranscriptionMode::Local {
         return false;
     }
     // Never wait on the engine here. A transcription holds that lock for its
@@ -784,7 +736,7 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     }
 
     // 2. Start audio capture immediately (use selected device or system default)
-    let device_name = state.input_device_name.lock().clone();
+    let device_name = crate::settings::read(|s| s.input_device_name.clone());
     let (buffer, handle) = match audio::start_capture_device(device_name.as_deref()) {
         Ok(started) => started,
         Err(e) => {
@@ -803,7 +755,7 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     play_sound_feedback(app, "start");
 
     // 3. Take the machine down so it does not talk over the speaker
-    duck_audio(&state);
+    duck_audio();
 
     // 4. Show overlay (pre-created at startup, just show it, never recreate)
     state.overlay_gen.begin();
@@ -918,7 +870,7 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
         }
     };
 
-    let delivery = state.queue_settings.lock().delivery;
+    let delivery = crate::settings::read(|s| s.queue.delivery);
     let recording = *state.is_recording.lock();
     let mut queue = state.dictation_queue.lock();
     let release = queue.finish(seq, transcript, delivery, recording);
@@ -941,19 +893,17 @@ async fn transcribe(
     audio_data: Vec<f32>,
     cancel: Arc<AtomicBool>,
 ) -> Result<(String, &'static str), String> {
-    let state = app.state::<AppState>();
-
-    let transcription_mode = *state.transcription_mode.lock();
-    let server_url = state.server_url.lock().clone();
-    let server_fallback = *state.server_fallback.lock();
-    let server_timeout = *state.server_timeout.lock();
+    let settings = crate::settings::get();
+    let transcription_mode = settings.transcription_mode;
+    let server_url = settings.server_url.clone();
+    let server_fallback = settings.server_fallback;
+    let server_timeout = settings.server_timeout;
 
     // Build vocabulary prompt from custom words only (comma-separated, no prefix)
-    let user_vocabulary = state.vocabulary.lock().clone();
-    let vocabulary_prompt = if user_vocabulary.is_empty() {
+    let vocabulary_prompt = if settings.vocabulary.is_empty() {
         None
     } else {
-        Some(user_vocabulary.join(", "))
+        Some(settings.vocabulary.join(", "))
     };
 
     match transcription_mode {
@@ -979,13 +929,12 @@ async fn transcribe(
             // Note: detected_context.language is a programming language name (e.g. "rust",
             // "generic_dev"), NOT a Whisper language code. Pass None to let the server use
             // its configured DEFAULT_LANGUAGE.
-            let server_settings = crate::settings::load_settings();
             let request = server_transcription::transcribe(
                 &server_url,
                 &wav_data,
                 server_timeout,
-                Some(&server_settings.server_token),
-                server_settings.server_model.as_deref(),
+                Some(&settings.server_token),
+                settings.server_model.as_deref(),
                 None,
                 vocabulary_prompt.as_deref(),
                 on_segment,
@@ -1058,7 +1007,7 @@ fn hand_out(app: &AppHandle, release: Release) {
 
     #[cfg(windows)]
     {
-        let preserve = *state.preserve_clipboard.lock();
+        let preserve = crate::settings::read(|s| s.preserve_clipboard);
         let (mut words, mut failures) = (0usize, 0usize);
         for text in &release.paste {
             match crate::clipboard::type_text(text, preserve) {
@@ -1108,7 +1057,7 @@ fn hand_out(app: &AppHandle, release: Release) {
         let db = app.state::<database::Database>();
         if let Err(e) = db.add_transcription(&entry) {
             eprintln!("Failed to save the transcription: {}", e);
-        } else if let Err(e) = db.prune_transcriptions(*state.history_limit.lock()) {
+        } else if let Err(e) = db.prune_transcriptions(crate::settings::read(|s| s.history_limit)) {
             eprintln!("Failed to prune the history: {}", e);
         }
 
@@ -1120,19 +1069,6 @@ fn hand_out(app: &AppHandle, release: Release) {
 mod tests {
     use super::*;
     use tauri_plugin_global_shortcut::{Code, Modifiers};
-
-    /// A settings file written before the paste shortcut existed has to keep
-    /// parsing: `load_config` drops the whole file on an error and hands back
-    /// the defaults, which would take the two shortcuts already in it with it.
-    #[test]
-    fn a_config_without_a_paste_shortcut_takes_the_default() {
-        let stored = r#"{"shortcut":"Ctrl+F2","cancel_shortcut":"Ctrl+F1","mode":"toggle"}"#;
-
-        let config: HotkeyConfig = serde_json::from_str(stored).expect("should parse");
-
-        assert_eq!(config.shortcut, "Ctrl+F2");
-        assert_eq!(config.paste_shortcut, default_paste_shortcut());
-    }
 
     #[test]
     fn two_modifiers_and_a_key_parse_into_one_shortcut() {

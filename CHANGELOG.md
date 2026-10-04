@@ -458,6 +458,36 @@ next change then saved the defaults over your server address, your token and you
 file is now written whole or not at all, and waits a moment when another program, a virus scanner
 or a backup, has it open.
 
+- (preferences) Keep the original of a settings or shortcuts file that cannot be fully read
+
+If the settings or the shortcuts file does not parse, or holds a value this version cannot read, the
+original is kept next to it as settings.unreadable.json or hotkeys.unreadable.json (never replaced
+by an emptier copy), the file is rewritten at once from what could be read so that the next start is
+clean, and a message tells you so once, at the first start you can see and not over an autostart at
+login, in the language of the interface. One value that does not fit, however deep in the file, no
+longer sends the whole file back to the defaults: only that value falls back. A file saved with a
+byte order mark, as Notepad and PowerShell used to, is read as the intact file it is.
+
+- (preferences) Say so when the settings file cannot be opened
+
+If another program, a virus scanner or a backup, holds the settings or the shortcuts file for more
+than a few seconds when Talk starts, Talk now says which file and closes, instead of running on the
+defaults and saving over it. It does the same when the original of a file it cannot fully read could
+not be kept first, and says which of the two went wrong.
+
+- (preferences) Do not sync the settings in a session that started on a file it could not fully read
+
+Such a session neither pushes its defaults to your account nor takes your account's settings over what
+you changed meanwhile, and the Account page says so. The next start merges the two the way a first
+sign-in does.
+
+- (preferences) Never lose a change made at the same moment as another
+
+Two changes landing together, such as a switch you flip while the settings sync with your account,
+could overwrite each other and one of them was lost. Every change now waits for the one before it
+to be written. A setting that could not be saved is no longer applied, and the control that asked
+for it now gets the error.
+
 - (models) A failed model download no longer counts as downloaded
 
 When the model server answered with an error, its message was saved as the model and listed as
@@ -703,6 +733,14 @@ The time saved read "98 h 00" on the Account page and the dashboard when the min
 now reads "98 h".
 
 ### Performance
+
+- (recording) Start dictating without waiting on the disk
+
+With the volume lowering switched on, every dictation rewrote the settings file and ran the sync's
+bookkeeping before the overlay appeared. The overlay now shows without touching a file. The level
+to restore is kept in memory, with a small marker file of its own that only a crash leaves behind,
+so the volume still comes back at the next launch, including after an update from a version that
+died while the volume was lowered.
 
 - (audio) Keep a very long recording smooth
 

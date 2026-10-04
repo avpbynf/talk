@@ -7,7 +7,6 @@ export const GOOGLE_ERRORS = [
   "drive_full",
   "remote_unreadable",
   "remote_devices_unreadable",
-  "settings_unreadable",
   "database",
   "sign_in_timeout",
   "sign_in_refused",

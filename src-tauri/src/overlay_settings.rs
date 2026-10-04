@@ -3,9 +3,9 @@
 //! The look follows the account and the placement stays on each machine, because
 //! screens differ from one PC to the other. Every field reads leniently: a value
 //! this build cannot read takes its default instead of failing, since
-//! `load_settings` drops the whole file on a parse error.
+//! a settings file that does not parse is set aside whole.
 
-use crate::theme::{lenient, Extra};
+use crate::theme::{lenient, lenient_or, Extra};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
@@ -67,22 +67,19 @@ fn is_hex(color: &str) -> bool {
 }
 
 fn reaction<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
-    Ok(Value::deserialize(d)?
-        .as_u64()
-        .and_then(|n| u8::try_from(n).ok())
-        .unwrap_or(REACTION_DEFAULT))
+    lenient_or(d, |value| value.as_u64().and_then(|n| u8::try_from(n).ok()), REACTION_DEFAULT)
 }
 
 fn colors<'de, D: Deserializer<'de>>(d: D) -> Result<[String; 3], D::Error> {
-    Ok(serde_json::from_value::<[String; 3]>(Value::deserialize(d)?).unwrap_or_else(|_| default_custom_colors()))
+    lenient_or(d, |value| serde_json::from_value(value.clone()).ok(), default_custom_colors())
 }
 
 fn on<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
-    Ok(Value::deserialize(d)?.as_bool().unwrap_or(true))
+    lenient_or(d, Value::as_bool, true)
 }
 
 fn off<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
-    Ok(Value::deserialize(d)?.as_bool().unwrap_or(false))
+    lenient_or(d, Value::as_bool, false)
 }
 
 /// How the overlay looks and behaves. Follows the account.

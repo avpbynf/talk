@@ -31,6 +31,13 @@ fn is_busy(error: &io::Error) -> bool {
         || cfg!(windows) && matches!(error.raw_os_error(), Some(ERROR_ACCESS_DENIED | ERROR_SHARING_VIOLATION))
 }
 
+/// A temporary file a crash left behind holds a whole copy of the content, a
+/// token included. Removed when the file's owner opens it at launch.
+pub fn remove_leftover(path: &Path) {
+    let _writing = WRITING.lock();
+    let _ = std::fs::remove_file(temporary_beside(path));
+}
+
 #[cfg(test)]
 thread_local! {
     /// Run between the staging and the rename, so a test can look at the target then.
@@ -148,6 +155,17 @@ mod tests {
         assert!(write(&path, b"secret").is_err());
 
         assert!(!path.exists());
+    }
+
+    #[test]
+    fn a_leftover_temporary_file_is_removed_on_request() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        std::fs::write(temporary_beside(&path), b"token").unwrap();
+
+        remove_leftover(&path);
+
+        assert!(!temporary_beside(&path).exists());
     }
 
     #[test]

@@ -104,7 +104,7 @@ impl ShareBackend for AppBackend {
     }
 
     fn device(&self) -> String {
-        match *self.app.state::<AppState>().accelerator_backend.lock() {
+        match settings::read(|s| s.accelerator_backend) {
             AcceleratorBackend::Vulkan => "vulkan".to_string(),
             AcceleratorBackend::Cpu => "cpu".to_string(),
         }
@@ -207,11 +207,11 @@ fn bind_failure(port: u16, error: &std::io::Error) -> (ShareState, String) {
 
 impl ShareManager {
     pub fn info(&self, app: &AppHandle) -> ShareInfo {
-        let saved = settings::load_settings();
+        let (enabled, port) = settings::read(|s| (s.share_enabled, s.share_port));
         let status = self.status.lock();
         ShareInfo {
-            enabled: saved.share_enabled,
-            port: saved.share_port,
+            enabled,
+            port,
             state: status.state,
             address: status.address.clone(),
             message: status.message.clone(),
@@ -234,7 +234,7 @@ impl ShareManager {
         let mut running = self.running.lock().await;
         self.stop_locked(&mut running, app).await;
 
-        let port = settings::load_settings().share_port;
+        let port = settings::read(|s| s.share_port);
         let listener = match tokio::net::TcpListener::bind(("0.0.0.0", port)).await {
             Ok(listener) => listener,
             Err(e) => {
@@ -364,7 +364,7 @@ pub fn model_changed(app: &AppHandle) {
 
 /// Start serving at launch when it was left on
 pub fn start_at_launch(app: &AppHandle) {
-    if !settings::load_settings().share_enabled {
+    if !settings::read(|s| s.share_enabled) {
         return;
     }
     let app = app.clone();
@@ -388,9 +388,7 @@ pub async fn share_set_enabled(
     app: AppHandle,
     manager: tauri::State<'_, ShareManager>,
 ) -> Result<ShareInfo, String> {
-    let mut saved = settings::load_settings();
-    saved.share_enabled = enabled;
-    settings::save_settings(&saved)?;
+    settings::update(|s| s.share_enabled = enabled)?;
 
     if enabled {
         manager.start(&app).await;
@@ -409,11 +407,13 @@ pub async fn share_set_port(
     if port == 0 {
         return Err("The port must be between 1 and 65535".to_string());
     }
-    let mut saved = settings::load_settings();
-    saved.share_port = port;
-    settings::save_settings(&saved)?;
+    let enabled = settings::update(|s| {
+        s.share_port = port;
+        s.share_enabled
+    })?
+    .value;
 
-    if saved.share_enabled {
+    if enabled {
         manager.start(&app).await;
     }
     Ok(manager.info(&app))

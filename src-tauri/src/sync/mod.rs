@@ -76,10 +76,10 @@ fn state_lock() -> std::sync::MutexGuard<'static, ()> {
 /// the synced subset is stamped now, so that the last writer is the one who
 /// really edited last and not the one whose sync noticed first.
 pub fn note_local_change() {
-    if APPLYING.load(Ordering::Relaxed) || !SyncState::exists() {
+    if APPLYING.load(Ordering::Relaxed) || settings_suspended() || !SyncState::exists() {
         return;
     }
-    let Ok(local) = SyncedSettings::collect() else { return };
+    let local = SyncedSettings::collect();
     let _guard = state_lock();
     let mut state = SyncState::load();
     let local = local.with_refused(&state.refused);
@@ -95,8 +95,37 @@ pub fn note_local_change() {
     }
 }
 
+/// Run at launch, before the sync starts, by a store that found its file not
+/// fully readable and has set it aside: the settings' bookkeeping on disk starts
+/// over, as for a PC that never synced its settings. The run itself does not sync
+/// them (see `settings_suspended`). An error is a bookkeeping that could not be
+/// written: the store then leaves its file as it was.
+///
+/// The price, accepted: at the next healthy launch the first-sign-in merge runs,
+/// and a non-default local value wins over the account's.
+pub fn start_settings_over() -> Result<(), String> {
+    if !SyncState::exists() {
+        return Ok(());
+    }
+    let _guard = state_lock();
+    let mut state = SyncState::load();
+    forget_settings_progress(&mut state);
+    state.try_save()
+}
+
+/// The position of a machine that never synced its settings: the next round
+/// merges with the account instead of picking a side, so the account's values
+/// win wherever this machine only holds a default. The vocabulary ledger, the
+/// device and the other files' hashes are not about the settings and stay.
+fn forget_settings_progress(state: &mut SyncState) {
+    state.settings_synced = false;
+    state.settings_hash.clear();
+    state.settings_updated_ms = 0;
+    state.refused.clear();
+}
+
 /// Terms somebody put in the vocabulary. A no-op for a term already in it.
-/// Called with the vocabulary lock held, like every change to the list.
+/// Called right after the update that changed the list has returned.
 pub fn note_vocabulary_added(terms: &[String]) {
     edit_ledger(|ledger, now| terms.iter().for_each(|term| ledger.add(term, now)));
 }
@@ -172,7 +201,7 @@ fn status() -> GoogleStatus {
         last_error: state.last_error,
         last_error_detail: state.last_error_detail,
         last_notice: state.last_notice,
-        settings_upload_blocked: crate::settings::was_unreadable(),
+        settings_upload_blocked: settings_suspended(),
     }
 }
 
@@ -449,31 +478,33 @@ async fn sync_settings(
     files: &[DriveFile],
     state: &mut SyncState,
 ) -> Result<(), SyncError> {
+    // A run that did not start from healthy files does not sync its settings.
+    if settings_suspended() {
+        return Ok(());
+    }
+
     // The download comes first: nothing local is read until the network is done
     // with, so an edit made while it ran is part of what gets merged.
     let remote_file = drive::find_with_content(files, SETTINGS_FILE);
     let fetched = Fetched::from_drive(drive, remote_file).await?;
 
-    // From here to the end of the block nothing waits. The vocabulary lock is
-    // the one every edit of the list takes, so reading the local settings,
-    // merging, writing them and updating the running application happen
-    // without an edit slipping in between.
-    let (plan, applied, proof) = {
-        let app_state = app.state::<crate::AppState>();
-        let mut vocabulary = app_state.vocabulary.lock();
-        let local = SyncedSettings::collect().map_err(|e| {
-            SyncError::new(
-                Failure::SettingsUnreadable,
-                format!("Local settings could not be read, so they were not synced: {}", e),
-            )
-        })?;
-        let real = local.values();
+    // The plan is made from a snapshot, outside every lock, and applied by one
+    // update that first checks nobody changed the synced settings since the
+    // snapshot. When somebody did, the round starts again from the new one.
+    let mut attempt = 0;
+    let (plan, applied, proof) = loop {
+        attempt += 1;
+        let settings_now = crate::settings::get();
+        let hotkeys_now = crate::hotkeys::config();
+        let snapshot = SyncedSettings::from_parts(&settings_now, &hotkeys_now);
+        let seen = snapshot.fingerprint();
+        let real = snapshot.values();
         state.refused.retain(|key, refusal| real.get(key) == Some(&refusal.local));
-        let local = local.with_refused(&state.refused);
+        let local = snapshot.with_refused(&state.refused);
         // Only an account with no settings, or a file Drive lists as empty, is planned
         // as one. A file that is there and does not read ends the round here: nothing
         // is uploaded over it and the first-sync merge is still to come.
-        let remote = fetched.read(SETTINGS_FILE, Failure::RemoteUnreadable, |b| SettingsFile::parse(b, &local));
+        let remote = fetched.clone().read(SETTINGS_FILE, Failure::RemoteUnreadable, |b| SettingsFile::parse(b, &local));
         let remote = remote.usable()?;
         let proof = remote.proof;
         let remote = remote.value;
@@ -493,38 +524,44 @@ async fn sync_settings(
         (state.settings_hash, state.settings_updated_ms) =
             portable::restamp(&local, &state.settings_hash, state.settings_updated_ms, now_ms());
 
-        // Defaults standing in for an unreadable file are older than anything
-        // the account holds.
-        let unreadable = crate::settings::was_unreadable();
-        let mut plan = portable::plan(
+        let plan = portable::plan(
             &local,
-            if unreadable { 0 } else { state.settings_updated_ms },
+            state.settings_updated_ms,
             state.settings_synced,
             &state.vocabulary,
             remote,
             now_ms(),
         );
-        portable::block_push(&mut plan, unreadable);
         if plan.apply {
-            let refused = apply_remote_settings(app, &plan.merged, &mut vocabulary)?;
-            let wanted = plan.merged.values();
-            for key in refused {
-                if let (Some(remote), Some(local)) = (wanted.get(key), real.get(key)) {
-                    let refusal = portable::Refusal { remote: remote.clone(), local: local.clone() };
-                    state.refused.insert(key.to_string(), refusal);
+            // Held until the hash below is taken: the writes the apply makes are
+            // not local edits, and the hook that notes them must see that.
+            let _applying = Applying::begin();
+            match apply_remote_settings(app, &plan.merged, &seen, &hotkeys_now)? {
+                Applied::Stale if attempt < 3 => continue,
+                Applied::Stale => {
+                    return Err(SyncError::from("The settings kept changing while they were synced".to_string()));
                 }
-            }
-            if let Ok(applied) = SyncedSettings::collect() {
-                state.settings_hash = applied.with_refused(&state.refused).fingerprint();
+                Applied::Done(refused) => {
+                    let wanted = plan.merged.values();
+                    for key in refused {
+                        if let (Some(remote), Some(local)) = (wanted.get(key), real.get(key)) {
+                            let refusal = portable::Refusal { remote: remote.clone(), local: local.clone() };
+                            state.refused.insert(key.to_string(), refusal);
+                        }
+                    }
+                    // Recorded only now, once the settings are written: a remote apply that
+                    // was never written must not read as done.
+                    state.settings_hash = SyncedSettings::collect().with_refused(&state.refused).fingerprint();
+                }
             }
         }
         state.vocabulary = plan.ledger.clone();
         state.settings_updated_ms = plan.updated_at;
         let applied = plan.apply;
-        (plan, applied, proof)
+        break (plan, applied, proof);
     };
     if applied {
-        announce_remote_settings(app, &plan.merged);
+        crate::effects::announce(app, plan.merged.language.clone());
     }
 
     if plan.upload {
@@ -550,107 +587,98 @@ fn mark_synced(state: &mut SyncState, _proof: remote::ReadProof) {
     state.settings_synced = true;
 }
 
-/// A meeting mode value this machine could not switch to, so that it is not
-/// tried again on every round.
-static MEETING_MODE_REFUSED: std::sync::Mutex<Option<bool>> = std::sync::Mutex::new(None);
 
-/// Write the remote values to disk and into the running application. The
-/// caller holds the vocabulary lock, passed in as `vocabulary`, and tells the
-/// page afterwards.
+/// Marks the settings as being written from the account for as long as it lives.
+struct Applying;
+
+impl Applying {
+    fn begin() -> Self {
+        APPLYING.store(true, Ordering::Relaxed);
+        Applying
+    }
+}
+
+impl Drop for Applying {
+    fn drop(&mut self) {
+        APPLYING.store(false, Ordering::Relaxed);
+    }
+}
+
+/// What an attempt to apply the account's settings came to.
+enum Applied {
+    /// The synced settings changed since the plan was made, so nothing was written.
+    Stale,
+    /// Written, and the effects run. The names of the fields that could not be
+    /// applied here, so that they are not mistaken for local edits.
+    Done(Vec<&'static str>),
+}
+
+/// Write the remote values into the settings, and only then into the running
+/// application. `seen` is the fingerprint of the synced settings and shortcuts the
+/// plan was made from, and `hotkeys` the shortcuts it was made from: if either is
+/// not what they are now, nothing is written, so an edit made while the round
+/// ran is never overwritten unstamped.
 ///
-/// A settings or hotkeys file that does not parse is never written over: its
-/// defaults would replace whatever it held, the server token included.
-///
-/// Autostart and meeting mode go through the same code as their Preferences
-/// switches, and one that cannot be changed here (no virtual cable installed,
-/// say) keeps the value this machine had. The names of the fields it could not
-/// apply come back, so that they are not mistaken for local edits.
+/// The store's update only changes the value. Everything that follows is the
+/// effects routine, after the write, and not at all when it failed.
 fn apply_remote_settings(
     app: &tauri::AppHandle,
     remote: &SyncedSettings,
-    vocabulary: &mut Vec<String>,
-) -> Result<Vec<&'static str>, String> {
-    let mut refused = Vec::new();
-    struct Applying;
-    impl Applying {
-        fn begin() -> Self {
-            APPLYING.store(true, Ordering::Relaxed);
-            Applying
-        }
+    seen: &str,
+    hotkeys: &crate::hotkeys::HotkeyConfig,
+) -> Result<Applied, String> {
+    if crate::hotkeys::config() != *hotkeys {
+        return Ok(Applied::Stale);
     }
-    impl Drop for Applying {
-        fn drop(&mut self) {
-            APPLYING.store(false, Ordering::Relaxed);
+    let updated = crate::settings::update(|settings| {
+        if SyncedSettings::from_parts(settings, hotkeys).fingerprint() != seen {
+            return false;
         }
+        remote.apply_to_settings(settings);
+        true
+    })?;
+    if !updated.value {
+        return Ok(Applied::Stale);
     }
 
-    let before = SyncedSettings::collect()
-        .map_err(|e| format!("Local settings could not be read, so the synced ones were not applied: {}", e))?;
-    let mut settings = crate::settings::load_settings_strict()?;
-    let mut config = crate::hotkeys::load_config().map_err(|e| e.to_string())?;
-
-    let state = app.state::<crate::AppState>();
-    let _applying = Applying::begin();
-    remote.apply_to_settings(&mut settings);
-    if settings.autostart_enabled != before.autostart_enabled
-        && crate::apply_autostart(app, settings.autostart_enabled).is_err()
-    {
-        settings.autostart_enabled = before.autostart_enabled;
-        refused.push("autostart_enabled");
+    let wanted = crate::hotkeys::HotkeyConfig {
+        shortcut: remote.shortcut.clone(),
+        cancel_shortcut: remote.cancel_shortcut.clone(),
+        paste_shortcut: remote.paste_shortcut.clone(),
+        mode: remote.recording_mode,
+    };
+    // The shortcuts are looked at again now, after the settings write, which can take a
+    // while on a locked file: an edit made to them meanwhile is not ours to overwrite,
+    // and is reported as a field this machine kept.
+    let current = crate::hotkeys::config();
+    let moved = current != *hotkeys;
+    let target = if moved { current.clone() } else { wanted.clone() };
+    let mut refused = crate::effects::apply(app, (&updated.before, &updated.after), (&current, &target));
+    if moved {
+        let kept = [
+            ("shortcut", current.shortcut != wanted.shortcut),
+            ("cancel_shortcut", current.cancel_shortcut != wanted.cancel_shortcut),
+            ("paste_shortcut", current.paste_shortcut != wanted.paste_shortcut),
+            ("recording_mode", current.mode != wanted.mode),
+        ];
+        refused.extend(kept.into_iter().filter(|(_, differs)| *differs).map(|(name, _)| name));
     }
-    if settings.meeting_mode_enabled != before.meeting_mode_enabled {
-        let wanted = settings.meeting_mode_enabled;
-        let mut remembered = MEETING_MODE_REFUSED.lock().unwrap_or_else(|e| e.into_inner());
-        if *remembered == Some(wanted) || crate::apply_meeting_mode(app, &state, wanted).is_err() {
-            *remembered = Some(wanted);
-            settings.meeting_mode_enabled = before.meeting_mode_enabled;
-            refused.push("meeting_mode_enabled");
-        } else {
-            *remembered = None;
-        }
-    }
-    crate::settings::save_settings(&settings)?;
-
-    // Each of these registers the combination with the system and stores it,
-    // and one that cannot be parsed is left as it was.
-    if remote.shortcut != before.shortcut {
-        if crate::hotkeys::update_shortcut(app, &remote.shortcut).is_err() {
-            refused.push("shortcut");
-        }
-    }
-    if remote.cancel_shortcut != before.cancel_shortcut {
-        if crate::hotkeys::update_cancel_shortcut(app, &remote.cancel_shortcut).is_err() {
-            refused.push("cancel_shortcut");
-        }
-    }
-    if remote.paste_shortcut != before.paste_shortcut {
-        if crate::hotkeys::update_paste_shortcut(app, &remote.paste_shortcut).is_err() {
-            refused.push("paste_shortcut");
-        }
-    }
-    // The shortcut calls above rewrote the file, so the mode goes into what is there now.
-    config = crate::hotkeys::load_config().unwrap_or(config);
-    config.mode = remote.recording_mode;
-    let _ = crate::hotkeys::save_config(&config);
-
-    *state.recording_mode.lock() = remote.recording_mode;
-    *vocabulary = remote.vocabulary.clone();
-    *state.duck_audio_on_record.lock() = remote.duck_audio_on_record;
-    *state.duck_volume_percent.lock() = remote.duck_volume_percent;
-    *state.preserve_clipboard.lock() = remote.preserve_clipboard;
-    *state.queue_settings.lock() = remote.queue;
-    Ok(refused)
+    Ok(Applied::Done(refused))
 }
 
-/// Tell the window and the overlay that settings arrived.
-fn announce_remote_settings(app: &tauri::AppHandle, remote: &SyncedSettings) {
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        crate::overlay::place(app, &overlay);
-        crate::overlay::raise(&overlay);
-    }
-    crate::overlay::announce(app);
-    let _ = app.emit("language-changed", remote.language.clone());
-    let _ = app.emit("settings-synced", ());
+/// Whether the settings part of the sync is off for this run: a run that did not
+/// start from healthy settings and shortcuts files holds defaults and whatever the
+/// user changed since, which is not a history to push over the account's nor
+/// something to overwrite with the account's. Statistics, history and device
+/// names go on syncing.
+fn settings_suspended() -> bool {
+    suspended_by(crate::settings::suspends_sync(), crate::hotkeys::suspends_sync())
+}
+
+/// The shortcuts' synced fields travel in the settings document, so either file
+/// not being fully readable suspends it.
+fn suspended_by(settings_file_suspends: bool, shortcuts_file_suspends: bool) -> bool {
+    settings_file_suspends || shortcuts_file_suspends
 }
 
 async fn sync_inner(app: &tauri::AppHandle, state: &mut SyncState, scope: Scope) -> Result<(), SyncError> {
@@ -712,7 +740,7 @@ async fn run_sync(app: &tauri::AppHandle, scope: Scope) {
             && fresh.settings_updated_ms > state.settings_updated_ms
             && fresh.settings_hash != state.settings_hash
         {
-            state.settings_hash = fresh.settings_hash;
+            state.settings_hash = fresh.settings_hash.clone();
             state.settings_updated_ms = fresh.settings_updated_ms;
         }
         // A removal made while the round ran is on disk and nowhere else.
@@ -806,17 +834,15 @@ pub fn google_sign_in_cancel() {
 /// Whether the invitation to sign in was already shown and answered.
 #[tauri::command]
 pub fn google_invite_offered() -> bool {
-    crate::settings::load_settings().google_invite_offered
+    crate::settings::read(|s| s.google_invite_offered)
 }
 
 #[tauri::command]
 pub fn google_invite_answered() -> Result<(), String> {
-    let mut app_settings = crate::settings::load_settings();
-    if app_settings.google_invite_offered {
+    if crate::settings::read(|s| s.google_invite_offered) {
         return Ok(());
     }
-    app_settings.google_invite_offered = true;
-    crate::settings::save_settings(&app_settings)
+    crate::settings::update(|s| s.google_invite_offered = true).map(drop)
 }
 
 #[tauri::command]
@@ -1041,6 +1067,103 @@ mod tests {
         assert!(state.pulled.is_empty());
         assert!(settle(&mut state, &file("stats-pc3.json"), Pulled::Applied).is_none());
         assert_eq!(state.pulled.get("stats-pc3.json").map(String::as_str), Some("t1"));
+    }
+
+    #[test]
+    fn starting_the_settings_over_leaves_everything_not_about_them() {
+        let mut state = SyncState {
+            device_id: "pc".to_string(),
+            last_sync_ms: Some(9),
+            settings_hash: "abc".to_string(),
+            settings_updated_ms: 5,
+            settings_synced: true,
+            stats_hash: "stats".to_string(),
+            ..SyncState::default()
+        };
+        state.refused.insert(
+            "shortcut".to_string(),
+            portable::Refusal { remote: serde_json::json!("a"), local: serde_json::json!("b") },
+        );
+
+        forget_settings_progress(&mut state);
+
+        assert!(!state.settings_synced);
+        assert!(state.settings_hash.is_empty());
+        assert_eq!(state.settings_updated_ms, 0);
+        assert!(state.refused.is_empty());
+        assert_eq!(state.device_id, "pc");
+        assert_eq!(state.last_sync_ms, Some(9));
+        assert_eq!(state.stats_hash, "stats");
+    }
+
+    #[test]
+    fn a_pc_that_started_its_settings_over_takes_the_accounts_values_and_keeps_its_one_edit() {
+        // The defaults a damaged launch ran on, plus the one thing the user changed since.
+        let mut local = SyncedSettings::default();
+        local.start_sound = "click".to_string();
+        let mut remote = SyncedSettings::default();
+        remote.language = Some("fr".to_string());
+        remote.stop_sound = "chime".to_string();
+        remote.vocabulary = vec!["Tauri".to_string()];
+        let file = SettingsFile {
+            updated_at: 1_000,
+            settings: remote,
+            vocabulary: Default::default(),
+            foreign: Default::default(),
+            incomplete: false,
+            legacy_theme: None,
+        };
+        let mut state = SyncState { settings_synced: true, settings_updated_ms: 9_999, ..SyncState::default() };
+        forget_settings_progress(&mut state);
+
+        let plan = portable::plan(&local, state.settings_updated_ms, state.settings_synced, &state.vocabulary, Some(&file), 2_000);
+
+        assert!(plan.apply);
+        assert_eq!(plan.merged.language.as_deref(), Some("fr"));
+        assert_eq!(plan.merged.stop_sound, "chime");
+        assert_eq!(plan.merged.start_sound, "click");
+        assert_eq!(plan.merged.vocabulary, vec!["Tauri".to_string()]);
+    }
+
+    fn account_file(settings: SyncedSettings, vocabulary: vocabulary::VocabLedger) -> SettingsFile {
+        SettingsFile {
+            updated_at: 1_000,
+            settings,
+            vocabulary,
+            foreign: Default::default(),
+            incomplete: false,
+            legacy_theme: None,
+        }
+    }
+
+    #[test]
+    fn an_empty_vocabulary_on_a_pc_that_started_over_never_deletes_the_accounts_terms() {
+        // The ledger of the account says who added what, and nobody removed anything.
+        let mut ledger = vocabulary::VocabLedger::default();
+        ledger.add("Tauri", 100);
+        ledger.add("NeoForge", 100);
+        let mut remote = SyncedSettings::default();
+        remote.vocabulary = vec!["Tauri".to_string(), "NeoForge".to_string()];
+        let file = account_file(remote, ledger.clone());
+        // This PC's ledger remembers the same terms from before the damage; its list is empty.
+        let local = SyncedSettings::default();
+        let mut state = SyncState { settings_synced: true, settings_updated_ms: 9_999, ..SyncState::default() };
+        state.vocabulary = ledger;
+        forget_settings_progress(&mut state);
+
+        let plan = portable::plan(&local, state.settings_updated_ms, state.settings_synced, &state.vocabulary, Some(&file), 2_000);
+
+        assert_eq!(plan.merged.vocabulary, vec!["Tauri".to_string(), "NeoForge".to_string()]);
+        assert!(plan.ledger.removed.is_empty());
+        assert!(plan.apply);
+    }
+
+    #[test]
+    fn either_file_not_fully_read_suspends_the_settings_and_neither_leaves_them_syncing() {
+        assert!(!suspended_by(false, false));
+        assert!(suspended_by(true, false));
+        assert!(suspended_by(false, true));
+        assert!(suspended_by(true, true));
     }
 
     #[test]

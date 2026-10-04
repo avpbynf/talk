@@ -51,15 +51,15 @@ impl SyncState {
     }
 
     pub fn save(&self) {
-        let path = path();
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
+        if let Err(e) = self.try_save() {
+            eprintln!("Failed to save the sync state: {}", e);
         }
-        if let Ok(raw) = serde_json::to_string_pretty(self) {
-            if let Err(e) = std::fs::write(&path, raw) {
-                eprintln!("Failed to save the sync state: {}", e);
-            }
-        }
+    }
+
+    /// Written whole or not at all, and the failure comes back.
+    pub fn try_save(&self) -> Result<(), String> {
+        let raw = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+        crate::atomic_file::write(&path(), raw.as_bytes()).map_err(|e| e.to_string())
     }
 
     pub fn exists() -> bool {

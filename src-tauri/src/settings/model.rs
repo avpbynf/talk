@@ -2,8 +2,6 @@ use crate::overlay_settings::{OverlayLook, OverlayPlacement, Spot};
 use crate::theme::{SavedTheme, ThemeSettings, Tombstone};
 use crate::transcription::{AcceleratorBackend, GpuDevicePreference, GpuVendor};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompanionShortcut {
@@ -171,13 +169,11 @@ pub struct AppSettings {
     /// What to drop the volume to, as a percentage of where it was.
     #[serde(default = "default_duck_percent")]
     pub duck_volume_percent: u8,
-    /// The level taken before ducking, kept on disk rather than in memory.
-    ///
-    /// If the application dies mid-recording the machine is left quiet with
-    /// nothing in it knowing why. The next launch reads this back, restores it
-    /// and clears it.
-    #[serde(default)]
-    pub volume_before_duck: Option<f32>,
+    /// The level an earlier build kept here while the volume was lowered. It is
+    /// a marker file of its own now: this is read once and handed to it, and it
+    /// stays in the file, whatever else is saved, until the handover has worked.
+    #[serde(default, rename = "volume_before_duck", skip_serializing_if = "Option::is_none")]
+    legacy_volume_before_duck: Option<f32>,
     /// Preserve clipboard content after pasting transcription
     #[serde(default = "default_true")]
     pub preserve_clipboard: bool,
@@ -197,8 +193,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub server_model: Option<String>,
     /// Ids of the discovered servers already offered, so each is offered once.
-    /// Needs its serde default: a file without it must still parse, or
-    /// load_settings drops the whole file.
+    /// Needs its serde default: a file without it must still parse, or the
+    /// whole file is set aside.
     #[serde(default)]
     pub offered_servers: Vec<String>,
     /// Set once the invitation to sign in with Google has been shown and
@@ -300,7 +296,7 @@ impl Default for AppSettings {
             start_minimized: false,
             duck_audio_on_record: false,
             duck_volume_percent: default_duck_percent(),
-            volume_before_duck: None,
+            legacy_volume_before_duck: None,
             preserve_clipboard: true,
             sound_feedback: true,
             start_sound: default_sound_beep(),
@@ -321,49 +317,29 @@ impl Default for AppSettings {
     }
 }
 
-pub(crate) fn get_config_dir() -> PathBuf {
-    crate::paths::config_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-}
-
-fn get_settings_path() -> PathBuf {
-    get_config_dir().join("settings.json")
-}
-
-/// The settings as stored, or an error when the file is there and unreadable.
-///
-/// load_settings turns that error into the defaults, which is fine for
-/// reading and wrong for anything that writes the result back.
-pub fn load_settings_strict() -> Result<AppSettings, String> {
-    let path = get_settings_path();
-    if !path.exists() {
-        return Ok(AppSettings::default());
+impl AppSettings {
+    /// The volume an earlier build left lowered, when the file still carries it.
+    pub fn leftover_duck_level(&self) -> Option<f32> {
+        self.legacy_volume_before_duck
     }
-    let content = std::fs::read_to_string(&path).map_err(|e| {
-        UNREADABLE.store(true, Ordering::Relaxed);
-        e.to_string()
-    })?;
-    parse_settings(&content)
+
+    pub fn drop_leftover_duck_level(&mut self) {
+        self.legacy_volume_before_duck = None;
+    }
 }
 
-/// Set once the settings file failed to read or parse, and for the rest of the
-/// run: the defaults the lenient loader falls back to are not what the user
-/// chose, and the next save would make them the file.
-static UNREADABLE: AtomicBool = AtomicBool::new(false);
-
-pub fn was_unreadable() -> bool {
-    UNREADABLE.load(Ordering::Relaxed)
-}
-
-fn parse_settings(content: &str) -> Result<AppSettings, String> {
-    let unreadable = |e: serde_json::Error| {
-        UNREADABLE.store(true, Ordering::Relaxed);
-        e.to_string()
-    };
-    let value: serde_json::Value = serde_json::from_str(content).map_err(unreadable)?;
+/// What a settings file holds, or why it cannot be read. A file that does not
+/// parse is an error and never the defaults: only the store decides what to do
+/// with it.
+pub(super) fn parse_settings(content: &str) -> Result<(AppSettings, bool), String> {
+    let value: serde_json::Value = serde_json::from_str(content).map_err(|e| e.to_string())?;
     let has_theme = value.get("theme").is_some_and(|theme| !theme.is_null());
     let has_placement = value.get("overlay_placement").is_some_and(|placement| !placement.is_null());
-    let mut settings: AppSettings = serde_json::from_value(value).map_err(unreadable)?;
+    // A field that does not fit costs that field and not the file, and the file is then
+    // not fully read: its owner sets it aside and rewrites it.
+    crate::theme::take_refusals();
+    let (mut settings, refused) = crate::lenient::read_fields::<AppSettings>("settings", value)?;
+    let complete = refused.is_empty() && crate::theme::take_refusals() == 0;
     // An overlay an earlier build left dragged somewhere stays where it was dropped.
     if !has_placement && settings.overlay_position.is_some() {
         settings.overlay_placement.spot = Spot::Free;
@@ -373,40 +349,19 @@ fn parse_settings(content: &str) -> Result<AppSettings, String> {
             settings.theme = ThemeSettings::from_legacy(old.as_str().unwrap_or_default());
         }
     }
-    Ok(settings)
+    Ok((settings, complete))
 }
-
-pub fn load_settings() -> AppSettings {
-    load_settings_strict().unwrap_or_default()
-}
-
-pub fn save_settings(settings: &AppSettings) -> Result<(), String> {
-    let content = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
-    crate::atomic_file::write(&get_settings_path(), content.as_bytes()).map_err(|e| e.to_string())?;
-    crate::sync::note_local_change();
-    Ok(())
-}
-
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // load_settings and save_settings are deliberately left out. They resolve
-    // through ProjectDirs to the real %APPDATA%\avpbynf\Talk, so exercising them
-    // would read and overwrite the settings of whoever runs the suite. What is
-    // testable without that is the part that actually breaks: the defaults, and
-    // what serde does with a file written by an older version.
-
-    #[test]
-    fn a_file_that_does_not_parse_is_remembered_as_unreadable() {
-        assert!(parse_settings("{ not json").is_err());
-        assert!(was_unreadable());
-    }
+    // The store has its own tests, on files in a temporary directory. What is
+    // tested here is the part that actually breaks: the defaults, and what serde
+    // does with a file written by an older version.
 
     fn parse(json: &str) -> AppSettings {
-        parse_settings(json).expect("should deserialise")
+        parse_settings(json).expect("should deserialise").0
     }
 
     #[test]
@@ -431,7 +386,7 @@ mod tests {
     fn an_empty_object_deserialises_to_the_defaults() {
         // Every field carries a serde default, so a settings file written before
         // a field existed still parses. Without that, the whole file fails and
-        // load_settings silently replaces it.
+        // the application starts on the defaults.
         assert_eq!(parse("{}").overlay_theme, AppSettings::default().overlay_theme);
         assert_eq!(parse("{}").start_sound, AppSettings::default().start_sound);
         assert_eq!(parse("{}").server_timeout, 30000);
@@ -610,7 +565,7 @@ mod tests {
     #[test]
     fn a_device_id_left_in_an_old_file_is_ignored() {
         // The id lives in the database now; a file that still carries one
-        // must keep parsing, or load_settings would drop the lot.
+        // must keep parsing, or the whole file would be set aside.
         let s = parse(r#"{"server_url": "http://localhost:4060", "device_id": "abc"}"#);
         assert_eq!(s.server_url, "http://localhost:4060");
     }
@@ -824,5 +779,37 @@ mod tests {
 
         assert_eq!(restored.overlay_look, original.overlay_look);
         assert_eq!(restored.overlay_placement, original.overlay_placement);
+    }
+
+    #[test]
+    fn a_wrong_typed_field_costs_that_field_and_nothing_else() {
+        let s = parse(
+            r#"{"server_url": "http://nas:4060", "server_token": "sk-1", "server_timeout": "soon",
+                "vocabulary": ["Tauri"], "setup_completed": true}"#,
+        );
+
+        assert_eq!(s.server_timeout, 30000);
+        assert_eq!(s.server_url, "http://nas:4060");
+        assert_eq!(s.server_token, "sk-1");
+        assert_eq!(s.vocabulary, vec!["Tauri".to_string()]);
+        assert!(s.setup_completed);
+    }
+
+    #[test]
+    fn a_variant_written_by_a_newer_build_costs_that_field_and_nothing_else() {
+        let s = parse(
+            r#"{"server_url": "http://nas:4060", "transcription_mode": "hybrid",
+                "accelerator_backend": "quantum", "server_token": "sk-1"}"#,
+        );
+
+        assert_eq!(s.transcription_mode, TranscriptionMode::Local);
+        assert_eq!(s.server_url, "http://nas:4060");
+        assert_eq!(s.server_token, "sk-1");
+    }
+
+    #[test]
+    fn a_document_that_is_not_an_object_is_still_unreadable() {
+        assert!(parse_settings("[1, 2]").is_err());
+        assert!(parse_settings("\"text\"").is_err());
     }
 }

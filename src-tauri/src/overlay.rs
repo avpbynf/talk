@@ -29,7 +29,7 @@ impl OverlaySettingsView {
 
 /// Tell every window what the overlay settings are now.
 pub fn announce(app: &AppHandle) {
-    let _ = app.emit("overlay-settings-changed", OverlaySettingsView::of(&settings::load_settings()));
+    let _ = app.emit("overlay-settings-changed", settings::read(OverlaySettingsView::of));
 }
 
 /// The corner the overlay was last put at by `place`. Putting it there makes
@@ -91,15 +91,19 @@ pub fn screens(app: &AppHandle) -> Vec<Screen> {
 /// turned into a placement here, the first time it can be, because only here
 /// are the screens known.
 pub fn place(app: &AppHandle, overlay: &WebviewWindow) {
-    let mut settings = settings::load_settings();
+    let mut settings = settings::get();
     let screens = screens(app);
     if screens.is_empty() {
         return;
     }
     let logical = settings.overlay_size.dimensions();
-    if let Some(saved) = settings.overlay_position.take() {
-        placement::adopt_saved_corner(&mut settings.overlay_placement, (saved.x, saved.y), logical, &screens);
-        let _ = settings::save_settings(&settings);
+    if settings.overlay_position.is_some() {
+        let _ = settings::update(|s| {
+            if let Some(saved) = s.overlay_position.take() {
+                placement::adopt_saved_corner(&mut s.overlay_placement, (saved.x, saved.y), logical, &screens);
+            }
+        });
+        settings = settings::get();
     }
 
     let whereabouts = Whereabouts {
@@ -137,19 +141,23 @@ pub fn dragged_to(app: &AppHandle, corner: (i32, i32)) -> Result<(), String> {
     let size = overlay.outer_size().map_err(|e| e.to_string())?;
     let screens = screens(app);
 
-    let mut settings = settings::load_settings();
-    let mut placed = PLACED.lock();
-    if !placement::dropped(
-        &mut settings.overlay_placement,
-        &mut *placed,
+    // The judgement is made on copies, outside the store: the lock on where the overlay
+    // was put is `place`'s, on the way to showing the overlay, and the store's closure
+    // takes no lock. What was judged is kept only once it is written.
+    let mut dropped_at = settings::read(|s| s.overlay_placement.clone());
+    let mut placed = *PLACED.lock();
+    let moved = placement::dropped(
+        &mut dropped_at,
+        &mut placed,
         corner,
         (size.width as i32, size.height as i32),
         &screens,
-    ) {
+    );
+    if !moved {
         return Ok(());
     }
-    drop(placed);
-    settings::save_settings(&settings)?;
+    settings::update(|s| s.overlay_placement = dropped_at)?;
+    *PLACED.lock() = placed;
     announce(app);
     Ok(())
 }

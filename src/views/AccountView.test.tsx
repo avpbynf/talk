@@ -19,7 +19,6 @@ const WORDING: [string, string, string][] = [
   ["remote_devices_unreadable", "This account's list of devices was written by a newer version of Talk, or could not be read. Update Talk, it will try again.", "La liste des appareils de ce compte a été écrite par une version plus récente de Talk, ou n'a pas pu être lue. Mettez Talk à jour, il réessaiera."],
   ["sign_in_failed", "Google would not complete the sign-in.", "Google n'a pas terminé la connexion."],
   ["sign_in_no_email", "Google did not say which account signed in, so Talk kept nothing. Try again.", "Google n'a pas indiqué quel compte s'est connecté, Talk n'a donc rien gardé. Réessayez."],
-  ["settings_unreadable", "The settings file on this computer could not be read, so nothing was synced.", "Le fichier de réglages de cet ordinateur n'a pas pu être lu, rien n'a donc été synchronisé."],
   ["database", "Talk's database on this computer failed during the sync.", "La base de données de Talk sur cet ordinateur a échoué pendant la synchronisation."],
   ["sign_in_timeout", "The sign-in took too long and was abandoned. Try again.", "La connexion a pris trop de temps et a été abandonnée. Réessayez."],
   ["sign_in_refused", "Google reported that the sign-in was refused.", "Google a indiqué que la connexion a été refusée."],
@@ -283,11 +282,11 @@ describe("AccountView", () => {
     expect(screen.queryByText(/Last synced at/)).not.toBeInTheDocument();
   });
 
-  it("says when the settings are not uploaded because the file could not be read", async () => {
+  it("says when the settings are not syncing this session because a file was not fully readable", async () => {
     answer({ ...signedOut, email: "me@example.com", settingsUploadBlocked: true });
     render(<AccountView />);
 
-    expect(await screen.findByText(/settings are not being uploaded/)).toBeInTheDocument();
+    expect(await screen.findByText(/settings are not syncing during this session/)).toBeInTheDocument();
   });
 
   it("signing in asks the backend and then shows the account", async () => {

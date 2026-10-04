@@ -191,9 +191,9 @@ workflows run that same file.
   changing it needs a migration of its own. Never add a path under the old name.
 - **The theme is values, and the old theme names are still read.** `theme.rs` stores a
   preset id plus the values edited on top of it, and reads them field by field, so a
-  field this build cannot parse costs that field and not the file. `load_settings()`
-  drops the whole file on a parse error and returns the defaults, which would take the
-  server URL, the token and the shortcuts with it. Settings written before this carry
+  field this build cannot parse costs that field and not the file. A file that does
+  not parse is set aside whole and the application starts on the defaults, which
+  would take the server URL, the token and the shortcuts with it. Settings written before this carry
   `app_theme` as a string (`t4lk-dark` among them); `parse_settings` turns it into the
   matching preset and never writes it back. A synced copy is different: one without a
   `theme` (a machine on the old release) says nothing about it, so the local theme
@@ -205,10 +205,27 @@ workflows run that same file.
   still on disk after an upgrade, and `legacy_fingerprint` is what keeps that from
   reading as an edit. The preset ids live in `src/lib/theme.ts`, so a preset renamed
   there needs the mapping in `ThemeSettings::from_legacy` kept in step.
-- **A new settings field needs `#[serde(default)]`, always.** `load_settings()` drops the
-  whole file on a parse error, so `offered_servers` without its default would turn every
+- **A new settings field needs `#[serde(default)]`, always.** A file that does not parse
+  is set aside whole, so `offered_servers` without its default would turn every
   existing install back to the defaults on the first launch after the update, server URL
-  and token included. `settings.rs` carries a test for it.
+  and token included. `settings/model.rs` carries a test for it.
+- **Settings and shortcuts are read and changed through their store, never through the
+  file.** `settings::read` and `settings::get` answer from memory, `settings::update` is
+  the one way to change anything (`hotkeys::update_config` for the shortcuts), and its
+  closure is pure: it changes the value and does nothing else, so no effect, no lock and
+  no file belongs in it. What a change should cause runs after `update` returns, from the
+  settings before and after it, and not at all when the write failed, since memory never
+  gets ahead of the disk. A launch meets one of four cases, decided once in
+  `file_store.rs` and nowhere else: the file is absent (defaults); healthy; cannot be
+  opened (Talk tells the user in a native message and exits non-zero after a shared
+  budget of about five seconds, with no store and nothing written); or not fully
+  readable (the original is set aside as `settings.unreadable.json`
+  (`hotkeys.unreadable.json`), the file is rewritten at once from what was loaded, the
+  sync bookkeeping starts over, the settings part of the sync is off for the whole run,
+  and a message is owed until a visible launch). Nothing waits, retries in a thread or
+  adopts a file late. The level to restore after ducking is not a
+  setting: it is in memory, and in `volume-before-duck.txt` beside the settings only for a
+  crash, written off the press path.
 - **The uninstall key is the product name, not the identifier.** Tauri builds it as
   `Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}`, so renaming
   the product makes every earlier install invisible to the new one and Windows lists

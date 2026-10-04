@@ -873,7 +873,6 @@
       "quota": "Google is limiting requests for now. Talk will try again later.",
       "drive_full": "Your Google Drive is full, so Talk cannot save its files there. Free some space and sync again.",
       "remote_unreadable": "This account's settings were written by a newer version of Talk, or could not be read. Update Talk, it will try again.",
-      "settings_unreadable": "The settings file on this computer could not be read, so nothing was synced.",
       "database": "Talk's database on this computer failed during the sync.",
       "sign_in_timeout": "The sign-in took too long and was abandoned. Try again.",
       "sign_in_refused": "Google reported that the sign-in was refused.",
@@ -892,7 +891,7 @@
     "lastSyncAgo": "Last synced {{ago}}",
     "neverSynced": "Not synced yet",
     "syncFailed": "Last sync failed: {{error}}",
-    "settingsNotUploaded": "Your settings are not being uploaded because the settings file on this computer could not be read.",
+    "settingsNotUploaded": "Your settings are not syncing during this session: a settings file on this computer was not fully readable and has been set aside.",
     "noAccount": {
       "label": "Not signed in",
       "title": "No account",
