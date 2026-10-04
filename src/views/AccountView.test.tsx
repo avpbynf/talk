@@ -115,6 +115,26 @@ describe("AccountView", () => {
     expect(screen.queryByText(/error sending request/)).not.toBeInTheDocument();
   });
 
+  it("says that a round waits for the dictation under way, in both languages", async () => {
+    answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now(), lastNotice: "sync_after_dictation" });
+    const view = render(<AccountView />);
+
+    expect(
+      await screen.findByText("A dictation is under way: the settings of your account will be applied when it ends."),
+    ).toBeInTheDocument();
+    view.unmount();
+
+    await act(() => i18n.changeLanguage("fr"));
+    try {
+      render(<AccountView />);
+      expect(
+        await screen.findByText("Une dictée est en cours : les réglages de votre compte seront appliqués quand elle sera finie."),
+      ).toBeInTheDocument();
+    } finally {
+      await act(() => i18n.changeLanguage("en"));
+    }
+  });
+
   it("says under the last sync time when another device's data could not be read, in both languages", async () => {
     answer({ ...signedOut, email: "me@example.com", lastSyncMs: Date.now(), lastNotice: "device_data_unreadable" });
     const view = render(<AccountView />);

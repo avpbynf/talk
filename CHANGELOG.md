@@ -451,6 +451,14 @@ the application.
 
 ### Bug Fixes
 
+- (preferences) Leave a dictation alone while the account syncs
+
+Settings coming from your account used to be applied whenever the periodic sync happened to run,
+which could be in the middle of a dictation: the shortcuts were registered again and the overlay was
+moved under you. The sync now waits until the recording, the transcriptions and the pasting are
+over. A "Sync now" pressed meanwhile says on the Account page that the settings will be applied when
+the dictation ends, and they are.
+
 - (audio) Say it when the microphone is unplugged during a dictation
 
 A microphone pulled out, or a headset that dropped, in the middle of a dictation used to leave the

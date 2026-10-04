@@ -883,7 +883,8 @@
       "other": "Un problème est survenu en parlant à Google."
     },
     "notices": {
-      "device_data_unreadable": "Les statistiques ou l'historique de l'un de vos appareils n'ont pas pu être lus."
+      "device_data_unreadable": "Les statistiques ou l'historique de l'un de vos appareils n'ont pas pu être lus.",
+      "sync_after_dictation": "Une dictée est en cours : les réglages de votre compte seront appliqués quand elle sera finie."
     },
     "syncNow": "Synchroniser",
     "signOut": "Se déconnecter",

@@ -393,6 +393,10 @@ impl Drop for OverlayLease {
         let before = state.jobs_in_flight.fetch_sub(1, Ordering::SeqCst);
         announce_jobs(&self.app, before - 1);
         let was_last = before == 1;
+        // Before the recording lock below: the sync reads it too.
+        if was_last {
+            crate::sync::dictation_ended(&self.app);
+        }
         // Under the recording lock from the check to the hide, so a recording cannot start in
         // between and have its overlay hidden under it.
         let recording = state.is_recording.lock();
@@ -488,7 +492,14 @@ fn take_turn(release: &Release) -> Option<Turn> {
 fn hand_out_in_turn(app: &AppHandle, release: Release, turn: Option<Turn>) {
     if let Some(turn) = turn {
         turn.run(|cancelled| hand_out(app, release, cancelled));
+        // The sync waits for a paste too, and its round may be owed.
+        crate::sync::dictation_ended(app);
     }
+}
+
+/// Whether a text is being pasted or waiting for its turn to be.
+pub fn pasting() -> bool {
+    PASTES.pending()
 }
 
 /// Where every press and release of the main shortcut goes through.
@@ -637,6 +648,8 @@ fn cancel_recording(app: &AppHandle) {
 
     // Sound feedback: cancellation counts as stop
     play_sound_feedback(app, "stop");
+
+    crate::sync::dictation_ended(app);
 }
 
 /// What a recording that will not come leaves to settle: the held paragraph it was part of,

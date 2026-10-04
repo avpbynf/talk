@@ -10,6 +10,7 @@
 mod auth;
 mod auth_page;
 mod devices;
+mod dictation;
 mod drive;
 mod failure;
 mod portable;
@@ -51,6 +52,8 @@ static SYNCING: AtomicBool = AtomicBool::new(false);
 static STARTED: OnceLock<()> = OnceLock::new();
 static APP: OnceLock<tauri::AppHandle> = OnceLock::new();
 /// A settings push is already waiting out its delay.
+/// A background round that waited for a dictation to end.
+static DEFERRAL: dictation::Deferral = dictation::Deferral::new();
 static PUSH_PENDING: AtomicBool = AtomicBool::new(false);
 /// When the last round began, whatever it did.
 static LAST_ROUND_MS: AtomicI64 = AtomicI64::new(0);
@@ -156,7 +159,7 @@ fn push_settings_soon() {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(SETTINGS_PUSH_DELAY).await;
         PUSH_PENDING.store(false, Ordering::SeqCst);
-        run_sync(&app, Scope::Settings).await;
+        run_unless_dictating(&app, Scope::Settings).await;
     });
 }
 
@@ -167,7 +170,28 @@ pub fn window_focused(app: &tauri::AppHandle) {
     }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        run_sync(&app, Scope::Everything).await;
+        run_unless_dictating(&app, Scope::Everything).await;
+    });
+}
+
+/// A round nobody asked for in that moment: the periodic one, the catch-up on focus and the
+/// push after an edit. While a dictation is under way it waits, and `dictation_ended` runs it.
+async fn run_unless_dictating(app: &tauri::AppHandle, scope: Scope) {
+    if DEFERRAL.put_off_if(|| dictation::dictating(app)) {
+        return;
+    }
+    run_sync(app, scope).await;
+}
+
+/// A dictation ended: run the round that was put off while it lasted, unless another dictation
+/// has begun since.
+pub fn dictation_ended(app: &tauri::AppHandle) {
+    if !DEFERRAL.take_unless(|| dictation::dictating(app)) {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        run_unless_dictating(&app, Scope::Everything).await;
     });
 }
 
@@ -274,6 +298,8 @@ async fn push_own(
 
 /// What the Account page says under the last sync when a round succeeded all the same.
 const NOTICE_DEVICE_DATA_UNREADABLE: &str = "device_data_unreadable";
+/// The round stopped short of applying the account's settings because a dictation is under way.
+const NOTICE_SYNC_AFTER_DICTATION: &str = "sync_after_dictation";
 
 /// How handing another device's file to the database ended.
 enum Pulled {
@@ -532,6 +558,13 @@ async fn sync_settings(
             remote,
             now_ms(),
         );
+        if plan.apply && DEFERRAL.put_off_if(|| dictation::dictating(app)) {
+            // A dictation began while the round was on the network: the overlay and the
+            // shortcuts are not touched under it, and the end of the dictation runs the round.
+            // The page says so, so that a round asked for by hand is not taken for a done one.
+            state.last_notice = Some(NOTICE_SYNC_AFTER_DICTATION.to_string());
+            return Ok(());
+        }
         if plan.apply {
             // Held until the hash below is taken: the writes the apply makes are
             // not local edits, and the hook that notes them must see that.
@@ -765,7 +798,7 @@ pub fn init(app: &tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(STARTUP_DELAY).await;
         loop {
-            run_sync(&app, Scope::Everything).await;
+            run_unless_dictating(&app, Scope::Everything).await;
             tokio::time::sleep(SYNC_INTERVAL).await;
         }
     });

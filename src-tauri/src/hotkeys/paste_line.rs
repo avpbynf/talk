@@ -99,6 +99,12 @@ impl PasteLine {
         cancelled
     }
 
+    /// Whether a text is being pasted or waiting for its turn.
+    pub fn pending(&self) -> bool {
+        let turns = self.turns.lock();
+        turns.next != turns.serving
+    }
+
     fn wait_for(&self, number: u64) {
         let mut turns = self.turns.lock();
         while turns.serving != number {
@@ -296,6 +302,18 @@ mod tests {
 
         running.run(|_| ());
         waiting.run(|cancelled| assert!(cancelled.load(Ordering::SeqCst)));
+    }
+
+    #[test]
+    fn the_line_is_pending_from_the_turn_taken_to_the_paste_done() {
+        let line = line();
+        assert!(!line.pending());
+
+        let turn = line.take(Vec::new());
+        assert!(line.pending(), "waiting for its turn counts");
+
+        turn.run(|_| assert!(line.pending(), "and so does the paste itself"));
+        assert!(!line.pending());
     }
 
     #[test]
