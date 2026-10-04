@@ -11,6 +11,7 @@ import {
   formatMonth,
   getRandomSentence,
   loadUserWpm,
+  loadUserWpmDate,
   monthsSince,
   realtimeFactor,
   saveUserWpm,
@@ -104,6 +105,17 @@ describe("the stored typing speed", () => {
   it("round-trips a stored value", () => {
     saveUserWpm(72);
     expect(loadUserWpm()).toBe(72);
+  });
+
+  it("remembers the day it was measured, and knows nothing for an older value", () => {
+    expect(loadUserWpmDate()).toBeNull();
+    localStorage.setItem("talk-user-wpm", "55");
+    expect(loadUserWpmDate()).toBeNull();
+    vi.setSystemTime(new Date("2026-04-02T10:00:00Z"));
+    saveUserWpm(72);
+    expect(loadUserWpmDate()?.toISOString()).toBe("2026-04-02T10:00:00.000Z");
+    localStorage.setItem("talk-user-wpm-date", "banana");
+    expect(loadUserWpmDate()).toBeNull();
   });
 
   it("rejects a stored value outside the plausible range", () => {
