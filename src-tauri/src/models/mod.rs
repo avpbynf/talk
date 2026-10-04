@@ -255,10 +255,6 @@ impl ModelManager {
         }
     }
 
-    pub fn get_models_dir(&self) -> &PathBuf {
-        &self.models_dir
-    }
-
     pub fn get_model_path(&self, model_id: &str) -> Option<PathBuf> {
         if sanitize_model_id(model_id).is_err() {
             return None;

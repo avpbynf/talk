@@ -60,24 +60,6 @@ impl AudioBuffer {
         Vec::from(ring)
     }
 
-    pub fn get_level(&self) -> f32 {
-        let buffer = self.data.lock();
-        if buffer.is_empty() {
-            return 0.0;
-        }
-
-        let samples_100ms = (WHISPER_SAMPLE_RATE as usize) / 10;
-        let start = buffer.len().saturating_sub(samples_100ms);
-        let recent: Vec<f32> = buffer.range(start..).copied().collect();
-
-        if recent.is_empty() {
-            return 0.0;
-        }
-
-        let sum_sq: f32 = recent.iter().map(|s| s * s).sum();
-        (sum_sq / recent.len() as f32).sqrt()
-    }
-
     /// Get multiple audio levels for spectrum visualization
     /// Returns `num_bars` levels, each representing a time slice of recent audio
     pub fn get_spectrum(&self, num_bars: usize) -> Vec<f32> {

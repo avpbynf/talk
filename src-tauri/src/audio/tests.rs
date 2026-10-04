@@ -10,7 +10,6 @@ fn sine(amplitude: f32, count: usize) -> Vec<f32> {
 #[test]
 fn a_new_buffer_is_silent_rather_than_undefined() {
     let buffer = AudioBuffer::new();
-    assert_eq!(buffer.get_level(), 0.0);
     assert!(buffer.take().is_empty());
     // The overlay draws one bar per entry, so the length has to hold even with
     // nothing recorded yet.
@@ -33,27 +32,6 @@ fn pushes_accumulate_in_order() {
     buffer.push(&[0.3]);
 
     assert_eq!(buffer.take(), vec![0.1, 0.2, 0.3]);
-}
-
-#[test]
-fn the_level_is_the_rms_of_the_recent_audio() {
-    let buffer = AudioBuffer::new();
-    // A constant amplitude means RMS equals that amplitude.
-    buffer.push(&vec![0.5; 1000]);
-
-    assert!((buffer.get_level() - 0.5).abs() < 1e-4);
-}
-
-#[test]
-fn the_level_follows_the_end_of_the_buffer_and_not_the_whole_of_it() {
-    let buffer = AudioBuffer::new();
-    // A minute of loud audio, then a tenth of a second of silence. The meter has
-    // to fall, otherwise the overlay keeps showing speech after the speaker has
-    // stopped.
-    buffer.push(&vec![0.9; 16000 * 60]);
-    buffer.push(&vec![0.0; 1600]);
-
-    assert!(buffer.get_level() < 0.01, "the meter stayed high on silence");
 }
 
 #[test]
