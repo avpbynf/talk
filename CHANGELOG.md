@@ -569,6 +569,11 @@ on a machine without a graphics card.
 The coloured lights behind the window stop growing past a certain size, so maximising the window on
 a large screen no longer makes it slower to draw than a medium one.
 
+- (preferences) Make a theme change lighter
+
+Switching theme still fades the surfaces, the text, the status colours, the accent and the lights,
+while the gradient stops and the focus ring take their new value at once.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
