@@ -23,7 +23,7 @@ describe("VocabularyView", () => {
     renderView([]);
 
     expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
-    expect(screen.getByText("Your terms (0)")).toBeInTheDocument();
+    expect(screen.getByText("Your terms")).toBeInTheDocument();
   });
 
   it("shows every term and counts them", () => {
@@ -32,7 +32,8 @@ describe("VocabularyView", () => {
     expect(screen.getByText("Tauri")).toBeInTheDocument();
     expect(screen.getByText("Vulkan")).toBeInTheDocument();
     expect(screen.getByText("NeoForge")).toBeInTheDocument();
-    expect(screen.getByText("Your terms (3)")).toBeInTheDocument();
+    expect(screen.getByText("Your terms")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("appends what was typed and tells the backend once", async () => {

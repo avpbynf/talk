@@ -75,11 +75,12 @@ describe("a view in French", () => {
     await act(() => i18n.changeLanguage("fr"));
     render(<VocabularyView vocabulary={["Tauri", "Vulkan"]} onVocabularyChange={() => {}} />);
 
-    expect(screen.getByText("Vocabulaire")).toBeInTheDocument();
-    expect(screen.getByText("Vos termes (2)")).toBeInTheDocument();
+    expect(screen.getByText("Ajouter des termes")).toBeInTheDocument();
+    expect(screen.getByText("Vos termes")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ajouter/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retirer Tauri" })).toBeInTheDocument();
-    expect(screen.queryByText("Vocabulary")).not.toBeInTheDocument();
+    expect(screen.queryByText("Add terms")).not.toBeInTheDocument();
   });
 
   it("groups digits the way the language does", async () => {

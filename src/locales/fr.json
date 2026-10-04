@@ -193,14 +193,11 @@
     "enhanced": "Améliorée"
   },
   "vocabulary": {
-    "title": "Vocabulaire",
-    "subtitle": "Les mots que vous utilisez et que Whisper devinerait sinon",
-    "yourWords": "Vos mots",
-    "addTerms": "Ajouter vos termes",
+    "addTerms": "Ajouter des termes",
     "help": "Noms propres, sigles, tout ce qui vient de votre métier. Ils orientent le modèle vers ce que vous dites réellement.",
     "placeholder": "p. ex. MonProjet, ACME...",
     "add": "Ajouter",
-    "yourTerms": "Vos termes ({{number}})",
+    "yourTerms": "Vos termes",
     "clearAll": "Tout effacer",
     "emptyTitle": "Rien ici pour le moment",
     "emptyHint": "Whisper devine tout seul",
@@ -208,7 +205,8 @@
     "remove": "Retirer {{word}}",
     "listHint": "Glissez la poignée pour ranger vos termes, cliquez un mot pour le retirer.",
     "removed": "{{word}} retiré.",
-    "undo": "Annuler"
+    "undo": "Annuler",
+    "addHint": "Entrée pour ajouter, des virgules ou des espaces pour en mettre plusieurs d'un coup."
   },
   "transcription": {
     "title": "Moteur",
