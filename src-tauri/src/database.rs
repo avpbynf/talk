@@ -127,6 +127,21 @@ CREATE TABLE IF NOT EXISTS devices (
 );
 ";
 
+// A page of the history reads the two tables newest first through the view.
+// With an index on each side's timestamp SQLite merges the two ordered
+// streams and stops at the page's limit, instead of sorting every row of
+// both. Only this machine's table had one.
+const SCHEMA_V7: &str = "
+CREATE INDEX IF NOT EXISTS idx_remote_transcriptions_timestamp
+    ON remote_transcriptions(timestamp DESC);
+";
+
+const HISTORY_PAGE_SQL: &str = "SELECT id, text, timestamp, model, source, enhanced,
+            audio_duration_ms, processing_time_ms, word_count, char_count
+     FROM all_transcriptions
+     ORDER BY timestamp DESC
+     LIMIT ?1 OFFSET ?2";
+
 /// A device nobody has heard from for this long leaves the list.
 const DEVICE_SEEN_WINDOW_MS: i64 = 90 * 24 * 60 * 60 * 1000;
 
@@ -445,6 +460,11 @@ impl Database {
             conn.pragma_update(None, "user_version", 6)?;
         }
 
+        if version < 7 {
+            conn.execute_batch(SCHEMA_V7)?;
+            conn.pragma_update(None, "user_version", 7)?;
+        }
+
         Ok(())
     }
 
@@ -541,13 +561,7 @@ impl Database {
     /// devices', newest first, each id once.
     pub fn get_history(&self, limit: i64, offset: i64) -> Result<Vec<TranscriptionRow>> {
         let conn = self.conn.lock();
-        let mut stmt = conn.prepare(
-            "SELECT id, text, timestamp, model, source, enhanced,
-                    audio_duration_ms, processing_time_ms, word_count, char_count
-             FROM all_transcriptions
-             ORDER BY timestamp DESC
-             LIMIT ?1 OFFSET ?2",
-        )?;
+        let mut stmt = conn.prepare(HISTORY_PAGE_SQL)?;
         let rows = stmt
             .query_map(params![limit, offset], transcription_from_row)?
             .collect::<Result<Vec<_>>>()?;
@@ -1308,6 +1322,131 @@ mod tests {
 
         assert!(db.add_transcription(&entry).is_err());
         assert!(ids(&db).is_empty());
+    }
+
+    fn plan_of_the_history_page(db: &Database) -> Vec<String> {
+        let conn = db.conn.lock();
+        let mut stmt = conn
+            .prepare(&format!("EXPLAIN QUERY PLAN {}", HISTORY_PAGE_SQL))
+            .expect("should prepare");
+        stmt.query_map(params![20, 0], |row| row.get::<_, String>(3))
+            .expect("should explain")
+            .collect::<Result<Vec<_>>>()
+            .expect("should read")
+    }
+
+    #[test]
+    fn the_history_page_reads_both_tables_through_their_timestamp_index() {
+        let plan = plan_of_the_history_page(&in_memory()).join("\n");
+
+        // Each side comes out of its index already ordered and the two are
+        // merged, so a page does not sort either table.
+        assert!(plan.contains("MERGE (UNION ALL)"), "{}", plan);
+        assert!(plan.contains("idx_transcriptions_timestamp"), "{}", plan);
+        assert!(plan.contains("idx_remote_transcriptions_timestamp"), "{}", plan);
+    }
+
+    #[test]
+    fn a_version_one_database_as_v0_9_0_made_it_is_upgraded_whole() {
+        let dir = tempfile::tempdir().expect("should create a directory");
+        let path = dir.path().join("v090.db");
+        {
+            // The shape the first release created: one table and its index.
+            let conn = Connection::open(&path).expect("should open");
+            conn.execute_batch(
+                "CREATE TABLE transcriptions (
+                    id TEXT PRIMARY KEY,
+                    text TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    model TEXT,
+                    source TEXT NOT NULL DEFAULT 'local',
+                    enhanced INTEGER NOT NULL DEFAULT 0,
+                    audio_duration_ms INTEGER,
+                    processing_time_ms INTEGER,
+                    word_count INTEGER NOT NULL DEFAULT 0,
+                    char_count INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX idx_transcriptions_timestamp ON transcriptions(timestamp DESC);
+                INSERT INTO transcriptions (id, text, timestamp, source, word_count, char_count)
+                    VALUES ('old', 'two words', '2026-08-01T10:00:00Z', 'local', 2, 9);
+                PRAGMA user_version = 1;",
+            )
+            .expect("should build the old database");
+        }
+
+        let db = Database::open(&path).expect("should upgrade");
+
+        assert_eq!(ids(&db), vec!["old".to_string()]);
+        let conn = db.conn.lock();
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("should read");
+        assert_eq!(version, 7);
+        for name in [
+            "daily_stats",
+            "share_tokens",
+            "meta",
+            "remote_daily_stats",
+            "all_daily_stats",
+            "remote_transcriptions",
+            "hidden_transcriptions",
+            "all_transcriptions",
+            "devices",
+            "idx_remote_transcriptions_timestamp",
+        ] {
+            let found: i64 = conn
+                .query_row("SELECT COUNT(*) FROM sqlite_master WHERE name = ?1", params![name], |row| {
+                    row.get(0)
+                })
+                .expect("should read");
+            assert_eq!(found, 1, "{} is missing", name);
+        }
+        // The row made before the counters existed is counted in them.
+        let (count, words): (i64, i64) = conn
+            .query_row(
+                "SELECT transcription_count, word_count FROM daily_stats",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("should read");
+        assert_eq!((count, words), (1, 2));
+    }
+
+    #[test]
+    fn a_version_six_database_gains_the_remote_timestamp_index() {
+        let dir = tempfile::tempdir().expect("should create a directory");
+        let path = dir.path().join("old.db");
+        {
+            let conn = Connection::open(&path).expect("should open");
+            for schema in [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6] {
+                conn.execute_batch(schema).expect("should build the old schema");
+            }
+            conn.execute(
+                "INSERT INTO transcriptions (id, text, timestamp) VALUES ('t1', 'kept', '2026-08-01T10:00:00Z')",
+                [],
+            )
+            .expect("should insert");
+            conn.pragma_update(None, "user_version", 6).expect("should stamp");
+        }
+
+        let db = Database::open(&path).expect("should upgrade");
+
+        let conn = db.conn.lock();
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("should read");
+        let indexed: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type = 'index' AND name = 'idx_remote_transcriptions_timestamp'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("should read");
+        drop(conn);
+        assert_eq!(version, 7);
+        assert_eq!(indexed, 1);
+        assert_eq!(ids(&db), vec!["t1".to_string()]);
     }
 
     #[test]
