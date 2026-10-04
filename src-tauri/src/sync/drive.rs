@@ -76,12 +76,20 @@ pub fn describe_error(status: reqwest::StatusCode, body: &str) -> String {
     format!("{}...", cut.trim_end())
 }
 
+/// One client for the process: it keeps its connections and the TLS sessions made over them,
+/// which a client built for every round threw away five minutes after the last one.
+static HTTP: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+
 impl Drive {
     pub fn new(token: String) -> Self {
-        let http = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .unwrap_or_default();
+        let http = HTTP
+            .get_or_init(|| {
+                reqwest::Client::builder()
+                    .timeout(Duration::from_secs(30))
+                    .build()
+                    .unwrap_or_default()
+            })
+            .clone();
         Self { http, token: parking_lot::Mutex::new(token) }
     }
 

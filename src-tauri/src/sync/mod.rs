@@ -27,7 +27,7 @@ use portable::{SettingsFile, SyncedSettings};
 use remote::{read_remote, Fetched};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use state::SyncState;
+use state::{SettingsSeen, SyncState};
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -125,6 +125,7 @@ fn forget_settings_progress(state: &mut SyncState) {
     state.settings_hash.clear();
     state.settings_updated_ms = 0;
     state.refused.clear();
+    state.settings_seen = None;
 }
 
 /// Terms somebody put in the vocabulary. A no-op for a term already in it.
@@ -512,6 +513,9 @@ async fn sync_settings(
     // The download comes first: nothing local is read until the network is done
     // with, so an edit made while it ran is part of what gets merged.
     let remote_file = drive::find_with_content(files, SETTINGS_FILE);
+    if remote_file.is_some_and(|file| settings_unchanged(state, file)) {
+        return Ok(());
+    }
     let fetched = Fetched::from_drive(drive, remote_file).await?;
 
     // The plan is made from a snapshot, outside every lock, and applied by one
@@ -597,6 +601,7 @@ async fn sync_settings(
         crate::effects::announce(app, plan.merged.language.clone());
     }
 
+    let uploaded = plan.upload;
     if plan.upload {
         let body = SettingsFile {
             updated_at: plan.updated_at,
@@ -610,7 +615,25 @@ async fn sync_settings(
         drive.upload(SETTINGS_FILE, remote_file.map(|f| f.id.as_str()), body).await?;
     }
     mark_synced(state, proof);
+    // What an upload leaves on Drive is not known until the next listing, so that round
+    // downloads once more and is the one that records the agreement.
+    state.settings_seen = match remote_file {
+        Some(file) if !uploaded => SettingsSeen::of(&file.modified_time, state),
+        _ => None,
+    };
     Ok(())
+}
+
+/// Whether neither the account's file nor this machine has moved since a round last left them
+/// in agreement, in which case downloading the file again would find nothing to do. Anything
+/// this machine edited since, a vocabulary term included, is on disk before it is anywhere else,
+/// so the disk is what is compared.
+fn settings_unchanged(state: &SyncState, file: &DriveFile) -> bool {
+    let Some(seen) = &state.settings_seen else { return false };
+    let local = SyncedSettings::collect().with_refused(&state.refused).fingerprint();
+    let _guard = state_lock();
+    let fresh = SyncState::load();
+    fresh.device_id == state.device_id && seen.still_holds(&file.modified_time, &fresh, &local)
 }
 
 /// A round that read the account's settings, or found it holding none, counts as the
