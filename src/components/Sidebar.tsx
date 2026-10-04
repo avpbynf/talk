@@ -183,8 +183,9 @@ export function Sidebar<Id extends string>({
       <div
         data-tauri-drag-region
         className={cn(
-          "h-8 shrink-0 flex items-center pl-[22px] select-none",
-          windowButtons === "left" && "justify-between pr-2.5 group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:px-0",
+          "mx-2.5 mt-3 mb-[18px] h-[34px] shrink-0 flex items-center pl-3 select-none",
+          windowButtons === "left" &&
+            "justify-between group-data-[collapsed=true]/side:h-auto group-data-[collapsed=true]/side:flex-col group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:pl-0",
         )}
       >
         <span
@@ -200,7 +201,7 @@ export function Sidebar<Id extends string>({
         {windowButtons === "left" && <WindowDots />}
       </div>
 
-      <div ref={listRef} className="relative flex-1 min-h-0 flex flex-col gap-0.5 px-2.5 pt-3">
+      <div ref={listRef} className="relative flex-1 min-h-0 flex flex-col gap-0.5 px-2.5">
         <div
           ref={indicator}
           aria-hidden="true"
@@ -216,7 +217,7 @@ export function Sidebar<Id extends string>({
             onClick={onStatusClick}
             title={status.label}
             className={cn(
-              "shrink-0 mb-2 self-start max-w-full flex items-center justify-center gap-2 h-[22px] pl-2 pr-2.5 rounded-full border text-xs font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)] group-data-[collapsed=true]/side:w-[22px] group-data-[collapsed=true]/side:px-0",
+              "shrink-0 mx-1 mb-2 self-start max-w-[calc(100%-0.5rem)] flex items-center justify-center gap-[7px] h-[26px] pl-[9px] pr-[11px] rounded-full border text-xs font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)] group-data-[collapsed=true]/side:w-[26px] group-data-[collapsed=true]/side:self-center group-data-[collapsed=true]/side:px-0",
               TONE_PILL[status.tone],
             )}
           >
@@ -261,7 +262,14 @@ export function Sidebar<Id extends string>({
             <b className="text-[13px] font-medium truncate max-w-[150px]">
               {email ?? t("sidebar.account.title")}
             </b>
-            <small className="text-[11px] text-muted-foreground">
+            <small className="inline-flex items-center gap-[5px] text-[11px] text-muted-foreground">
+              <i
+                aria-hidden="true"
+                className={cn(
+                  "h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-[400ms]",
+                  email && account ? SYNC_DOT[syncTone(account)] : SYNC_DOT.off,
+                )}
+              />
               {email && account ? syncWord(account, t) : t("sidebar.account.signedOut")}
             </small>
           </span>
@@ -277,6 +285,18 @@ export function Sidebar<Id extends string>({
       />
     </motion.nav>
   );
+}
+
+const SYNC_DOT = {
+  ok: "bg-success",
+  warn: "bg-warning",
+  off: "bg-muted-foreground/60",
+} as const;
+
+function syncTone(status: GoogleStatus): keyof typeof SYNC_DOT {
+  if (status.lastError) return "warn";
+  if (status.syncing || status.lastSyncMs) return "ok";
+  return "off";
 }
 
 function syncWord(status: GoogleStatus, t: (key: string) => string): string {
