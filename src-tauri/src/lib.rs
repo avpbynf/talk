@@ -150,50 +150,73 @@ fn get_downloaded_models(state: tauri::State<'_, AppState>) -> Vec<String> {
     state.model_manager.get_downloaded_models()
 }
 
-#[tauri::command]
-async fn load_model(
-    model_id: String,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
-    let model_path = state
-        .model_manager
-        .get_model_path(&model_id)
-        .ok_or_else(|| format!("Model {} not found", model_id))?;
-
-    // Unload previous model first to free memory
-    {
-        let mut engine_lock = state.whisper_engine.lock();
-        if engine_lock.is_some() {
-            *engine_lock = None;
-            // Force drop by releasing the lock
-        }
-    }
-
-    // Get the selected accelerator backend
-    let backend = settings::read(|s| s.accelerator_backend);
-    let device = current_gpu_device_index(chosen_gpu().as_ref(), backend);
-
-    state.model_loading.store(true, Ordering::SeqCst);
-    let engine = WhisperEngine::new_with_backend(&model_path, backend, device);
-    state.model_loading.store(false, Ordering::SeqCst);
-    let engine = engine.map_err(|e| e.to_string())?;
-
-    *state.whisper_engine.lock() = Some(engine);
-    *state.current_model.lock() = Some(model_id.clone());
-
-    let _ = settings::update(|s| s.last_model = Some(model_id));
-
-    share::model_changed(&app);
-    Ok(())
+/// Run engine work on the blocking pool: building a whisper context reads up to
+/// gigabytes and starts the GPU, and dropping one frees them, none of which belongs on a
+/// worker of the async runtime.
+async fn off_worker<R: Send + 'static>(work: impl FnOnce() -> R + Send + 'static) -> Result<R, String> {
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|e| format!("The model work did not run: {}", e))
 }
 
 #[tauri::command]
-async fn unload_model(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
-    *state.whisper_engine.lock() = None;
-    *state.current_model.lock() = None;
-    share::model_changed(&app);
-    Ok(())
+async fn load_model(model_id: String, app: tauri::AppHandle) -> Result<(), String> {
+    off_worker(move || {
+        let state = app.state::<AppState>();
+        let model_path = state
+            .model_manager
+            .get_model_path(&model_id)
+            .ok_or_else(|| format!("Model {} not found", model_id))?;
+
+        // The engine lock is held from the unload to the end of the build. A transcription holds
+        // it for its whole run and this waits for it, on a blocking thread and not on a runtime
+        // worker; a dictation that comes in meanwhile waits for the load and then finds the
+        // model, instead of finding none; and two loads cannot build side by side.
+        let mut engine_slot = state.whisper_engine.lock();
+        // Unload previous model first to free memory
+        *engine_slot = None;
+
+        // Get the selected accelerator backend
+        let backend = settings::read(|s| s.accelerator_backend);
+        let device = current_gpu_device_index(chosen_gpu().as_ref(), backend);
+
+        state.model_loading.store(true, Ordering::SeqCst);
+        let built = WhisperEngine::new_with_backend(&model_path, backend, device);
+        state.model_loading.store(false, Ordering::SeqCst);
+        // The name is set with the engine, under its lock: nothing is loaded when the build
+        // failed, and nothing may go on naming the model that was unloaded.
+        let engine = match built {
+            Ok(engine) => engine,
+            Err(e) => {
+                *state.current_model.lock() = None;
+                return Err(e.to_string());
+            }
+        };
+
+        *engine_slot = Some(engine);
+        *state.current_model.lock() = Some(model_id.clone());
+        drop(engine_slot);
+
+        let _ = settings::update(|s| s.last_model = Some(model_id));
+
+        share::model_changed(&app);
+        Ok(())
+    })
+    .await?
+}
+
+#[tauri::command]
+async fn unload_model(app: tauri::AppHandle) -> Result<(), String> {
+    off_worker(move || {
+        let state = app.state::<AppState>();
+        let mut engine_slot = state.whisper_engine.lock();
+        *engine_slot = None;
+        *state.current_model.lock() = None;
+        drop(engine_slot);
+        share::model_changed(&app);
+        Ok(())
+    })
+    .await?
 }
 
 #[tauri::command]
@@ -344,11 +367,13 @@ fn reload_engine(
     backend: AcceleratorBackend,
     gpu: Option<&GpuDevicePreference>,
 ) -> Result<(), String> {
+    // The lock is held from the unload to the end of the build, as in `load_model`.
+    let mut engine_slot = state.whisper_engine.lock();
     let current_model = state.current_model.lock().clone();
     if let Some(model_id) = current_model {
         if let Some(model_path) = state.model_manager.get_model_path(&model_id) {
             // Unload current model
-            *state.whisper_engine.lock() = None;
+            *engine_slot = None;
 
             let device = current_gpu_device_index(gpu, backend);
             // Said to be loading while it is, so a dictation in between hears
@@ -363,11 +388,23 @@ fn reload_engine(
                     return Err(e.to_string());
                 }
             };
-            *state.whisper_engine.lock() = Some(engine);
+            *engine_slot = Some(engine);
         }
     }
 
     Ok(())
+}
+
+/// `reload_engine` on the blocking pool. A reload that failed left no model loaded, and the
+/// network still names one.
+async fn reload_off_worker(
+    app: &tauri::AppHandle,
+    backend: AcceleratorBackend,
+    gpu: Option<GpuDevicePreference>,
+) -> Result<(), String> {
+    let app_for_work = app.clone();
+    let reloaded = off_worker(move || reload_engine(&app_for_work.state::<AppState>(), backend, gpu.as_ref())).await?;
+    reloaded.inspect_err(|_| share::model_changed(app))
 }
 
 #[tauri::command]
@@ -396,20 +433,19 @@ fn get_current_gpu_vendor() -> GpuVendor {
 }
 
 #[tauri::command]
-async fn set_gpu_vendor(
-    vendor: GpuVendor,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+async fn set_gpu_vendor(vendor: GpuVendor, app: tauri::AppHandle) -> Result<(), String> {
     let backend = AcceleratorBackend::from_vendor(vendor);
-    // A change that was not written is not applied either, and says so.
+
+    // The reload comes first and the choice is stored once the card has taken the model, as
+    // for the device below: a reload that failed must not leave a settings file naming a
+    // backend the application never managed to run on.
+    reload_off_worker(&app, backend, chosen_gpu()).await?;
+
     settings::update(|s| {
         s.gpu_vendor = vendor;
         s.accelerator_backend = backend;
-    })?;
-
-    // Reload model with new backend if one is loaded
-    reload_engine(&state, backend, chosen_gpu().as_ref()).inspect_err(|_| share::model_changed(&app))
+    })
+    .map(drop)
 }
 
 /// The GPUs the local engine can run on, and the one it uses right now.
@@ -428,7 +464,7 @@ fn get_gpu_devices() -> GpuDeviceList {
 }
 
 #[tauri::command]
-async fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
+async fn set_gpu_device(index: u32, app: tauri::AppHandle) -> Result<(), String> {
     let devices = transcription::list_gpu_devices();
     let device = devices
         .iter()
@@ -445,11 +481,7 @@ async fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'
     // before would leave a settings file naming a card the application never managed to
     // run on, and the next launch would walk into it again.
     let backend = settings::read(|s| s.accelerator_backend);
-    if let Err(e) = reload_engine(&state, backend, Some(&preference)) {
-        // The reload left no model loaded, and the network still names one
-        share::model_changed(&app);
-        return Err(e);
-    }
+    reload_off_worker(&app, backend, Some(preference.clone())).await?;
 
     settings::update(|s| s.gpu_device = Some(preference))?;
 
@@ -457,15 +489,11 @@ async fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'
 }
 
 #[tauri::command]
-async fn set_accelerator_backend(
-    backend: AcceleratorBackend,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
-    settings::update(|s| s.accelerator_backend = backend)?;
+async fn set_accelerator_backend(backend: AcceleratorBackend, app: tauri::AppHandle) -> Result<(), String> {
+    // Reload model with new backend if one is loaded, and store the choice once it took.
+    reload_off_worker(&app, backend, chosen_gpu()).await?;
 
-    // Reload model with new backend if one is loaded
-    reload_engine(&state, backend, chosen_gpu().as_ref()).inspect_err(|_| share::model_changed(&app))
+    settings::update(|s| s.accelerator_backend = backend).map(drop)
 }
 
 #[tauri::command]
