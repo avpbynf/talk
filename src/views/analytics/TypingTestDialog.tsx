@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { locale } from "@/i18n";
-import { getRandomSentence, calculateWpm, saveUserWpm } from "@/lib/analytics";
+import { getRandomSentence, calculateWpm, isPlausibleWpm, saveUserWpm } from "@/lib/analytics";
 
 const OUT = [0.22, 1, 0.36, 1] as const;
 const FOCUSABLE = "button:not([disabled]), input:not([disabled])";
@@ -48,12 +48,17 @@ function TypingTest({
   const [misses, setMisses] = useState(0);
   const [finished, setFinished] = useState(false);
   const [finalWpm, setFinalWpm] = useState(0);
+  // A paste or a drop was turned away, and the line under the field says why.
+  const [refused, setRefused] = useState(false);
+  // A result no one can type is not offered, and is left like an unfinished test.
+  const believable = !finished || isPlausibleWpm(finalWpm);
   // Counts the restarts: the same sentence can come up again, and it is not a change of sentence.
   const [attempt, setAttempt] = useState(0);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const keepRef = useRef<HTMLButtonElement>(null);
+  const startOverRef = useRef<HTMLButtonElement>(null);
 
   // The button that opened the dialog gets the focus back once it is gone.
   useEffect(() => {
@@ -73,29 +78,54 @@ function TypingTest({
     return () => clearInterval(id);
   }, [startTime, finished]);
 
-  // The finished input is disabled, which drops the focus; the Keep button is where it goes.
+  // The finished input is disabled, which drops the focus; the Keep button is where it goes,
+  // or Start over when the result cannot be kept.
   useEffect(() => {
-    if (finished) keepRef.current?.focus();
-  }, [finished]);
+    if (finished) (believable ? keepRef : startOverRef).current?.focus();
+  }, [finished, believable]);
 
   // A finished result is only left by keeping it or discarding it.
   useEffect(() => {
-    onLockedChange(finished);
+    onLockedChange(finished && believable);
     return () => onLockedChange(false);
-  }, [finished, onLockedChange]);
+  }, [finished, believable, onLockedChange]);
+
+  // The dialog is modal: a click on its padding or its backdrop must not drop the focus
+  // onto the page, where typing goes nowhere, and nothing may take the focus behind it.
+  useEffect(() => {
+    const backdrop = dialogRef.current?.parentElement;
+    if (!backdrop) return;
+    const primary = () => (finished ? (believable ? keepRef : startOverRef) : inputRef).current;
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest(FOCUSABLE)) return;
+      e.preventDefault();
+      primary()?.focus();
+    };
+    const onFocusIn = (e: FocusEvent) => {
+      const dialog = dialogRef.current;
+      if (dialog && e.target instanceof Node && !dialog.contains(e.target)) primary()?.focus();
+    };
+    backdrop.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("focusin", onFocusIn);
+    return () => {
+      backdrop.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("focusin", onFocusIn);
+    };
+  }, [finished, believable]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || finished) return;
+      if (e.key !== "Escape" || (finished && believable)) return;
       e.preventDefault();
       onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, finished]);
+  }, [onClose, finished, believable]);
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     if (finished) return;
+    setRefused(false);
     const value = e.target.value;
     const stamp = Date.now();
     const start = startTime ?? stamp;
@@ -128,10 +158,12 @@ function TypingTest({
     setMisses(0);
     setFinished(false);
     setFinalWpm(0);
+    setRefused(false);
     setAttempt((n) => n + 1);
   }
 
   function keep() {
+    if (!isPlausibleWpm(finalWpm)) return;
     saveUserWpm(finalWpm);
     onWpmMeasured(finalWpm);
   }
@@ -202,6 +234,15 @@ function TypingTest({
           ref={inputRef}
           value={input}
           onChange={handleInput}
+          // A pasted or dropped sentence is not typed, and would be timed at one stroke.
+          onPaste={(e) => {
+            e.preventDefault();
+            setRefused(true);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setRefused(true);
+          }}
           disabled={finished}
           aria-label={t("dashboard.typingGame.inputLabel")}
           autoComplete="off"
@@ -210,6 +251,11 @@ function TypingTest({
           spellCheck={false}
           className="sr-only"
         />
+        {refused && (
+          <p role="status" className="mt-2 text-xs text-muted-foreground">
+            {t("dashboard.typingGame.pasteRefused")}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-3" aria-live="off">
@@ -221,18 +267,24 @@ function TypingTest({
         />
       </div>
 
+      {!believable && (
+        <p role="status" className="text-[13px] text-[var(--color-destructive)]">
+          {t("dashboard.typingGame.implausible")}
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground">
           {finished ? t("dashboard.typingGame.discard") : t("common.cancel")}
         </Button>
-        <Button variant="ghost" size="sm" onClick={reset}>
+        <Button ref={startOverRef} variant="ghost" size="sm" onClick={reset}>
           {t("dashboard.typingGame.startOver")}
         </Button>
         <Button
           ref={keepRef}
           size="sm"
           onClick={keep}
-          disabled={!finished}
+          disabled={!finished || !believable}
         >
           {t("dashboard.typingGame.keep")}
         </Button>

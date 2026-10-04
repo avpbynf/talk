@@ -351,10 +351,10 @@ describe("AccountView", () => {
     const rows = await screen.findAllByTestId("device-row");
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent("OFFICE-PC");
-    expect(rows[0]).toHaveTextContent("98 h 00 saved, 6,412 dictations");
+    expect(rows[0]).toHaveTextContent("98 h saved, 6,412 dictations");
     expect(rows[0]).toHaveTextContent("Here");
     expect(rows[1]).toHaveTextContent("PC du boulot");
-    expect(rows[1]).toHaveTextContent("68 h 00 saved, seen 4 minutes ago");
+    expect(rows[1]).toHaveTextContent("68 h saved, seen 4 minutes ago");
     expect(rows[1]).not.toHaveTextContent("Here");
     expect(invoke).toHaveBeenCalledWith("list_devices", { userWpm: 40 });
   });

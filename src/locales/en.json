@@ -147,6 +147,8 @@
       "accuracy": "accuracy",
       "time": "time",
       "seconds": "{{s}} s",
+      "pasteRefused": "Pasting is off in the test: type the sentence yourself.",
+      "implausible": "That speed is not humanly possible, so it cannot be kept. Start over and type the sentence yourself.",
       "startOver": "Start over",
       "keep": "Keep this result",
       "discard": "Discard",

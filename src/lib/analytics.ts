@@ -39,13 +39,30 @@ export interface AnalyticsSummary {
   streak: number;
 }
 
-/** Time won as the dashboard prints it: "< 1 min", "42 min" or "98 h 03". */
+/** Time won as the dashboard prints it: "< 1 min", "42 min", "98 h 03" or "98 h". */
 export function formatTimeSaved(minutes: number): string {
   const rounded = Math.round(minutes);
   if (rounded < 1) return i18n.t("dashboard.hero.lessThanMinute");
   const hours = Math.floor(rounded / 60);
   if (hours === 0) return `${rounded} ${i18n.t("dashboard.hero.minutes")}`;
-  return `${hours} ${i18n.t("dashboard.hero.hours")} ${String(rounded % 60).padStart(2, "0")}`;
+  const hoursLabel = `${hours} ${i18n.t("dashboard.hero.hours")}`;
+  const rest = rounded % 60;
+  return rest === 0 ? hoursLabel : `${hoursLabel} ${String(rest).padStart(2, "0")}`;
+}
+
+/**
+ * The share of dictations that stayed on this PC, as a whole percent.
+ *
+ * Rounding never reaches an end while the other side is not empty: one
+ * dictation through the server in a thousand reads 99, not 100.
+ */
+export function localSharePercent(localCount: number, serverCount: number): number {
+  const total = localCount + serverCount;
+  if (total === 0) return 100;
+  const percent = Math.round((localCount / total) * 100);
+  if (serverCount > 0 && percent >= 100) return 99;
+  if (localCount > 0 && percent <= 0) return 1;
+  return percent;
 }
 
 /**
@@ -204,6 +221,19 @@ export function calculateWpm(charCount: number, elapsedMs: number): number {
   return minutes > 0 ? Math.round(words / minutes) : 0;
 }
 
+/**
+ * The fastest typing speed the dashboard will believe. The fastest sustained
+ * speeds ever recorded sit around 220 words per minute, with bursts a little
+ * above, so 300 leaves room for a champion and still refuses a pasted
+ * sentence. It is also where a stored speed stops being read back.
+ */
+export const MAX_TYPING_WPM = 300;
+
+/** Whether a measured speed is one a person can type. */
+export function isPlausibleWpm(wpm: number): boolean {
+  return Number.isFinite(wpm) && wpm >= 1 && wpm < MAX_TYPING_WPM;
+}
+
 const WPM_STORAGE_KEY = "talk-user-wpm";
 const WPM_DATE_STORAGE_KEY = "talk-user-wpm-date";
 
@@ -212,7 +242,7 @@ export function loadUserWpm(): number {
     const stored = localStorage.getItem(WPM_STORAGE_KEY);
     if (stored) {
       const parsed = parseInt(stored, 10);
-      if (parsed > 0 && parsed < 300) return parsed;
+      if (isPlausibleWpm(parsed)) return parsed;
     }
   } catch {
     /* ignore */

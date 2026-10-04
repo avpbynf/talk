@@ -317,10 +317,10 @@ test.describe("account page", () => {
     const rows = page.getByTestId("device-row");
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText("OFFICE-PC");
-    await expect(rows.nth(0)).toContainText("98 h 00 saved, 6,412 dictations");
+    await expect(rows.nth(0)).toContainText("98 h saved, 6,412 dictations");
     await expect(rows.nth(0)).toContainText("Here");
     await expect(rows.nth(1)).toContainText("Work laptop");
-    await expect(rows.nth(1)).toContainText("68 h 00 saved, seen 4 minutes ago");
+    await expect(rows.nth(1)).toContainText("68 h saved, seen 4 minutes ago");
   });
 
   test("signed out, shows no devices", async ({ app, page }) => {

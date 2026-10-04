@@ -147,6 +147,8 @@
       "accuracy": "précision",
       "time": "temps",
       "seconds": "{{s}} s",
+      "pasteRefused": "Le collage est désactivé dans le test : tapez la phrase vous-même.",
+      "implausible": "Cette vitesse est impossible à la main, elle ne peut donc pas être gardée. Recommencez en tapant la phrase vous-même.",
       "startOver": "Recommencer",
       "keep": "Garder ce résultat",
       "discard": "Abandonner",
