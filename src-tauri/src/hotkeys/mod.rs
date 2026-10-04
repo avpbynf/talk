@@ -8,6 +8,7 @@ pub use config::{
     HotkeyConfig,
 };
 
+use crate::audio::Capture;
 use crate::{audio, audio_encoder, database, overlay_feedback, server_transcription, AppState, RecordingMode};
 use crate::settings::TranscriptionMode;
 use crate::dictation_queue::{CancelScope, PasteTarget, Release, Transcript};
@@ -768,7 +769,8 @@ fn refuse_without_model(app: &AppHandle) -> bool {
 
 /// Turn a dictation away: the refusal sound, and the overlay in the danger colour saying why.
 ///
-/// The reasons the overlay words itself: `no_model`, `model_loading`, `capture_failed`.
+/// The reasons the overlay words itself: `no_model`, `model_loading`, `capture_failed`,
+/// `capture_lost`, `paste_failed`.
 fn refuse(app: &AppHandle, reason: &str) {
     play_sound_feedback(app, "refused");
     crate::overlay::show(app);
@@ -893,6 +895,8 @@ struct Dictation {
     seq: u64,
     cancel: Arc<AtomicBool>,
     audio: Vec<f32>,
+    /// Whether the microphone kept answering all along.
+    capture: Capture,
     /// Keeps the overlay up for as long as this transcription runs, whichever way it ends.
     lease: OverlayLease,
 }
@@ -923,8 +927,10 @@ fn stop_recording(app: &AppHandle) -> Result<Dictation, String> {
     let (seq, cancel) = state.dictation_queue.lock().enqueue();
     let lease = OverlayLease::take(app);
 
-    // Stop audio capture - dropping the handle signals the stream thread to exit
-    *state.audio_capture_handle.lock() = None;
+    // Stop audio capture - dropping the handle signals the stream thread to exit. A stream
+    // that reported an error recorded silence from then on, and is read before it goes.
+    let failed = state.audio_capture_handle.lock().take().is_some_and(|handle| handle.failed());
+    let capture = Capture::of(failed, audio_data.len());
     *state.is_recording.lock() = false;
     PHASE.lock().stopped();
 
@@ -942,18 +948,23 @@ fn stop_recording(app: &AppHandle) -> Result<Dictation, String> {
 
     let _ = app.emit("recording-stopped", ());
 
-    // Sound feedback (instant, from a pre-computed PCM buffer)
-    play_sound_feedback(app, "stop");
+    // A capture that delivered nothing before it failed is turned away once its place in line is
+    // settled, with the refusal sound in place of this one. One that delivered something is
+    // transcribed like any other, and the loss is said after its paste.
+    if capture != Capture::Empty {
+        // Sound feedback (instant, from a pre-computed PCM buffer)
+        play_sound_feedback(app, "stop");
 
-    emit_to_overlay(app, "transcribing");
+        emit_to_overlay(app, "transcribing");
+    }
 
-    Ok(Dictation { seq, cancel, audio: audio_data, lease })
+    Ok(Dictation { seq, cancel, audio: audio_data, capture, lease })
 }
 
 /// Transcribe a recording and let its place in line go.
 async fn finish_dictation(app: AppHandle, dictation: Dictation) {
     let state = app.state::<AppState>();
-    let Dictation { seq, cancel, audio: audio_data, lease: _lease } = dictation;
+    let Dictation { seq, cancel, audio: audio_data, capture, lease: _lease } = dictation;
 
     // Both figures the history has always stored as null, because the frontend
     // was doing the saving and cannot know either of them. The capture is mono
@@ -961,7 +972,11 @@ async fn finish_dictation(app: AppHandle, dictation: Dictation) {
     let audio_duration_ms = (audio_data.len() as f64 / 16_000.0 * 1000.0) as i64;
     let started = std::time::Instant::now();
 
-    let outcome = transcribe(&app, audio_data, cancel).await;
+    let outcome = if capture == Capture::Empty {
+        Err("The microphone stopped during the recording".to_string())
+    } else {
+        transcribe(&app, audio_data, cancel).await
+    };
 
     // Nothing was said, or nothing came back. Whisper answers an empty string
     // for a recording with no speech in it, and a server can answer with
@@ -998,7 +1013,15 @@ async fn finish_dictation(app: AppHandle, dictation: Dictation) {
         (release, turn)
     };
     let app_for_paste = app.clone();
-    let _ = tauri::async_runtime::spawn_blocking(move || hand_out_in_turn(&app_for_paste, release, turn)).await;
+    let _ = tauri::async_runtime::spawn_blocking(move || {
+        hand_out_in_turn(&app_for_paste, release, turn);
+        // After the paste, once: the text is in the window and the refusal sound and the
+        // overlay's refusal state say that the microphone gave out on the way.
+        if capture != Capture::Whole {
+            refuse(&app_for_paste, "capture_lost");
+        }
+    })
+    .await;
 
     // The overlay goes down when the lease is dropped, and only if nothing else
     // still wants it.

@@ -736,7 +736,8 @@
       "no_model": "Aucun modèle",
       "model_loading": "Modèle en chargement",
       "paste_failed": "Collage impossible",
-      "capture_failed": "Micro indisponible"
+      "capture_failed": "Micro indisponible",
+      "capture_lost": "Micro perdu"
     },
     "queued_one": "{{count}} en cours de transcription",
     "queued_other": "{{count}} en cours de transcription"

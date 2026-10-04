@@ -155,10 +155,36 @@ fn the_buffer_is_shared_and_not_copied_when_cloned() {
 fn stopping_a_capture_handle_is_visible_to_its_clones() {
     let handle = AudioCaptureHandle {
         stop_signal: Arc::new(AtomicBool::new(false)),
+        failed: Arc::new(AtomicBool::new(false)),
     };
     let clone = handle.clone();
 
     handle.stop();
 
     assert!(clone.stop_signal.load(Ordering::SeqCst));
+}
+
+#[test]
+fn a_stream_error_is_seen_through_the_handle_and_its_clones() {
+    let failed = Arc::new(AtomicBool::new(false));
+    let handle = AudioCaptureHandle {
+        stop_signal: Arc::new(AtomicBool::new(false)),
+        failed: failed.clone(),
+    };
+    let clone = handle.clone();
+    assert!(!handle.failed(), "a capture that has reported nothing is healthy");
+
+    // What the stream's error callback does.
+    failed.store(true, Ordering::SeqCst);
+
+    assert!(handle.failed());
+    assert!(clone.failed());
+}
+
+#[test]
+fn a_stream_that_failed_after_capturing_something_is_cut_and_not_lost() {
+    assert_eq!(Capture::of(false, 0), Capture::Whole);
+    assert_eq!(Capture::of(false, 16_000), Capture::Whole);
+    assert_eq!(Capture::of(true, 16_000), Capture::Cut, "what came before the failure is kept");
+    assert_eq!(Capture::of(true, 0), Capture::Empty, "nothing came before it");
 }

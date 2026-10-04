@@ -451,6 +451,14 @@ the application.
 
 ### Bug Fixes
 
+- (audio) Say it when the microphone is unplugged during a dictation
+
+A microphone pulled out, or a headset that dropped, in the middle of a dictation used to leave the
+recording going on as silence, with nothing to tell you. When you release the shortcut, what was said
+before the microphone gave out is transcribed and pasted as usual, and the refusal sound and
+"Microphone lost" on the overlay then tell you it stopped. A dictation with nothing captured before
+the failure is turned away the same way, and nothing is pasted.
+
 - (recording) Cancel works while a text is being pasted
 
 Pasting a dictation takes most of a second, and for all of it a cancel, or the next dictation
