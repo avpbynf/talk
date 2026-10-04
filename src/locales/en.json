@@ -474,7 +474,6 @@
     "title": "Appearance",
     "theme": {
       "title": "Themes",
-      "description": "Pick a look, then change whatever you like. Your changes and the themes you save follow your Google account.",
       "yours": "Your themes",
       "mine": "yours",
       "groups": {
@@ -484,7 +483,7 @@
       "light": "light",
       "edited": "modified",
       "revert": "Back to the theme",
-      "save": "Save as my theme",
+      "save": "Save",
       "savedName": "My theme {{n}}",
       "remove": "Remove {{name}}",
       "reset": "Reset appearance",
@@ -629,8 +628,6 @@
         "radial": "Radial",
         "conic": "Conic"
       },
-      "colors_one": "{{count}} colour",
-      "colors_other": "{{count}} colours",
       "add": "Click to add a colour",
       "full": "Four colours at most, remove one first",
       "stop": "Colour {{n}}, at {{pos}} %",
@@ -683,8 +680,7 @@
         "hint": "The lighter text is derived from it"
       },
       "border": {
-        "label": "Borders",
-        "hint": "Lines between and around the cards"
+        "label": "Borders"
       },
       "description": "Light or dark follows the background. Text is kept readable on it whatever you pick.",
       "adjusted": "The text colour was too close to the surfaces, so a more readable one is used. Yours is kept.",

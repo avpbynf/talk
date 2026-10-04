@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { ArrowLeftRight, Dices, Palette } from "lucide-react";
+import { locale } from "@/i18n";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -205,12 +206,8 @@ export default function GradientEditor({ theme }: { theme: AppThemeController })
 
   const onRailDown = (event: PointerEvent<HTMLDivElement>) => addStopAt(positionAt(event.clientX));
 
-  const kindLabel = t(`appearance.gradient.kinds.${values.kind}`);
-  const summary = [
-    kindLabel,
-    ...(values.kind === "radial" ? [] : [`${values.angle}°`]),
-    t("appearance.gradient.colors", { count: stops.length }),
-  ].join(", ");
+  const kindLabel = t(`appearance.gradient.kinds.${values.kind}`).toLocaleLowerCase(locale());
+  const summary = [kindLabel, ...(values.kind === "radial" ? [] : [`${values.angle}°`])].join(", ");
 
   return (
     <SectionCard

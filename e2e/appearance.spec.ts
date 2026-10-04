@@ -132,7 +132,7 @@ test.describe("editing the look", () => {
   test("saves a changed look, removes it, and undoes the removal", async ({ app, page }) => {
     await app.open();
     await app.go(APPEARANCE);
-    const save = page.getByRole("button", { name: "Save as my theme" });
+    const save = page.getByRole("button", { name: "Save", exact: true });
     await expect(save).toBeDisabled();
 
     await page.getByRole("radio", { name: "Round" }).click();
@@ -163,7 +163,7 @@ test.describe("editing the look", () => {
     });
     await app.go(APPEARANCE);
     await page.getByRole("radio", { name: "Round" }).click();
-    await page.getByRole("button", { name: "Save as my theme" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("You can keep 48 saved themes");
     await expect(page.getByRole("button", { name: /^My theme 1/ })).toHaveCount(0);
   });

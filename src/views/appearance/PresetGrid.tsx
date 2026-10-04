@@ -94,7 +94,7 @@ function FixedButton({ children, onClick }: { children: ReactNode; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-[6px] border border-[#9ca3af] bg-[#1f2937] px-3 text-xs font-medium text-white hover:bg-[#374151] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f59e0b] [&_svg]:size-3.5"
+      className="inline-flex h-[30px] items-center gap-2 whitespace-nowrap rounded-[6px] border border-[#9ca3af] bg-[#1f2937] px-3 text-xs font-medium text-white hover:bg-[#374151] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f59e0b] [&_svg]:size-3.5"
     >
       {children}
     </button>
@@ -130,7 +130,6 @@ export default function PresetGrid({ theme }: { theme: AppThemeController }) {
     <SectionCard
       icon={Palette}
       title={t("appearance.theme.title")}
-      description={t("appearance.theme.description")}
       action={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {resolved.edited && (
@@ -146,6 +145,7 @@ export default function PresetGrid({ theme }: { theme: AppThemeController }) {
           )}
           <FixedButton onClick={theme.reset}>{t("appearance.theme.reset")}</FixedButton>
           <Button
+            variant="outline"
             size="sm"
             disabled={!resolved.edited}
             title={resolved.edited ? undefined : t("appearance.theme.saveUnchanged")}

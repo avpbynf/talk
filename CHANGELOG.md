@@ -417,6 +417,13 @@ when pressed, and assistive technology still announces it as unavailable. The fi
 "e.g. MyProject, ACME", and an empty list says the first term you add goes to the model on the next
 dictation.
 
+- (preferences) Lighten the top of the Appearance page
+
+The themes card opens straight on the previews without its introduction, "Save" is a quiet outlined
+button next to a Reset appearance button of the same height, the gradient summary reads "linear,
+135 degrees" without the colour count, the borders colour has no hint, and the shape card takes the
+dashboard icon.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded
