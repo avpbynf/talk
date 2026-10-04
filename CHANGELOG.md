@@ -614,6 +614,14 @@ part of it could not be read, and what depended on it is locked, with a Try agai
 that nothing can save a default over what is stored. Try again also reads again the models and the
 graphics cards that could not be read, and loads the last model once they have come back.
 
+- (preferences) Remove vocabulary terms quickly and from the keyboard
+
+Removing two terms in a row no longer puts the first one back, and a term that could not be saved
+comes back with a message. Removing a term with the keyboard moves the focus to Undo instead of
+dropping it, and when Undo goes away the focus lands on the next term. After a refused edit the
+list shown is the one the application holds, and an edit that a later one carried counts as done:
+Undo is offered and the field is emptied.
+
 - (preferences) Say so when a device, sharing or overlay setting fails
 
 The chained dictations choices and the microphone and speaker pickers go back to their previous
