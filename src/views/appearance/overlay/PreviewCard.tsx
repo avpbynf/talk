@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
@@ -46,11 +46,12 @@ export default function PreviewCard({ settings, colors, email, onFree }: Preview
   const [mode, setMode] = useState<PreviewMode>("loop");
   const phase = usePreviewPhase(mode, usePageVisible());
   const desk = useRef<HTMLDivElement>(null);
+  // Measured before the first paint, so the overlay is never seen gliding from a guessed size.
   const [room, setRoom] = useState({ width: 600, height: 330 });
   const [dragging, setDragging] = useState(false);
   const grip = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = desk.current;
     if (!el) return;
     const measure = () => setRoom({ width: el.clientWidth, height: el.clientHeight });
@@ -63,6 +64,18 @@ export default function PreviewCard({ settings, colors, email, onFree }: Preview
   const factor = SIZE_FACTOR[settings.size];
   const box = { width: STAGE_WIDTH * factor, height: STAGE_HEIGHT * factor };
   const at = placeOnDesk(settings.placement, room, box);
+  // It glides when another spot is picked, and only then: a desk that is measured late or resized
+  // moves it to where it belongs at once.
+  const [gliding, setGliding] = useState(false);
+  const spot = settings.placement.spot;
+  const shownSpot = useRef(spot);
+  useEffect(() => {
+    if (shownSpot.current === spot) return;
+    shownSpot.current = spot;
+    setGliding(true);
+    const id = setTimeout(() => setGliding(false), 900);
+    return () => clearTimeout(id);
+  }, [spot]);
   const fromTop = at.y + box.height / 2 < room.height / 2;
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -143,7 +156,7 @@ export default function PreviewCard({ settings, colors, email, onFree }: Preview
             top: at.y,
             width: box.width,
             height: box.height,
-            transition: dragging || reduced ? "none" : "left 0.7s cubic-bezier(.34,1.3,.64,1), top 0.7s cubic-bezier(.34,1.3,.64,1)",
+            transition: dragging || reduced || !gliding ? "none" : "left 0.7s cubic-bezier(.34,1.3,.64,1), top 0.7s cubic-bezier(.34,1.3,.64,1)",
           }}
         >
           {phase !== "hidden" && (
