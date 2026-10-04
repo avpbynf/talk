@@ -6,7 +6,8 @@
 # The same page rendered on another system differs in its text by more than any tolerance worth
 # having, so the machine that records them is the machine that checks them.
 #
-# The Rust side is not involved. The Vite dev server is started by Playwright itself.
+# The Rust side is not involved. Playwright builds the frontend and serves it with `vite preview`
+# itself, in development mode so that React keeps its warnings, rather than through the dev server.
 #
 # A failure uploads the HTML report and the folder the diff images land in, which is where the
 # expected, the actual and the difference of a snapshot sit side by side.
