@@ -1,9 +1,9 @@
-import { useEffect, useId, useMemo, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Blobatar } from "@blobatar/react";
 import { happy, idle, mad, thinking } from "blobatar/expression";
 import "blobatar/motion.css";
 import { Check, X } from "lucide-react";
-import { clock, type OverlayPhase } from "@/lib/overlay";
+import { STAGE_WIDTH, clock, type OverlayPhase } from "@/lib/overlay";
 import { QueueBadge, type StyleProps } from "./parts";
 import { smileOf } from "./smile";
 
@@ -19,6 +19,11 @@ const THINKING_SIZE = 0.84;
 /** The level above which the voice sends out a ripple, and the least time between two. */
 const RIPPLE_LEVEL = 0.55;
 const RIPPLE_GAP_MS = 380;
+/** The avatar's box and the gap to what is written beside it, as the stylesheet sets them. */
+const BODY = 80;
+const GAP = 10;
+/** What fits beside an avatar that sits in the middle of the stage. */
+const ROOM = (STAGE_WIDTH - BODY) / 2 - GAP;
 
 function hop(el: HTMLElement | null, phase: OverlayPhase, reduced: boolean) {
   if (!el || phase !== "done" || reduced || typeof el.animate !== "function") return;
@@ -47,6 +52,15 @@ export default function Orb({ subscribe, phase, look, jobs, progress, label, red
   const halo = useRef<HTMLSpanElement>(null);
   const ripples = useRef<SVGGElement>(null);
   const lastRipple = useRef(0);
+  const words = useRef<HTMLSpanElement>(null);
+  const [shift, setShift] = useState(0);
+
+  // The avatar sits in the middle of the stage and what is written hangs beside it. Words too
+  // long for that side move the pair over, just far enough for the two to be centred together.
+  useLayoutEffect(() => {
+    const width = phase === "done" || phase === "refuse" ? (words.current?.offsetWidth ?? 0) : 0;
+    setShift(width > ROOM ? (width + GAP) / 2 : 0);
+  }, [phase, label, look.end_text]);
 
   useEffect(() => hop(body.current, phase, reduced), [phase, reduced]);
 
@@ -93,7 +107,7 @@ export default function Orb({ subscribe, phase, look, jobs, progress, label, red
   );
 
   return (
-    <div className="ovo">
+    <div className="ovo" style={{ translate: `${-shift}px 0` }}>
       <span ref={body} className="ovo-b">
         <span ref={halo} className="ovo-halo" />
         <svg viewBox="-60 -60 120 120" aria-hidden="true">
@@ -126,12 +140,12 @@ export default function Orb({ subscribe, phase, look, jobs, progress, label, red
       <span className="ovo-side">
         <span className="tm ovo-tm">{clock(phase === "rec" ? elapsed : 0)}</span>
         {phase === "refuse" || look.end_text ? (
-          <span className="ovo-done">
+          <span ref={words} className="ovo-done">
             {phase === "refuse" ? <X /> : <Check />}
             <span className="words">{label}</span>
           </span>
         ) : (
-          <span className="ovo-done"><Check /></span>
+          <span ref={words} className="ovo-done"><Check /></span>
         )}
       </span>
     </div>
