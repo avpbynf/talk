@@ -400,7 +400,9 @@ impl WhisperEngine {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
         // Configure for optimal performance
-        params.set_n_threads(threads_for(num_cpus::get()));
+        params.set_n_threads(threads_for(
+            std::thread::available_parallelism().map_or(1, |n| n.get()),
+        ));
         params.set_language(language);
         params.set_translate(false);
         params.set_print_special(false);
