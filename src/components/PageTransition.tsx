@@ -16,7 +16,6 @@ const LEAVE_MS = 170;
 function clearStyles(el: HTMLElement) {
   el.style.removeProperty("opacity");
   el.style.removeProperty("transform");
-  el.style.removeProperty("filter");
 }
 
 /** The blocks a page is made of: what PageShell marks, else the root's children. */
@@ -54,7 +53,7 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
     const dir = order.indexOf(view) > order.indexOf(shown) ? 1 : -1;
     animate(
       el,
-      { opacity: 0, y: -12 * dir, scale: 0.99, filter: "blur(4px)" },
+      { opacity: 0, y: -12 * dir, scale: 0.99 },
       { duration: LEAVE_MS / 1000, ease: "easeIn" },
     ).then(() => {
       leaving.current = false;
@@ -80,7 +79,6 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
     for (const block of blocks) {
       block.style.opacity = "0";
       block.style.transform = `translateY(${18 * swap.dir}px) scale(0.985)`;
-      block.style.filter = "blur(3px)";
     }
     const run = animate(
       blocks,
@@ -88,11 +86,10 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
         opacity: [0, 1],
         y: [18 * swap.dir, 0],
         scale: [0.985, 1],
-        filter: ["blur(3px)", "blur(0px)"],
       },
       { duration: 0.56, delay: stagger(0.05), ease: EASE_OUT },
     );
-    // A filter left on a block would turn it into the frame of any fixed dialog inside.
+    // A transform left on a block would turn it into the frame of any fixed dialog inside.
     // Motion writes the final keyframe of the last animations as it settles them, which can
     // land after this promise has resolved, so the styles are cleared again a frame later.
     run.then(() => {
