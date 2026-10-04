@@ -170,11 +170,9 @@
     }
   },
   "history": {
-    "title": "History",
     "empty": "Nothing dictated yet",
     "kept": "{{number}} of {{limit}} kept",
     "keepHowMany": "How many transcriptions to keep",
-    "keepOption": "Keep {{value}}",
     "clearAll": "Clear the whole history",
     "press": "Press",
     "startTalking": "and start talking",
@@ -190,7 +188,9 @@
     "limitConfirm": {
       "title": "Keep only {{limit}} transcriptions?",
       "description": "{{number}} older ones go, and they do not come back. The statistics keep counting them."
-    }
+    },
+    "keep": "Keep",
+    "enhanced": "Enhanced"
   },
   "vocabulary": {
     "title": "Vocabulary",
