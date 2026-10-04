@@ -109,8 +109,11 @@ function OverlayPage() {
       }),
     ];
 
-    // Dragged by the user, the window reports where it was dropped. Only a drag the user started
-    // counts: the window also moves when the backend places it before showing it.
+    // Dragged by the user, the window reports where it was dropped. A press arms this until the
+    // position is sent or the overlay hides, and nothing else disarms it: the native move loop takes
+    // focus and swallows the mouse release, so neither blur nor mouseup says the drag is over. A
+    // click that never moves the window leaves it armed, and the backend refuses the corner it
+    // placed itself.
     const unlistenMove = getCurrentWindow().onMoved(({ payload: position }) => {
       if (!armed.current) return;
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
@@ -119,18 +122,10 @@ function OverlayPage() {
         invoke("save_overlay_position", { x: position.x, y: position.y });
       }, 300);
     });
-    // A press that is let go without the window having moved was a click, not the start of a drag.
-    const release = () => {
-      armed.current = false;
-    };
-    window.addEventListener("mouseup", release);
-    window.addEventListener("blur", release);
 
     return () => {
       unlisten.forEach((pending) => pending.then((f) => f()));
       unlistenMove.then((f) => f());
-      window.removeEventListener("mouseup", release);
-      window.removeEventListener("blur", release);
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
     };
   }, []);
