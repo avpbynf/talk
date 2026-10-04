@@ -410,6 +410,13 @@ accents, marks them, and a line says when none does; Escape clears the field. An
 entry lifts a little under the pointer, and clicking it shows "Copied" with a check on its footer
 line.
 
+- (preferences) Keep the Add button bright on the Vocabulary page
+
+The Add button no longer turns grey while the field is empty: it keeps its gradient and does nothing
+when pressed, and assistive technology still announces it as unavailable. The field suggests
+"e.g. MyProject, ACME", and an empty list says the first term you add goes to the model on the next
+dictation.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded
