@@ -210,10 +210,6 @@ pub struct OverlayPlacement {
     /// earlier build is still to be turned into this.
     #[serde(deserialize_with = "lenient")]
     pub free: Option<FreePosition>,
-    /// The screen a free position was dropped on, which it belongs to whatever the
-    /// screen rule says. Gone, or not connected, it falls back to the rule.
-    #[serde(deserialize_with = "lenient")]
-    pub free_screen: Option<String>,
     #[serde(deserialize_with = "lenient")]
     pub screen: ScreenChoice,
     /// The name Windows gives the screen, when `screen` is `chosen`.
@@ -229,10 +225,6 @@ impl OverlayPlacement {
         }
         if self.screen != ScreenChoice::Chosen {
             self.chosen_screen = None;
-        }
-        // Picking one of the six spots returns to the screen rule.
-        if self.spot != Spot::Free {
-            self.free_screen = None;
         }
         self
     }
@@ -331,16 +323,17 @@ mod tests {
     }
 
     #[test]
-    fn a_free_position_keeps_its_screen_until_a_spot_is_picked() {
-        let dropped = OverlayPlacement {
-            spot: Spot::Free,
-            free: Some(FreePosition { x: 0.4, y: 0.6 }),
-            free_screen: Some("monitor-b".to_string()),
-            ..Default::default()
-        };
-        assert_eq!(dropped.clone().sanitized().free_screen.as_deref(), Some("monitor-b"));
-
-        let pinned = OverlayPlacement { spot: Spot::TopLeft, ..dropped }.sanitized();
-        assert_eq!(pinned.free_screen, None, "a spot goes back to the screen rule");
+    fn a_file_that_still_names_a_free_screen_reads_back_without_it() {
+        let placement: OverlayPlacement = serde_json::from_value(json!({
+            "spot": "free",
+            "free": { "x": 0.25, "y": 0.75 },
+            "free_screen": "monitor-b",
+            "screen": "pointer",
+        }))
+        .expect("should parse");
+        assert_eq!(placement.spot, Spot::Free);
+        assert_eq!(placement.free, Some(FreePosition { x: 0.25, y: 0.75 }));
+        assert_eq!(placement.screen, ScreenChoice::Pointer);
+        assert_eq!(placement.chosen_screen, None);
     }
 }

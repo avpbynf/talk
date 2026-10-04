@@ -821,7 +821,6 @@ mod tests {
             spot: Spot::Free,
             free: Some(FreePosition { x: 0.2, y: 0.9 }),
             screen: ScreenChoice::Chosen,
-            free_screen: Some("monitor-b".to_string()),
             chosen_screen: Some("DISPLAY2".to_string()),
         };
 

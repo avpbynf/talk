@@ -78,8 +78,8 @@ glass or light background. You can set how strongly it reacts to your voice, how
 slide or fade), its size, the timer, the microphone icon and, off by default, the words after pasting.
 Position is one of six spots or free: drag the overlay, in the preview or on screen, and it stays where
 you drop it with none of the six selected, until you pick a spot again. With several screens, choose the
-one where you are typing, the one with the mouse pointer, the primary, or always one in particular; if
-that one is unplugged, or plugged into another port, the overlay falls back to where you are typing.
+one where you are typing, the one with the mouse pointer, the primary, or always one in particular (a drop
+on another screen then makes that one the screen); if that one is unplugged, or plugged into another port, the overlay falls back to where you are typing.
 A screen is recognised as the same monitor on the same connection. The style, colours and movement
 follow your account, and the position and the screen stay on each PC.
 
@@ -105,7 +105,7 @@ instead of in the middle of the screen. With several screens it follows the wind
 and falls back to the one with the mouse pointer and then the primary screen. A position is kept as a
 share of that screen's usable area, so a change of resolution or display scale no longer strands it
 off screen, and on a screen at a different scale it keeps the same size. Drag it and it stays where you
-drop it, on the screen you dropped it on. An overlay you had already moved keeps its place and its screen.
+drop it, wherever the screen rule then sends it. An overlay you had already moved keeps its place.
 When the desktop itself is in front, it goes where the mouse pointer is.
 
 - (window) Call the Transcription page Engine and the Preferences page Settings

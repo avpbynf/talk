@@ -559,7 +559,6 @@
         },
         "screen": "Screen",
         "screenHint": "With several screens, only one shows it",
-        "screenFree": "A dragged overlay stays on the screen where you dropped it. Pick a spot above to use this choice again",
         "typing": "Where you are typing",
         "pointer": "Where the mouse is",
         "primary": "The primary screen",

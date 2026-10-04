@@ -132,8 +132,8 @@ workflows run that same file.
   Only a move the user started counts as a drag: the overlay page arms on a mouse press, and
   `dragged_to()` ignores a move that lands where `place()` put it, and forgets that corner once a
   drag is taken in. A position is kept as a share of the room on a screen's work area
-  (`FreePosition`), never as pixels, and belongs to the screen it was dropped on (`free_screen`),
-  whatever the screen rule says; a spot goes back to the rule. A screen is remembered by the
+  (`FreePosition`), never as pixels, and applies on whichever screen the rule picks; a drop on
+  another screen only moves the rule when it is `Chosen`. A screen is remembered by the
   monitor's device path and not by `\\.\DISPLAYn`, which Windows renumbers. The path names the
   same monitor on the same connection: it embeds an id derived from the output, so another
   port or dock may read as a new screen, and a free position then falls back to the rule. An earlier build's

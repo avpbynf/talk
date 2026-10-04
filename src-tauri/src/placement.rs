@@ -172,9 +172,8 @@ pub fn free_from_saved_corner<'a>(
     free_from_window(corner, window_pixels(logical, scale), screens)
 }
 
-/// An overlay position an earlier build saved becomes a free position on the screen that
-/// holds it, which is the screen it keeps from then on. Nothing happens to a placement that
-/// is not waiting for one.
+/// An overlay position an earlier build saved becomes a free position as a share of the screen
+/// that holds it. Nothing happens to a placement that is not waiting for one.
 pub fn adopt_saved_corner(
     placement: &mut OverlayPlacement,
     saved: (f64, f64),
@@ -186,29 +185,27 @@ pub fn adopt_saved_corner(
     }
     let Some((screen, free)) = free_from_saved_corner(saved, logical, screens) else { return false };
     placement.free = Some(free);
-    placement.free_screen = Some(screen.id.clone());
+    follow(placement, screen);
     true
 }
 
-/// The screen and the corner the overlay is shown at.
-///
-/// A free position belongs to the screen it was dropped on, wherever the screen rule
-/// would have sent it. When that screen is not there, the rule picks one and the share is
-/// kept.
+/// A position dropped on a screen the user picked by hand moves that pick along with it. Any
+/// other rule is left alone: the share applies on whichever screen the rule names next time.
+fn follow(placement: &mut OverlayPlacement, screen: &Screen) {
+    if placement.screen == ScreenChoice::Chosen {
+        placement.chosen_screen = Some(screen.id.clone());
+    }
+}
+
+/// The screen and the corner the overlay is shown at: the screen the rule picks, and a free
+/// position as a share of that screen's room.
 pub fn target<'a>(
     placement: &OverlayPlacement,
     screens: &'a [Screen],
     whereabouts: Whereabouts,
     logical: (f64, f64),
 ) -> Option<(&'a Screen, (i32, i32))> {
-    let home = if placement.spot == Spot::Free {
-        placement.free_screen.as_deref().and_then(|id| screens.iter().find(|screen| screen.id == id))
-    } else {
-        None
-    };
-    let screen = home.or_else(|| {
-        pick_screen(screens, placement.screen, placement.chosen_screen.as_deref(), whereabouts)
-    })?;
+    let screen = pick_screen(screens, placement.screen, placement.chosen_screen.as_deref(), whereabouts)?;
     Some((screen, position(placement.spot, placement.free, screen, logical)))
 }
 
@@ -227,7 +224,7 @@ pub fn dropped(
     let Some((screen, free)) = free_from_window(corner, window, screens) else { return false };
     placement.spot = Spot::Free;
     placement.free = Some(free);
-    placement.free_screen = Some(screen.id.clone());
+    follow(placement, screen);
     *placed = None;
     true
 }
@@ -541,13 +538,8 @@ mod tests {
         assert!(target(&OverlayPlacement::default(), &[], Whereabouts::default(), LOGICAL).is_none());
     }
 
-    fn free_on(screen: Option<&str>, x: f64, y: f64) -> OverlayPlacement {
-        OverlayPlacement {
-            spot: Spot::Free,
-            free: Some(FreePosition { x, y }),
-            free_screen: screen.map(str::to_string),
-            ..Default::default()
-        }
+    fn free_at(x: f64, y: f64) -> OverlayPlacement {
+        OverlayPlacement { spot: Spot::Free, free: Some(FreePosition { x, y }), ..Default::default() }
     }
 
     fn typing_on_the_laptop() -> Whereabouts {
@@ -555,33 +547,18 @@ mod tests {
     }
 
     #[test]
-    fn a_free_position_stays_on_the_screen_it_was_dropped_on_whatever_the_rule_says() {
+    fn a_free_position_is_a_share_of_whichever_screen_the_rule_picks() {
         let desk = desk();
-        // Dropped on the 4K panel while typing on the laptop: the next dictation shows it there.
-        let placement = free_on(Some("panel"), 0.5, 0.5);
-        let (screen, corner) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL).expect("a screen");
-        assert_eq!(screen.id, "panel");
-        assert!(inside(screen.work, corner, window_pixels(LOGICAL, 2.0)));
-    }
-
-    #[test]
-    fn a_free_position_whose_screen_is_gone_falls_back_to_the_rule_and_keeps_its_share() {
-        let desk = desk();
-        let placement = free_on(Some("unplugged"), 0.25, 1.0);
+        let placement = free_at(0.25, 1.0);
         let (screen, corner) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL).expect("a screen");
         assert_eq!(screen.id, "laptop");
         let (w, _) = window_pixels(LOGICAL, 1.25);
         assert_eq!(corner.0, ((1920 - w) as f64 * 0.25).round() as i32);
-        let again = free_on(None, 0.25, 1.0);
-        assert_eq!(target(&again, &desk, typing_on_the_laptop(), LOGICAL).map(|t| t.0.id.as_str()), Some("laptop"));
-    }
 
-    #[test]
-    fn a_spot_returns_to_the_rule_even_if_a_screen_is_still_remembered() {
-        let desk = desk();
-        let placement = OverlayPlacement { spot: Spot::TopLeft, free_screen: Some("panel".to_string()), ..Default::default() };
-        let (screen, _) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL).expect("a screen");
-        assert_eq!(screen.id, "laptop");
+        let on_the_panel = Whereabouts { typing: Some((-500, 300)), pointer: Some((100, 100)) };
+        let (screen, corner) = target(&placement, &desk, on_the_panel, LOGICAL).expect("a screen");
+        assert_eq!(screen.id, "panel", "the rule still decides the screen");
+        assert!(inside(screen.work, corner, window_pixels(LOGICAL, 2.0)));
     }
 
     #[test]
@@ -598,16 +575,21 @@ mod tests {
     }
 
     #[test]
-    fn a_position_an_earlier_build_saved_keeps_its_monitor_through_the_real_path() {
+    fn a_position_an_earlier_build_saved_is_adopted_on_the_screen_that_holds_it() {
         let desk = desk();
-        // Left on the 4K panel by the release before, in desktop pixels, while the user types on the laptop.
+        // Left on the 4K panel by the release before, in desktop pixels.
         let mut placement = OverlayPlacement { spot: Spot::Free, ..Default::default() };
         assert!(adopt_saved_corner(&mut placement, (-1000.0, 300.0), LOGICAL, &desk));
-        assert_eq!(placement.free_screen.as_deref(), Some("panel"));
+        assert_eq!(placement.chosen_screen, None, "the screen rule is left alone");
 
-        let (screen, corner) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL).expect("a screen");
-        assert_eq!(screen.id, "panel", "the upgraded overlay does not change monitor");
+        let on_the_panel = Whereabouts { typing: Some((-500, 300)), pointer: None };
+        let (screen, corner) = target(&placement, &desk, on_the_panel, LOGICAL).expect("a screen");
+        assert_eq!(screen.id, "panel");
         assert!((corner.0 + 1000).abs() <= 1 && (corner.1 - 300).abs() <= 1, "and lands where it was left: {corner:?}");
+
+        let mut chosen = OverlayPlacement { spot: Spot::Free, screen: ScreenChoice::Chosen, ..Default::default() };
+        assert!(adopt_saved_corner(&mut chosen, (-1000.0, 300.0), LOGICAL, &desk));
+        assert_eq!(chosen.chosen_screen.as_deref(), Some("panel"));
     }
 
     #[test]
@@ -615,9 +597,9 @@ mod tests {
         let desk = desk();
         let mut pinned = OverlayPlacement::default();
         assert!(!adopt_saved_corner(&mut pinned, (10.0, 10.0), LOGICAL, &desk));
-        let mut done = free_on(Some("tv"), 0.5, 0.5);
+        let mut done = free_at(0.5, 0.5);
         assert!(!adopt_saved_corner(&mut done, (10.0, 10.0), LOGICAL, &desk));
-        assert_eq!(done.free_screen.as_deref(), Some("tv"));
+        assert_eq!(done, free_at(0.5, 0.5));
         assert!(!adopt_saved_corner(&mut OverlayPlacement { spot: Spot::Free, ..Default::default() }, (0.0, 0.0), LOGICAL, &[]));
     }
 
@@ -636,24 +618,44 @@ mod tests {
     }
 
     #[test]
-    fn a_drag_is_taken_in_with_its_screen_and_the_next_one_is_judged_afresh() {
+    fn a_drag_is_taken_in_and_the_next_one_is_judged_afresh() {
         let desk = desk();
         let mut placement = OverlayPlacement::default();
         let corner = position(Spot::BottomCenter, None, &desk[0], LOGICAL);
         let mut placed = Some(corner);
         let window = window_pixels(LOGICAL, 2.0);
 
-        // Dropped on the panel.
         assert!(dropped(&mut placement, &mut placed, (-2000, 400), window, &desk));
         assert_eq!(placement.spot, Spot::Free);
-        assert_eq!(placement.free_screen.as_deref(), Some("panel"));
+        assert!(placement.free.is_some());
+        assert_eq!(placement.screen, ScreenChoice::Typing, "the rule is untouched");
+        assert_eq!(placement.chosen_screen, None);
         assert_eq!(placed, None);
 
         // Dragged back to within a pixel of where the overlay was first placed: it counts.
         let back = (corner.0 + 1, corner.1);
         assert!(dropped(&mut placement, &mut placed, back, window_pixels(LOGICAL, 1.25), &desk));
-        assert_eq!(placement.free_screen.as_deref(), Some("laptop"));
         assert!(placement.free.is_some());
+    }
+
+    #[test]
+    fn a_drop_on_another_screen_moves_a_chosen_screen_and_no_other_rule() {
+        let desk = desk();
+        let window = window_pixels(LOGICAL, 2.0);
+        for rule in [ScreenChoice::Typing, ScreenChoice::Pointer, ScreenChoice::Primary] {
+            let mut placement = OverlayPlacement { screen: rule, ..Default::default() };
+            assert!(dropped(&mut placement, &mut None, (-2000, 400), window, &desk));
+            assert_eq!(placement.screen, rule);
+            assert_eq!(placement.chosen_screen, None);
+        }
+        let mut placement = OverlayPlacement {
+            screen: ScreenChoice::Chosen,
+            chosen_screen: Some("laptop".to_string()),
+            ..Default::default()
+        };
+        assert!(dropped(&mut placement, &mut None, (-2000, 400), window, &desk));
+        assert_eq!(placement.screen, ScreenChoice::Chosen);
+        assert_eq!(placement.chosen_screen.as_deref(), Some("panel"));
     }
 
     #[test]

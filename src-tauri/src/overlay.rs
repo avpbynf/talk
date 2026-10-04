@@ -131,7 +131,7 @@ fn own_window(_overlay: &WebviewWindow) -> Option<isize> {
 }
 
 /// The user dragged the overlay and dropped it at this corner: it stays there, on none of
-/// the six spots, on the screen it was dropped on.
+/// the six spots.
 pub fn dragged_to(app: &AppHandle, corner: (i32, i32)) -> Result<(), String> {
     let overlay = app.get_webview_window("overlay").ok_or("No overlay window")?;
     let size = overlay.outer_size().map_err(|e| e.to_string())?;
