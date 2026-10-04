@@ -799,7 +799,6 @@
   },
   "account": {
     "title": "Account",
-    "hint": "Optional. Signing in only syncs your settings, statistics and history between your machines, through your own Google Drive.",
     "unavailable": "Sign-in is not available in this build.",
     "signIn": "Sign in with Google",
     "signingIn": "Waiting for the browser",
@@ -808,25 +807,24 @@
     "provider": "Google Drive",
     "follows": {
       "title": "What follows your account",
-      "shortcuts": "Shortcuts and companions",
-      "recording": "Recording mode and chained dictations",
+      "shortcuts": "Shortcuts",
       "vocabulary": "Vocabulary",
-      "sounds": "Feedback sounds",
-      "themes": "App and overlay look",
+      "sounds": "Sounds",
+      "themes": "Theme and gradients",
       "language": "Language",
-      "startup": "Start with Windows and minimized",
-      "system": "Volume ducking and clipboard",
-      "meeting": "Meeting mode",
+      "startup": "Startup",
+      "dictation": "Dictation preferences",
       "stats": "Statistics",
-      "history": "History"
+      "history": "History",
+      "system": "Volume and clipboard"
     },
     "stays": {
       "title": "Stays on each PC",
-      "audio": "Microphone and output",
+      "audio": "Microphone",
       "gpu": "Graphics card",
       "model": "Model",
-      "server": "Server and token",
-      "overlay": "Overlay position and screen",
+      "server": "Server",
+      "overlay": "Overlay position",
       "history": "History size"
     },
     "devices": {
@@ -875,7 +873,12 @@
     "lastSyncAgo": "Last synced {{ago}}",
     "neverSynced": "Not synced yet",
     "syncFailed": "Last sync failed: {{error}}",
-    "settingsNotUploaded": "Your settings are not being uploaded because the settings file on this computer could not be read."
+    "settingsNotUploaded": "Your settings are not being uploaded because the settings file on this computer could not be read.",
+    "noAccount": {
+      "label": "Not signed in",
+      "title": "No account",
+      "prompt": "Sign in to find your settings on another PC"
+    }
   },
   "updates": {
     "title": "Updates",

@@ -380,6 +380,14 @@ typing", the cancel shortcut offers "Everything waiting" or "The oldest", and th
 plays when there is no model to dictate with. Meeting mode takes the microphone icon and says whether
 VB-Cable is installed inside its own sentence instead of on a line with a dot.
 
+- (preferences) Give the Account page its design
+
+The glow behind the account card and the halo of the avatar follow your accent gradient, the
+address is set tighter and the sync line a size smaller. Signed out, the card says "No account" with
+a line inviting you to sign in, and the button carries the Google mark. "What follows the account"
+lists short chips: shortcuts, vocabulary, sounds, theme and gradients, language, startup, dictation
+preferences, volume and clipboard, statistics and history, and a second row says what stays on each PC.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded

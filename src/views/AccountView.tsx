@@ -18,14 +18,13 @@ export type { GoogleStatus };
 // list mirrors what the backend's sync module carries.
 const FOLLOWS = [
   "shortcuts",
-  "recording",
   "vocabulary",
   "sounds",
   "themes",
   "language",
   "startup",
+  "dictation",
   "system",
-  "meeting",
   "stats",
   "history",
 ] as const;
@@ -124,13 +123,13 @@ export default function AccountView() {
         <div className="relative overflow-hidden rounded-[calc(var(--radius)+4px)] border border-border-card bg-surface-raised shadow-[var(--shadow)]">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -left-[10%] -top-[60%] aspect-square w-3/5 rounded-full bg-[var(--color-active)] opacity-25 blur-[50px]"
+            className="pointer-events-none absolute -left-[10%] -top-[60%] aspect-square w-3/5 rounded-full bg-[image:var(--grad)] opacity-[0.28] blur-[50px]"
           />
           <div className="relative flex flex-wrap items-center gap-x-[22px] gap-y-4 px-[22px] py-6">
             <div className="relative h-[104px] w-[104px] shrink-0">
               <div
                 aria-hidden="true"
-                className="absolute inset-1.5 rounded-full bg-[var(--color-active)] opacity-50 blur-[18px]"
+                className="absolute inset-1.5 rounded-full bg-[image:var(--grad)] opacity-[0.55] blur-[18px]"
               />
               {status.available && status.email ? (
                 <Blobatar
@@ -151,7 +150,14 @@ export default function AccountView() {
               {!status.available && <p className="text-sm text-muted-foreground">{t("account.unavailable")}</p>}
 
               {status.available && !status.email && (
-                <p className="text-sm text-muted-foreground">{t("account.hint")}</p>
+                <>
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <GoogleMark />
+                    {t("account.noAccount.label")}
+                  </span>
+                  <b className="text-xl font-semibold tracking-[-0.02em]">{t("account.noAccount.title")}</b>
+                  <p className="text-[13px] text-muted-foreground">{t("account.noAccount.prompt")}</p>
+                </>
               )}
 
               {status.available && status.email && (
@@ -160,9 +166,9 @@ export default function AccountView() {
                     <GoogleMark />
                     {t("account.provider")}
                   </span>
-                  <b className="break-all text-xl font-semibold tracking-tight">{status.email}</b>
+                  <b className="break-all text-xl font-semibold tracking-[-0.02em]">{status.email}</b>
                   <p
-                    className={`text-sm ${
+                    className={`text-[13px] ${
                       showsError ? "text-destructive line-clamp-3 break-words" : "text-muted-foreground"
                     }`}
                   >
@@ -182,7 +188,14 @@ export default function AccountView() {
             {status.available && !status.email && (
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Button onClick={() => run("signIn")} disabled={busy !== null}>
-                  {busy === "signIn" ? t("account.signingIn") : t("account.signIn")}
+                  {busy === "signIn" ? (
+                    t("account.signingIn")
+                  ) : (
+                    <>
+                      <GoogleMark />
+                      {t("account.signIn")}
+                    </>
+                  )}
                 </Button>
                 {busy === "signIn" && (
                   <Button variant="outline" onClick={cancelSignIn}>
