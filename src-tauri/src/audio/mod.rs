@@ -1,6 +1,7 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::SampleFormat;
 use parking_lot::Mutex;
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use thiserror::Error;
@@ -23,30 +24,40 @@ const WHISPER_SAMPLE_RATE: u32 = 16000;
 const MAX_BUFFER_SAMPLES: usize = 9_600_000;
 
 /// Thread-safe audio buffer that can be shared across threads
+///
+/// Past the cap it keeps the newest ten minutes. It is a ring: a push only
+/// ever moves what it adds, so the capture callback never pays for the length
+/// of the recording.
 #[derive(Clone)]
 pub struct AudioBuffer {
-    data: Arc<Mutex<Vec<f32>>>,
+    data: Arc<Mutex<VecDeque<f32>>>,
 }
 
 impl AudioBuffer {
     pub fn new() -> Self {
         Self {
-            data: Arc::new(Mutex::new(Vec::new())),
+            data: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
     pub fn push(&self, samples: &[f32]) {
         let mut data = self.data.lock();
-        data.extend_from_slice(samples);
-        // Truncate oldest samples if buffer exceeds the ~10 minute limit
-        if data.len() > MAX_BUFFER_SAMPLES {
-            let excess = data.len() - MAX_BUFFER_SAMPLES;
-            data.drain(0..excess);
-        }
+        // A single push larger than the cap only keeps its own tail.
+        let samples = &samples[samples.len().saturating_sub(MAX_BUFFER_SAMPLES)..];
+        let overflow = (data.len() + samples.len()).saturating_sub(MAX_BUFFER_SAMPLES);
+        data.drain(..overflow);
+        data.extend(samples);
     }
 
+    /// Everything recorded so far, oldest first, leaving the buffer empty.
+    ///
+    /// The ring is swapped out under the lock and laid flat after it is
+    /// released: once it has wrapped that is a move of tens of megabytes, and
+    /// the capture callback waits on the same lock. What arrives meanwhile
+    /// lands in the fresh buffer, as it would have after the take.
     pub fn take(&self) -> Vec<f32> {
-        std::mem::take(&mut *self.data.lock())
+        let ring = std::mem::take(&mut *self.data.lock());
+        Vec::from(ring)
     }
 
     pub fn get_level(&self) -> f32 {
@@ -57,7 +68,7 @@ impl AudioBuffer {
 
         let samples_100ms = (WHISPER_SAMPLE_RATE as usize) / 10;
         let start = buffer.len().saturating_sub(samples_100ms);
-        let recent = &buffer[start..];
+        let recent: Vec<f32> = buffer.range(start..).copied().collect();
 
         if recent.is_empty() {
             return 0.0;
@@ -70,20 +81,24 @@ impl AudioBuffer {
     /// Get multiple audio levels for spectrum visualization
     /// Returns `num_bars` levels, each representing a time slice of recent audio
     pub fn get_spectrum(&self, num_bars: usize) -> Vec<f32> {
-        let buffer = self.data.lock();
-        if buffer.is_empty() || num_bars == 0 {
+        // Use last 200ms of audio, divided into num_bars segments. Only that
+        // window is copied, on the stack, and the lock is let go before any of
+        // the arithmetic.
+        const WINDOW: usize = (WHISPER_SAMPLE_RATE as usize) / 5;
+        let mut window = [0.0f32; WINDOW];
+        let copied = {
+            let buffer = self.data.lock();
+            let copied = buffer.len().min(WINDOW);
+            for (slot, sample) in window.iter_mut().zip(buffer.range(buffer.len() - copied..)) {
+                *slot = *sample;
+            }
+            copied
+        };
+
+        if copied == 0 || num_bars == 0 {
             return vec![0.0; num_bars];
         }
-
-        // Use last 200ms of audio, divided into num_bars segments
-        let samples_200ms = (WHISPER_SAMPLE_RATE as usize) / 5;
-        let total_samples = buffer.len().min(samples_200ms);
-        let start = buffer.len().saturating_sub(total_samples);
-        let recent = &buffer[start..];
-
-        if recent.is_empty() {
-            return vec![0.0; num_bars];
-        }
+        let recent = &window[..copied];
 
         let samples_per_bar = (recent.len() / num_bars).max(1);
         let mut levels = Vec::with_capacity(num_bars);
