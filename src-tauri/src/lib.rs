@@ -1,3 +1,4 @@
+mod atomic_file;
 mod audio;
 mod audio_encoder;
 mod clipboard;

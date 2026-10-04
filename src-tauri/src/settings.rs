@@ -381,12 +381,8 @@ pub fn load_settings() -> AppSettings {
 }
 
 pub fn save_settings(settings: &AppSettings) -> Result<(), String> {
-    let path = get_settings_path();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
     let content = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
-    std::fs::write(&path, content).map_err(|e| e.to_string())?;
+    crate::atomic_file::write(&get_settings_path(), content.as_bytes()).map_err(|e| e.to_string())?;
     crate::sync::note_local_change();
     Ok(())
 }

@@ -451,6 +451,13 @@ the application.
 
 ### Bug Fixes
 
+- (preferences) Never save a half-written settings file
+
+A crash or a power cut while the settings were being saved could leave a half-written file, and the
+next change then saved the defaults over your server address, your token and your shortcuts. The
+file is now written whole or not at all, and waits a moment when another program, a virus scanner
+or a backup, has it open.
+
 - (models) A failed model download no longer counts as downloaded
 
 When the model server answered with an error, its message was saved as the model and listed as
