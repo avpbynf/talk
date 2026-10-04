@@ -15,16 +15,7 @@ function answer(hasRemote: boolean) {
 }
 
 function renderView() {
-  render(
-    <AnalyticsView
-      transcriptionMode="local"
-      serverStatus="unknown"
-      serverUrl=""
-      serverFallback={false}
-      currentModel={null}
-      shortcut="Ctrl+Space"
-    />
-  );
+  render(<AnalyticsView />);
 }
 
 function summaryCalls() {
@@ -51,7 +42,7 @@ describe("AnalyticsView device scope", () => {
     renderView();
 
     expect(await screen.findByText("This device")).toBeInTheDocument();
-    expect(screen.getByText("All devices")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("radio", { name: "All devices" })).toBeChecked();
     expect(summaryCalls()[summaryCalls().length - 1]?.[1]).toMatchObject({ includeRemote: true });
   });
 

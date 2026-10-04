@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { SectionCard } from "@/components/SectionCard";
 import { locale } from "@/i18n";
-import { cn } from "@/lib/utils";
 import type { YearlyDayActivity } from "@/lib/analytics";
 
 interface ActivityChartProps {
@@ -29,12 +28,13 @@ function intensityLevel(count: number, userMax: number): number {
   return 4;
 }
 
+// The accent gradient's own stops, from the faintest to the strongest.
 const LEVEL_BG: Record<number, string> = {
-  0: "var(--color-surface-active)",
-  1: "color-mix(in oklch, var(--ring) 25%, var(--color-surface-active))",
-  2: "color-mix(in oklch, var(--ring) 45%, var(--color-surface-active))",
-  3: "color-mix(in oklch, var(--ring) 70%, var(--color-surface-active))",
-  4: "var(--ring)",
+  0: "color-mix(in oklch, var(--fg) 7%, transparent)",
+  1: "color-mix(in oklch, var(--s1) 38%, transparent)",
+  2: "color-mix(in oklch, var(--s1) 75%, transparent)",
+  3: "color-mix(in oklch, var(--s2) 75%, transparent)",
+  4: "var(--s4)",
 };
 
 function monthLabel(month: number): string {
@@ -113,9 +113,6 @@ function buildGrid(yearlyActivity: YearlyDayActivity[]): {
 
 export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
   const { t } = useTranslation();
-  // Shut by default. A young history is a year of empty squares, and the
-  // graph answers a question nobody has on opening the app.
-  const [open, setOpen] = useState(false);
   const { cells, weekCount, monthPositions } = buildGrid(yearlyActivity);
   const maxCount = Math.max(...cells.map((c) => c.count), 1);
   const cellSize = 11;
@@ -125,38 +122,19 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
   const monthLabelHeight = 16;
   const svgWidth = dayLabelWidth + weekCount * step;
   const svgHeight = monthLabelHeight + 7 * step;
+  const monthYear = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(locale(), { month: "short", year: "numeric" });
 
   return (
-    <div className="rounded-lg border border-border-card bg-surface-raised/50 px-4 py-3">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between group"
-      >
-        <span className="flex items-center gap-1.5">
-          <ChevronRight
-            size={14}
-            className={cn(
-              "text-muted-foreground/60 transition-transform duration-200 group-hover:text-foreground",
-              open && "rotate-90"
-            )}
-          />
-          <span className="text-sm font-medium">{t("dashboard.activity.title")}</span>
-        </span>
-        <div className="flex items-center gap-1">
-          {[0, 1, 2, 3, 4].map((lvl) => (
-            <div
-              key={lvl}
-              className="h-[10px] w-[10px] rounded-[2px]"
-              style={{ backgroundColor: LEVEL_BG[lvl] }}
-            />
-          ))}
-        </div>
-      </button>
-
-      {open && (
+    <SectionCard
+      icon={LayoutDashboard}
+      title={t("dashboard.activity.title")}
+      action={<span className="text-[13px] text-muted-foreground">{t("dashboard.activity.hint")}</span>}
+    >
+      <div className="flex flex-col gap-2">
       <svg
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        className="w-full h-auto block mt-3"
+        className="w-full h-auto block"
         preserveAspectRatio="xMidYMid meet"
       >
         {/* Month labels */}
@@ -212,7 +190,23 @@ export function ActivityChart({ yearlyActivity }: ActivityChartProps) {
           );
         })}
       </svg>
-      )}
-    </div>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{monthYear(cells[0].date)}</span>
+        <span className="inline-flex items-center gap-1">
+          {t("dashboard.activity.less")}
+          {[0, 1, 2, 3, 4].map((lvl) => (
+            <i
+              key={lvl}
+              aria-hidden="true"
+              className="h-2.5 w-2.5 rounded-[3px]"
+              style={{ backgroundColor: LEVEL_BG[lvl] }}
+            />
+          ))}
+          {t("dashboard.activity.more")}
+        </span>
+        <span>{monthYear(cells[cells.length - 1].date)}</span>
+      </div>
+      </div>
+    </SectionCard>
   );
 }

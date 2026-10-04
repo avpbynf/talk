@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { Segmented } from "@/components/ui/segmented";
 
 export type DeviceScope = "all" | "this";
 
@@ -13,30 +13,13 @@ interface DeviceScopeFilterProps {
 export function DeviceScopeFilter({ value, onChange }: DeviceScopeFilterProps) {
   const { t } = useTranslation();
   return (
-    <div
-      role="group"
-      aria-label={t("dashboard.scope.label")}
-      className="flex p-[3px] rounded-lg bg-surface-inset border border-border-card @max-[700px]:flex-1"
-    >
-      {ORDER.map((id) => {
-        const isActive = value === id;
-
-        return (
-          <button
-            key={id}
-            aria-pressed={isActive}
-            onClick={() => onChange(id)}
-            className={cn(
-              "px-3 py-1 rounded-md text-xs whitespace-nowrap transition-colors duration-150 @max-[700px]:flex-1 @max-[700px]:px-1.5",
-              isActive
-                ? "bg-surface-active text-[var(--color-active)] font-medium"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {t(`dashboard.scope.${id}`)}
-          </button>
-        );
-      })}
-    </div>
+    <Segmented
+      wide="narrow"
+      label={t("dashboard.scope.label")}
+      value={value}
+      onChange={onChange}
+      options={ORDER.map((id) => ({ value: id, label: t(`dashboard.scope.${id}`) }))}
+      className="@max-[700px]:flex-1"
+    />
   );
 }

@@ -15,6 +15,20 @@ The pill above the bottom links now says the server is unreachable even when no 
 loaded either, and says the fallback has no model when the server answers but nothing is there to
 fall back on. Several problems at once show the most serious one.
 
+- (dashboard) Open on the time you won
+
+The dashboard starts with the period filters, then one large card with the time won in big gradient
+figures, the sentence under it, and the days, the streak, the best day and the share run locally
+beside it, stacking under the figure when the window is narrow. The four figures come next, then the
+year of activity, then the hosted APIs, the subscriptions and your typing side by side, with the
+typing test button in the header of the last. The band that said Ready, the shortcut and the model
+name is gone: the sidebar pill says when the engine needs attention.
+
+- (window) Pages start at the top
+
+The Engine, Dictation, Appearance, Settings, History, Vocabulary and Account pages no longer open
+with their name and a sentence, since the sidebar already says where you are.
+
 - (window) Give the controls one shape
 
 Switches stretch while you press them and land with a small overshoot, menus open on a field whose

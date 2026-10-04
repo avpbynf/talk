@@ -8,37 +8,18 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageShell } from "@/components/PageShell";
 import { loadUserWpm, PERIOD_DAYS } from "@/lib/analytics";
 import type { AnalyticsSummary, Period, YearlyDayActivity } from "@/lib/analytics";
-import type { TranscriptionMode } from "@/App";
-import type { ServerStatus } from "@/views/transcription/TranscriptionView";
-import { ReadyBand } from "@/views/analytics/ReadyBand";
 import { PeriodFilter } from "@/views/analytics/PeriodFilter";
 import { DeviceScopeFilter } from "@/views/analytics/DeviceScopeFilter";
 import type { DeviceScope } from "@/views/analytics/DeviceScopeFilter";
+import { Hero } from "@/views/analytics/Hero";
 import { StatsCards } from "@/views/analytics/StatsCards";
-import { Facts } from "@/views/analytics/Facts";
 import { ActivityChart } from "@/views/analytics/ActivityChart";
 import { CostComparison } from "@/views/analytics/CostComparison";
 import { SubscriptionComparison } from "@/views/analytics/SubscriptionComparison";
-import { TimeSaved } from "@/views/analytics/TimeSaved";
+import { TypingCard } from "@/views/analytics/TypingCard";
 import { TypingTestDialog } from "@/views/analytics/TypingTestDialog";
 
-interface AnalyticsViewProps {
-  transcriptionMode: TranscriptionMode;
-  serverStatus: ServerStatus;
-  serverUrl: string;
-  serverFallback: boolean;
-  currentModel: string | null;
-  shortcut: string;
-}
-
-export default function AnalyticsView({
-  transcriptionMode,
-  serverStatus,
-  serverUrl,
-  serverFallback,
-  currentModel,
-  shortcut,
-}: AnalyticsViewProps) {
+export default function AnalyticsView() {
   const { t } = useTranslation();
   const [userWpm, setUserWpm] = useState<number>(() => loadUserWpm());
   const [testOpen, setTestOpen] = useState(false);
@@ -106,7 +87,6 @@ export default function AnalyticsView({
 
   return (
     <PageShell
-      wide
       className="w-full"
       overlay={
         <>
@@ -129,53 +109,37 @@ export default function AnalyticsView({
         </>
       }
     >
-      <ReadyBand
-        transcriptionMode={transcriptionMode}
-        serverStatus={serverStatus}
-        serverUrl={serverUrl}
-        serverFallback={serverFallback}
-        currentModel={currentModel}
-        shortcut={shortcut}
-      />
-
       {/* The filter moves everything below it and nothing above. */}
-      <div className="flex items-center justify-between gap-2 pt-1 @max-[700px]:flex-col @max-[700px]:items-stretch">
+      <div className="flex flex-wrap items-center gap-2.5">
         <PeriodFilter value={period} onChange={setPeriod} />
-        <div className="flex items-center gap-2">
+        <span className="ml-auto flex items-center gap-2 @max-[700px]:w-full @max-[700px]:flex-nowrap">
           {hasRemote && <DeviceScopeFilter value={scope} onChange={setScope} />}
           <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setConfirmReset(true)}
-          aria-label={t("dashboard.reset.label")}
-          title={t("dashboard.reset.label")}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            variant="ghost"
+            size="icon"
+            onClick={() => setConfirmReset(true)}
+            aria-label={t("dashboard.reset.label")}
+            title={t("dashboard.reset.label")}
+            className="@max-[700px]:ml-auto hover:text-destructive hover:bg-destructive/10"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 />
           </Button>
-        </div>
+        </span>
       </div>
 
       {summary ? (
         <>
+          <Hero summary={summary} userWpm={userWpm} />
+
           <StatsCards summary={summary} userWpm={userWpm} />
 
-          <Facts summary={summary} />
+          <ActivityChart yearlyActivity={yearlyActivity} />
 
-          <div className="grid grid-cols-3 gap-4 @max-[700px]:grid-cols-1">
+          <div className="grid grid-cols-3 gap-3 @max-[700px]:grid-cols-1">
             <CostComparison summary={summary} />
             <SubscriptionComparison summary={summary} />
-            <TimeSaved
-              summary={summary}
-              userWpm={userWpm}
-              onRecalibrate={() => setTestOpen(true)}
-            />
+            <TypingCard summary={summary} userWpm={userWpm} onRecalibrate={() => setTestOpen(true)} />
           </div>
-
-          {/* Last, and folded shut: it is the whole year whatever the
-              period above says, so it answers a different question and
-              does not need to be in the way to do it. */}
-          <ActivityChart yearlyActivity={yearlyActivity} />
         </>
       ) : (
         <div className="py-16 text-center text-muted-foreground">{t("common.loading")}</div>
