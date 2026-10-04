@@ -28,7 +28,13 @@ test.describe("vocabulary", () => {
 
   test("adds the terms that were typed, several at a time, and saves them", async ({ app, page }) => {
     expect(await chips(page)).toEqual(INITIAL);
-    await expect(page.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
+    // On an empty field the button keeps its bright look and does nothing.
+    const add = page.getByRole("button", { name: "Add", exact: true });
+    await expect(add).toHaveJSProperty("disabled", false);
+    await expect(add).toHaveAttribute("aria-disabled", "true");
+    await add.click({ force: true });
+    expect(await app.calls("set_vocabulary")).toHaveLength(0);
+    expect(await chips(page)).toEqual(INITIAL);
 
     await page.getByPlaceholder(/MyProject/).fill("Kotlin, Gradle  Zig");
     await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -128,7 +134,7 @@ test.describe("vocabulary", () => {
 
   test("clears everything and shows the empty state", async ({ app, page }) => {
     await page.getByRole("button", { name: "Clear all" }).click();
-    await expect(page.getByText("Nothing here yet")).toBeVisible();
+    await expect(page.getByText("No terms yet.")).toBeVisible();
     expect(await app.calls("clear_vocabulary")).toHaveLength(1);
   });
 });

@@ -236,7 +236,8 @@ export default function VocabularyView({
               aria-label={t("vocabulary.addTerms")}
               className="h-10 flex-[1_1_240px] text-sm"
             />
-            <Button size="lg" onClick={addWord} disabled={!newWord.trim()}>
+            {/* Not disabled: it keeps its look on an empty field and simply has nothing to do. */}
+            <Button size="lg" onClick={() => newWord.trim() && addWord()} aria-disabled={!newWord.trim()} idle={!newWord.trim()}>
               <Plus />
               {t("vocabulary.add")}
             </Button>

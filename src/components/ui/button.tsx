@@ -26,6 +26,11 @@ const buttonVariants = cva(
         lg: "h-10 px-[18px] text-sm",
         icon: "h-[34px] w-[34px] [&_svg]:size-[15px] active:scale-[0.88]",
       },
+      /** Keeps the look but has nothing to do: no hover, no press, no pointer. */
+      idle: {
+        true: "cursor-default hover:brightness-100 hover:saturate-100 active:scale-100",
+        false: "",
+      },
     },
     defaultVariants: {
       variant: "default",
@@ -41,11 +46,11 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, idle, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, idle, className }))}
         ref={ref}
         {...props}
       />

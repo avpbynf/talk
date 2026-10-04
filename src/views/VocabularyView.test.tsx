@@ -22,7 +22,7 @@ describe("VocabularyView", () => {
   it("says the list is empty rather than showing nothing at all", () => {
     renderView([]);
 
-    expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
+    expect(screen.getByText("No terms yet.")).toBeInTheDocument();
     expect(screen.getByText("Your terms")).toBeInTheDocument();
   });
 
@@ -84,10 +84,15 @@ describe("VocabularyView", () => {
     expect(field.value).toBe("");
   });
 
-  it("cannot be asked to add nothing", async () => {
-    renderView([]);
+  it("keeps the Add button lit on an empty field, announces it as unavailable and does nothing", async () => {
+    const { onVocabularyChange, user } = renderView([]);
+    const add = screen.getByRole("button", { name: /add/i });
 
-    expect(screen.getByRole("button", { name: /add/i })).toBeDisabled();
+    expect(add).toBeEnabled();
+    expect(add).toHaveAttribute("aria-disabled", "true");
+    await user.click(add);
+    expect(onVocabularyChange).not.toHaveBeenCalled();
+    expect(invoked).not.toHaveBeenCalledWith("set_vocabulary", expect.anything());
   });
 
   it("removes a single term without touching the others", async () => {
