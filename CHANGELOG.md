@@ -451,6 +451,12 @@ the application.
 
 ### Bug Fixes
 
+- (overlay) Show the overlay as soon as the shortcut is pressed
+
+The overlay used to appear only once the microphone was open, which on some devices takes a moment
+during which nothing answered the key. It now comes up first, and turns to "No microphone" if the
+microphone cannot be opened. A failed start also gives the virtual microphone back its sound.
+
 - (recording) A quick tap no longer leaves the microphone open
 
 Pressing and releasing the push to talk shortcut very quickly could stop the release from being
