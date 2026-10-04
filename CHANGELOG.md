@@ -444,6 +444,11 @@ version and where the check stands.
 The orb is a touch smaller on screen and in the preview, with the avatar in proportion to its
 ripples, and it stays in the middle of its window.
 
+- (preferences) Set the sign-in page in Geist
+
+The page the browser shows when you come back from signing in with Google uses the same typeface as
+the application.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded
