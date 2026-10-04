@@ -1513,12 +1513,7 @@ pub fn run() {
 
                 // A volume left ducked by a crash. Nothing else will ever
                 // put it back, so this is the only chance.
-                if let Some(level) = app_settings.volume_before_duck {
-                    ducking::set_volume(level);
-                    let mut cleared = settings::load_settings();
-                    cleared.volume_before_duck = None;
-                    let _ = settings::save_settings(&cleared);
-                }
+                hotkeys::restore_audio_now();
                 *state.preserve_clipboard.lock() = app_settings.preserve_clipboard;
                 *state.input_device_name.lock() = app_settings.input_device_name.clone();
                 *state.output_device_name.lock() = app_settings.output_device_name.clone();
@@ -1585,10 +1580,13 @@ pub fn run() {
                 .icon(app.default_window_icon().expect("window icon missing from bundle").clone())
                 .tooltip("Talk")
                 .menu(&menu)
-                .on_menu_event(move |_app, event| {
+                .on_menu_event(move |app, event| {
                     match event.id().as_ref() {
                         "quit" => {
-                            std::process::exit(0);
+                            // A dictation in flight has lowered the volume, and
+                            // nothing runs after the exit to put it back.
+                            hotkeys::restore_audio_now();
+                            app.exit(0);
                         }
                         _ => {}
                     }
