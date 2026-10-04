@@ -495,6 +495,14 @@ carry an icon (check the connection, delete a model), now announce what they are
 When Start over drew the same sentence again, the focus stayed on the button and the keys went
 nowhere until you clicked the sentence. The field has the focus back every time.
 
+### Performance
+
+- (audio) Keep a very long recording smooth
+
+Once a recording went past ten minutes, every slice of audio made the app move the whole recording
+around, which could make it stutter. It still keeps the last ten minutes, and now does so without
+the cost growing with the length.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
