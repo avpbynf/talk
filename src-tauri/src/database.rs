@@ -456,10 +456,11 @@ impl Database {
         let is_local = if entry.source == "local" { 1 } else { 0 };
         let is_server = if entry.source == "server" { 1 } else { 0 };
 
-        let conn = self.conn.lock();
+        let mut conn = self.conn.lock();
+        let tx = conn.transaction()?;
 
         // Insert transcription (history)
-        conn.execute(
+        tx.execute(
             "INSERT OR REPLACE INTO transcriptions
                 (id, text, timestamp, model, source, enhanced,
                  audio_duration_ms, processing_time_ms, word_count, char_count)
@@ -479,7 +480,7 @@ impl Database {
         )?;
 
         // Upsert daily stats (permanent, independent of history)
-        conn.execute(
+        tx.execute(
             "INSERT INTO daily_stats
                 (date, transcription_count, word_count, char_count,
                  local_count, server_count)
@@ -499,7 +500,7 @@ impl Database {
             ],
         )?;
 
-        Ok(())
+        tx.commit()
     }
 
     pub fn get_transcriptions(
@@ -642,26 +643,28 @@ impl Database {
 
     /// Forget everything other devices uploaded, history and hides included.
     pub fn clear_remote_history(&self) -> Result<()> {
-        let conn = self.conn.lock();
-        conn.execute("DELETE FROM remote_transcriptions", [])?;
-        conn.execute("DELETE FROM hidden_transcriptions", [])?;
-        Ok(())
+        let mut conn = self.conn.lock();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM remote_transcriptions", [])?;
+        tx.execute("DELETE FROM hidden_transcriptions", [])?;
+        tx.commit()
     }
 
     pub fn clear_transcriptions(&self) -> Result<()> {
-        let conn = self.conn.lock();
-        conn.execute("DELETE FROM transcriptions", [])?;
+        let mut conn = self.conn.lock();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM transcriptions", [])?;
         // What other devices hold stays theirs, but it leaves this page.
-        conn.execute(
+        tx.execute(
             "INSERT OR IGNORE INTO hidden_transcriptions (id) SELECT id FROM remote_transcriptions",
             [],
         )?;
         // Only a clear somebody asked for takes this device's uploaded file down.
-        conn.execute(
+        tx.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, '1')",
             params![META_HISTORY_CLEARED],
         )?;
-        Ok(())
+        tx.commit()
     }
 
     // -- Analytics ----------------------------------------------------------
@@ -957,13 +960,14 @@ impl Database {
     /// The reset is also recorded, since an empty table alone must never take
     /// this device's uploaded file down: only a reset somebody asked for does.
     pub fn reset_stats(&self) -> Result<()> {
-        let conn = self.conn.lock();
-        conn.execute("DELETE FROM daily_stats", [])?;
-        conn.execute(
+        let mut conn = self.conn.lock();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM daily_stats", [])?;
+        tx.execute(
             "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, '1')",
             params![META_STATS_RESET],
         )?;
-        Ok(())
+        tx.commit()
     }
 
     // -- Device identity and sync bookkeeping -------------------------------
@@ -1271,6 +1275,59 @@ mod tests {
             .into_iter()
             .map(|t| t.id)
             .collect()
+    }
+
+    /// Make every insert into `table` fail, to see what a write does when its
+    /// second statement cannot go through.
+    fn break_inserts(db: &Database, table: &str) {
+        db.conn
+            .lock()
+            .execute_batch(&format!(
+                "CREATE TRIGGER broken BEFORE INSERT ON {} \
+                 BEGIN SELECT RAISE(ABORT, 'broken'); END;",
+                table
+            ))
+            .expect("should create the trigger");
+    }
+
+    #[test]
+    fn a_dictation_whose_counters_fail_is_not_kept() {
+        let db = in_memory();
+        break_inserts(&db, "daily_stats");
+
+        let entry = NewTranscription {
+            id: "t1".to_string(),
+            text: "hello".to_string(),
+            timestamp: "2026-08-01T10:00:00Z".to_string(),
+            model: None,
+            source: "local".to_string(),
+            enhanced: false,
+            audio_duration_ms: None,
+            processing_time_ms: None,
+        };
+
+        assert!(db.add_transcription(&entry).is_err());
+        assert!(ids(&db).is_empty());
+    }
+
+    #[test]
+    fn a_clear_that_cannot_finish_leaves_the_history_alone() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        break_inserts(&db, "meta");
+
+        assert!(db.clear_transcriptions().is_err());
+        assert_eq!(ids(&db), vec!["t1".to_string()]);
+    }
+
+    #[test]
+    fn a_reset_that_cannot_finish_leaves_the_counters_alone() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        break_inserts(&db, "meta");
+
+        assert!(db.reset_stats().is_err());
+        assert_eq!(db.local_daily_stats().expect("should read").len(), 1);
     }
 
     #[test]
