@@ -513,6 +513,12 @@ Once a recording went past ten minutes, every slice of audio made the app move t
 around, which could make it stutter. It still keeps the last ten minutes, and now does so without
 the cost growing with the length.
 
+- (preferences) Never leave an empty file on your Drive
+
+A new file was created empty and filled in a second request, so a dropped connection or a closed
+app in between left an empty file that the other computers then choked on. A file now reaches Drive
+in one request, with its content.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
