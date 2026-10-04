@@ -579,6 +579,11 @@ while the gradient stops and the focus ring take their new value at once.
 If the window is made much larger or much smaller some time after launch, the speed of the lights is
 measured again: they hold still when the new size is too slow to draw them, and move again when it is not.
 
+- (server) Stop checking the server while the window is not visible
+
+In server mode the connection is no longer tested every few seconds while the window is not visible
+to the page, and it is tested once as soon as the window is visible again.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

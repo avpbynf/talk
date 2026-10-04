@@ -499,8 +499,16 @@ function App() {
   useEffect(() => {
     if (transcriptionMode !== "server") return;
     checkServerHealth(false);
-    const interval = setInterval(() => checkServerHealth(true), 5000);
-    return () => clearInterval(interval);
+    // A hidden window is not looked at: the tick is skipped, and one check runs when it shows again.
+    const poll = () => {
+      if (!document.hidden) checkServerHealth(true);
+    };
+    const interval = setInterval(poll, 5000);
+    document.addEventListener("visibilitychange", poll);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", poll);
+    };
   }, [transcriptionMode, serverUrl]);
 
   const navItemsTop: NavItem<View>[] = [
