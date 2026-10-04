@@ -206,6 +206,9 @@
     "search_other": "Chercher dans {{number}} dictées",
     "searchLabel": "Chercher dans l'historique",
     "noMatch": "Aucune dictée ne contient \"{{query}}\".",
+    "deleteFailed": "Cette dictée n'a pas pu être supprimée.",
+    "clearFailed": "L'historique n'a pas pu être vidé.",
+    "showMore": "Afficher {{count}} de plus",
     "copied": "Copié"
   },
   "vocabulary": {

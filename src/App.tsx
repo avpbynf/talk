@@ -30,6 +30,7 @@ import { setting } from "@/lib/app-settings";
 import { onRetryReads, setReadFailed } from "@/lib/read-state";
 import { confirmSetting, saveSetting } from "@/lib/save-setting";
 import { LoadGate } from "@/components/LoadGate";
+import { clearEntries, deleteEntry, useHistoryList } from "@/lib/history-list";
 import { historyQueryLimit, loadHistory, loadSettings, toTranscription, type SavedSettings, type SavedTranscription } from "@/lib/startup";
 import { Button } from "@/components/ui/button";
 import { NoticeStrip } from "@/components/NoticeStrip";
@@ -117,7 +118,7 @@ function App() {
   // nothing yet, and warning about it would flash on every launch.
   const [initialized, setInitialized] = useState(false);
   const [recordingMode, setRecordingMode] = useState<RecordingMode>("push_to_talk");
-  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [transcriptions, updateHistory] = useHistoryList();
   const [, setIsRecording] = useState(false);
   const [shortcut, setShortcut] = useState("Ctrl+Space");
   const [cancelShortcut, setCancelShortcut] = useState("Ctrl+F1");
@@ -262,7 +263,7 @@ function App() {
       "transcription-complete",
       (event) => {
         const saved = event.payload;
-        setTranscriptions((prev) => {
+        updateHistory((prev) => {
           const next = [toTranscription(saved), ...prev];
 
           // Rust prunes the database as it saves, so the list on screen drops the
@@ -308,7 +309,7 @@ function App() {
           limit: historyQueryLimit(limit),
           offset: 0,
         });
-        setTranscriptions(rows.map(toTranscription));
+        updateHistory(() => rows.map(toTranscription));
       } catch (error) {
         console.error("Failed to reload the history:", error);
       }
@@ -358,6 +359,9 @@ function App() {
       console.error("Failed to read the loaded model:", error);
     }
   }
+
+  // The list as the backend holds it, sized by the limit it holds now.
+  const reloadHistory = () => loadHistory(historyLimitRef.current, (rows) => updateHistory(() => rows));
 
   // The four reads of the model catalog. Each has its own fallback, so one that fails leaves the
   // others alone, and `ok` says whether every one came back.
@@ -417,7 +421,7 @@ function App() {
   // a read that failed is read again, and so is the auto-load that waited for it.
   async function readStartup() {
     const stored = await loadSettings(settingSetters);
-    const historyRead = await loadHistory(stored.historyLimit, setTranscriptions);
+    const historyRead = await loadHistory(stored.historyLimit, (rows) => updateHistory(() => rows));
     const catalog = await loadCatalog();
 
     if (stored.failed || !historyRead || !catalog.ok) tell(t("common.readFailed"));
@@ -613,14 +617,8 @@ function App() {
           <LoadGate groups={["history", "historyLimit"]}>
           <HistoryView
             transcriptions={transcriptions}
-            onClear={() => {
-              setTranscriptions([]);
-              invoke("db_clear_transcriptions");
-            }}
-            onDelete={(id) => {
-              setTranscriptions((prev) => prev.filter((t) => t.id !== id));
-              invoke("db_delete_transcription", { id });
-            }}
+            onClear={() => clearEntries(updateHistory, reloadHistory)}
+            onDelete={(id) => void deleteEntry(id, updateHistory, reloadHistory)}
             shortcut={shortcut}
             historyLimit={historyLimit}
             onHistoryLimitChange={async (limit) => {
@@ -628,7 +626,7 @@ function App() {
               // The backend prunes as it saves, so the list on screen is read
               // back rather than trimmed here: guessing which rows went would
               // put the two out of step.
-              await loadHistory(limit, setTranscriptions);
+              await loadHistory(limit, (rows) => updateHistory(() => rows));
             }}
           />
           </LoadGate>

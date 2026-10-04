@@ -206,6 +206,9 @@
     "search_other": "Search {{number}} dictations",
     "searchLabel": "Search the history",
     "noMatch": "No dictation contains \"{{query}}\".",
+    "deleteFailed": "That dictation could not be deleted.",
+    "clearFailed": "The history could not be cleared.",
+    "showMore": "Show {{count}} more",
     "copied": "Copied"
   },
   "vocabulary": {

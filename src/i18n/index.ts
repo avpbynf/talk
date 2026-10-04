@@ -61,14 +61,32 @@ export function formatUsd(value: number, fractionDigits = 2): string {
   });
 }
 
+// A list formats a date per row, and building the formatter is the expensive part.
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+
+function dateFormat(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale()}${JSON.stringify(options)}`;
+  let format = dateFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale(), options);
+    dateFormats.set(key, format);
+  }
+  return format;
+}
+
 /** A day and month in the interface language, with the year when it is not this one. */
 export function formatDay(date: Date): string {
   const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString(locale(), { day: "numeric", month: "long", ...(sameYear ? {} : { year: "numeric" }) });
+  return dateFormat({ day: "numeric", month: "long", ...(sameYear ? {} : { year: "numeric" }) }).format(date);
+}
+
+/** A day and a short month, for a row that has little room. */
+export function formatShortDay(date: Date): string {
+  return dateFormat({ day: "numeric", month: "short" }).format(date);
 }
 
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
+  return dateFormat({ hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 /** When something happened, as a distance from now in the interface language. */
