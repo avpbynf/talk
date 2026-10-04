@@ -58,7 +58,10 @@
 
   /* From the accent gradient */
   --accent: var(--s1);
+  --faint: color-mix(in oklch, var(--fg) 38%, var(--bg));
+  --tint: color-mix(in oklch, var(--s1) 16%, transparent);
   --tint-2: color-mix(in oklch, var(--s1) 8%, transparent);
+  --shadow: 0 1px 0 color-mix(in oklch, var(--fg) 4%, transparent) inset, 0 12px 32px -18px rgb(0 0 0 / 0.7);
   --grad: linear-gradient(var(--angle), var(--s1) var(--q1), var(--s2) var(--q2), var(--s3) var(--q3), var(--s4) var(--q4));
   --grad-x: linear-gradient(90deg, var(--s1) var(--q1), var(--s2) var(--q2), var(--s3) var(--q3), var(--s4) var(--q4));
   /* Behind text: the gradient under the layer that holds the text to its contrast */
@@ -98,6 +101,7 @@
   --raised: color-mix(in oklch, var(--card) 93%, var(--fg));
   --sink: var(--fg);
   --depth: 5%;
+  --shadow: 0 1px 2px rgb(20 20 40 / 0.05), 0 10px 28px -16px rgb(20 20 60 / 0.22);
 }
 
 :root[data-gt="radial"] {

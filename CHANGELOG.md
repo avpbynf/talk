@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (window) Give the controls one shape
+
+Switches stretch while you press them and land with a small overshoot, menus open on a field whose
+arrow turns and a list that pops, buttons are the same height everywhere with the accent gradient on
+the main one, sliders show their gradient fill with a white handle, and the chosen card of a group
+wears the gradient as its outline.
+
 - (window) Tidy the caption strip and the sidebar
 
 The window buttons in the strip are drawn smaller, the sidebar's name and its first link sit lower,
@@ -256,8 +263,8 @@ if there still are some to revoke.
 
 - Give every page and card the same look
 
-Cards on the Engine, Dictation, Settings, Appearance and dashboard pages now share one header: a small
-icon and an uppercase title, with the switch or button that belongs to the card on the right and the
+Cards on the Engine, Dictation, Settings, Appearance and dashboard pages now share one header: an
+icon in a small tinted tile and a bold title, with the switch or button that belongs to the card on the right and the
 explanation under it. The server cards keep their blue icon and the model cards their cyan one.
 Spacing inside cards and between them is the same everywhere. The save, cancel, edit, add, pair,
 use, revoke, refresh and play buttons now share one size and style, and the fields share one focus
