@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/server";
 import { listen } from "@tauri-apps/api/event";
+import { engineStatus } from "@/lib/engine-status";
 import { useTranslation } from "react-i18next";
 import { History, Cpu, Mic, Settings, BookA, Palette, LayoutDashboard } from "lucide-react";
 import { CaptionStrip } from "@/components/CaptionStrip";
@@ -517,23 +518,17 @@ function App() {
   navOrder.push("account");
 
   // Only what is wrong or under way; nothing at all when dictation is ready.
-  const engineStatus: EngineStatus | null = (() => {
-    // The launch loads the last model before it counts as initialized, and that wait is
-    // the one the pill exists to explain.
-    if (!initialized && !isLoading) return null;
-    const serverMode = transcriptionMode === "server";
-    if (serverMode && serverStatus === "unauthorized") return { label: t("sidebar.status.tokenRefused"), tone: "bad" };
-    if (serverMode && serverStatus === "offline") {
-      if (!serverFallback) return { label: t("sidebar.status.serverUnreachable"), tone: "bad" };
-      if (currentModel) return { label: t("sidebar.status.fallingBack"), tone: "warn" };
-    }
-    if (serverMode && !serverFallback) return null;
-    if (isLoading) return { label: t("sidebar.status.loadingModel"), tone: "warn", busy: true };
-    if (!currentModel && !(serverMode && serverStatus === "online")) {
-      return { label: t("sidebar.status.noModel"), tone: "warn" };
-    }
-    return null;
-  })();
+  const pill = engineStatus({
+    initialized,
+    isLoading,
+    serverMode: transcriptionMode === "server",
+    serverStatus,
+    serverFallback,
+    currentModel,
+  });
+  const engineStatusLabel: EngineStatus | null = pill
+    ? { label: t(`sidebar.status.${pill.key}`), tone: pill.tone, busy: pill.busy }
+    : null;
 
   // Show loading state while checking setup status
   if (setupCompleted === null) {
@@ -573,7 +568,7 @@ function App() {
         current={currentView}
         accountTarget="account"
         onNavigate={setCurrentView}
-        status={engineStatus}
+        status={engineStatusLabel}
         onStatusClick={() => setCurrentView("transcription")}
         windowButtons={windowButtons}
       />

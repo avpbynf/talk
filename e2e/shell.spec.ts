@@ -129,7 +129,7 @@ test.describe("caption strip", () => {
 });
 
 test.describe("engine status pill", () => {
-  const PILLS = ["No model", "Loading model", "Server unreachable", "Token refused", "Using local model"];
+  const PILLS = ["No model", "No fallback model", "Loading model", "Server unreachable", "Token refused", "Using local model"];
 
   async function shown(app: App) {
     const found: string[] = [];
@@ -167,8 +167,18 @@ test.describe("engine status pill", () => {
       pill: "Using local model",
     },
     {
-      name: "the server answers",
+      name: "the server answers but the fallback has no model",
       open: { state: { currentModel: null, serverCheck: "ok", settings: { transcription_mode: "server", last_model: null } } },
+      pill: "No fallback model",
+    },
+    {
+      name: "the server is unreachable and the fallback has no model either",
+      open: { state: { currentModel: null, serverCheck: "unreachable", settings: { transcription_mode: "server", last_model: null } } },
+      pill: "Server unreachable",
+    },
+    {
+      name: "the server answers and the fallback is switched off",
+      open: { state: { currentModel: null, serverCheck: "ok", settings: { transcription_mode: "server", server_fallback: false, last_model: null } } },
       pill: null,
     },
   ];

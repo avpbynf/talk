@@ -30,7 +30,8 @@
       "loadingModel": "Chargement du modèle",
       "serverUnreachable": "Serveur injoignable",
       "tokenRefused": "Jeton refusé",
-      "fallingBack": "Modèle local utilisé"
+      "fallingBack": "Modèle local utilisé",
+      "noFallbackModel": "Aucun modèle de secours"
     },
     "account": {
       "title": "Compte",
