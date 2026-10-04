@@ -177,7 +177,6 @@
   },
   "history": {
     "empty": "Nothing dictated yet",
-    "kept": "{{number}} of {{limit}} kept",
     "keepHowMany": "How many transcriptions to keep",
     "clearAll": "Clear the whole history",
     "press": "Press",
@@ -196,7 +195,12 @@
       "description": "{{number}} older ones go, and they do not come back. The statistics keep counting them."
     },
     "keep": "Keep",
-    "enhanced": "Enhanced"
+    "enhanced": "Enhanced",
+    "search_one": "Search {{number}} dictation",
+    "search_other": "Search {{number}} dictations",
+    "searchLabel": "Search the history",
+    "noMatch": "No dictation contains \"{{query}}\".",
+    "copied": "Copied"
   },
   "vocabulary": {
     "addTerms": "Add terms",

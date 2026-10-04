@@ -177,7 +177,6 @@
   },
   "history": {
     "empty": "Rien n'a encore été dicté",
-    "kept": "{{number}} sur {{limit}} conservées",
     "keepHowMany": "Nombre de transcriptions à conserver",
     "clearAll": "Vider tout l'historique",
     "press": "Appuyez sur",
@@ -196,7 +195,12 @@
       "description": "{{number}} transcriptions plus anciennes sont supprimées, sans retour possible. Les statistiques continuent de les compter."
     },
     "keep": "Garder",
-    "enhanced": "Améliorée"
+    "enhanced": "Améliorée",
+    "search_one": "Chercher dans {{number}} dictée",
+    "search_other": "Chercher dans {{number}} dictées",
+    "searchLabel": "Chercher dans l'historique",
+    "noMatch": "Aucune dictée ne contient \"{{query}}\".",
+    "copied": "Copié"
   },
   "vocabulary": {
     "addTerms": "Ajouter des termes",

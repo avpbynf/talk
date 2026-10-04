@@ -405,7 +405,7 @@ test.describe("history page", () => {
   test("lists the dictations and clears them after asking", async ({ app, page }) => {
     await app.open();
     await app.go(history);
-    await expect(page.getByText("12 of 100 kept")).toBeVisible();
+    await expect(page.getByPlaceholder("Search 12 dictations")).toBeVisible();
 
     await page.getByRole("button", { name: "Clear the whole history" }).click();
     const dialog = page.getByRole("dialog", { name: "Clear the whole history?" });
@@ -418,6 +418,43 @@ test.describe("history page", () => {
     await page.getByRole("dialog").getByRole("button", { name: "Confirm" }).click();
     await expect(page.getByText("Nothing dictated yet")).toBeVisible();
     expect(await app.calls("db_clear_transcriptions")).toHaveLength(1);
+  });
+
+  test("searches the dictations, marks the match and says when nothing matches", async ({ app, page }) => {
+    await app.open();
+    await app.go(history);
+    const search = page.getByRole("textbox", { name: "Search the history" });
+    await search.fill("OVERLAY");
+    await expect(page.getByText("I think the overlay should stay in front of the game even after a long session.")).toBeVisible();
+    await expect(page.locator("mark")).toHaveText("overlay");
+    await expect(page.getByText("Remind me to send the quarterly report")).toHaveCount(0);
+    await search.fill("zzzz");
+    await expect(page.getByText('No dictation contains "zzzz".')).toBeVisible();
+    await search.fill("");
+    await expect(page.getByText("Remind me to send the quarterly report")).toBeVisible();
+  });
+
+  test("matches every word in any order, ignoring accents, and Escape clears the field", async ({ app, page }) => {
+    await app.open();
+    await app.go(history);
+    const search = page.getByRole("textbox", { name: "Search the history" });
+    await search.fill("ReVieW thursDAY");
+    await expect(page.getByText("Can we push the review to Thursday afternoon")).toBeVisible();
+    await expect(page.locator("mark")).toHaveCount(2);
+    await expect(page.getByText("Short one.")).toHaveCount(0);
+    await search.fill("zzzz");
+    await expect(page.getByRole("status").filter({ hasText: 'No dictation contains "zzzz".' })).toBeVisible();
+    await search.press("Escape");
+    await expect(search).toHaveValue("");
+    await expect(page.getByText("Short one.")).toBeVisible();
+  });
+
+  test("says Copied beside the entry that was clicked", async ({ app, page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await app.open();
+    await app.go(history);
+    await page.getByText("Short one.").click();
+    await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
   });
 
   test("shows the empty page for an empty history", async ({ app, page }) => {
