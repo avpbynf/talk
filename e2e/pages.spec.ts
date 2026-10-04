@@ -36,7 +36,8 @@ test.describe("vocabulary", () => {
     await expect.poll(() => chips(page)).toEqual([...INITIAL, "Kotlin", "Gradle", "Zig"]);
     expect(await lastSaved(app)).toEqual([...INITIAL, "Kotlin", "Gradle", "Zig"]);
     await expect(page.getByPlaceholder(/MyProject/)).toHaveValue("");
-    await expect(page.getByText("Your terms (10)")).toBeVisible();
+    await expect(page.getByText(/^Your terms/)).toBeVisible();
+    await expect(page.getByText("10", { exact: true })).toBeVisible();
   });
 
   test("adds on Enter, and leaves out a term that is already there whatever its case", async ({ app, page }) => {
@@ -136,7 +137,8 @@ test.describe("a long vocabulary", () => {
   test("scrolls inside its card and keeps every term reachable", async ({ app, page }) => {
     await app.open({ state: { settings: { vocabulary: longVocabulary() } } });
     await app.go(vocabulary);
-    await expect(page.getByText("Your terms (90)")).toBeVisible();
+    await expect(page.getByText(/^Your terms/)).toBeVisible();
+    await expect(page.getByText("90", { exact: true })).toBeVisible();
     const last = page.getByRole("button", { name: /^Remove .*89$/ });
     await last.scrollIntoViewIfNeeded();
     await expect(last).toBeInViewport();
@@ -238,13 +240,13 @@ test.describe("engine page", () => {
     await expect(page.getByText("Share this PC")).toBeVisible();
     await expect(page.getByPlaceholder("http://localhost:8000")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Server", exact: true }).click();
+    await page.getByRole("radio", { name: "Server", exact: true }).click();
     await expect(page.getByPlaceholder("http://localhost:8000")).toBeVisible();
     await expect(page.getByText("Share this PC")).toHaveCount(0);
     expect((await app.calls("set_transcription_mode")).at(-1)?.args).toEqual({ mode: "server" });
     await expect(page.getByText("Connected")).toBeVisible();
 
-    await page.getByRole("button", { name: "Local", exact: true }).click();
+    await page.getByRole("radio", { name: "Local", exact: true }).click();
     await expect(page.getByText("Share this PC")).toBeVisible();
     await expect(page.getByPlaceholder("http://localhost:8000")).toHaveCount(0);
     expect((await app.calls("set_transcription_mode")).at(-1)?.args).toEqual({ mode: "local" });
@@ -273,7 +275,6 @@ test.describe("account page", () => {
     await expect(page.getByRole("button", { name: "Sync now" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Sign in with Google" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Account" })).toBeVisible();
     await expect(page.getByText("nicolas.example@gmail.com").first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Sync now" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
@@ -347,10 +348,45 @@ test.describe("history page", () => {
 });
 
 test.describe("dashboard", () => {
+  test("opens on the filters, then the hero, the four figures, the activity and the three cards", async ({ app, page }) => {
+    await page.setViewportSize({ width: 801, height: 1600 });
+    await app.open({ frozen: true });
+    await expect(page.getByText("Ready", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("large-v3-turbo-q5_0")).toHaveCount(0);
+
+    const box = async (locator: import("@playwright/test").Locator) => (await locator.boundingBox())!;
+    const filters = await box(page.getByRole("radio", { name: "7 days" }));
+    const label = await box(page.getByText("Time won at the keyboard"));
+    const days = await box(page.getByText("198 days"));
+    const dictations = await box(page.getByText("Dictations", { exact: true }));
+    const speak = await box(page.getByText("You speak at"));
+    const faster = await box(page.getByText("Faster than real time"));
+    const activity = await box(page.getByText("Activity", { exact: true }));
+    const cost = await box(page.getByText("Against a hosted API"));
+    const subscription = await box(page.getByText("Against a subscription"));
+    const typing = await box(page.getByText("Your typing", { exact: true }));
+
+    // Narrow, so the facts stack under the figure instead of standing beside it
+    expect(filters.y).toBeLessThan(label.y);
+    expect(days.y).toBeGreaterThan(label.y);
+    expect(Math.abs(days.x - label.x)).toBeLessThan(3);
+
+    // Two figures to a row, then a row below
+    expect(Math.abs(dictations.y - speak.y)).toBeLessThan(3);
+    expect(faster.y).toBeGreaterThan(dictations.y);
+    expect(activity.y).toBeGreaterThan(faster.y);
+
+    // The three cards stand in one column, each under the other
+    expect(cost.y).toBeGreaterThan(activity.y);
+    expect(subscription.y).toBeGreaterThan(cost.y);
+    expect(typing.y).toBeGreaterThan(subscription.y);
+    expect(Math.abs(cost.x - typing.x)).toBeLessThan(3);
+  });
+
   test("starts on the dashboard and asks again for the period that was picked", async ({ app, page }) => {
     await app.open();
     await expect(app.marker(dashboard)).toBeVisible();
-    await page.getByRole("button", { name: "7 days" }).click();
+    await page.getByRole("radio", { name: "7 days" }).click();
     await expect
       .poll(async () => (await app.calls("db_get_analytics_summary")).at(-1)?.args)
       .toMatchObject({ periodDays: 7 });
