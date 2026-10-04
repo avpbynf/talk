@@ -539,7 +539,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
                     <h3 className="font-semibold mb-1">{model.name}</h3>
                     <p className="text-xs text-muted-foreground mb-2">{t(`transcription.model.descriptions.${model.id}`, { defaultValue: model.description })}</p>
-                    <p className="text-xs font-mono text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {model.size_mb >= 1000
                         ? t("transcription.gpu.gigabytes", { size: formatNumber(model.size_mb / 1000, 1) })
                         : t("transcription.gpu.megabytes", { size: model.size_mb })}

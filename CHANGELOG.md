@@ -16,6 +16,12 @@ and either its dictations (this PC) or when it was last seen, and each one can b
 page. A PC shows up as soon as it signs in, even before it has dictated anything, and drops off the
 list after three months without a sign of life. New PCs start with the name of the computer.
 
+- (preferences) Write everything in Geist
+
+The whole window, the overlay included, now uses Geist, and nothing is set in a monospace face
+anymore: the timer, the counters, the server addresses, the ports and the pairing code keep their
+digits the same width, so they line up.
+
 - (window) Say in the sidebar what is wrong with the engine
 
 The pill above the bottom links now says the server is unreachable even when no local model is

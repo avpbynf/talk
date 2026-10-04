@@ -47,7 +47,7 @@ export function PairingBanner({ pending }: { pending: PendingPairing[] }) {
           <p className="min-w-0 flex-1 truncate text-sm">
             <span className="font-medium">{t("pairingBanner.wants", { name: request.clientName })}</span>
             <span className="ml-2 text-muted-foreground">{t("pairingBanner.code")}</span>
-            <span className="ml-2 font-mono text-base font-semibold tracking-widest" aria-label={t("pairingBanner.codeLabel")}>
+            <span className="ml-2 text-base font-semibold tabular-nums tracking-widest" aria-label={t("pairingBanner.codeLabel")}>
               {request.code}
             </span>
             <span className="ml-2 text-xs text-muted-foreground">{t("pairingBanner.valid", { time: formatClock(left) })}</span>

@@ -26,7 +26,7 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
             label={t("appearance.atmosphere.lights.label")}
             onChange={(ambient) => change({ ambient }, true)}
           />
-          <span className="w-10 text-right font-mono text-xs tabular-nums text-muted-foreground">{values.ambient} %</span>
+          <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{values.ambient} %</span>
         </span>
       </SettingRow>
 
@@ -39,7 +39,7 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
             label={t("appearance.atmosphere.glass.label")}
             onChange={(glass) => change({ glass }, true)}
           />
-          <span className="w-10 text-right font-mono text-xs tabular-nums text-muted-foreground">{values.glass} %</span>
+          <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{values.glass} %</span>
         </span>
       </SettingRow>
 

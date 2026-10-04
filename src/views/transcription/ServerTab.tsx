@@ -130,9 +130,9 @@ export function ServerTab({
             <div key={server.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
               <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-[3px]">
                 <b className="truncate text-[13px] font-medium">{server.name}</b>
-                <small className="truncate text-xs text-muted-foreground">
+                <small className="truncate text-xs tabular-nums text-muted-foreground">
                   {server.model ? `${server.model}, ` : ""}
-                  <span className="font-mono">{server.url}</span>
+                  {server.url}
                 </small>
               </div>
               <div className="ml-auto flex shrink-0 gap-2">
@@ -187,7 +187,7 @@ export function ServerTab({
               onBlur={() => urlInput !== serverUrl && saveServerUrl()}
               onKeyDown={(e) => e.key === "Enter" && saveServerUrl()}
               placeholder="http://localhost:8000"
-              className="flex-1 font-mono text-xs"
+              className="flex-1 text-xs tabular-nums"
             />
             <Button
               variant="outline"
@@ -231,7 +231,7 @@ export function ServerTab({
             onChange={(e) => setTokenInput(e.target.value)}
             onBlur={() => { if (tokenInput !== serverToken) onServerTokenChange(tokenInput); }}
             placeholder={t("transcription.server.tokenPlaceholder")}
-            className="w-full font-mono text-xs"
+            className="w-full text-xs tabular-nums"
           />
           <p className="text-xs text-muted-foreground">{t("transcription.server.tokenHint")}</p>
         </div>
@@ -247,7 +247,7 @@ export function ServerTab({
             onChange={(e) => setModelInput(e.target.value)}
             onBlur={() => { if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim()); }}
             placeholder="whisper-1, gpt-4o-transcribe..."
-            className="w-full font-mono text-xs"
+            className="w-full text-xs tabular-nums"
           />
           <p className="text-xs text-muted-foreground">{t("transcription.server.modelHint")}</p>
         </div>

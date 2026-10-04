@@ -37,7 +37,7 @@
   --ovline: rgb(255 255 255 / 0.08);
   position: relative;
   color: var(--ovfg);
-  font-family: "Outfit", system-ui, sans-serif;
+  font-family: "Geist Variable", "Segoe UI", system-ui, sans-serif;
   user-select: none;
 }
 .ovw[data-bg="glass"] {
@@ -57,7 +57,7 @@
 }
 
 .ovw .tm {
-  font: 500 12px "JetBrains Mono", ui-monospace, monospace;
+  font: 500 12px "Geist Variable", "Segoe UI", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--ovdim);
@@ -136,7 +136,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 600 9px "JetBrains Mono", ui-monospace, monospace;
+  font: 600 9px "Geist Variable", "Segoe UI", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
   color: var(--c2);
 }
 

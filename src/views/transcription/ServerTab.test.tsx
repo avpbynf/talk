@@ -57,7 +57,7 @@ describe("ServerTab discovery", () => {
     renderTab();
 
     expect(await screen.findByText("office-pc")).toBeInTheDocument();
-    expect(screen.getByText("http://192.168.1.20:4060")).toBeInTheDocument();
+    expect(screen.getByText(/192\.168\.1\.20:4060/)).toBeInTheDocument();
     expect(screen.getByText(/large-v3-turbo/)).toBeInTheDocument();
   });
 

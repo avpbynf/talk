@@ -67,7 +67,7 @@ export default function SystemSection({
                 label={t("preferences.system.duck.ariaLabel")}
                 className="flex-1"
               />
-              <span className="w-16 text-right font-mono text-xs text-muted-foreground">
+              <span className="w-16 text-right text-xs tabular-nums text-muted-foreground">
                 {t("preferences.system.duck.percent", { percent: duckVolumePercent })}
               </span>
             </div>
