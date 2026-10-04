@@ -155,7 +155,7 @@ export function Sidebar<Id extends string>({
         aria-current={active ? "page" : undefined}
         title={item.label}
         className={cn(
-          "relative z-[1] shrink-0 flex items-center gap-[11px] h-[34px] pl-[14px] pr-[10px] rounded-lg text-sm whitespace-nowrap transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
+          "relative z-[1] shrink-0 flex items-center gap-[11px] h-[34px] pl-[14px] pr-[10px] rounded-[var(--radius)] text-sm whitespace-nowrap transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
           active ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground",
         )}
       >
@@ -206,7 +206,7 @@ export function Sidebar<Id extends string>({
           ref={indicator}
           aria-hidden="true"
           style={{ opacity: 0 }}
-          className="absolute left-2.5 right-2.5 top-0 h-[34px] rounded-lg pointer-events-none z-0 bg-[linear-gradient(90deg,color-mix(in_oklch,var(--s1)_22%,transparent),color-mix(in_oklch,var(--s4)_6%,transparent))] shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--s1)_26%,transparent)]"
+          className="absolute left-2.5 right-2.5 top-0 h-[34px] rounded-[var(--radius)] pointer-events-none z-0 bg-[linear-gradient(90deg,color-mix(in_oklch,var(--s1)_22%,transparent),color-mix(in_oklch,var(--s4)_6%,transparent))] shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--s1)_26%,transparent)]"
         />
 
         {top.map(renderItem)}
@@ -241,7 +241,7 @@ export function Sidebar<Id extends string>({
           aria-current={accountActive ? "page" : undefined}
           title={email ?? t("sidebar.account.title")}
           className={cn(
-            "relative z-[1] shrink-0 flex items-center gap-2.5 h-[46px] pl-[7px] pr-2 rounded-lg whitespace-nowrap text-left transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
+            "relative z-[1] shrink-0 flex items-center gap-2.5 h-[46px] pl-[7px] pr-2 rounded-[var(--radius)] whitespace-nowrap text-left transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
             !accountActive && "hover:bg-surface-raised",
           )}
         >
