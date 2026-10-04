@@ -286,7 +286,6 @@ impl Transcript {
 
 pub struct WhisperEngine {
     ctx: WhisperContext,
-    backend: AcceleratorBackend,
 }
 
 impl WhisperEngine {
@@ -327,11 +326,7 @@ impl WhisperEngine {
         )
         .map_err(|e| TranscriptionError::ModelLoad(e.to_string()))?;
 
-        Ok(Self { ctx, backend })
-    }
-
-    pub fn backend(&self) -> AcceleratorBackend {
-        self.backend
+        Ok(Self { ctx })
     }
 
     /// Transcribe audio with optional vocabulary hints (initial_prompt)
