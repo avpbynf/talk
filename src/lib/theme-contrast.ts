@@ -8,12 +8,12 @@ import { contrast, luminance, mixHex, oklchToHex } from "@/lib/color";
  */
 
 export const TEXT_MIN = 4.5;
-/** The lighter text is held higher, because it also sits on wells darker than the surface. */
-export const MUTED_MIN = 5;
+/** The floor for secondary text: it is a quieter voice by design, so it is held to 3, not to the 4.5 of body text. */
+export const MUTED_MIN = 3;
 /** Outlines and focus rings only have to be seen. */
 export const UI_MIN = 3;
 /** How much of the text colour the lighter text keeps. */
-export const MUTED_SHARE = 0.62;
+export const MUTED_SHARE = 0.54;
 /** How opaque a light is at its centre, before the strength setting. */
 const LIGHT_OPACITY = 0.55;
 /** The sidebar and the wells show the light through more than a card does. */
@@ -189,35 +189,34 @@ export interface AccentPlan {
 const LIGHT_TEXT = "#ffffff";
 const DARK_TEXT = "#101018";
 
-function composited(stops: readonly { color: string }[], overlay: string, alpha: number) {
-  return stops.map((s) => mixHex(s.color, overlay, alpha));
+/** An accent fill is an interface component: its text needs 3, not the 4.5 of body text. */
+const FILL_TEXT_MIN = 3;
+/** White is preferred while the black layer it needs behind it stays this light, so the gradient stays bright. */
+const WHITE_LAYER_MAX = 0.15;
+
+/** The lightest layer of `overlay` over every stop that brings `text` to FILL_TEXT_MIN, in steps of 0.05. */
+function layerFor(stops: readonly { color: string }[], text: string, overlay: string): number {
+  let alpha = 0;
+  while (alpha < 1 && worst(text, stops.map((s) => mixHex(s.color, overlay, alpha))) < FILL_TEXT_MIN) alpha += 0.05;
+  return Math.round(alpha * 100) / 100;
 }
 
 /**
- * Text on the accent must reach 4.5 on every stop. When neither white nor near-black does,
- * a translucent layer of black or white is laid behind the text, as light as it can be.
- * The gradient everywhere else stays what the user drew.
+ * Text on the accent must reach 3 on every stop. White is used when a black layer of at most 0.15
+ * gets it there; otherwise whichever of white and dark text needs the lighter layer, a layer of black
+ * or white respectively. The gradient everywhere else stays what the user drew.
  */
 export function accentPlan(stops: readonly { color: string; pos?: number }[]): AccentPlan {
-  const options = [
-    { text: LIGHT_TEXT, overlay: "#000000" },
-    { text: DARK_TEXT, overlay: "#ffffff" },
-  ].map(({ text, overlay }) => {
-    for (let alpha = 0; alpha <= 0.9; alpha += 0.05) {
-      if (worst(text, composited(stops, overlay, alpha)) >= TEXT_MIN) return { text, overlay, alpha };
-    }
-    return { text, overlay, alpha: 0.9 };
-  });
-  const chosen = options[0].alpha <= options[1].alpha ? options[0] : options[1];
-  const alpha = Math.round(chosen.alpha * 100) / 100;
-  const [r, g, b] = chosen.overlay === "#000000" ? [0, 0, 0] : [255, 255, 255];
-  return { text: chosen.text, scrim: `rgb(${r} ${g} ${b} / ${alpha})`, alpha };
+  const white = layerFor(stops, LIGHT_TEXT, "#000000");
+  const dark = layerFor(stops, DARK_TEXT, "#ffffff");
+  if (white <= WHITE_LAYER_MAX || white <= dark) return { text: LIGHT_TEXT, scrim: `rgb(0 0 0 / ${white})`, alpha: white };
+  return { text: DARK_TEXT, scrim: `rgb(255 255 255 / ${dark})`, alpha: dark };
 }
 
 /** Where the semantic colours start, as lightness, chroma and hue, per mode. */
 const SEMANTIC: Record<string, { dark: [number, number, number]; light: [number, number, number] }> = {
   rec: { dark: [0.7, 0.18, 45], light: [0.58, 0.18, 45] },
-  ok: { dark: [0.7, 0.17, 145], light: [0.52, 0.17, 145] },
+  ok: { dark: [0.74, 0.16, 158], light: [0.52, 0.16, 158] },
   warn: { dark: [0.75, 0.15, 85], light: [0.58, 0.15, 85] },
   bad: { dark: [0.55, 0.2, 25], light: [0.48, 0.2, 25] },
   srv: { dark: [0.65, 0.18, 250], light: [0.48, 0.18, 250] },

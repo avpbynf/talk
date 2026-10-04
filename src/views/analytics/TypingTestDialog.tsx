@@ -231,7 +231,6 @@ function TypingTest({
           size="sm"
           onClick={keep}
           disabled={!finished}
-          className="bg-[var(--color-active)] text-background hover:bg-[var(--color-active)]/90"
         >
           {t("dashboard.typingGame.keep")}
         </Button>

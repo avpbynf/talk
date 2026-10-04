@@ -42,7 +42,7 @@ export function ModelCard({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-[3px]">
-          <b className={cn("text-[13px] font-medium transition-colors duration-[400ms]", isLoaded && "text-success")}>
+          <b className={cn("text-[13px] font-medium transition-colors duration-[400ms]", isLoaded && "text-success-text")}>
             {model.name}
           </b>
           <small className="text-xs leading-[1.45] text-muted-foreground">
@@ -65,7 +65,7 @@ export function ModelCard({
             </Button>
           ) : isLoaded ? (
             <>
-              <span className="rounded-full bg-[color-mix(in_oklch,var(--color-success)_16%,transparent)] px-[9px] py-[3px] text-[11px] font-medium text-success">
+              <span className="rounded-full bg-[color-mix(in_oklch,var(--color-success)_16%,transparent)] px-[9px] py-[3px] text-[11px] font-medium text-success-text">
                 {t("transcription.model.active")}
               </span>
               <Button

@@ -14,7 +14,7 @@
 @property --bg { syntax: "<color>"; inherits: true; initial-value: #0e0f1c; }
 @property --card { syntax: "<color>"; inherits: true; initial-value: #171a2c; }
 @property --fg { syntax: "<color>"; inherits: true; initial-value: #eef0ff; }
-@property --muted { syntax: "<color>"; inherits: true; initial-value: #b4b5bf; }
+@property --muted { syntax: "<color>"; inherits: true; initial-value: #878997; }
 @property --border { syntax: "<color>"; inherits: true; initial-value: #2a2d48; }
 @property --s1 { syntax: "<color>"; inherits: true; initial-value: #7c5cff; }
 @property --s2 { syntax: "<color>"; inherits: true; initial-value: #4f8bff; }
@@ -29,11 +29,12 @@
 @property --m2 { syntax: "<color>"; inherits: true; initial-value: #4f8bff; }
 @property --m3 { syntax: "<color>"; inherits: true; initial-value: #22d3ee; }
 @property --on-accent { syntax: "<color>"; inherits: true; initial-value: #101018; }
-@property --scrim { syntax: "<color>"; inherits: true; initial-value: rgb(255 255 255 / 0.05); }
+@property --scrim { syntax: "<color>"; inherits: true; initial-value: rgb(255 255 255 / 0); }
 @property --accent-text { syntax: "<color>"; inherits: true; initial-value: #b09fff; }
 @property --ring { syntax: "<color>"; inherits: true; initial-value: #22d3ee; }
 @property --rec { syntax: "<color>"; inherits: true; initial-value: #ff8c49; }
-@property --ok { syntax: "<color>"; inherits: true; initial-value: #57c35f; }
+@property --ok { syntax: "<color>"; inherits: true; initial-value: #30c883; }
+@property --ok-text { syntax: "<color>"; inherits: true; initial-value: #65d3a6; }
 @property --warn { syntax: "<color>"; inherits: true; initial-value: #d9a514; }
 @property --bad { syntax: "<color>"; inherits: true; initial-value: #ff8b83; }
 @property --bad-on { syntax: "<color>"; inherits: true; initial-value: #101018; }
@@ -76,6 +77,7 @@
   --accent-text-card: var(--accent-text);
   --rec-card: var(--rec);
   --ok-card: var(--ok);
+  --ok-text-card: var(--ok-text);
   --warn-card: var(--warn);
   --bad-card: var(--bad);
   --srv-card: var(--srv);
@@ -91,7 +93,7 @@
     --s1 var(--tt), --s2 var(--tt), --s3 var(--tt), --s4 var(--tt),
     --q1 var(--tt), --q2 var(--tt), --q3 var(--tt), --q4 var(--tt), --angle var(--tt),
     --m1 var(--tt), --m2 var(--tt), --m3 var(--tt), --on-accent var(--tt), --scrim var(--tt),
-    --accent-text var(--tt), --ring var(--tt), --rec var(--tt), --ok var(--tt), --warn var(--tt),
+    --accent-text var(--tt), --ring var(--tt), --rec var(--tt), --ok var(--tt), --ok-text var(--tt), --warn var(--tt),
     --bad var(--tt), --bad-on var(--tt), --srv var(--tt), --hyb var(--tt),
     --glass var(--tt), --amb var(--tt), --radius 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -132,6 +134,7 @@
     --color-primary: var(--accent-text-card);
     --color-recording: var(--rec-card);
     --color-success: var(--ok-card);
+    --color-success-text: var(--ok-text-card);
     --color-warning: var(--warn-card);
     --color-destructive: var(--bad-card);
     --color-server: var(--srv-card);
