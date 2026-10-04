@@ -4,16 +4,25 @@ import { installNativeMock, type MockCall, type MockHandle } from "./native-mock
 
 export { expect };
 
-/** `nav` is the sidebar link, `heading` what only that page shows (the dashboard has no title). */
+/** `nav` is the sidebar link, `shows` something only that page puts on screen: no page has a title. */
 export const PAGES = [
-  { id: "dashboard", nav: "Dashboard", heading: null },
-  { id: "history", nav: "History", heading: "History" },
-  { id: "vocabulary", nav: "Vocabulary", heading: "Vocabulary" },
-  { id: "engine", nav: "Engine", heading: "Engine" },
-  { id: "dictation", nav: "Dictation", heading: "Dictation" },
-  { id: "appearance", nav: "Appearance", heading: "Appearance" },
-  { id: "settings", nav: "Settings", heading: "Settings" },
-  { id: "account", nav: /^(Account|\S+@\S+)/, heading: "Account" },
+  { id: "dashboard", nav: "Dashboard", shows: (page: Page) => page.getByRole("button", { name: "Reset stats" }) },
+  {
+    id: "history",
+    nav: "History",
+    shows: (page: Page) => page.getByRole("combobox", { name: "How many transcriptions to keep" }),
+  },
+  { id: "vocabulary", nav: "Vocabulary", shows: (page: Page) => page.getByText("Add terms", { exact: true }) },
+  { id: "engine", nav: "Engine", shows: (page: Page) => page.getByRole("radiogroup", { name: "Engine" }) },
+  { id: "dictation", nav: "Dictation", shows: (page: Page) => page.getByText("Shortcuts", { exact: true }) },
+  { id: "appearance", nav: "Appearance", shows: (page: Page) => page.getByRole("radiogroup", { name: "Appearance" }) },
+  { id: "settings", nav: "Settings", shows: (page: Page) => page.getByText("Audio devices", { exact: true }) },
+  {
+    id: "account",
+    nav: /^(Account|\S+@\S+)/,
+    shows: (page: Page) =>
+      page.getByText(/^(Optional\. Signing in only syncs|Sign-in is not available|What follows your account)/).first(),
+  },
 ] as const;
 
 export type PageEntry = (typeof PAGES)[number];
@@ -83,9 +92,7 @@ export class App {
 
   /** Something only this page puts on screen, so a click is known to have landed. */
   marker(page: PageEntry) {
-    return page.heading
-      ? this.page.getByRole("heading", { level: 1, name: page.heading })
-      : this.page.getByRole("button", { name: "Reset stats" });
+    return page.shows(this.page);
   }
 
   link(page: PageEntry) {
