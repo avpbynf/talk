@@ -25,7 +25,7 @@ export default function BaseColorsCard({ theme }: { theme: AppThemeController })
         <SettingRow
           key={key}
           label={t(`appearance.base.${key}.label`)}
-          hint={t(`appearance.base.${key}.hint`)}
+          hint={key === "border" ? undefined : t(`appearance.base.${key}.hint`)}
         >
           <ColorSwatch
             value={values[key]}

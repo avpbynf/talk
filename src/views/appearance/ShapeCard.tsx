@@ -1,4 +1,4 @@
-import { Shapes } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import type { WindowButtonsSide } from "@/App";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
@@ -19,7 +19,7 @@ export default function ShapeCard({ theme, windowButtons, onWindowButtonsChange 
   const change = (patch: Partial<ThemeValues>) => theme.edit({ ...values, ...patch });
 
   return (
-    <SectionCard icon={Shapes} title={t("appearance.shape.title")}>
+    <SectionCard icon={LayoutDashboard} title={t("appearance.shape.title")}>
       <SettingRow label={t("appearance.shape.radius.label")}>
         <Segmented
           label={t("appearance.shape.radius.label")}

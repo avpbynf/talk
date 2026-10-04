@@ -474,7 +474,6 @@
     "title": "Apparence",
     "theme": {
       "title": "Thèmes",
-      "description": "Choisissez un style, puis changez ce que vous voulez. Vos réglages et les thèmes enregistrés suivent votre compte Google.",
       "yours": "Vos thèmes",
       "mine": "à vous",
       "groups": {
@@ -484,7 +483,7 @@
       "light": "clair",
       "edited": "modifié",
       "revert": "Revenir au thème",
-      "save": "Enregistrer comme mon thème",
+      "save": "Enregistrer",
       "savedName": "Mon thème {{n}}",
       "remove": "Retirer {{name}}",
       "reset": "Réinitialiser l'apparence",
@@ -629,8 +628,6 @@
         "radial": "Radial",
         "conic": "Conique"
       },
-      "colors_one": "{{count}} couleur",
-      "colors_other": "{{count}} couleurs",
       "add": "Cliquez pour ajouter une couleur",
       "full": "Quatre couleurs au plus, retirez-en une d'abord",
       "stop": "Couleur {{n}}, à {{pos}} %",
@@ -683,8 +680,7 @@
         "hint": "Le texte secondaire en découle"
       },
       "border": {
-        "label": "Contours",
-        "hint": "Les lignes entre les cartes et autour"
+        "label": "Contours"
       },
       "description": "Clair ou sombre suit le fond. Le texte reste lisible dessus, quoi que vous choisissiez.",
       "adjusted": "La couleur du texte était trop proche des surfaces : une couleur plus lisible est utilisée. La vôtre est conservée.",
