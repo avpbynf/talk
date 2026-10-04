@@ -87,7 +87,7 @@ export default function PositionCard({ placement, onPlacement }: PositionCardPro
       </SettingRow>
 
       {known !== null && (screens.length !== 1 || placement.screen !== "typing") && (
-        <SettingRow label={t("appearance.overlay.position.screen")} hint={placement.spot === "free" ? t("appearance.overlay.position.screenFree") : t("appearance.overlay.position.screenHint")}>
+        <SettingRow label={t("appearance.overlay.position.screen")} hint={t("appearance.overlay.position.screenHint")}>
           <Select value={value} onValueChange={chooseScreen}>
             <SelectTrigger className="w-[260px] max-w-full">
               <SelectValue />

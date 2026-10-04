@@ -357,15 +357,14 @@ test.describe("the overlay tab", () => {
         .toMatchObject({ screen: "typing", chosen_screen: null });
     });
 
-    test("says that a dragged overlay keeps the screen it was dropped on", async ({ app, page }) => {
+    test("still offers the screen rule for a dragged overlay", async ({ app, page }) => {
       await openTab(app, page, {
         state: {
           screens: TWO_SCREENS,
           settings: { overlay_placement: { spot: "free", free: { x: 0.3, y: 0.4 }, screen: "typing", chosen_screen: null } },
         },
       });
-      await expect(page.getByText(/A dragged overlay stays on the screen where you dropped it/)).toBeVisible();
-      await expect(page.getByText("With several screens, only one shows it")).toHaveCount(0);
+      await expect(page.getByText("With several screens, only one shows it")).toBeVisible();
     });
 
     test("says so when the chosen screen is no longer there", async ({ app, page }) => {

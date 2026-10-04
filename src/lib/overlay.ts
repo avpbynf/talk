@@ -38,8 +38,6 @@ export interface OverlayPlacement {
   free: FreePosition | null;
   screen: ScreenChoice;
   chosen_screen: string | null;
-  /** The screen a free position was dropped on, which it belongs to whatever the screen rule says. */
-  free_screen: string | null;
 }
 
 /** What the backend answers in one go, and announces whenever any of it changes. */
@@ -84,7 +82,6 @@ export const DEFAULT_PLACEMENT: OverlayPlacement = {
   free: null,
   screen: "typing",
   chosen_screen: null,
-  free_screen: null,
 };
 
 export const DEFAULT_SETTINGS: OverlaySettings = {
@@ -138,7 +135,6 @@ export function coerceSettings(raw: unknown): OverlaySettings {
           : null,
       screen: oneOf(SCREENS, placement.screen, DEFAULT_PLACEMENT.screen),
       chosen_screen: typeof placement.chosen_screen === "string" ? placement.chosen_screen : null,
-      free_screen: typeof placement.free_screen === "string" ? placement.free_screen : null,
     },
   };
 }

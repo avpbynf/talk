@@ -559,7 +559,6 @@
         },
         "screen": "Écran",
         "screenHint": "Avec plusieurs écrans, un seul l'affiche",
-        "screenFree": "Une pastille déplacée reste sur l'écran où vous l'avez lâchée. Choisissez un emplacement ci-dessus pour reprendre ce choix",
         "typing": "Celui où vous écrivez",
         "pointer": "Celui de la souris",
         "primary": "L'écran principal",

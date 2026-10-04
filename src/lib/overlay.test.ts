@@ -15,13 +15,13 @@ describe("coerceSettings", () => {
       look: { style: "ribbon", palette: "accent", reaction: 900, timer: false, end_text: true, custom_colors: ["#123456", "red", 3] },
       theme: "neon",
       size: "huge",
-      placement: { spot: "top_right", free: { x: 4, y: -1 }, screen: "chosen", chosen_screen: "DISPLAY2", free_screen: "monitor-b" },
+      placement: { spot: "top_right", free: { x: 4, y: -1 }, screen: "chosen", chosen_screen: "DISPLAY2" },
     });
     expect(settings.look).toMatchObject({ style: "halo", palette: "accent", reaction: 160, timer: false, mic: true, end_text: true });
     expect(settings.look.custom_colors).toEqual(["#123456", DEFAULT_LOOK.custom_colors[1], DEFAULT_LOOK.custom_colors[2]]);
     expect(settings.theme).toBe("neon");
     expect(settings.size).toBe("small");
-    expect(settings.placement).toEqual({ spot: "top_right", free: { x: 1, y: 0 }, screen: "chosen", chosen_screen: "DISPLAY2", free_screen: "monitor-b" });
+    expect(settings.placement).toEqual({ spot: "top_right", free: { x: 1, y: 0 }, screen: "chosen", chosen_screen: "DISPLAY2" });
   });
 
   it("keeps the end text off unless it is asked for", () => {
