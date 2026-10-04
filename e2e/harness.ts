@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Browser, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
 import { defaultState, FIXED_NOW, type NativeState } from "./data";
 import { installNativeMock, type MockCall, type MockHandle } from "./native-mock";
 
@@ -58,6 +58,9 @@ function isPlain(value: unknown): value is Record<string, unknown> {
 }
 
 export class App {
+  /** How many unanswered native commands an earlier verdict already reported. */
+  reported = 0;
+
   constructor(
     readonly page: Page,
     readonly problems: string[],
@@ -150,6 +153,46 @@ export class App {
   }
 }
 
+/** An App on a page, with the listeners that collect what the page complains about. */
+export function watchedApp(page: Page): App {
+  const problems: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") problems.push(`console.error: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => problems.push(`uncaught: ${error.message}`));
+  page.on("requestfailed", (request) =>
+    problems.push(`request failed: ${request.method()} ${request.url()} (${request.failure()?.errorText})`),
+  );
+  page.on("response", (response) => {
+    if (response.status() >= 400) problems.push(`HTTP ${response.status()}: ${response.url()}`);
+  });
+  return new App(page, problems);
+}
+
+/**
+ * One window for several tests: the context the fixtures would have made, with the project's own
+ * options and the watch on the page. Its tests end with `expectNoComplaints`, which `test` does for
+ * the others.
+ */
+export async function openWindow(
+  browser: Browser,
+  testInfo: TestInfo,
+  viewport: { width: number; height: number },
+): Promise<{ context: BrowserContext; app: App }> {
+  const { locale, timezoneId, deviceScaleFactor, userAgent, isMobile, hasTouch, baseURL } = testInfo.project.use;
+  const context = await browser.newContext({ viewport, locale, timezoneId, deviceScaleFactor, userAgent, isMobile, hasTouch, baseURL });
+  return { context, app: watchedApp(await context.newPage()) };
+}
+
+/** Fails on what the page complained about since the last call, so on the test it happened in. */
+export async function expectNoComplaints(app: App): Promise<void> {
+  const missing = (await app.unmocked().catch(() => [])).slice(app.reported);
+  app.reported += missing.length;
+  const problems = app.problems.splice(0);
+  expect(missing, "native commands the mock does not answer").toEqual([]);
+  expect(problems, "console errors, uncaught exceptions and failed requests").toEqual([]);
+}
+
 /**
  * Every test gets an App, and ends by failing on anything the page complained
  * about: a console error, an uncaught exception, a request that did not
@@ -157,25 +200,8 @@ export class App {
  */
 export const test = base.extend<{ app: App }>({
   app: async ({ page }, use, testInfo) => {
-    const problems: string[] = [];
-    page.on("console", (message) => {
-      if (message.type() === "error") problems.push(`console.error: ${message.text()}`);
-    });
-    page.on("pageerror", (error) => problems.push(`uncaught: ${error.message}`));
-    page.on("requestfailed", (request) =>
-      problems.push(`request failed: ${request.method()} ${request.url()} (${request.failure()?.errorText})`),
-    );
-    page.on("response", (response) => {
-      if (response.status() >= 400) problems.push(`HTTP ${response.status()}: ${response.url()}`);
-    });
-
-    const app = new App(page, problems);
+    const app = watchedApp(page);
     await use(app);
-
-    if (testInfo.status === testInfo.expectedStatus) {
-      const missing = await app.unmocked().catch(() => []);
-      expect(missing, "native commands the mock does not answer").toEqual([]);
-      expect(problems, "console errors, uncaught exceptions and failed requests").toEqual([]);
-    }
+    if (testInfo.status === testInfo.expectedStatus) await expectNoComplaints(app);
   },
 });
