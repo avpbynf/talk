@@ -53,6 +53,12 @@ The Vocabulary page is two cards: one with the field, the Add button and a hint 
 listing them with their count next to the title and Clear all on the right. The page scrolls as a
 whole instead of the list scrolling inside its card.
 
+- (preferences) Order the Engine page like the others
+
+Models come first, then acceleration, then sharing. The Local and Server choice is a full-width
+switch at the top, the graphics card is picked from a menu, and each model is a row with its action on
+the right.
+
 - (preferences) Choose the overlay's style, colours, movement and position
 
 The overlay tab of Appearance is rebuilt around a live preview on a fake desktop, which loops through

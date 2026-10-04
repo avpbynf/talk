@@ -210,7 +210,6 @@
   },
   "transcription": {
     "title": "Engine",
-    "subtitle": "Where speech gets turned into text, and by what",
     "modes": {
       "local": "Local",
       "server": "Server"
@@ -252,11 +251,6 @@
     },
     "gpu": {
       "title": "Acceleration",
-      "subtitle": "Compute backend",
-      "tooltips": {
-        "vulkan": "Works with AMD, NVIDIA and Intel. One graphics API across every platform.",
-        "cpu": "Runs anywhere, no graphics card needed. Slower, but it always works."
-      },
       "unavailable": "Not available on this machine",
       "graphicsCard": "Graphics card",
       "integrated": "Integrated",
@@ -265,7 +259,11 @@
       "runningOn": "Running on {{name}} ({{details}})",
       "switchTitle": "Reload the model on the new device?",
       "switchDescription": "{{model}} will be reloaded on the new device. With a large model this can take a minute or more, and dictation is unavailable until it is done.",
-      "switch": "Switch"
+      "switch": "Switch",
+      "about": {
+        "vulkan": "AMD, NVIDIA, Intel",
+        "cpu": "Anywhere, slower"
+      }
     },
     "server": {
       "status": {

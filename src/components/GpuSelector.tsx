@@ -1,8 +1,10 @@
-import { Check, Cpu, Zap, Loader2 } from "lucide-react";
+import { Zap, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/SectionCard";
+import { SettingRow } from "@/components/SettingRow";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { GpuDevice, GpuInfo, GpuVendor } from "@/App";
 
 interface GpuSelectorProps {
@@ -17,10 +19,10 @@ interface GpuSelectorProps {
   onDeviceChange: (index: number) => void;
 }
 
-/** Translation keys. */
-const GPU_TOOLTIPS: Record<GpuVendor, string> = {
-  vulkan: "transcription.gpu.tooltips.vulkan",
-  cpu: "transcription.gpu.tooltips.cpu",
+/** Translation keys: what each backend is, in a few words. */
+const GPU_ABOUT: Record<GpuVendor, string> = {
+  vulkan: "transcription.gpu.about.vulkan",
+  cpu: "transcription.gpu.about.cpu",
 };
 
 const ALL_GPU_OPTIONS: GpuInfo[] = [
@@ -57,6 +59,7 @@ export function GpuSelector({
   });
 
   const showDevices = currentVendor === "vulkan" && devices.length > 0;
+  const current = devices.find((d) => d.index === currentDevice);
 
   // Changing card reloads the model, which is a reason to refuse a change of
   // backend at the same time, and no reason at all to make the backend look
@@ -66,102 +69,66 @@ export function GpuSelector({
   const busy = isLoading || switching;
 
   return (
-    <SectionCard
-      accent="warning"
-      icon={Zap}
-      title={t("transcription.gpu.title")}
-      description={t("transcription.gpu.subtitle")}
-    >
-      <div className="grid grid-cols-2 gap-2">
-        {mergedGpus.map((gpu) => (
-          <div key={gpu.vendor} className="relative group">
+    <SectionCard accent="warning" icon={Zap} title={t("transcription.gpu.title")}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
+        {mergedGpus.map((gpu) => {
+          const chosen = currentVendor === gpu.vendor;
+          return (
             <button
+              key={gpu.vendor}
+              type="button"
+              aria-pressed={chosen}
               onClick={() => gpu.available && !busy && onVendorChange(gpu.vendor)}
               disabled={!gpu.available || busy}
-              className={cn(
-                "w-full p-3 rounded-lg border text-left transition-all duration-200",
-                currentVendor === gpu.vendor
-                  ? "border-[var(--color-warning)] bg-[var(--color-warning)]/10"
-                  : gpu.available && !busy
-                  ? "border-border-card bg-surface-inset hover:bg-card"
-                  : "opacity-40 cursor-not-allowed border-border-subtle bg-surface-deep"
-              )}
+              title={gpu.available ? undefined : t("transcription.gpu.unavailable")}
+              className={cn("choice-card", (!gpu.available || (busy && !chosen)) && "cursor-not-allowed opacity-45")}
             >
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "h-7 w-7 rounded-md flex items-center justify-center",
-                  currentVendor === gpu.vendor
-                    ? "bg-[var(--color-warning)]/20 text-warning"
-                    : "bg-surface-active text-muted-foreground"
-                )}>
-                  {gpu.vendor === "cpu" ? <Cpu className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{gpu.name}</div>
-                </div>
-                {currentVendor === gpu.vendor && (
-                  isLoading
-                    ? <Loader2 className="h-4 w-4 text-warning animate-spin shrink-0" />
-                    : <Check className="h-4 w-4 text-warning shrink-0" />
-                )}
-              </div>
+              <b className="flex items-center justify-between gap-2 text-[13px] font-medium">
+                {gpu.name}
+                {chosen && isLoading && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-warning" />}
+              </b>
+              <small className="text-xs text-muted-foreground">{t(GPU_ABOUT[gpu.vendor])}</small>
             </button>
-            {/* Tooltip */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover border border-border-hover rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-150 pointer-events-none z-50 w-56 text-center">
-              <p className="text-xs text-popover-foreground">{t(GPU_TOOLTIPS[gpu.vendor])}</p>
-              {!gpu.available && (
-                <p className="text-[10px] text-muted-foreground mt-1">{t("transcription.gpu.unavailable")}</p>
-              )}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--color-border-hover)]" />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Which card, on a machine carrying more than one */}
-      {showDevices && (
-        <div className="pt-4 border-t border-border-subtle">
-          {devices.length > 1 ? (
-            <>
-              <p className="text-xs text-muted-foreground mb-2">{t("transcription.gpu.graphicsCard")}</p>
-              <div className="space-y-1.5">
+      {showDevices &&
+        (devices.length > 1 ? (
+          <SettingRow
+            label={t("transcription.gpu.graphicsCard")}
+            hint={
+              current &&
+              t("transcription.gpu.runningOn", { name: current.name, details: describeDevice(current, t) })
+            }
+          >
+            <Select
+              value={String(currentDevice)}
+              disabled={busy}
+              onValueChange={(value) => {
+                const index = Number(value);
+                if (index !== currentDevice) onDeviceChange(index);
+              }}
+            >
+              <SelectTrigger className="max-w-[260px]">
+                {switching && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-warning" />}
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
                 {devices.map((device) => (
-                  <button
-                    key={device.index}
-                    onClick={() =>
-                      !busy && device.index !== currentDevice && onDeviceChange(device.index)
-                    }
-                    disabled={busy}
-                    className={cn(
-                      "w-full px-3 py-2 rounded-lg border text-left transition-all duration-200",
-                      "flex items-center gap-2",
-                      device.index === currentDevice
-                        ? "border-[var(--color-warning)] bg-[var(--color-warning)]/10"
-                        : busy
-                        ? "opacity-40 cursor-not-allowed border-border-subtle bg-surface-deep"
-                        : "border-border-card bg-surface-inset hover:bg-card"
-                    )}
-                  >
-                    <span className="flex-1 min-w-0 text-sm truncate">{device.name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {describeDevice(device, t)}
-                    </span>
-                    {device.index === currentDevice && (
-                      switchingDevice === device.index
-                        ? <Loader2 className="h-4 w-4 text-warning animate-spin shrink-0" />
-                        : <Check className="h-4 w-4 text-warning shrink-0" />
-                    )}
-                  </button>
+                  <SelectItem key={device.index} value={String(device.index)} detail={describeDevice(device, t)}>
+                    {device.name}
+                  </SelectItem>
                 ))}
-              </div>
-            </>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              {t("transcription.gpu.runningOn", { name: devices[0].name, details: describeDevice(devices[0], t) })}
-            </p>
-          )}
-        </div>
-      )}
+              </SelectContent>
+            </Select>
+          </SettingRow>
+        ) : (
+          <p className="text-[13px] text-muted-foreground">
+            {t("transcription.gpu.runningOn", { name: devices[0].name, details: describeDevice(devices[0], t) })}
+          </p>
+        ))}
     </SectionCard>
   );
 }
