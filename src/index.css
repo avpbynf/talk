@@ -1,16 +1,8 @@
 @import "tailwindcss";
 @import "./styles/theme-engine.css";
 
-/* Local fonts via Fontsource */
-@import "@fontsource/outfit/300.css";
-@import "@fontsource/outfit/400.css";
-@import "@fontsource/outfit/500.css";
-@import "@fontsource/outfit/600.css";
-@import "@fontsource/outfit/700.css";
-@import "@fontsource/jetbrains-mono/400.css";
-@import "@fontsource/jetbrains-mono/500.css";
-@import "@fontsource/jetbrains-mono/600.css";
-@import "@fontsource/jetbrains-mono/700.css";
+/* Local font via Fontsource */
+@import "@fontsource-variable/geist";
 
 /*
  * Every colour is a name for something derived from the theme engine
@@ -97,7 +89,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Outfit', system-ui, sans-serif;
+    font-family: 'Geist Variable', 'Segoe UI', system-ui, sans-serif;
   }
 
   /*
@@ -131,11 +123,6 @@
     user-select: text;
   }
 
-  /* Monospace for technical elements */
-  code, kbd, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
-  }
-
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
@@ -148,6 +135,14 @@
 
   ::-webkit-scrollbar-thumb {
     border: 3px solid transparent;
+  /* Tailwind's preflight sets these in a monospace face */
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: inherit;
+  }
+
     border-radius: 99px;
     background: var(--color-border-hover);
     background-clip: padding-box;
@@ -496,7 +491,6 @@ input[type="color"].swatch:focus-visible {
 /* ===== KEYBOARD SHORTCUTS ===== */
 
 kbd {
-  font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   padding: 3px 7px;
   background: var(--raised);
@@ -509,6 +503,7 @@ kbd {
 /* ===== PROGRESS BAR ===== */
 
 .progress-glow {
+  font-family: inherit;
   box-shadow: 0 0 8px var(--color-active-glow);
 }
 

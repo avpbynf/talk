@@ -83,7 +83,7 @@ function Dial({
         className="absolute left-1/2 top-1/2 -m-2 h-4 w-4 rounded-full bg-white shadow-[0_2px_8px_rgb(0_0_0/0.4),0_0_0_3px_var(--s1)]"
         style={{ transform: `translate(${Math.cos(radians) * 30}px, ${Math.sin(radians) * 30}px)` }}
       />
-      <b className="pointer-events-none absolute inset-0 grid place-items-center font-mono text-[13px] font-medium tabular-nums">
+      <b className="pointer-events-none absolute inset-0 grid place-items-center text-[13px] font-medium tabular-nums">
         {angle}°
       </b>
     </div>

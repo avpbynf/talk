@@ -20,7 +20,7 @@ export function ColorSwatch({ value, onChange, label, showCode = true, className
         onChange={(e) => onChange(e.target.value)}
         className="swatch"
       />
-      {showCode && <span className="w-16 font-mono text-xs uppercase text-muted-foreground">{value}</span>}
+      {showCode && <span className="w-16 text-xs uppercase tabular-nums text-muted-foreground">{value}</span>}
     </label>
   );
 }

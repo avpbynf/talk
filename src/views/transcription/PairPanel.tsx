@@ -121,7 +121,7 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
               onKeyDown={(e) => e.key === "Enter" && complete && void confirm()}
               placeholder="000000"
               aria-label={t("pairingBanner.codeLabel")}
-              className="w-32 font-mono tracking-widest"
+              className="w-32 tabular-nums tracking-widest"
             />
             <Button onClick={() => void confirm()} disabled={!complete || step.kind === "confirming"}>
               {step.kind === "confirming" ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.confirm")}

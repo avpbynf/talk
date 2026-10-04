@@ -34,7 +34,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
             value={look.reaction}
             onChange={(reaction) => onLook({ reaction })}
           />
-          <span className="w-12 text-right font-mono text-xs tabular-nums text-muted-foreground">{look.reaction} %</span>
+          <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{look.reaction} %</span>
         </div>
       </SettingRow>
 

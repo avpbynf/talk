@@ -178,7 +178,7 @@ function TypingTest({
         <div
           aria-label={t("dashboard.typingGame.sentenceLabel")}
           onClick={() => inputRef.current?.focus()}
-          className="cursor-text rounded-lg font-mono text-[17px] leading-[1.75] select-none"
+          className="cursor-text rounded-lg text-[17px] leading-[1.75] select-none"
         >
           {sentence.split("").map((char, i) => (
             <span

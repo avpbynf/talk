@@ -108,7 +108,7 @@ export function SharePanel({ currentModel }: SharePanelProps) {
               <Trans
                 i18nKey="transcription.share.reachAt"
                 values={{ address: info.address }}
-                components={{ address: <span className="font-mono text-foreground" /> }}
+                components={{ address: <span className="tabular-nums text-foreground" /> }}
               />
             </p>
           )}
@@ -136,7 +136,7 @@ export function SharePanel({ currentModel }: SharePanelProps) {
               onChange={(e) => setPortInput(e.target.value.replace(/\D/g, ""))}
               onBlur={() => void savePort()}
               onKeyDown={(e) => e.key === "Enter" && void savePort()}
-              className="h-8 w-24 text-right font-mono text-xs"
+              className="h-8 w-24 text-right text-xs tabular-nums"
             />
           </div>
           {portError && (
