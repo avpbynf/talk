@@ -1,4 +1,5 @@
 mod config;
+mod phase;
 mod press_line;
 
 pub use config::{
@@ -10,6 +11,7 @@ use crate::{audio, audio_encoder, database, overlay_feedback, server_transcripti
 use crate::settings::TranscriptionMode;
 use crate::dictation_queue::{PasteTarget, Release, Transcript};
 use std::sync::atomic::{AtomicBool, Ordering};
+use phase::{Opened, Phase};
 use press_line::{Edge, PressLine, Step};
 use std::sync::{Arc, OnceLock};
 use tauri::{AppHandle, Emitter, EventTarget, Manager};
@@ -467,6 +469,9 @@ async fn transcribe_locally(
     .map_err(|e| format!("Local transcription did not run: {}", e))?
 }
 
+/// Where the press path has got to. Taken for a moment and never across a wait.
+static PHASE: parking_lot::Mutex<Phase> = parking_lot::Mutex::new(Phase::Idle);
+
 /// Where every press and release of the main shortcut goes through.
 static PRESSES: OnceLock<PressLine> = OnceLock::new();
 
@@ -492,6 +497,7 @@ fn reset_after_panic(app: &AppHandle) {
     *state.audio_capture_handle.lock() = None;
     *state.audio_buffer.lock() = None;
     *state.is_recording.lock() = false;
+    *PHASE.lock() = Phase::Idle;
 }
 
 /// Do what one event of the line amounts to. The line hands them over one at a
@@ -568,13 +574,16 @@ fn hide_overlay(app: &AppHandle) {
 fn cancel_recording(app: &AppHandle) {
     let state = app.state::<AppState>();
 
-    // Only cancel if we're actually recording
-    if !*state.is_recording.lock() {
-        return;
+    // Only cancel if we're actually recording, or opening the device to: the flag is up for
+    // both, and a cancel in the second leaves its mark for the thread that is opening.
+    {
+        let mut recording = state.is_recording.lock();
+        if !*recording {
+            return;
+        }
+        *recording = false;
     }
-
-    // Stop recording flag
-    *state.is_recording.lock() = false;
+    PHASE.lock().cancel();
 
     // Stop audio capture and clear buffer
     *state.audio_capture_handle.lock() = None;
@@ -594,6 +603,17 @@ fn cancel_recording(app: &AppHandle) {
     // Emit cancelled event
     let _ = app.emit("recording-cancelled", ());
 
+    settle_after_cancel(app);
+
+    // Sound feedback: cancellation counts as stop
+    play_sound_feedback(app, "stop");
+}
+
+/// What a recording that will not come leaves to settle: the held paragraph it was part of,
+/// and the overlay it had.
+fn settle_after_cancel(app: &AppHandle) {
+    let state = app.state::<AppState>();
+
     // The dictation this recording would have added to a held paragraph
     // never comes, so the paragraph may be complete now.
     let delivery = crate::settings::read(|s| s.queue.delivery);
@@ -611,9 +631,6 @@ fn cancel_recording(app: &AppHandle) {
         let job = *state.job_state.lock();
         let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", job);
     }
-
-    // Sound feedback: cancellation counts as stop
-    play_sound_feedback(app, "stop");
 }
 
 /// Paste what was dictated last, wherever the caret happens to be.
@@ -735,7 +752,19 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
 
-    // 1. Mute virtual mic FIRST (instant, it just flips an AtomicBool)
+    // 1. A dictation is under way from the press, not from the moment the microphone is open:
+    // the flag is what an earlier dictation about to hide the overlay, the cancel shortcut and
+    // the sync all read. Then show the overlay first (pre-created at startup, just show it,
+    // never recreate): opening the microphone takes as long as the driver takes, and the user
+    // sees the press answered.
+    *state.is_recording.lock() = true;
+    PHASE.lock().begin_open();
+    state.overlay_gen.begin();
+    *state.overlay_hold_until.lock() = None;
+    crate::overlay::show(app);
+    let _ = app.emit("recording-started", ());
+
+    // 2. Mute virtual mic (instant, it just flips an AtomicBool)
     {
         let vm = state.virtual_mic.lock();
         if vm.is_active() {
@@ -743,35 +772,62 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
         }
     }
 
-    // 2. Start audio capture immediately (use selected device or system default)
+    // 3. Start audio capture (use selected device or system default)
     let device_name = crate::settings::read(|s| s.input_device_name.clone());
     let (buffer, handle) = match audio::start_capture_device(device_name.as_deref()) {
         Ok(started) => started,
         Err(e) => {
-            // A microphone that will not open is a dictation turned away like any other.
-            refuse(app, "capture_failed");
+            let cancelled = PHASE.lock().open_failed();
+            {
+                let vm = state.virtual_mic.lock();
+                if vm.is_active() {
+                    vm.unmute();
+                }
+            }
+            // The user cancelled while it opened: that cancel already turned the press away.
+            if !cancelled {
+                *state.is_recording.lock() = false;
+                // A microphone that will not open is a dictation turned away like any other: the
+                // recording the overlay was told about never happens.
+                let _ = app.emit("recording-cancelled", ());
+                refuse(app, "capture_failed");
+            }
             return Err(e.to_string());
         }
     };
     let buffer_for_spectrum = buffer.clone();
 
-    *state.audio_buffer.lock() = Some(buffer);
-    *state.audio_capture_handle.lock() = Some(handle);
-    *state.is_recording.lock() = true;
+    // Decided and stored in one step with the cancel's mark: a cancel after this clears what is
+    // stored, and one before it is read here.
+    let discarded = {
+        let mut phase = PHASE.lock();
+        match phase.opened() {
+            Opened::Keep => {
+                *state.audio_buffer.lock() = Some(buffer);
+                *state.audio_capture_handle.lock() = Some(handle);
+                None
+            }
+            Opened::Discard => Some(handle),
+        }
+    };
+    if let Some(handle) = discarded {
+        // Dropping the handle ends the stream. The cancel did the rest, and the overlay it hid
+        // may have been drawn again by the press that was still placing it.
+        drop(handle);
+        settle_after_cancel(app);
+        return Ok(());
+    }
 
-    // 2b. Sound feedback (instant, from a pre-computed PCM buffer)
+    // 4. Sound feedback (instant, from a pre-computed PCM buffer)
     play_sound_feedback(app, "start");
 
-    // 3. Take the machine down so it does not talk over the speaker
+    // 5. Take the machine down so it does not talk over the speaker
     duck_audio();
-
-    // 4. Show overlay (pre-created at startup, just show it, never recreate)
-    state.overlay_gen.begin();
-    *state.overlay_hold_until.lock() = None;
-    crate::overlay::show(app);
-
-    // 5. Emit recording state
-    let _ = app.emit("recording-started", ());
+    if !*state.is_recording.lock() {
+        // Cancelled in between: its restore ran before the volume was taken down.
+        restore_audio();
+        return Ok(());
+    }
 
     // 6. Start spectrum emission thread
     let app_for_spectrum = app.clone();
@@ -835,6 +891,7 @@ fn stop_recording(app: &AppHandle) -> Result<Dictation, String> {
     // Stop audio capture - dropping the handle signals the stream thread to exit
     *state.audio_capture_handle.lock() = None;
     *state.is_recording.lock() = false;
+    PHASE.lock().stopped();
 
     // Unmute virtual mic after STT recording
     {
