@@ -171,6 +171,7 @@
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+  container-type: size;
 }
 
 /*
@@ -179,19 +180,25 @@
  * to the second: drifting that slowly is smooth to the eye, and a machine that paints every layer
  * itself is asked for eight frames a second instead of sixty. The glass over it needs no blur of
  * its own, there being nothing sharp behind it to blur.
+ *
+ * A light is as wide as 62% of the window, up to 1000px, so that a very large window does not
+ * paint more than a medium one. Its position is that of its centre, in fractions of the window,
+ * which is where the 62% light would sit: a smaller light shrinks around that point instead of
+ * towards a corner, and stays in view whatever the size.
  */
 .amb i {
   position: absolute;
-  width: 62%;
+  --s: min(62cqw, 1000px);
+  width: var(--s);
   aspect-ratio: 1;
   border-radius: 50%;
   opacity: calc(0.55 * var(--amb));
   will-change: transform;
 }
 
-.amb i:nth-child(1) { --c: var(--m1); left: -14%; top: -22%; animation: drift1 26s steps(208) infinite alternate; }
-.amb i:nth-child(2) { --c: var(--m2); right: -18%; top: 18%; animation: drift2 31s steps(248) infinite alternate; }
-.amb i:nth-child(3) { --c: var(--m3); left: 22%; bottom: -40%; animation: drift3 23s steps(184) infinite alternate; }
+.amb i:nth-child(1) { --c: var(--m1); left: calc(17cqw - var(--s) / 2); top: calc(-22cqh + 31cqw - var(--s) / 2); animation: drift1 26s steps(208) infinite alternate; }
+.amb i:nth-child(2) { --c: var(--m2); left: calc(87cqw - var(--s) / 2); top: calc(18cqh + 31cqw - var(--s) / 2); animation: drift2 31s steps(248) infinite alternate; }
+.amb i:nth-child(3) { --c: var(--m3); left: calc(53cqw - var(--s) / 2); top: calc(140cqh - 31cqw - var(--s) / 2); animation: drift3 23s steps(184) infinite alternate; }
 
 .amb i {
   background: radial-gradient(

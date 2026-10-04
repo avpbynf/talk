@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./harness";
+import { SIZES } from "./sizes";
 
 const lightsState = (page: Page) =>
   page.evaluate(() => {
@@ -59,6 +60,24 @@ test.describe("the lights behind the window", () => {
       .poll(() => lightsState(page), { timeout: 20_000 })
       .toEqual({ perf: "low", playState: "paused" });
   });
+
+  const largest = SIZES.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a));
+  for (const size of [largest, { name: "4K", width: 3840, height: 2160 }]) {
+    test(`stay in view at ${size.name}, ${size.width}x${size.height}`, async ({ app, page }) => {
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await app.open();
+      const shares = await page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLElement>(".amb i")).map((el) => {
+          // The layout box, without the drift transform: where the light is put, not where it has got to.
+          const { offsetLeft: x, offsetTop: y, offsetWidth: w, offsetHeight: h } = el;
+          const inside = Math.max(0, Math.min(x + w, innerWidth) - Math.max(x, 0)) * Math.max(0, Math.min(y + h, innerHeight) - Math.max(y, 0));
+          return inside / (w * h);
+        }),
+      );
+      expect(shares).toHaveLength(3);
+      for (const share of shares) expect(share).toBeGreaterThanOrEqual(0.5);
+    });
+  }
 
   test("are soft by construction: nothing is blurred behind or around them", async ({ app, page }) => {
     await app.open();
