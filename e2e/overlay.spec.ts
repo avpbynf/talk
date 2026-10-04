@@ -210,6 +210,20 @@ test.describe("the overlay page", () => {
     await expect.poll(angle).not.toBe(before);
   });
 
+  test("the window has nothing to scroll, whatever leaves the stage", async ({ app, page }) => {
+    await open(app, page, { style: "capsule", entrance: "bounce" });
+    await show(app, "rec");
+    // An arrival carries the stage past the edge of a window that is exactly its size, and a
+    // window allowed to scroll answers that with scrollbars for as long as the arrival lasts.
+    const overflows = await page.evaluate(() =>
+      [document.documentElement, document.body, document.getElementById("root")!].flatMap((el) => {
+        const style = getComputedStyle(el);
+        return [style.overflowX, style.overflowY];
+      }),
+    );
+    expect(overflows).toEqual(Array(6).fill("hidden"));
+  });
+
   test("the orb is drawn from the signed-in address and from a neutral guest otherwise", async ({ app, page }) => {
     await open(app, page, { style: "orb" });
     await show(app, "rec");
