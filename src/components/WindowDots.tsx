@@ -12,7 +12,7 @@ export function WindowDots() {
   const { isMaximized, minimize, toggleMaximize, close } = useWindowControls();
 
   return (
-    <div className="group/dots flex shrink-0 items-center gap-[7px] p-1">
+    <div className="group/dots flex shrink-0 items-center gap-[7px] p-1 group-data-[collapsed=true]/side:flex-col">
       <button onClick={minimize} className={DOT} aria-label={t("titlebar.minimize")}>
         <Minus className="h-2 w-2" strokeWidth={3} />
       </button>

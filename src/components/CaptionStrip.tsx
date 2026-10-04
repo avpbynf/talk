@@ -1,9 +1,28 @@
-import { Minus, Square, Copy, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useWindowControls } from "@/lib/use-window-controls";
 
-const BUTTON = "h-8 w-[42px] flex items-center justify-center text-muted-foreground transition-colors duration-200";
+const BUTTON =
+  "grid h-8 w-[42px] place-items-center text-muted-foreground transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+const GLYPH = "h-[11px] w-[11px]";
+
+function Glyph({ children, width = 1.6 }: { children: ReactNode; width?: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={width}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={GLYPH}
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
 
 /**
  * The strip across the top of the content, on the same surface as the sidebar.
@@ -22,32 +41,41 @@ export function CaptionStrip({ buttons = true }: { buttons?: boolean }) {
     >
       {buttons && (
         <>
-      <button
-        onClick={minimize}
-        className={cn(BUTTON, "hover:bg-foreground/10 hover:text-foreground")}
-        aria-label={t("titlebar.minimize")}
-      >
-        <Minus className="h-3.5 w-3.5" strokeWidth={1.5} />
-      </button>
-      <button
-        onClick={toggleMaximize}
-        onDoubleClick={(event) => event.stopPropagation()}
-        className={cn(BUTTON, "hover:bg-foreground/10 hover:text-foreground")}
-        aria-label={isMaximized ? t("titlebar.restore") : t("titlebar.maximize")}
-      >
-        {isMaximized ? (
-          <Copy className="h-3 w-3" strokeWidth={1.5} />
-        ) : (
-          <Square className="h-3 w-3" strokeWidth={1.5} />
-        )}
-      </button>
-      <button
-        onClick={close}
-        className={cn(BUTTON, "hover:bg-[#e5484d] hover:text-white")}
-        aria-label={t("titlebar.close")}
-      >
-        <X className="h-4 w-4" strokeWidth={1.5} />
-      </button>
+          <button
+            onClick={minimize}
+            className={cn(BUTTON, "hover:bg-foreground/10 hover:text-foreground")}
+            aria-label={t("titlebar.minimize")}
+          >
+            <Glyph>
+              <path d="M6 12h12" />
+            </Glyph>
+          </button>
+          <button
+            onClick={toggleMaximize}
+            onDoubleClick={(event) => event.stopPropagation()}
+            className={cn(BUTTON, "hover:bg-foreground/10 hover:text-foreground")}
+            aria-label={isMaximized ? t("titlebar.restore") : t("titlebar.maximize")}
+          >
+            <Glyph>
+              {isMaximized ? (
+                <>
+                  <rect x="5" y="8" width="11" height="11" rx="1" />
+                  <path d="M8 8V6a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-2" />
+                </>
+              ) : (
+                <rect x="6" y="6" width="12" height="12" rx="1" />
+              )}
+            </Glyph>
+          </button>
+          <button
+            onClick={close}
+            className={cn(BUTTON, "hover:bg-[#e5484d] hover:text-white")}
+            aria-label={t("titlebar.close")}
+          >
+            <Glyph width={2}>
+              <path d="M6 6l12 12M18 6 6 18" />
+            </Glyph>
+          </button>
         </>
       )}
     </div>

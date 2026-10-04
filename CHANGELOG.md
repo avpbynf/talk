@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (window) Tidy the caption strip and the sidebar
+
+The window buttons in the strip are drawn smaller, the sidebar's name and its first link sit lower,
+the status pill is taller, the account entry shows a dot with the sync state, and with the buttons on
+the left and the sidebar folded the three dots now stand in a column with room around them.
+
 - (preferences) Choose the overlay's style, colours, movement and position
 
 The overlay tab of Appearance is rebuilt around a live preview on a fake desktop, which loops through
