@@ -564,6 +564,11 @@ history are synced between your computers too. Both are in the list now.
 Pages still fade out and fade in, but they no longer blur while they move, which is lighter to draw
 on a machine without a graphics card.
 
+- (window) Keep a very large window smooth
+
+The coloured lights behind the window stop growing past a certain size, so maximising the window on
+a large screen no longer makes it slower to draw than a medium one.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
