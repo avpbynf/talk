@@ -9,8 +9,6 @@ interface SettingRowProps {
   children: ReactNode;
   /** Dim the label, for a setting that cannot be reached. */
   disabled?: boolean;
-  /** Not used any more: the card rules its sections. Here until the last page stops passing it. */
-  divided?: boolean;
   /** Below the row, inside its rule. */
   below?: ReactNode;
 }
