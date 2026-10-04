@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutTemplate } from "lucide-react";
+import { Mic } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { useReducedMotion } from "@/lib/motion";
@@ -25,7 +25,7 @@ export default function StyleCard({ look, colors, email, onChange }: StyleCardPr
   const [live, setLive] = useState<OverlayStyle | null>(null);
 
   return (
-    <SectionCard icon={LayoutTemplate} title={t("appearance.overlay.style.title")}>
+    <SectionCard icon={Mic} title={t("appearance.overlay.style.title")}>
       <div
         role="group"
         aria-label={t("appearance.overlay.style.label")}

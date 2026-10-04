@@ -37,7 +37,7 @@ test.describe("the overlay tab", () => {
   test("opens with the look the settings hold, and nothing at the end by default", async ({ app, page }) => {
     await openTab(app, page);
     await expect(page.getByRole("button", { name: /^Halo/ })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByRole("switch", { name: "Words after pasting" })).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByRole("switch", { name: "Text at the end" })).toHaveAttribute("aria-checked", "false");
     await expect(page.getByRole("switch", { name: "Timer" })).toHaveAttribute("aria-checked", "true");
     await expect(page.getByRole("switch", { name: "Microphone icon" })).toHaveAttribute("aria-checked", "true");
     await expect(page.getByRole("button", { name: "Bottom centre" })).toHaveAttribute("aria-pressed", "true");
@@ -135,7 +135,7 @@ test.describe("the overlay tab", () => {
       await hold(page, "Refused");
       await expect(page.getByTestId("overlay-preview").locator(".words")).toHaveText("No model");
 
-      await page.getByRole("switch", { name: "Words after pasting" }).click();
+      await page.getByRole("switch", { name: "Text at the end" }).click();
       await hold(page, "Pasted");
       await expect(page.getByTestId("overlay-preview").locator(".words")).toHaveText("Pasted, 14 words");
       await hold(page, "Refused");

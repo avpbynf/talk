@@ -502,11 +502,11 @@
         },
         "capsule": {
           "name": "Capsule",
-          "text": "Une pastille sombre qui s'étire. L'onde de votre voix défile, et le texte scintille pendant la transcription."
+          "text": "Une pastille noire qui s'étire. L'onde de votre voix défile, et le texte scintille pendant la transcription."
         },
         "orb": {
           "name": "Orbe",
-          "text": "Votre blobatar en personne. Il gonfle avec la voix et lance des ondes, réfléchit pendant la transcription et sourit quand le texte est collé."
+          "text": "Votre blobatar en personne. Il gonfle avec la voix et lance des ondes, réfléchit pendant la transcription, sourit quand c'est collé."
         }
       },
       "preview": {
@@ -518,7 +518,7 @@
         "pasted": "Collé",
         "refused": "Refusé",
         "desktop": "Un faux bureau. Attrapez le bandeau pour le poser où vous voulez.",
-        "window": "Notes de réunion",
+        "window": "Notes, point produit",
         "earlier": "À reprendre demain matin :",
         "later": "Vérifier que le vocabulaire survit à un changement de PC, puis essayer le modèle turbo sur la carte Intel avant la sortie."
       },
@@ -540,7 +540,7 @@
         "reaction": "Réaction à la voix",
         "reactionHint": "À quel point le bandeau bouge quand vous parlez",
         "entrance": "Apparition",
-        "entranceHint": "Comment il arrive quand un enregistrement commence",
+        "entranceHint": "Quand l'enregistrement commence",
         "bounce": "Rebond",
         "slide": "Glisse",
         "fade": "Fondu",
@@ -549,7 +549,7 @@
         "timer": "Minuteur",
         "mic": "Icône du micro",
         "micHint": "Halo et Capsule",
-        "endText": "Mots après le collage",
+        "endText": "Texte à la fin",
         "endTextHint": "Affiche \"Collé, 14 mots\" une fois le texte en place. Désactivé, le bandeau confirme par une coche, sans mot. Une dictée refusée dit toujours pourquoi, en quelques mots."
       },
       "position": {

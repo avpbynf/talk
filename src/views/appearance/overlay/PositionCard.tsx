@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { MonitorSmartphone } from "lucide-react";
+import { Monitor } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
@@ -60,7 +60,7 @@ export default function PositionCard({ placement, onPlacement }: PositionCardPro
   }
 
   return (
-    <SectionCard icon={MonitorSmartphone} title={t("appearance.overlay.position.title")}>
+    <SectionCard icon={Monitor} title={t("appearance.overlay.position.title")}>
       <SettingRow
         label={t("appearance.overlay.position.where")}
         hint={placement.spot === "free" ? t("appearance.overlay.position.free") : t("appearance.overlay.position.hint")}
