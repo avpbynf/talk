@@ -297,6 +297,55 @@ test.describe("account page", () => {
     expect(await app.calls("google_sign_out")).toHaveLength(1);
   });
 
+  test("signed in, lists this machine first and the others after it", async ({ app, page }) => {
+    await app.open({ frozen: true, state: { google: SIGNED_IN } });
+    await app.go(account);
+
+    const rows = page.getByTestId("device-row");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText("OFFICE-PC");
+    await expect(rows.nth(0)).toContainText("98 h 00 saved, 6,412 dictations");
+    await expect(rows.nth(0)).toContainText("Here");
+    await expect(rows.nth(1)).toContainText("Work laptop");
+    await expect(rows.nth(1)).toContainText("68 h 00 saved, seen 4 minutes ago");
+  });
+
+  test("signed out, shows no devices", async ({ app, page }) => {
+    await app.open();
+    await app.go(account);
+
+    await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
+    await expect(page.getByText("Your devices")).toHaveCount(0);
+    expect(await app.calls("list_devices")).toHaveLength(0);
+  });
+
+  test("renames a device and shows the new name", async ({ app, page }) => {
+    await app.open({ state: { google: SIGNED_IN } });
+    await app.go(account);
+
+    await page.getByRole("button", { name: "Rename Work laptop" }).click();
+    const field = page.getByRole("textbox", { name: "Device name" });
+    await field.fill("Studio");
+    await field.press("Enter");
+
+    await expect(page.getByTestId("device-row").nth(1)).toContainText("Studio");
+    expect(await app.calls("rename_device")).toEqual([
+      expect.objectContaining({ args: { deviceId: "d-work", name: "Studio" } }),
+    ]);
+  });
+
+  test("leaves a name alone when the rename is cancelled with Escape", async ({ app, page }) => {
+    await app.open({ state: { google: SIGNED_IN } });
+    await app.go(account);
+
+    await page.getByRole("button", { name: "Rename OFFICE-PC" }).click();
+    await page.getByRole("textbox", { name: "Device name" }).press("Escape");
+
+    await expect(page.getByRole("textbox")).toHaveCount(0);
+    await expect(page.getByTestId("device-row").nth(0)).toContainText("OFFICE-PC");
+    expect(await app.calls("rename_device")).toHaveLength(0);
+  });
+
   test("says what went wrong when a sync failed, and when the sign-in did", async ({ app, page }) => {
     await app.open({
       state: { google: { ...SIGNED_IN, lastError: "Drive said no: https://example.com/help." } },
