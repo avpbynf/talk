@@ -451,6 +451,13 @@ the application.
 
 ### Bug Fixes
 
+- (recording) A quick tap no longer leaves the microphone open
+
+Pressing and releasing the push to talk shortcut very quickly could stop the release from being
+noticed, and the microphone then stayed open until the next release. Presses and releases are now
+handled one after the other, in the order they happened, so a tap starts and stops the recording
+cleanly.
+
 - (preferences) Never save a half-written settings file
 
 A crash or a power cut while the settings were being saved could leave a half-written file, and the
