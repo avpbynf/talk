@@ -52,7 +52,8 @@
       "week": "7 days",
       "month": "30 days",
       "year": "Year",
-      "all": "All time"
+      "all": "All time",
+      "label": "Period"
     },
     "scope": {
       "label": "Device scope",
@@ -63,21 +64,6 @@
       "label": "Reset stats",
       "title": "Reset the statistics?",
       "description": "This machine's counts go back to zero and do not come back. The transcriptions themselves stay in the history. If you are signed in, this machine's uploaded statistics are removed from your Google Drive too, and your other machines keep theirs."
-    },
-    "ready": {
-      "ready": "Ready",
-      "noModelLoaded": "No model loaded",
-      "checkingServer": "Checking the server",
-      "unreachableLocal": "Server unreachable, running local",
-      "unreachable": "Server unreachable",
-      "refusedLocal": "Server refused the token, running local",
-      "refused": "Server refused the token",
-      "toTalk": "to talk",
-      "server": "Server",
-      "local": "Local",
-      "fallbackReady": "fallback ready",
-      "noFallback": "no fallback model",
-      "noModel": "no model"
     },
     "stats": {
       "dictations": "Dictations",
@@ -93,7 +79,8 @@
       "notMeasured": "not measured yet",
       "seconds": "{{s}} s",
       "minutes": "{{m}} min",
-      "minutesSeconds": "{{m}} min {{s}} s"
+      "minutesSeconds": "{{m}} min {{s}} s",
+      "wpmUnit": "wpm"
     },
     "facts": {
       "days_one": "{{count}} day",
@@ -134,24 +121,13 @@
       "openai": "list price",
       "azure": "standard, per hour billed"
     },
-    "timeSaved": {
-      "title": "Time won",
-      "againstTyping": "against typing it yourself",
-      "typingSpeed": "Your typing speed",
-      "retest": "Retest",
-      "wordsDictated": "Words dictated",
-      "typingThatOut": "Typing that out",
-      "sayingInstead": "Saying it instead",
-      "lessThanMinute": "< 1 min",
-      "minutes": "~{{m}} min",
-      "plainMinutes": "{{m}} min",
-      "hoursMinutes": "~{{h}}h {{m}}m",
-      "hours": "~{{h}}h"
-    },
     "activity": {
       "title": "Activity",
       "cell_one": "{{date}}: {{count}} transcription",
-      "cell_other": "{{date}}: {{count}} transcriptions"
+      "cell_other": "{{date}}: {{count}} transcriptions",
+      "hint": "one cell per day",
+      "less": "less",
+      "more": "more"
     },
     "typingGame": {
       "title": "Typing test",
@@ -175,6 +151,22 @@
         "Speech is the most natural way people have of saying anything.",
         "Writing at the speed you talk changes what you bother to write."
       ]
+    },
+    "hero": {
+      "label": "Time won at the keyboard",
+      "lessThanMinute": "< 1 min",
+      "hours": "h",
+      "minutes": "min",
+      "pace": "{{words}} words dictated, at {{rate}} words per minute against {{typing}} at the keyboard.",
+      "words": "{{words}} words dictated."
+    },
+    "typing": {
+      "title": "Your typing",
+      "note": "What the time won is measured against",
+      "keyboard": "At the keyboard",
+      "voice": "By voice",
+      "retest": "Retest",
+      "retestTitle": "Redo the typing test"
     }
   },
   "history": {

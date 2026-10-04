@@ -16,31 +16,28 @@ interface StatsCardsProps {
 interface StatCardProps {
   label: string;
   value: string;
+  /** Set smaller and muted after the figure. */
+  unit?: string;
   detail: string;
   colorVar: string;
 }
 
-function StatCard({ label, value, detail, colorVar }: StatCardProps) {
+function StatCard({ label, value, unit, detail, colorVar }: StatCardProps) {
   return (
-    <div className="min-w-0 px-4 py-3 rounded-xl border border-border-card bg-surface-raised">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span
-          className="h-1.5 w-1.5 rounded-full shrink-0"
+    <div className="flex min-w-0 flex-col gap-1 rounded-[calc(var(--radius)+4px)] border border-border-card bg-surface-raised px-4 pb-[15px] pt-4 shadow-[var(--shadow)] transition-[transform,border-color] duration-[450ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-[3px] hover:border-[color-mix(in_oklch,var(--s1)_40%,var(--line))]">
+      <small className="flex items-baseline gap-[7px] text-xs text-muted-foreground">
+        <i
+          aria-hidden="true"
+          className="h-2 w-2 shrink-0 rounded-[3px]"
           style={{ backgroundColor: `var(${colorVar})` }}
         />
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium leading-tight">
-          {label}
-        </span>
-      </div>
-      <div
-        className="text-[22px] font-semibold tracking-tight leading-none"
-        style={{ fontVariantNumeric: "tabular-nums" }}
-      >
+        {label}
+      </small>
+      <b className="text-[26px] font-semibold tracking-[-0.02em] tabular-nums">
         {value}
-      </div>
-      <p className="text-[10px] text-muted-foreground/50 mt-1.5 leading-tight">
-        {detail}
-      </p>
+        {unit && <em className="ml-1 text-[13px] font-medium not-italic tracking-normal text-muted-foreground">{unit}</em>}
+      </b>
+      <span className="text-xs text-muted-foreground">{detail}</span>
     </div>
   );
 }
@@ -79,7 +76,8 @@ export function StatsCards({ summary, userWpm }: StatsCardsProps) {
       />
       <StatCard
         label={t("dashboard.stats.youSpeak")}
-        value={rate === null ? "--" : t("dashboard.wpm", { wpm: Math.round(rate) })}
+        value={rate === null ? "--" : String(Math.round(rate))}
+        unit={rate === null ? undefined : t("dashboard.stats.wpmUnit")}
         detail={rate === null ? waiting : t("dashboard.stats.youType", { wpm: userWpm })}
         colorVar="--color-hybrid"
       />

@@ -52,7 +52,8 @@
       "week": "7 jours",
       "month": "30 jours",
       "year": "Année",
-      "all": "Tout"
+      "all": "Tout",
+      "label": "Période"
     },
     "scope": {
       "label": "Appareils pris en compte",
@@ -63,21 +64,6 @@
       "label": "Réinitialiser les statistiques",
       "title": "Réinitialiser les statistiques ?",
       "description": "Les compteurs de cette machine repartent de zéro, sans retour possible. Les transcriptions restent dans l'historique. Si vous êtes connecté, les statistiques envoyées par cette machine sont aussi retirées de votre Google Drive, et vos autres machines gardent les leurs."
-    },
-    "ready": {
-      "ready": "Prêt",
-      "noModelLoaded": "Aucun modèle chargé",
-      "checkingServer": "Vérification du serveur",
-      "unreachableLocal": "Serveur injoignable, mode local",
-      "unreachable": "Serveur injoignable",
-      "refusedLocal": "Jeton refusé par le serveur, mode local",
-      "refused": "Jeton refusé par le serveur",
-      "toTalk": "pour dicter",
-      "server": "Serveur",
-      "local": "Local",
-      "fallbackReady": "secours prêt",
-      "noFallback": "pas de modèle de secours",
-      "noModel": "aucun modèle"
     },
     "stats": {
       "dictations": "Dictées",
@@ -93,7 +79,8 @@
       "notMeasured": "pas encore mesuré",
       "seconds": "{{s}} s",
       "minutes": "{{m}} min",
-      "minutesSeconds": "{{m}} min {{s}} s"
+      "minutesSeconds": "{{m}} min {{s}} s",
+      "wpmUnit": "mots/min"
     },
     "facts": {
       "days_one": "{{count}} jour",
@@ -134,24 +121,13 @@
       "openai": "tarif public",
       "azure": "standard, facturé à l'heure"
     },
-    "timeSaved": {
-      "title": "Temps gagné",
-      "againstTyping": "par rapport à une saisie au clavier",
-      "typingSpeed": "Votre vitesse de frappe",
-      "retest": "Refaire le test",
-      "wordsDictated": "Mots dictés",
-      "typingThatOut": "Pour les taper",
-      "sayingInstead": "Pour les dire",
-      "lessThanMinute": "< 1 min",
-      "minutes": "~{{m}} min",
-      "plainMinutes": "{{m}} min",
-      "hoursMinutes": "~{{h}} h {{m}} min",
-      "hours": "~{{h}} h"
-    },
     "activity": {
       "title": "Activité",
       "cell_one": "{{date}} : {{count}} transcription",
-      "cell_other": "{{date}} : {{count}} transcriptions"
+      "cell_other": "{{date}} : {{count}} transcriptions",
+      "hint": "une case par jour",
+      "less": "moins",
+      "more": "plus"
     },
     "typingGame": {
       "title": "Test de frappe",
@@ -175,6 +151,22 @@
         "La parole est la façon la plus naturelle de dire quoi que ce soit.",
         "Écrire aussi vite que l'on parle change ce que l'on se donne la peine d'écrire."
       ]
+    },
+    "hero": {
+      "label": "Temps gagné sur le clavier",
+      "lessThanMinute": "< 1 min",
+      "hours": "h",
+      "minutes": "min",
+      "pace": "{{words}} mots dictés, à {{rate}} mots par minute contre {{typing}} au clavier.",
+      "words": "{{words}} mots dictés."
+    },
+    "typing": {
+      "title": "Votre frappe",
+      "note": "La base du calcul du temps gagné",
+      "keyboard": "Au clavier",
+      "voice": "À la voix",
+      "retest": "Refaire",
+      "retestTitle": "Refaire le test de frappe"
     }
   },
   "history": {

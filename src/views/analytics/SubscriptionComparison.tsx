@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { CalendarClock } from "lucide-react";
+import { History } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import { formatUsd } from "@/i18n";
 import {
@@ -10,6 +10,7 @@ import {
   monthsSince,
 } from "@/lib/analytics";
 import type { AnalyticsSummary } from "@/lib/analytics";
+import { PriceLine, PriceNote } from "./PriceLine";
 
 interface SubscriptionComparisonProps {
   summary: AnalyticsSummary;
@@ -21,41 +22,28 @@ export function SubscriptionComparison({ summary }: SubscriptionComparisonProps)
   const months = monthsSince(start);
 
   return (
-    <SectionCard
-      icon={CalendarClock}
-      title={t("dashboard.subscription.title")}
-      description={
-        months === 0
-          ? undefined
-          : t("dashboard.subscription.duration", { count: months, start: formatMonth(start) })
-      }
-    >
-      {months === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("dashboard.empty")}</p>
-      ) : (
-        <>
-          <div>
+    <SectionCard icon={History} title={t("dashboard.subscription.title")}>
+      <div className="flex flex-col gap-3">
+        {months === 0 ? (
+          <PriceNote>{t("dashboard.empty")}</PriceNote>
+        ) : (
+          <>
+            <PriceNote>{t("dashboard.subscription.duration", { count: months, start: formatMonth(start) })}</PriceNote>
             {COMPETITORS.map((c) => (
-              <div key={c.name} className="py-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm min-w-0">{c.name}</span>
-                  <span className="text-sm shrink-0 text-[var(--color-destructive)]">
-                    {formatUsd(c.monthlyUsd * months)}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-3 text-[11px] text-muted-foreground/50">
-                  <span className="min-w-0">{t(c.note)}</span>
-                  <span className="shrink-0">{t("dashboard.subscription.perMonth", { price: formatUsd(c.monthlyUsd) })}</span>
-                </div>
-              </div>
+              <PriceLine
+                key={c.name}
+                name={c.name}
+                note={t(c.note)}
+                price={t("dashboard.subscription.perMonth", { price: formatUsd(c.monthlyUsd) })}
+                cost={formatUsd(c.monthlyUsd * months)}
+              />
             ))}
-          </div>
-
-          <p className="text-[10px] text-muted-foreground/40 leading-tight">
-            {t("dashboard.subscription.footer", { date: formatMonth(PRICES_CHECKED) })}
-          </p>
-        </>
-      )}
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              {t("dashboard.subscription.footer", { date: formatMonth(PRICES_CHECKED) })}
+            </p>
+          </>
+        )}
+      </div>
     </SectionCard>
   );
 }

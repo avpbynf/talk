@@ -615,14 +615,7 @@ function App() {
         {(view) => (
           <>
         {view === "analytics" && (
-          <AnalyticsView
-            transcriptionMode={transcriptionMode}
-            serverStatus={serverStatus}
-            serverUrl={serverUrl}
-            serverFallback={serverFallback}
-            currentModel={currentModel}
-            shortcut={shortcut}
-          />
+          <AnalyticsView />
         )}
         {view === "history" && (
           <HistoryView

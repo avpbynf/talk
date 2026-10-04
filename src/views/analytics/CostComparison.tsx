@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { Coins } from "lucide-react";
+import { Cloud } from "lucide-react";
 import { SectionCard } from "@/components/SectionCard";
 import { formatMonth } from "@/lib/analytics";
 import { formatNumber, formatUsd } from "@/i18n";
 import { HOSTED_APIS, PRICES_CHECKED, apiCost } from "@/lib/analytics";
 import type { AnalyticsSummary } from "@/lib/analytics";
+import { PriceLine, PriceNote } from "./PriceLine";
 
 interface CostComparisonProps {
   summary: AnalyticsSummary;
@@ -15,39 +16,30 @@ export function CostComparison({ summary }: CostComparisonProps) {
   const minutes = summary.estimatedAudioMinutes;
 
   return (
-    <SectionCard
-      icon={Coins}
-      title={t("dashboard.cost.title")}
-      description={minutes < 1 ? undefined : t("dashboard.cost.audio", { minutes: formatNumber(minutes) })}
-    >
-      {minutes < 1 ? (
-        <p className="text-sm text-muted-foreground">{t("dashboard.empty")}</p>
-      ) : (
-        <>
-          <div>
+    <SectionCard icon={Cloud} title={t("dashboard.cost.title")}>
+      <div className="flex flex-col gap-3">
+        {minutes < 1 ? (
+          <PriceNote>{t("dashboard.empty")}</PriceNote>
+        ) : (
+          <>
+            <PriceNote>{t("dashboard.cost.audio", { minutes: formatNumber(minutes) })}</PriceNote>
             {HOSTED_APIS.map((api) => (
-              <div key={api.name} className="py-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm min-w-0">{api.name}</span>
-                  <span className="text-sm shrink-0 text-[var(--color-destructive)]">
-                    {formatUsd(apiCost(minutes, api))}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-3 text-[11px] text-muted-foreground/50">
-                  <span className="min-w-0">{t(api.note)}</span>
-                  <span className="shrink-0">{t("dashboard.cost.perMinute", { price: formatUsd(api.usdPerMin, 4) })}</span>
-                </div>
-              </div>
+              <PriceLine
+                key={api.name}
+                name={api.name}
+                note={t(api.note)}
+                price={t("dashboard.cost.perMinute", { price: formatUsd(api.usdPerMin, 4) })}
+                cost={formatUsd(apiCost(minutes, api))}
+              />
             ))}
-          </div>
-
-          <p className="text-[10px] text-muted-foreground/40 leading-tight">
-            {t("dashboard.cost.footer", { date: formatMonth(PRICES_CHECKED) })}
-            {summary.serverCount > 0 &&
-              ` ${t("dashboard.cost.serverNote", { count: summary.serverCount, number: formatNumber(summary.serverCount) })}`}
-          </p>
-        </>
-      )}
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              {t("dashboard.cost.footer", { date: formatMonth(PRICES_CHECKED) })}
+              {summary.serverCount > 0 &&
+                ` ${t("dashboard.cost.serverNote", { count: summary.serverCount, number: formatNumber(summary.serverCount) })}`}
+            </p>
+          </>
+        )}
+      </div>
     </SectionCard>
   );
 }
