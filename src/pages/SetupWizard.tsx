@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
@@ -87,11 +87,41 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   // Options
   const [autostartEnabled, setAutostartEnabled] = useState(false);
   const [startMinimized, setStartMinimized] = useState(false);
+  // Which of the two switches the user moved in this wizard
+  const [autostartTouched, setAutostartTouched] = useState(false);
+  const [minimizedTouched, setMinimizedTouched] = useState(false);
 
   // Completion state
   const [isCompleting, setIsCompleting] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const google = useGoogleAccount();
+  const accountEmail = google.status?.email ?? null;
+
+  // The account's settings are applied by the round that follows the sign-in, which
+  // starts before the page knows the email. A switch nobody moved is read again when that
+  // round has finished; one the user moved keeps the value he gave it, whenever he moved it.
+  const touched = useRef({ autostart: false, minimized: false });
+  useEffect(() => {
+    if (!accountEmail) return;
+    let live = true;
+    const reload = () => {
+      Promise.all([invoke<boolean>("get_autostart_enabled"), invoke<boolean>("get_start_minimized")])
+        .then(([autostart, minimized]) => {
+          if (!live) return;
+          if (!touched.current.autostart) setAutostartEnabled(Boolean(autostart));
+          if (!touched.current.minimized) setStartMinimized(Boolean(minimized));
+        })
+        .catch((error) => console.error("Failed to read the startup options:", error));
+    };
+    reload();
+    const finished = listen("sync-finished", reload);
+    const applied = listen("settings-synced", reload);
+    return () => {
+      live = false;
+      finished.then((stop) => stop());
+      applied.then((stop) => stop());
+    };
+  }, [accountEmail]);
 
   // Load initial data
   useEffect(() => {
@@ -180,9 +210,15 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         await invoke("set_server_token", { token: serverToken });
       }
 
-      // Save startup options (autostart plugin is handled in set_autostart_enabled)
-      await invoke("set_autostart_enabled", { enabled: autostartEnabled });
-      await invoke("set_start_minimized", { enabled: startMinimized });
+      // Save startup options (autostart plugin is handled in set_autostart_enabled).
+      // With an account connected they already hold the account's values, and only a
+      // switch the user moved since is written over them.
+      if (!accountEmail || autostartTouched) {
+        await invoke("set_autostart_enabled", { enabled: autostartEnabled });
+      }
+      if (!accountEmail || minimizedTouched) {
+        await invoke("set_start_minimized", { enabled: startMinimized });
+      }
 
       // Mark setup as complete
       await invoke("complete_setup");
@@ -606,7 +642,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 </div>
                 <Switch
                   checked={autostartEnabled}
-                  onCheckedChange={setAutostartEnabled}
+                  onCheckedChange={(checked) => {
+                    setAutostartEnabled(checked);
+                    touched.current.autostart = true;
+                    setAutostartTouched(true);
+                  }}
                 />
               </div>
 
@@ -622,7 +662,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 </div>
                 <Switch
                   checked={startMinimized}
-                  onCheckedChange={setStartMinimized}
+                  onCheckedChange={(checked) => {
+                    setStartMinimized(checked);
+                    touched.current.minimized = true;
+                    setMinimizedTouched(true);
+                  }}
                 />
               </div>
             </div>
