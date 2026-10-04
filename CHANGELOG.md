@@ -554,6 +554,11 @@ account does what signing out and in again does.
 The Account page gave only the hour of the last sync, so a sync from last week looked like one from
 this morning. When it is not from today the page now says how long ago it was.
 
+- (preferences) List statistics and history among what follows your account
+
+The Account page listed only settings under What follows your account, although statistics and
+history are synced between your computers too. Both are in the list now.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

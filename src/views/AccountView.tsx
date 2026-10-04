@@ -15,7 +15,7 @@ import { DevicesCard } from "@/views/account/DevicesCard";
 export type { GoogleStatus };
 
 // What travels with the account, and what stays on each machine. The first
-// list mirrors the synced settings in the backend's sync module.
+// list mirrors what the backend's sync module carries.
 const FOLLOWS = [
   "shortcuts",
   "recording",
@@ -26,6 +26,8 @@ const FOLLOWS = [
   "startup",
   "system",
   "meeting",
+  "stats",
+  "history",
 ] as const;
 const STAYS = ["audio", "gpu", "model", "server", "overlay", "history"] as const;
 

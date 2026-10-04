@@ -817,7 +817,9 @@
       "language": "Language",
       "startup": "Start with Windows and minimized",
       "system": "Volume ducking and clipboard",
-      "meeting": "Meeting mode"
+      "meeting": "Meeting mode",
+      "stats": "Statistics",
+      "history": "History"
     },
     "stays": {
       "title": "Stays on each PC",
