@@ -252,6 +252,15 @@ fn analytics_tables(include_remote: bool) -> (&'static str, &'static str) {
     }
 }
 
+/// What typing the same words by hand would have cost, at the reader's own pace.
+pub fn time_saved_minutes(words: i64, user_wpm: f64) -> f64 {
+    if user_wpm > 0.0 {
+        words as f64 / user_wpm
+    } else {
+        0.0
+    }
+}
+
 /// Days in a row up to `today`, from dates sorted newest first.
 ///
 /// A day still open does not break the count: a streak that stopped yesterday
@@ -795,11 +804,7 @@ impl Database {
             total_words as f64 / AVERAGE_SPEECH_RATE_WPM;
         let cost_saved_usd =
             estimated_audio_minutes * OPENAI_WHISPER_COST_PER_MINUTE;
-        let time_saved_minutes = if user_wpm > 0.0 {
-            total_words as f64 / user_wpm
-        } else {
-            0.0
-        };
+        let time_saved_minutes = time_saved_minutes(total_words, user_wpm);
 
         Ok(AnalyticsSummary {
             total_transcriptions: total,

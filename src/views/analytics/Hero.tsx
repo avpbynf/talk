@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { formatNumber, locale } from "@/i18n";
-import { speakingRate } from "@/lib/analytics";
+import { formatTimeSaved, speakingRate } from "@/lib/analytics";
 import type { AnalyticsSummary } from "@/lib/analytics";
 
 interface HeroProps {
@@ -36,8 +36,6 @@ function Fact({ value, label }: { value: string; label: string }) {
 /** The time won as one very large figure, and the things the database knows beside it. */
 export function Hero({ summary, userWpm }: HeroProps) {
   const { t } = useTranslation();
-  const minutes = Math.round(summary.timeSavedMinutes);
-  const hours = Math.floor(minutes / 60);
   const rate = speakingRate(summary);
   const dictated = summary.localCount + summary.serverCount;
   const localShare = dictated > 0 ? Math.round((summary.localCount / dictated) * 100) : 100;
@@ -55,13 +53,7 @@ export function Hero({ summary, userWpm }: HeroProps) {
             {t("dashboard.hero.label")}
           </div>
           <div className="my-2 w-fit bg-[image:var(--grad-x)] bg-clip-text text-[54px] font-semibold leading-none tracking-[-0.04em] text-transparent tabular-nums @max-[700px]:text-[46px] @max-[440px]:text-[40px]">
-            {minutes < 1 ? (
-              t("dashboard.hero.lessThanMinute")
-            ) : hours > 0 ? (
-              `${hours} ${t("dashboard.hero.hours")} ${String(minutes % 60).padStart(2, "0")}`
-            ) : (
-              `${minutes} ${t("dashboard.hero.minutes")}`
-            )}
+            {formatTimeSaved(summary.timeSavedMinutes)}
           </div>
           <p className="max-w-[64ch] text-[13px] leading-[1.55] text-muted-foreground">
             {rate === null
