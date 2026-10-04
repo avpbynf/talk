@@ -25,9 +25,13 @@ import { readCachedTheme, writeCachedTheme } from "@/lib/theme-cache";
 import { useUpdater } from "@/lib/use-updater";
 import { useServerOffer } from "@/lib/use-server-offer";
 import { usePendingPairings } from "@/lib/share";
+import { tell } from "@/lib/notice";
 import { setting } from "@/lib/app-settings";
+import { onRetryReads, setReadFailed } from "@/lib/read-state";
 import { confirmSetting, saveSetting } from "@/lib/save-setting";
+import { LoadGate } from "@/components/LoadGate";
 import { historyQueryLimit, loadHistory, loadSettings, toTranscription, type SavedSettings, type SavedTranscription } from "@/lib/startup";
+import { Button } from "@/components/ui/button";
 import { NoticeStrip } from "@/components/NoticeStrip";
 import { useGoogleInvite } from "@/lib/use-google-invite";
 import { GoogleInviteBanner } from "@/components/GoogleInviteBanner";
@@ -189,9 +193,17 @@ function App() {
   useEffect(() => { historyLimitRef.current = historyLimit; }, [historyLimit]);
 
   // Check setup status first
-  useEffect(() => {
-    invoke<boolean>("is_setup_completed").then(setSetupCompleted);
-  }, []);
+  const [startupFailed, setStartupFailed] = useState(false);
+  const checkSetup = () => {
+    setStartupFailed(false);
+    invoke<boolean>("is_setup_completed")
+      .then(setSetupCompleted)
+      .catch((error) => {
+        console.error("Failed to read the setup state:", error);
+        setStartupFailed(true);
+      });
+  };
+  useEffect(checkSetup, []);
 
   // The window is built hidden and shown here, once React has painted something into
   // it. Rust ignores this on a launch that was meant to stay in the tray.
@@ -208,6 +220,12 @@ function App() {
     hasInitialized.current = true;
     initializeApp().finally(() => setInitialized(true));
   }, [setupCompleted]);
+
+  // What the Retry beside a locked control runs.
+  useEffect(() => {
+    onRetryReads(() => void readStartup());
+    return () => onRetryReads(null);
+  }, []);
 
   const fireCompanionShortcuts = (phase: "start" | "stop") => {
     const shortcuts = companionShortcutsRef.current.filter(
@@ -357,6 +375,7 @@ function App() {
       read<GpuInfo[]>("get_available_gpus"),
       read<GpuVendor>("get_current_gpu_vendor"),
     ]);
+    setReadFailed("models", !ok);
 
     if (availableModels) setModels(availableModels);
     if (downloaded) setDownloadedModels(downloaded);
@@ -398,9 +417,10 @@ function App() {
   // a read that failed is read again, and so is the auto-load that waited for it.
   async function readStartup() {
     const stored = await loadSettings(settingSetters);
-    await loadHistory(stored.historyLimit, setTranscriptions);
+    const historyRead = await loadHistory(stored.historyLimit, setTranscriptions);
     const catalog = await loadCatalog();
 
+    if (stored.failed || !historyRead || !catalog.ok) tell(t("common.readFailed"));
     if (!stored.settings || !catalog.ok || modelAutoLoaded.current) return;
     modelAutoLoaded.current = true;
     await autoLoadModel(stored.settings, catalog.downloaded);
@@ -494,11 +514,26 @@ function App() {
     ? { label: t(`sidebar.status.${pill.key}`), tone: pill.tone, busy: pill.busy, target: PILL_VIEW[pill.page] }
     : null;
 
+  if (setupCompleted === null && startupFailed) {
+    return (
+      <div className="h-full flex flex-col bg-background">
+        <CaptionStrip />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+          <p role="alert" className="max-w-sm text-sm text-muted-foreground">{t("common.startupFailed")}</p>
+          <Button size="sm" onClick={checkSetup}>{t("common.retry")}</Button>
+        </div>
+      </div>
+    );
+  }
+
   // Show loading state while checking setup status
   if (setupCompleted === null) {
     return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">{t("common.loading")}</div>
+      <div className="h-full flex flex-col bg-background">
+        <CaptionStrip />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">{t("common.loading")}</div>
+        </div>
       </div>
     );
   }
@@ -575,6 +610,7 @@ function App() {
           <AnalyticsView />
         )}
         {view === "history" && (
+          <LoadGate groups={["history", "historyLimit"]}>
           <HistoryView
             transcriptions={transcriptions}
             onClear={() => {
@@ -595,8 +631,10 @@ function App() {
               await loadHistory(limit, setTranscriptions);
             }}
           />
+          </LoadGate>
         )}
         {view === "transcription" && (
+          <LoadGate groups={["settings", "token", "serverModel", "models"]}>
           <TranscriptionView
             models={models}
             downloadedModels={downloadedModels}
@@ -713,21 +751,27 @@ function App() {
             serverModel={serverModel}
             onServerModelChange={save.serverModel}
           />
+          </LoadGate>
         )}
         {view === "vocabulary" && (
+          <LoadGate groups={["settings"]}>
           <VocabularyView
             vocabulary={vocabulary}
             onVocabularyChange={setVocabulary}
           />
+          </LoadGate>
         )}
         {view === "appearance" && (
+          <LoadGate groups={["settings"]}>
           <AppearanceView
             appTheme={appTheme}
             windowButtons={windowButtons}
             onWindowButtonsChange={save.windowButtons}
           />
+          </LoadGate>
         )}
         {view === "dictation" && (
+          <LoadGate groups={["hotkeys", "sounds", "companions"]}>
           <DictationView
             recordingMode={recordingMode}
             onRecordingModeChange={save.recordingMode}
@@ -755,9 +799,11 @@ function App() {
             stopSound={stopSound}
             onStopSoundChange={save.stopSound}
           />
+          </LoadGate>
         )}
         {view === "account" && <AccountView />}
         {view === "preferences" && (
+          <LoadGate groups={["settings"]}>
           <PreferencesView
             autostartEnabled={autostartEnabled}
             onAutostartChange={save.autostartEnabled}
@@ -771,6 +817,7 @@ function App() {
             onPreserveClipboardChange={save.preserveClipboard}
             updater={updater}
           />
+          </LoadGate>
         )}
           </>
         )}

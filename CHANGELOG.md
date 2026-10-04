@@ -605,6 +605,15 @@ neither you nor the application holds, and a refused save goes back to the new v
 The message at the foot of the window no longer disappears when you press Escape to close a
 rename, a menu, a field or a dialog: only an Escape that nothing else wanted dismisses it.
 
+- (window) Say so when the application cannot start
+
+If the application could not tell whether setup was done, the window stayed on "Loading" for ever.
+It now says so and offers to try again, and the window can still be moved and closed. And when one
+of the first reads of your settings or history fails, the others still load, a message tells you
+part of it could not be read, and what depended on it is locked, with a Try again beside it, so
+that nothing can save a default over what is stored. Try again also reads again the models and the
+graphics cards that could not be read, and loads the last model once they have come back.
+
 - (preferences) Say so when a device, sharing or overlay setting fails
 
 The chained dictations choices and the microphone and speaker pickers go back to their previous

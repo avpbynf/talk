@@ -7,6 +7,8 @@
     "notSet": "Non défini",
     "dismiss": "Ignorer",
     "retry": "Réessayer",
+    "startupFailed": "Talk n'a pas pu démarrer. Réessayez, et redémarrez l'application si l'échec persiste.",
+    "readFailed": "Une partie de vos réglages ou de votre historique n'a pas pu être lue, la fenêtre peut donc sembler incomplète.",
     "locked": "Vos réglages n'ont pas pu être lus, ils sont donc verrouillés pour ne pas écraser ce qui est enregistré.",
     "saveFailed": "Impossible d'enregistrer, la valeur précédente est rétablie.",
     "nav": {
