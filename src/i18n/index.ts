@@ -52,6 +52,11 @@ export function formatNumber(value: number, fractionDigits = 0): string {
   });
 }
 
+/** A fraction as a whole percent, spaced the way the interface language spaces it. */
+export function formatPercent(fraction: number): string {
+  return fraction.toLocaleString(locale(), { style: "percent", maximumFractionDigits: 0 });
+}
+
 export function formatUsd(value: number, fractionDigits = 2): string {
   return value.toLocaleString(locale(), {
     style: "currency",
