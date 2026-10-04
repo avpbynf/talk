@@ -5,6 +5,9 @@ import { findLayoutProblems } from "./layout-checks";
 import { SIZES } from "./sizes";
 import { SIGNED_IN, emptyAnalytics, longVocabulary } from "./data";
 
+/** The longest name a device takes, with no break to wrap at. */
+const LONG_DEVICE_NAME = "a".repeat(60);
+
 /**
  * The same machine under strain: a long vocabulary, a long address, and a
  * missing model that puts a banner and a pill on screen.
@@ -15,6 +18,10 @@ const CROWDED: OpenOptions = {
     downloaded: ["small-q5_1"],
     settings: { vocabulary: longVocabulary(), last_model: null },
     google: { ...SIGNED_IN, email: "a.very.long.address.for.a.real.person@a-rather-long-company-domain.example.com" },
+    devices: [
+      { id: "d-here", name: LONG_DEVICE_NAME, isThisDevice: true, timeSavedMinutes: 5880, dictations: 6412, lastSeenMs: null },
+      { id: "d-work", name: LONG_DEVICE_NAME.toUpperCase(), isThisDevice: false, timeSavedMinutes: 4080, dictations: 3120, lastSeenMs: 0 },
+    ],
   },
 };
 
@@ -48,6 +55,21 @@ for (const [label, options] of [
         }
       });
     }
+  });
+}
+
+for (const size of SIZES) {
+  test.describe(`renaming a device, ${size.name} window`, () => {
+    test.use({ viewport: { width: size.width, height: size.height } });
+
+    test("the form for a 60 character name fits", async ({ app, page }) => {
+      await app.open(CROWDED);
+      await app.go(PAGES.find((p) => p.id === "account")!);
+      await page.getByRole("button", { name: `Rename ${LONG_DEVICE_NAME}`, exact: true }).click();
+      await page.getByRole("textbox", { name: "Device name" }).fill(LONG_DEVICE_NAME);
+      const problems = await findLayoutProblems(page);
+      expect(problems.map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
+    });
   });
 }
 

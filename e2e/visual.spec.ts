@@ -1,4 +1,5 @@
 import { test, expect, PAGES } from "./harness";
+import { SIGNED_IN } from "./data";
 import { DEFAULT_SIZE } from "./sizes";
 
 /**
@@ -25,6 +26,13 @@ for (const entry of PAGES.filter((p) => (SNAPPED as readonly string[]).includes(
     await expect(page).toHaveScreenshot(`${entry.id}.png`);
   });
 }
+
+test("account page, signed in", async ({ app, page }) => {
+  await app.open({ frozen: true, state: { google: SIGNED_IN } });
+  await app.go(PAGES.find((p) => p.id === "account")!);
+  await park(page);
+  await expect(page).toHaveScreenshot("account-signed-in.png");
+});
 
 test("shell, expanded", async ({ app, page }) => {
   await app.open({ frozen: true });
