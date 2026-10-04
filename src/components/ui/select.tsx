@@ -17,7 +17,7 @@ const SelectTrigger = React.forwardRef<
     <SelectPrimitive.Trigger
       ref={ref}
       className={cn(
-        "group cursor-pointer flex h-8 min-w-[150px] items-center justify-between gap-2.5 whitespace-nowrap rounded-[var(--radius)] border border-input bg-surface pl-3 pr-2.5 text-[13px] transition-[border-color,box-shadow] duration-200 hover:border-[color-mix(in_oklch,var(--s1)_50%,var(--input))] data-[state=open]:border-[var(--accent)] data-[state=open]:shadow-[0_0_0_3px_color-mix(in_oklch,var(--s1)_22%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:min-w-0 [&>span]:line-clamp-1 [&>span]:break-all",
+        "group cursor-pointer flex h-[34px] min-w-[150px] items-center justify-between gap-2.5 whitespace-nowrap rounded-[var(--radius)] border border-input bg-surface pl-3 pr-2.5 text-[13px] transition-[border-color,box-shadow] duration-200 hover:border-[color-mix(in_oklch,var(--s1)_50%,var(--input))] data-[state=open]:border-[var(--accent)] data-[state=open]:shadow-[0_0_0_3px_color-mix(in_oklch,var(--s1)_22%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:min-w-0 [&>span]:line-clamp-1 [&>span]:break-all",
         className
       )}
       aria-labelledby={labelledBy}
