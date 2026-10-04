@@ -362,8 +362,8 @@
 .ovo-b {
   position: relative;
   display: grid;
-  width: 80px;
-  height: 80px;
+  width: 76px;
+  height: 76px;
   flex-shrink: 0;
   place-items: center;
 }
@@ -371,9 +371,9 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 70px;
-  height: 70px;
-  margin: -35px 0 0 -35px;
+  width: 66px;
+  height: 66px;
+  margin: -33px 0 0 -33px;
   border-radius: 50%;
   background: radial-gradient(circle, var(--c2) 0%, var(--c1) 38%, transparent 70%);
   opacity: 0.5;
@@ -385,8 +385,8 @@
 }
 .ovo-av {
   position: relative;
-  width: 66px;
-  height: 66px;
+  width: 58px;
+  height: 58px;
   transform-origin: 50% 70%;
   will-change: transform;
 }
@@ -489,7 +489,7 @@
 /* Words that are not showing still have a box: it is held to the room beside the avatar, so
    that nothing reaches past the edge of the stage. */
 .ovw:not([data-st="done"]):not([data-st="refuse"]) .ovo-done {
-  max-width: 72px;
+  max-width: 74px; /* ROOM in Orb.tsx: change both together */
   overflow: hidden;
 }
 .ovo .qb {
