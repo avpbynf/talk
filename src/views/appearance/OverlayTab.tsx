@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { LoadGate } from "@/components/LoadGate";
 import { overlayColors } from "@/lib/overlay";
 import { useGoogleAccount } from "@/lib/use-google-account";
 import { useOverlaySettings } from "@/lib/use-overlay-settings";
@@ -11,14 +12,14 @@ import StyleCard from "./overlay/StyleCard";
 
 /** The recording overlay: its style, a preview of it, its colours, how it moves and where it appears. */
 export default function OverlayTab({ appTheme }: { appTheme: AppThemeController }) {
-  const { settings, ready, setLook, setPlacement, setTheme, setSize } = useOverlaySettings();
+  const { settings, ready, reload, setLook, setPlacement, setTheme, setSize } = useOverlaySettings();
   const { status } = useGoogleAccount();
   const stops = appTheme.resolved.values.stops;
   const colors = useMemo(() => overlayColors(settings.look, settings.theme, stops), [settings.look, settings.theme, stops]);
   const email = status?.available && status.email ? status.email : null;
 
   // Nothing is drawn from defaults that are about to be replaced by what the backend holds.
-  if (!ready) return null;
+  if (!ready) return <LoadGate groups={["overlay"]} onRetry={reload} inline>{null}</LoadGate>;
 
   return (
     <>

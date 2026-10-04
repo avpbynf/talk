@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { TFunction } from "i18next";
+import i18n from "@/i18n";
+import { tell } from "@/lib/notice";
 
 export type ShareState = "off" | "serving" | "port_busy" | "error";
 
@@ -97,7 +99,12 @@ export function useShare(currentModel: string | null) {
   };
 
   const revoke = async (id: string) => {
-    await invoke("share_revoke_device", { id });
+    try {
+      await invoke("share_revoke_device", { id });
+    } catch (error) {
+      console.error("Failed to revoke the device:", error);
+      tell(i18n.t("transcription.share.revokeFailed"));
+    }
     loadDevices();
   };
 

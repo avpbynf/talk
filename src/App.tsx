@@ -25,6 +25,10 @@ import { readCachedTheme, writeCachedTheme } from "@/lib/theme-cache";
 import { useUpdater } from "@/lib/use-updater";
 import { useServerOffer } from "@/lib/use-server-offer";
 import { usePendingPairings } from "@/lib/share";
+import { setting } from "@/lib/app-settings";
+import { confirmSetting, saveSetting } from "@/lib/save-setting";
+import { historyQueryLimit, loadHistory, loadSettings, toTranscription, type SavedSettings, type SavedTranscription } from "@/lib/startup";
+import { NoticeStrip } from "@/components/NoticeStrip";
 import { useGoogleInvite } from "@/lib/use-google-invite";
 import { GoogleInviteBanner } from "@/components/GoogleInviteBanner";
 import { PairingBanner } from "@/components/PairingBanner";
@@ -85,44 +89,6 @@ export interface GpuDevice {
   name: string;
   vram_mb: number;
   integrated: boolean;
-}
-
-interface SavedSettings {
-  last_model: string | null;
-  accelerator_backend: AcceleratorBackend;
-  theme?: unknown;
-  saved_themes?: unknown;
-  window_buttons?: WindowButtonsSide;
-  vocabulary: string[];
-  transcription_mode: TranscriptionMode;
-  server_url: string;
-  server_fallback: boolean;
-  server_timeout: number;
-  duck_audio_on_record: boolean;
-  duck_volume_percent: number;
-  preserve_clipboard: boolean;
-  autostart_enabled: boolean;
-  start_minimized: boolean;
-}
-
-interface HotkeyConfig {
-  shortcut: string;
-  cancel_shortcut: string;
-  paste_shortcut: string;
-  mode: RecordingMode;
-}
-
-interface SavedTranscription {
-  id: string;
-  text: string;
-  timestamp: string;
-  model: string | null;
-  enhanced: boolean;
-  source: string;
-  audioDurationMs: number | null;
-  processingTimeMs: number | null;
-  wordCount: number;
-  charCount: number;
 }
 
 type View = "analytics" | "history" | "transcription" | "vocabulary" | "dictation" | "preferences" | "appearance" | "account";
@@ -205,6 +171,14 @@ function App() {
   const googleInvite = useGoogleInvite(setupCompleted === true && !otherStripShowing);
   const google = googleInvite.status;
 
+  const settingSetters = {
+    setRecordingMode, setShortcut, setCancelShortcut, setPasteShortcut, setVocabulary, setTranscriptionMode,
+    setServerUrl, setServerFallback, setServerTimeout, setDuckAudioOnRecord, setDuckVolumePercent,
+    setPreserveClipboard, setAutostartEnabled, setStartMinimized, setWindowButtons, setServerToken,
+    setServerModel, setSoundFeedback, setStartSound, setStopSound, setCompanionShortcuts, setHistoryLimit,
+    loadTheme: appTheme.load,
+  };
+
   // Refs to avoid re-registering listeners
   const hasInitialized = useRef(false);
   const companionShortcutsRef = useRef(companionShortcuts);
@@ -271,17 +245,7 @@ function App() {
       (event) => {
         const saved = event.payload;
         setTranscriptions((prev) => {
-          const next: Transcription[] = [
-            {
-              id: saved.id,
-              text: saved.text,
-              timestamp: new Date(saved.timestamp),
-              model: saved.model,
-              enhanced: saved.enhanced,
-              source: (saved.source === "server" ? "server" : "local") as "local" | "server",
-            },
-            ...prev,
-          ];
+          const next = [toTranscription(saved), ...prev];
 
           // Rust prunes the database as it saves, so the list on screen drops the
           // same rows. Without this it grows past the limit for as long as the
@@ -315,7 +279,7 @@ function App() {
     // Settings applied from another machine are already on disk and live in the
     // backend; this is the page catching up.
     const unlistenSettingsSynced = listen("settings-synced", () => {
-      loadSavedSettings().catch((error) => console.error("Failed to reload the settings:", error));
+      void loadSettings(settingSetters);
     });
 
     // A sync may have brought other machines' entries into the history.
@@ -323,19 +287,10 @@ function App() {
       const limit = historyLimitRef.current;
       try {
         const rows = await invoke<SavedTranscription[]>("db_get_transcriptions", {
-          limit: limit === 0 ? 100000 : limit,
+          limit: historyQueryLimit(limit),
           offset: 0,
         });
-        setTranscriptions(
-          rows.map((row) => ({
-            id: row.id,
-            text: row.text,
-            timestamp: new Date(row.timestamp),
-            model: row.model,
-            enhanced: row.enhanced,
-            source: (row.source === "server" ? "server" : "local") as "local" | "server",
-          }))
-        );
+        setTranscriptions(rows.map(toTranscription));
       } catch (error) {
         console.error("Failed to reload the history:", error);
       }
@@ -366,7 +321,10 @@ function App() {
     try {
       const list = await invoke<{ devices: GpuDevice[]; current: number }>("get_gpu_devices");
       setGpuDevices(list.devices);
-      setCurrentGpuDevice(list.current);
+      confirmSetting("gpu_device", list.current, {
+        apply: setCurrentGpuDevice,
+        read: () => invoke<{ current: number }>("get_gpu_devices").then((again) => again.current),
+      });
     } catch (error) {
       console.error("Failed to list GPUs:", error);
       setGpuDevices([]);
@@ -383,94 +341,39 @@ function App() {
     }
   }
 
-  // Reads what the backend holds and puts it in the page state. Also what runs
-  // again when settings arrive from another machine.
-  async function loadSavedSettings() {
-    const hotkeyConfig = await invoke<HotkeyConfig>("get_hotkey_config");
-    setRecordingMode(hotkeyConfig.mode);
-    setShortcut(hotkeyConfig.shortcut);
-    setCancelShortcut(hotkeyConfig.cancel_shortcut || "Ctrl+F1");
-    setPasteShortcut(hotkeyConfig.paste_shortcut || "Ctrl+Shift+Space");
-
-    const savedSettings = await invoke<SavedSettings>("get_saved_settings");
-    setVocabulary(savedSettings.vocabulary || []);
-    setTranscriptionMode(savedSettings.transcription_mode || "local");
-    setServerUrl(savedSettings.server_url || "");
-    setServerFallback(savedSettings.server_fallback !== false); // Default to true
-    setServerTimeout(savedSettings.server_timeout || 30000);
-    setDuckAudioOnRecord(savedSettings.duck_audio_on_record || false);
-    setDuckVolumePercent(savedSettings.duck_volume_percent ?? 20);
-    setPreserveClipboard(savedSettings.preserve_clipboard || false);
-    setAutostartEnabled(savedSettings.autostart_enabled === true);
-    setStartMinimized(savedSettings.start_minimized === true);
-
-    appTheme.load(savedSettings);
-    setWindowButtons(savedSettings.window_buttons === "left" ? "left" : "right");
-
-    const savedToken = await invoke<string>("get_server_token").catch(() => "");
-    setServerToken(savedToken);
-    setServerModel(await invoke<string>("get_server_model").catch(() => ""));
-
-    const [sf, ss, es, companions] = await Promise.all([
-      invoke<boolean>("get_sound_feedback").catch(() => true),
-      invoke<string>("get_start_sound").catch(() => "beep"),
-      invoke<string>("get_stop_sound").catch(() => "beep"),
-      invoke<CompanionShortcut[]>("get_companion_shortcuts").catch(() => []),
+  // The four reads of the model catalog. Each has its own fallback, so one that fails leaves the
+  // others alone, and `ok` says whether every one came back.
+  async function loadCatalog(): Promise<{ ok: boolean; downloaded: string[] }> {
+    let ok = true;
+    const read = <T,>(command: string) =>
+      invoke<T>(command).catch((error) => {
+        console.error(`Failed to read ${command}:`, error);
+        ok = false;
+        return null;
+      });
+    const [availableModels, downloaded, availableGpus, currentVendor] = await Promise.all([
+      read<ModelInfo[]>("get_available_models"),
+      read<string[]>("get_downloaded_models"),
+      read<GpuInfo[]>("get_available_gpus"),
+      read<GpuVendor>("get_current_gpu_vendor"),
     ]);
-    setSoundFeedback(sf);
-    setStartSound(ss);
-    setStopSound(es);
-    setCompanionShortcuts(companions);
 
-    return savedSettings;
+    if (availableModels) setModels(availableModels);
+    if (downloaded) setDownloadedModels(downloaded);
+    if (availableGpus) setGpus(availableGpus);
+    if (currentVendor) {
+      confirmSetting("gpu_vendor", currentVendor, {
+        apply: setCurrentGpuVendor,
+        read: () => invoke<GpuVendor>("get_current_gpu_vendor"),
+      });
+      void loadGpuDevices(currentVendor);
+    }
+    return { ok, downloaded: downloaded ?? [] };
   }
 
-  async function initializeApp() {
-    // Read before the batch: the history fetch below needs it to size its query.
-    const savedLimit = await invoke<number>("get_history_limit").catch(() => 100);
-    setHistoryLimit(savedLimit);
-
-    // Load basic data
-    const [availableModels, downloaded, savedHistory, availableGpus, currentVendor, autostart, startMin] = await Promise.all([
-      invoke<ModelInfo[]>("get_available_models"),
-      invoke<string[]>("get_downloaded_models"),
-      invoke<SavedTranscription[]>("db_get_transcriptions", {
-        // Zero means keep everything, and the query still needs a number.
-        limit: savedLimit === 0 ? 100000 : savedLimit,
-        offset: 0,
-      }),
-      invoke<GpuInfo[]>("get_available_gpus"),
-      invoke<GpuVendor>("get_current_gpu_vendor"),
-      invoke<boolean>("get_autostart_enabled"),
-      invoke<boolean>("get_start_minimized"),
-    ]);
-
-    setModels(availableModels);
-    setDownloadedModels(downloaded);
-    setGpus(availableGpus);
-    setCurrentGpuVendor(currentVendor);
-    void loadGpuDevices(currentVendor);
-    setAutostartEnabled(autostart);
-    setStartMinimized(startMin);
-
-    // Restore transcription history from SQLite
-    if (savedHistory.length > 0) {
-      setTranscriptions(
-        savedHistory.map((t) => ({
-          id: t.id,
-          text: t.text,
-          timestamp: new Date(t.timestamp),
-          model: t.model,
-          enhanced: t.enhanced,
-          source: (t.source === "server" ? "server" : "local") as "local" | "server",
-        }))
-      );
-    }
-
-    const savedSettings = await loadSavedSettings();
-
-    // Auto-load last used model if it's downloaded
-    // Only load if: mode is "local" OR (mode is "server" AND fallback is enabled)
+  // Auto-load last used model if it's downloaded
+  // Only load if: mode is "local" OR (mode is "server" AND fallback is enabled)
+  async function autoLoadModel(savedSettings: SavedSettings, downloaded: string[]) {
     const needsLocalModel =
       savedSettings.transcription_mode === "local" ||
       (savedSettings.transcription_mode === "server" && savedSettings.server_fallback !== false);
@@ -486,6 +389,25 @@ function App() {
         setIsLoading(false);
       }
     }
+  }
+
+  // Whether the last model has been looked at: it needs the settings and the catalog both.
+  const modelAutoLoaded = useRef(false);
+
+  // Every read of start-up, and what depends on them. What runs at start, and again on Retry:
+  // a read that failed is read again, and so is the auto-load that waited for it.
+  async function readStartup() {
+    const stored = await loadSettings(settingSetters);
+    await loadHistory(stored.historyLimit, setTranscriptions);
+    const catalog = await loadCatalog();
+
+    if (!stored.settings || !catalog.ok || modelAutoLoaded.current) return;
+    modelAutoLoaded.current = true;
+    await autoLoadModel(stored.settings, catalog.downloaded);
+  }
+
+  async function initializeApp() {
+    await readStartup();
   }
 
   const checkServerHealth = async (silent = false) => {
@@ -517,6 +439,27 @@ function App() {
       document.removeEventListener("visibilitychange", poll);
     };
   }, [transcriptionMode, serverUrl]);
+
+  const save = {
+    transcriptionMode: setting("transcription_mode", setTranscriptionMode, "set_transcription_mode", "mode"),
+    serverUrl: setting("server_url", setServerUrl, "set_server_url", "url"),
+    serverFallback: setting("server_fallback", setServerFallback, "set_server_fallback", "enabled"),
+    serverTimeout: setting("server_timeout", setServerTimeout, "set_server_timeout", "timeout"),
+    serverToken: setting("server_token", setServerToken, "set_server_token", "token"),
+    serverModel: setting("server_model", setServerModel, "set_server_model", "model"),
+    windowButtons: setting("window_buttons", setWindowButtons, "set_window_buttons", "side"),
+    recordingMode: setting("recording_mode", setRecordingMode, "set_recording_mode", "mode"),
+    companionShortcuts: setting("companion_shortcuts", setCompanionShortcuts, "set_companion_shortcuts", "shortcuts"),
+    soundFeedback: setting("sound_feedback", setSoundFeedback, "set_sound_feedback", "enabled"),
+    startSound: setting("start_sound", setStartSound, "set_start_sound", "preset"),
+    stopSound: setting("stop_sound", setStopSound, "set_stop_sound", "preset"),
+    autostartEnabled: setting("autostart_enabled", setAutostartEnabled, "set_autostart_enabled", "enabled"),
+    startMinimized: setting("start_minimized", setStartMinimized, "set_start_minimized", "enabled"),
+    duckAudioOnRecord: setting("duck_audio_on_record", setDuckAudioOnRecord, "set_duck_audio_on_record", "enabled"),
+    duckVolumePercent: setting("duck_volume_percent", setDuckVolumePercent, "set_duck_volume_percent", "percent"),
+    preserveClipboard: setting("preserve_clipboard", setPreserveClipboard, "set_preserve_clipboard", "enabled"),
+    historyLimit: setting("history_limit", setHistoryLimit, "set_history_limit", "limit"),
+  };
 
   const navItemsTop: NavItem<View>[] = [
     { id: "analytics", icon: LayoutDashboard, label: t("common.nav.dashboard") },
@@ -604,14 +547,8 @@ function App() {
           server={serverOffer}
           onUse={async (server) => {
             dismissServerOffer();
-            setServerUrl(server.url);
-            setTranscriptionMode("server");
-            try {
-              await invoke("set_server_url", { url: server.url });
-              await invoke("set_transcription_mode", { mode: "server" });
-            } catch (error) {
-              console.error("Failed to switch to the server:", error);
-            }
+            // The address first: a mode the backend refuses leaves the address it did take.
+            if (await save.serverUrl(server.url)) await save.transcriptionMode("server");
           }}
           onDismiss={dismissServerOffer}
         />
@@ -651,25 +588,11 @@ function App() {
             shortcut={shortcut}
             historyLimit={historyLimit}
             onHistoryLimitChange={async (limit) => {
-              setHistoryLimit(limit);
-              await invoke("set_history_limit", { limit });
+              if (!(await save.historyLimit(limit))) return;
               // The backend prunes as it saves, so the list on screen is read
               // back rather than trimmed here: guessing which rows went would
               // put the two out of step.
-              const kept = await invoke<SavedTranscription[]>("db_get_transcriptions", {
-                limit: limit === 0 ? 100000 : limit,
-                offset: 0,
-              });
-              setTranscriptions(
-                kept.map((t) => ({
-                  id: t.id,
-                  text: t.text,
-                  timestamp: new Date(t.timestamp),
-                  model: t.model,
-                  enhanced: t.enhanced,
-                  source: (t.source === "server" ? "server" : "local") as "local" | "server",
-                }))
-              );
+              await loadHistory(limit, setTranscriptions);
             }}
           />
         )}
@@ -728,16 +651,25 @@ function App() {
             gpus={gpus}
             currentGpuVendor={currentGpuVendor}
             onGpuVendorChange={async (vendor) => {
-              const previous = currentGpuVendor;
-              setCurrentGpuVendor(vendor);
               setIsLoading(true);
               try {
-                await invoke("set_gpu_vendor", { vendor });
-                await loadGpuDevices(vendor);
-              } catch (error) {
-                console.error("Failed to change GPU:", error);
-                setCurrentGpuVendor(previous);
-                await syncCurrentModel();
+                // A refusal puts the backend the engine really runs on back on the screen,
+                // not what the render held when the click came.
+                await saveSetting({
+                  key: "gpu_vendor",
+                  next: vendor,
+                  apply: setCurrentGpuVendor,
+                  save: async (chosen) => {
+                    try {
+                      await invoke("set_gpu_vendor", { vendor: chosen });
+                      await loadGpuDevices(chosen);
+                    } catch (error) {
+                      await syncCurrentModel();
+                      throw error;
+                    }
+                  },
+                  read: () => invoke<GpuVendor>("get_current_gpu_vendor"),
+                });
               } finally {
                 setIsLoading(false);
               }
@@ -746,51 +678,40 @@ function App() {
             currentGpuDevice={currentGpuDevice}
             switchingGpuDevice={switchingDevice}
             onGpuDeviceChange={async (index) => {
-              const previous = currentGpuDevice;
-              setCurrentGpuDevice(index);
               setSwitchingDevice(index);
               try {
-                await invoke("set_gpu_device", { index });
-              } catch (error) {
-                console.error("Failed to change graphics card:", error);
-                setCurrentGpuDevice(previous);
-                await syncCurrentModel();
+                await saveSetting({
+                  key: "gpu_device",
+                  next: index,
+                  apply: setCurrentGpuDevice,
+                  save: async (chosen) => {
+                    try {
+                      await invoke("set_gpu_device", { index: chosen });
+                    } catch (error) {
+                      await syncCurrentModel();
+                      throw error;
+                    }
+                  },
+                  read: () => invoke<{ current: number }>("get_gpu_devices").then((again) => again.current),
+                });
               } finally {
                 setSwitchingDevice(null);
               }
             }}
             transcriptionMode={transcriptionMode}
-            onTranscriptionModeChange={async (mode) => {
-              setTranscriptionMode(mode);
-              await invoke("set_transcription_mode", { mode });
-            }}
+            onTranscriptionModeChange={save.transcriptionMode}
             serverUrl={serverUrl}
-            onServerUrlChange={async (url) => {
-              setServerUrl(url);
-              await invoke("set_server_url", { url });
-            }}
+            onServerUrlChange={save.serverUrl}
             serverFallback={serverFallback}
-            onServerFallbackChange={async (enabled) => {
-              setServerFallback(enabled);
-              await invoke("set_server_fallback", { enabled });
-            }}
+            onServerFallbackChange={save.serverFallback}
             serverTimeout={serverTimeout}
-            onServerTimeoutChange={async (timeout) => {
-              setServerTimeout(timeout);
-              await invoke("set_server_timeout", { timeout });
-            }}
+            onServerTimeoutChange={save.serverTimeout}
             serverStatus={serverStatus}
             checkServerHealth={checkServerHealth}
             serverToken={serverToken}
-            onServerTokenChange={async (token) => {
-              setServerToken(token);
-              await invoke("set_server_token", { token });
-            }}
+            onServerTokenChange={save.serverToken}
             serverModel={serverModel}
-            onServerModelChange={async (model) => {
-              setServerModel(model);
-              await invoke("set_server_model", { model });
-            }}
+            onServerModelChange={save.serverModel}
           />
         )}
         {view === "vocabulary" && (
@@ -803,19 +724,13 @@ function App() {
           <AppearanceView
             appTheme={appTheme}
             windowButtons={windowButtons}
-            onWindowButtonsChange={async (side) => {
-              setWindowButtons(side);
-              await invoke("set_window_buttons", { side });
-            }}
+            onWindowButtonsChange={save.windowButtons}
           />
         )}
         {view === "dictation" && (
           <DictationView
             recordingMode={recordingMode}
-            onRecordingModeChange={async (mode) => {
-              setRecordingMode(mode);
-              await invoke("set_recording_mode", { mode });
-            }}
+            onRecordingModeChange={save.recordingMode}
             shortcut={shortcut}
             onShortcutChange={async (newShortcut) => {
               await invoke("update_shortcut", { shortcut: newShortcut });
@@ -832,61 +747,35 @@ function App() {
               setPasteShortcut(newShortcut);
             }}
             companionShortcuts={companionShortcuts}
-            onCompanionShortcutsChange={async (shortcuts) => {
-              setCompanionShortcuts(shortcuts);
-              await invoke("set_companion_shortcuts", { shortcuts });
-            }}
+            onCompanionShortcutsChange={save.companionShortcuts}
             soundFeedback={soundFeedback}
-            onSoundFeedbackChange={async (enabled) => {
-              setSoundFeedback(enabled);
-              await invoke("set_sound_feedback", { enabled });
-            }}
+            onSoundFeedbackChange={save.soundFeedback}
             startSound={startSound}
-            onStartSoundChange={async (preset) => {
-              setStartSound(preset);
-              await invoke("set_start_sound", { preset });
-            }}
+            onStartSoundChange={save.startSound}
             stopSound={stopSound}
-            onStopSoundChange={async (preset) => {
-              setStopSound(preset);
-              await invoke("set_stop_sound", { preset });
-            }}
+            onStopSoundChange={save.stopSound}
           />
         )}
         {view === "account" && <AccountView />}
         {view === "preferences" && (
           <PreferencesView
             autostartEnabled={autostartEnabled}
-            onAutostartChange={async (enabled) => {
-              setAutostartEnabled(enabled);
-              await invoke("set_autostart_enabled", { enabled });
-            }}
+            onAutostartChange={save.autostartEnabled}
             startMinimized={startMinimized}
-            onStartMinimizedChange={async (enabled) => {
-              setStartMinimized(enabled);
-              await invoke("set_start_minimized", { enabled });
-            }}
+            onStartMinimizedChange={save.startMinimized}
             duckAudioOnRecord={duckAudioOnRecord}
-            onDuckAudioOnRecordChange={async (enabled) => {
-              setDuckAudioOnRecord(enabled);
-              await invoke("set_duck_audio_on_record", { enabled });
-            }}
+            onDuckAudioOnRecordChange={save.duckAudioOnRecord}
             duckVolumePercent={duckVolumePercent}
-            onDuckVolumePercentChange={async (percent) => {
-              setDuckVolumePercent(percent);
-              await invoke("set_duck_volume_percent", { percent });
-            }}
+            onDuckVolumePercentChange={save.duckVolumePercent}
             preserveClipboard={preserveClipboard}
-            onPreserveClipboardChange={async (enabled) => {
-              setPreserveClipboard(enabled);
-              await invoke("set_preserve_clipboard", { enabled });
-            }}
+            onPreserveClipboardChange={save.preserveClipboard}
             updater={updater}
           />
         )}
           </>
         )}
       </PageTransition>
+      <NoticeStrip />
       </div>
     </div>
   );

@@ -118,7 +118,10 @@ export function DevicesCard() {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Escape") closeForm();
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeForm();
+                  }
                 }}
                 className="min-w-0 flex-1"
               />

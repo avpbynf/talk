@@ -2,6 +2,9 @@ import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { RefreshCw, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LoadGate } from "@/components/LoadGate";
+import { useSettingRead } from "@/lib/use-setting-read";
+import { confirmSetting, saveSetting } from "@/lib/save-setting";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
@@ -15,6 +18,10 @@ import {
 
 const SYSTEM_DEFAULT = "__default__";
 
+const readInput = () => invoke<string | null>("get_input_device");
+const readOutput = () => invoke<string | null>("get_output_device");
+const readSelection = () => Promise.all([readInput(), readOutput()]);
+
 export default function AudioDevicesSection() {
   const { t } = useTranslation();
   const [inputs, setInputs] = useState<string[]>([]);
@@ -25,6 +32,13 @@ export default function AudioDevicesSection() {
   const [defaultOutput, setDefaultOutput] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState<"input" | "output" | null>(null);
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // What is selected now. If it cannot be read the pickers are locked: they would show the
+  // system default, and choosing a device would not say what it replaced.
+  const { pending, reload: loadSelection } = useSettingRead("devices", readSelection, ([input, output]) => {
+    confirmSetting("input_device", input, { apply: setSelectedInput, read: readInput });
+    confirmSetting("output_device", output, { apply: setSelectedOutput, read: readOutput });
+  });
 
   const readInputs = () => {
     invoke<string[]>("list_input_devices").then(setInputs).catch(() => {});
@@ -39,8 +53,7 @@ export default function AudioDevicesSection() {
   useEffect(() => {
     readInputs();
     readOutputs();
-    invoke<string | null>("get_input_device").then(setSelectedInput).catch(() => {});
-    invoke<string | null>("get_output_device").then(setSelectedOutput).catch(() => {});
+
 
     return () => {
       if (refreshTimeout.current) {
@@ -64,17 +77,28 @@ export default function AudioDevicesSection() {
 
   const changeInput = async (value: string) => {
     const deviceName = value === SYSTEM_DEFAULT ? null : value;
-    setSelectedInput(deviceName);
-    await invoke("set_input_device", { deviceName });
+    await saveSetting({
+      key: "input_device",
+      group: "devices",
+      next: deviceName,
+      apply: setSelectedInput,
+      save: (name) => invoke("set_input_device", { deviceName: name }),
+    });
   };
 
   const changeOutput = async (value: string) => {
     const deviceName = value === SYSTEM_DEFAULT ? null : value;
-    setSelectedOutput(deviceName);
-    await invoke("set_output_device", { deviceName });
+    await saveSetting({
+      key: "output_device",
+      group: "devices",
+      next: deviceName,
+      apply: setSelectedOutput,
+      save: (name) => invoke("set_output_device", { deviceName: name }),
+    });
   };
 
   return (
+    <LoadGate groups={["devices"]} onRetry={loadSelection} pending={pending} inline>
     <SectionCard icon={Volume2} title={t("preferences.audio.title")}>
       <DeviceRow
         label={t("preferences.audio.microphone")}
@@ -100,6 +124,7 @@ export default function AudioDevicesSection() {
         onRefresh={() => refresh("output")}
       />
     </SectionCard>
+    </LoadGate>
   );
 }
 

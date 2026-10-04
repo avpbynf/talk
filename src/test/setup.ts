@@ -2,10 +2,16 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@/i18n";
+import { clearNotice } from "@/lib/notice";
+import { forgetReads } from "@/lib/read-state";
+import { forgetSettings } from "@/lib/save-setting";
 
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  forgetSettings();
+  forgetReads();
+  clearNotice();
 });
 
 // Every view reaches the Rust side through invoke. jsdom has no Tauri runtime

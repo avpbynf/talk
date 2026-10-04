@@ -149,6 +149,43 @@ describe("useAppTheme and the backend", () => {
     expect(result.current.saved).toHaveLength(0);
   });
 
+  it("puts the theme the backend holds back on screen when its save is refused", async () => {
+    const { result } = renderHook(() => useAppTheme());
+    act(() => result.current.load({ theme: { preset: "nord", custom: null }, saved_themes: [] }));
+    expect(result.current.setting.preset).toBe("nord");
+
+    act(() => result.current.choose("aurora"));
+    expect(result.current.setting.preset).toBe("aurora");
+    vi.mocked(invoke).mockRejectedValueOnce(new Error("disk full"));
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(result.current.setting.preset).toBe("nord");
+  });
+
+  it("leaves the theme on screen alone when a sync arrives during its save, and reads the file once it settled", async () => {
+    const { result } = renderHook(() => useAppTheme());
+    act(() => result.current.load({ theme: { preset: "nord", custom: null }, saved_themes: [] }));
+    act(() => result.current.choose("aurora"));
+    let finish: () => void = () => {};
+    vi.mocked(invoke).mockImplementation((command: string) => {
+      if (command === "set_app_theme") return new Promise((resolve) => (finish = () => resolve(undefined)));
+      if (command === "get_saved_settings") return Promise.resolve({ theme: { preset: "dracula", custom: null }, saved_themes: [] });
+      return Promise.resolve(undefined);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    act(() => result.current.load({ theme: { preset: "dracula", custom: null }, saved_themes: [] }));
+    expect(result.current.setting.preset).toBe("aurora");
+
+    await act(async () => finish());
+    expect(result.current.setting.preset).toBe("dracula");
+    vi.mocked(invoke).mockImplementation(() => Promise.resolve(undefined));
+  });
+
   it("adopts the list the backend stored", async () => {
     const { result } = renderHook(() => useAppTheme());
     act(() => result.current.edit({ ...aurora, angle: 10 }));

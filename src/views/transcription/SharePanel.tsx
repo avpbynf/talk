@@ -9,6 +9,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { cn } from "@/lib/utils";
 import { describeShare, useShare } from "@/lib/share";
 import { locale } from "@/i18n";
+import { tell } from "@/lib/notice";
 
 interface SharePanelProps {
   currentModel: string | null;
@@ -42,6 +43,7 @@ export function SharePanel({ currentModel }: SharePanelProps) {
       await setEnabled(enabled);
     } catch (e) {
       console.error("Failed to change sharing:", e);
+      tell(t("transcription.share.toggleFailed"));
     } finally {
       setBusy(false);
     }

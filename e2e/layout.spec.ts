@@ -85,6 +85,33 @@ for (const [label, options] of [
 }
 
 for (const size of SIZES) {
+  test.describe(`a refused setting, ${size.name} window`, () => {
+    test.use({ viewport: { width: size.width, height: size.height } });
+
+    test("the notice fits over the content column and covers nothing it should not", async ({ app, page }) => {
+      await app.open({ failing: { set_sound_feedback: "disk full" } });
+      await app.go(PAGES.find((p) => p.id === "dictation")!);
+      await page.getByRole("switch", { name: "Feedback sounds" }).click();
+
+      const notice = page.getByRole("alert").filter({ hasText: "could not be saved" });
+      await expect(notice).toBeVisible();
+      // The page reports the refusal to the console, which the harness would otherwise fail on.
+      expect(app.problems.some((p) => p.includes("Failed to save sound_feedback"))).toBe(true);
+      app.problems.length = 0;
+      const box = (await notice.boundingBox())!;
+      const column = (await page.getByRole("navigation", { name: "Main navigation" }).boundingBox())!;
+      // Over the content column: right of the sidebar, inside the window.
+      expect(box.x).toBeGreaterThanOrEqual(column.x + column.width - 1);
+      expect(box.x + box.width).toBeLessThanOrEqual(size.width + 1);
+      expect(box.y + box.height).toBeLessThanOrEqual(size.height + 1);
+
+      const problems = await findLayoutProblems(page);
+      expect(problems.map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
+    });
+  });
+}
+
+for (const size of SIZES) {
   test.describe(`renaming a device, ${size.name} window`, () => {
     test.use({ viewport: { width: size.width, height: size.height } });
 
