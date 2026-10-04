@@ -4,16 +4,20 @@
 //! rows as one file and replaces, never adds to, what it holds of the others.
 //! That is what lets the totals add up across machines and stay right however
 //! often a sync runs. Settings are one shared file, last writer wins, except
-//! the vocabulary, which merges term by term (see `vocabulary`).
+//! the vocabulary, which merges term by term (see `vocabulary`). Device names
+//! are one more shared file, merged entry by entry (see `devices`).
 
 mod auth;
 mod auth_page;
+mod devices;
 mod drive;
 mod portable;
 mod state;
 mod vocabulary;
 
-use crate::database::{Database, StatsRow, TranscriptionRow, META_HISTORY_CLEARED, META_STATS_RESET};
+use crate::database::{
+    Database, DeviceInfo, StatsRow, TranscriptionRow, META_HISTORY_CLEARED, META_STATS_RESET,
+};
 use drive::{Drive, DriveFile};
 use portable::{SettingsFile, SyncedSettings};
 use serde::{Deserialize, Serialize};
@@ -25,12 +29,15 @@ use std::time::Duration;
 use tauri::{Emitter, Manager};
 
 const SETTINGS_FILE: &str = "settings.json";
+const DEVICES_FILE: &str = "devices.json";
 const STATS_PREFIX: &str = "stats-";
 const HISTORY_PREFIX: &str = "history-";
 const SYNC_INTERVAL: Duration = Duration::from_secs(300);
 const STARTUP_DELAY: Duration = Duration::from_secs(5);
 /// A settings edit is pushed this long after it, so a burst of them goes up once.
 const SETTINGS_PUSH_DELAY: Duration = Duration::from_secs(8);
+/// Signing out waits this long for a pending push to go up.
+const SIGN_OUT_FLUSH: Duration = Duration::from_secs(5);
 /// Coming back to the window syncs when the last round is older than this.
 const FOCUS_SYNC_AFTER_MS: i64 = 60_000;
 
@@ -44,8 +51,8 @@ static PUSH_PENDING: AtomicBool = AtomicBool::new(false);
 /// When the last round began, whatever it did.
 static LAST_ROUND_MS: AtomicI64 = AtomicI64::new(0);
 
-/// What a round covers. An edit only has settings to push, and the statistics
-/// and history keep to the periodic tick and the window coming back.
+/// What a round covers. An edit only has settings and device names to push, and
+/// the statistics and history keep to the periodic tick and the window coming back.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Scope {
     Settings,
@@ -105,7 +112,8 @@ fn edit_ledger(change: impl FnOnce(&mut vocabulary::VocabLedger, i64)) {
     state.save();
 }
 
-/// Sync the settings a few seconds from now, once however many edits come.
+/// Sync the settings and the device names a few seconds from now, once however
+/// many edits come.
 fn push_settings_soon() {
     let Some(app) = APP.get() else { return };
     if PUSH_PENDING.swap(true, Ordering::SeqCst) {
@@ -336,6 +344,31 @@ async fn sync_history(
     Ok(())
 }
 
+/// Merge this machine's names and sighting with the account's file, upload the
+/// result when it moved, and mirror it locally. Who is listed, and when each was
+/// last seen, comes from that file alone.
+async fn sync_devices(
+    drive: &Drive,
+    files: &[DriveFile],
+    db: &Database,
+    own_device: &str,
+) -> Result<(), String> {
+    db.ensure_device_name(own_device, &devices::host_name()).map_err(|e| e.to_string())?;
+    let remote_file = drive::find(files, DEVICES_FILE);
+    let remote = match remote_file {
+        Some(file) => devices::parse(&drive.download(&file.id).await?)?,
+        None => devices::DeviceNames::new(),
+    };
+    let now = now_ms();
+    let mut merged = devices::merge(&db.device_names().map_err(|e| e.to_string())?, &remote, now);
+    devices::touch_own(&mut merged, own_device, now);
+    if remote_file.is_none() || merged != remote {
+        let id = remote_file.map(|f| f.id.as_str());
+        drive.upload(DEVICES_FILE, id, devices::body(&merged)).await?;
+    }
+    db.store_devices(&merged).map_err(|e| e.to_string())
+}
+
 async fn sync_settings(
     app: &tauri::AppHandle,
     drive: &Drive,
@@ -553,6 +586,7 @@ async fn sync_inner(app: &tauri::AppHandle, state: &mut SyncState, scope: Scope)
         results.push(sync_stats(&drive, &files, &db, &own_device, state).await);
         results.push(sync_history(&drive, &files, &db, &own_device, state).await);
     }
+    results.push(sync_devices(&drive, &files, &db, &own_device).await);
     results.push(sync_settings(app, &drive, &files, state).await);
     match results.into_iter().find_map(Result::err) {
         Some(e) => Err(e),
@@ -668,14 +702,56 @@ pub async fn google_sync_now(app: tauri::AppHandle) -> Result<GoogleStatus, Stri
 }
 
 #[tauri::command]
-pub async fn google_sign_out(db: tauri::State<'_, Database>) -> Result<GoogleStatus, String> {
+pub async fn google_sign_out(
+    app: tauri::AppHandle,
+    db: tauri::State<'_, Database>,
+) -> Result<GoogleStatus, String> {
+    // A rename or a settings edit still waiting out its delay goes up now, while
+    // there is an account to take it. Past five seconds it is lost, and signing out goes on.
+    if PUSH_PENDING.load(Ordering::SeqCst) {
+        let _ = tokio::time::timeout(SIGN_OUT_FLUSH, run_sync(&app, Scope::Settings)).await;
+    }
     // Waits for a sync in flight, which would otherwise fill the tables again.
     let _run = RUN.lock().await;
     auth::sign_out();
     SyncState::forget();
     db.clear_remote_stats().map_err(|e| e.to_string())?;
     db.clear_remote_history().map_err(|e| e.to_string())?;
+    let own = db.device_id().map_err(|e| e.to_string())?;
+    db.clear_other_devices(&own).map_err(|e| e.to_string())?;
     Ok(status())
+}
+
+/// The machines signed in to the account, this one first. Empty when nobody is.
+#[tauri::command]
+pub fn list_devices(user_wpm: f64, db: tauri::State<'_, Database>) -> Result<Vec<DeviceInfo>, String> {
+    if auth::signed_in_email().is_none() {
+        return Ok(Vec::new());
+    }
+    let own = db.device_id().map_err(|e| e.to_string())?;
+    db.ensure_device_name(&own, &devices::host_name()).map_err(|e| e.to_string())?;
+    db.list_devices(&own, user_wpm, now_ms()).map_err(|e| e.to_string())
+}
+
+/// Rename a device here and push the name on the next round. The error is a
+/// code the page words in the interface language: `invalid_name`,
+/// `unknown_device` or `failed`.
+#[tauri::command]
+pub fn rename_device(device_id: String, name: String, db: tauri::State<'_, Database>) -> Result<(), String> {
+    let name = name.trim();
+    if !devices::is_valid_name(name) {
+        return Err("invalid_name".to_string());
+    }
+    match db.rename_device(&device_id, name, now_ms()) {
+        Ok(true) => {}
+        Ok(false) => return Err("unknown_device".to_string()),
+        Err(e) => {
+            eprintln!("Failed to rename a device: {}", e);
+            return Err("failed".to_string());
+        }
+    }
+    push_settings_soon();
+    Ok(())
 }
 
 #[cfg(test)]

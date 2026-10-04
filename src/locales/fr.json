@@ -828,6 +828,25 @@
       "overlay": "Position et écran du bandeau",
       "history": "Taille de l'historique"
     },
+    "devices": {
+      "title": "Vos appareils",
+      "here": "Ici",
+      "justNow": "à l'instant",
+      "thisDetail_one": "{{time}} gagnées, {{number}} dictée",
+      "thisDetail_other": "{{time}} gagnées, {{number}} dictées",
+      "seenDetail": "{{time}} gagnées, vu {{ago}}",
+      "rename": "Renommer",
+      "renameNamed": "Renommer {{name}}",
+      "nameLabel": "Nom de l'appareil",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "listFailed": "Impossible de lire la liste des appareils.",
+      "errors": {
+        "invalid_name": "Un nom fait de 1 à 60 caractères, sans caractère de contrôle ni de direction.",
+        "unknown_device": "Cet appareil n'est plus sur le compte.",
+        "failed": "Impossible d'enregistrer le nom."
+      }
+    },
     "syncNow": "Synchroniser",
     "signOut": "Se déconnecter",
     "syncing": "Synchronisation en cours",

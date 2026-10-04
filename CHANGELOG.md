@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (preferences) List your devices on the Account page
+
+When you are signed in, the Account page shows every PC on the account with the time it saved you
+and either its dictations (this PC) or when it was last seen, and each one can be renamed from the
+page. A PC shows up as soon as it signs in, even before it has dictated anything, and drops off the
+list after three months without a sign of life. New PCs start with the name of the computer.
+
 - (window) Say in the sidebar what is wrong with the engine
 
 The pill above the bottom links now says the server is unreachable even when no local model is

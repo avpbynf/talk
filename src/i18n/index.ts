@@ -65,4 +65,14 @@ export function formatTime(date: Date): string {
   return date.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 }
 
+/** When something happened, as a distance from now in the interface language. */
+export function formatAgo(ms: number): string {
+  const minutes = Math.max(0, Math.round((Date.now() - ms) / 60_000));
+  if (minutes < 1) return i18n.t("account.devices.justNow");
+  const relative = new Intl.RelativeTimeFormat(locale(), { numeric: "auto" });
+  if (minutes < 60) return relative.format(-minutes, "minute");
+  if (minutes < 24 * 60) return relative.format(-Math.round(minutes / 60), "hour");
+  return relative.format(-Math.round(minutes / (24 * 60)), "day");
+}
+
 export default i18n;

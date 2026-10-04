@@ -828,6 +828,25 @@
       "overlay": "Overlay position and screen",
       "history": "History size"
     },
+    "devices": {
+      "title": "Your devices",
+      "here": "Here",
+      "justNow": "just now",
+      "thisDetail_one": "{{time}} saved, {{number}} dictation",
+      "thisDetail_other": "{{time}} saved, {{number}} dictations",
+      "seenDetail": "{{time}} saved, seen {{ago}}",
+      "rename": "Rename",
+      "renameNamed": "Rename {{name}}",
+      "nameLabel": "Device name",
+      "save": "Save",
+      "cancel": "Cancel",
+      "listFailed": "Could not read the list of devices.",
+      "errors": {
+        "invalid_name": "A name is 1 to 60 characters, with no control or direction marks.",
+        "unknown_device": "That device is not on the account any more.",
+        "failed": "Could not save the name."
+      }
+    },
     "syncNow": "Sync now",
     "signOut": "Sign out",
     "syncing": "Syncing",

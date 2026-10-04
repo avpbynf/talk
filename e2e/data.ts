@@ -210,6 +210,10 @@ export function defaultState() {
       settingsUploadBlocked: false,
     },
     googleInvited: true,
+    devices: [
+      { id: "d-here", name: "OFFICE-PC", isThisDevice: true, timeSavedMinutes: 5880, dictations: 6412, lastSeenMs: null as number | null },
+      { id: "d-work", name: "Work laptop", isThisDevice: false, timeSavedMinutes: 4080, dictations: 3120, lastSeenMs: now - 4 * 60_000 },
+    ],
     shareInfo: {
       enabled: false,
       port: 8765,

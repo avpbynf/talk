@@ -1426,6 +1426,8 @@ pub fn run() {
             sync::google_invite_offered,
             sync::google_invite_answered,
             sync::google_sign_out,
+            sync::list_devices,
+            sync::rename_device,
             get_companion_shortcuts,
             set_companion_shortcuts,
             simulate_keystroke_cmd,
