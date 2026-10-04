@@ -48,7 +48,7 @@ pub fn busy(recording: bool, jobs: usize, pasting: bool) -> bool {
 
 pub fn dictating(app: &tauri::AppHandle) -> bool {
     let state = app.state::<crate::AppState>();
-    let recording = *state.is_recording.lock();
+    let recording = state.phase.lock().active();
     busy(recording, state.jobs_in_flight.load(Ordering::SeqCst), crate::hotkeys::pasting())
 }
 

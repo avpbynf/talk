@@ -183,7 +183,7 @@ impl ShareBackend for AppBackend {
 
 fn local_busy(app: &AppHandle) -> bool {
     let state = app.state::<AppState>();
-    let recording = *state.is_recording.lock();
+    let recording = state.phase.lock().active();
     priority::local_is_busy(recording, state.jobs_in_flight.load(Ordering::SeqCst))
 }
 

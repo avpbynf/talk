@@ -44,7 +44,8 @@ pub use transcription::{WhisperEngine, AcceleratorBackend, AcceleratorInfo, GpuV
 
 /// Application state shared across all components
 pub struct AppState {
-    pub is_recording: Mutex<bool>,
+    /// Where the main shortcut's press has got to: whether a dictation is under way is read off it.
+    pub phase: Mutex<hotkeys::Phase>,
     pub recording_mode: Mutex<RecordingMode>,
     pub current_model: Mutex<Option<String>>,
     pub model_manager: Arc<ModelManager>,
@@ -87,7 +88,7 @@ pub struct AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            is_recording: Mutex::new(false),
+            phase: Mutex::new(hotkeys::Phase::new()),
             recording_mode: Mutex::new(RecordingMode::PushToTalk),
             current_model: Mutex::new(None),
             model_manager: Arc::new(ModelManager::new()),
@@ -516,7 +517,7 @@ fn get_recording_mode(state: tauri::State<'_, AppState>) -> RecordingMode {
 
 #[tauri::command]
 fn is_recording(state: tauri::State<'_, AppState>) -> bool {
-    *state.is_recording.lock()
+    state.phase.lock().active()
 }
 
 #[tauri::command]
