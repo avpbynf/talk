@@ -349,8 +349,6 @@
       "microphoneHint": "Ce qu'il écoute",
       "output": "Sortie",
       "outputHint": "Où jouent les sons de retour",
-      "devices_one": "{{count}} périphérique",
-      "devices_other": "{{count}} périphériques",
       "systemDefault": "Par défaut du système",
       "systemDefaultNamed": "Par défaut du système ({{name}})",
       "refresh": "Rechercher à nouveau les périphériques"
@@ -417,11 +415,11 @@
       },
       "minimized": {
         "label": "Démarrer réduit",
-        "hint": "S'ouvre directement dans la zone de notification"
+        "hint": "Dans la zone de notification"
       },
       "duck": {
         "label": "Baisser le volume",
-        "hint": "Tout ce que la machine joue descend à une fraction de son niveau pendant que vous parlez, puis revient",
+        "hint": "Pendant que vous parlez, puis revient",
         "downTo": "Descendre à",
         "ariaLabel": "Part du volume à conserver pendant l'enregistrement",
         "percent": "{{percent}} % du volume"
@@ -888,17 +886,16 @@
   },
   "updates": {
     "title": "Mises à jour",
-    "version": "Version",
-    "versionNumber": "Version {{version}}",
     "checkNow": "Vérifier maintenant",
     "status": {
-      "checking": "Interrogation de GitHub",
-      "available": "Talk {{version}} est disponible, et la bannière en haut l'installe",
-      "downloading": "Téléchargement, {{progress}} %",
-      "ready": "Installation en cours, la fenêtre se ferme puis revient",
-      "failed": "La vérification a échoué",
-      "schedule": "Vérifié à chaque lancement, puis toutes les heures",
-      "upToDate": "À jour, vérifié à {{time}}"
+      "checking": "Version {{version}}. Interrogation de GitHub...",
+      "available": "Version {{version}}. Talk {{next}} est disponible.",
+      "downloading": "Version {{version}}. Téléchargement, {{progress}} %.",
+      "ready": "Version {{version}}. Installation en cours, la fenêtre se ferme puis revient.",
+      "failed": "Version {{version}}. La vérification a échoué.",
+      "schedule": "Version {{version}}. Vérifiée à chaque lancement, puis toutes les heures.",
+      "upToDate": "Version {{version}}. À jour, vérifiée à {{time}}.",
+      "error": "Version {{version}}. {{error}}"
     },
     "banner": {
       "available": "Talk {{version}} est disponible",

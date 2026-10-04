@@ -128,7 +128,7 @@ function DeviceRow({
 }: DeviceRowProps) {
   const { t } = useTranslation();
   return (
-    <SettingRow label={label} hint={`${hint} · ${t("preferences.audio.devices", { count: devices.length })}`}>
+    <SettingRow label={label} hint={hint}>
       <span className="flex min-w-0 items-center gap-2">
         <Select
           value={selected ?? SYSTEM_DEFAULT}

@@ -432,6 +432,13 @@ microphone and speaker icons, the position card the screen icon, the capsule is 
 pill, the orb as smiling when it is pasted, and the preview's fake window is titled "Notes, product
 review".
 
+- (preferences) Tidy the Settings page
+
+The audio devices no longer count how many were found, the hints under "Start minimised" and "Turn
+the volume down" are shorter, and the updates card has its check button in the header, the refresh
+icon, an Install button beside it when an update is waiting, and one note under it that gives the
+version and where the check stands.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded

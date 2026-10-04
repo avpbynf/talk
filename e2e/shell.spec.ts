@@ -221,6 +221,23 @@ test.describe("engine status pill", () => {
     await expect(app.link(settings)).toHaveAttribute("aria-current", "page");
   });
 
+  test("with the banner dismissed the pill stays and leads to an Install button", async ({ app, page }) => {
+    // The page transition is driven by animations the fake clock does not move, so it is switched
+    // off, which is also what reduced motion asks for.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.clock.install();
+    await app.open({ state: { update: { version: "0.11.0", date: "2026-09-14T00:00:00Z", body: "Fixes" } } });
+    await page.clock.fastForward(11_000);
+    const dismiss = page.getByRole("button", { name: "Dismiss" });
+    await dismiss.click();
+    await expect(page.getByRole("button", { name: "Install and restart" })).toHaveCount(0);
+    const pill = app.sidebar.getByRole("button", { name: "Update ready", exact: true });
+    await expect(pill).toBeVisible();
+    await pill.click();
+    await expect(app.link(settings)).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("button", { name: "Install and restart" })).toBeVisible();
+  });
+
   test("the engine pill wins over a failed sync", async ({ app }) => {
     await app.open({
       state: { currentModel: null, settings: { last_model: null }, google: { ...SIGNED_IN, lastError: "Drive refused" } },
