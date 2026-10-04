@@ -74,7 +74,7 @@ describe("the overlay's state", () => {
   });
 
   it("says why a dictation was turned away, whichever the reason", () => {
-    for (const reason of ["no_model", "model_loading", "paste_failed", "capture_failed"] as const) {
+    for (const reason of ["no_model", "model_loading", "paste_failed", "capture_failed", "capture_lost"] as const) {
       const s = run([processing(reason)]);
       expect([s.visible, s.phase, s.reason]).toEqual([true, "refuse", reason]);
     }

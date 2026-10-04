@@ -140,6 +140,7 @@ test.describe("the overlay page", () => {
             ["model_loading", "Model loading"],
             ["paste_failed", "Paste failed"],
             ["capture_failed", "No microphone"],
+            ["capture_lost", "Microphone lost"],
           ]) {
             await app.emit("processing-state", reason);
             await settled(page, "refuse");

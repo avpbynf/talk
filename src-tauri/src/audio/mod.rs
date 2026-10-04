@@ -118,9 +118,19 @@ impl AudioBuffer {
 #[derive(Clone)]
 pub struct AudioCaptureHandle {
     stop_signal: Arc<AtomicBool>,
+    /// Raised by the stream's error callback, which is all that tells a microphone
+    /// pulled out mid-recording from one that is simply quiet. A bare flag: the audio
+    /// thread shares no lock with whoever reads it and allocates nothing to set it.
+    failed: Arc<AtomicBool>,
 }
 
 impl AudioCaptureHandle {
+    /// Whether the stream reported an error since it started, after which what it
+    /// recorded is silence.
+    pub fn failed(&self) -> bool {
+        self.failed.load(Ordering::SeqCst)
+    }
+
     /// Signal the audio stream to stop
     pub fn stop(&self) {
         self.stop_signal.store(true, Ordering::SeqCst);
@@ -130,6 +140,28 @@ impl AudioCaptureHandle {
 impl Drop for AudioCaptureHandle {
     fn drop(&mut self) {
         self.stop();
+    }
+}
+
+/// How much of a recording its stream actually delivered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Capture {
+    /// The stream reported nothing wrong.
+    Whole,
+    /// The stream failed part way: what came before is real audio and what came after is
+    /// silence that was never recorded.
+    Cut,
+    /// The stream failed and nothing had been captured before it.
+    Empty,
+}
+
+impl Capture {
+    pub fn of(failed: bool, samples: usize) -> Self {
+        match (failed, samples) {
+            (false, _) => Capture::Whole,
+            (true, 0) => Capture::Empty,
+            (true, _) => Capture::Cut,
+        }
     }
 }
 
@@ -212,6 +244,8 @@ fn start_capture_with_device(device: cpal::Device) -> Result<(AudioBuffer, Audio
     let buffer_clone = buffer.clone();
     let stop_signal = Arc::new(AtomicBool::new(false));
     let stop_signal_clone = stop_signal.clone();
+    let failed = Arc::new(AtomicBool::new(false));
+    let failed_clone = failed.clone();
 
     // Channel to receive initialization result from the audio thread
     let (tx, rx) = mpsc::channel::<Result<(), AudioError>>();
@@ -233,6 +267,7 @@ fn start_capture_with_device(device: cpal::Device) -> Result<(AudioBuffer, Audio
                     &device,
                     &config.into(),
                     buffer_clone,
+                    failed_clone,
                     sample_rate,
                     WHISPER_SAMPLE_RATE,
                     channels,
@@ -241,6 +276,7 @@ fn start_capture_with_device(device: cpal::Device) -> Result<(AudioBuffer, Audio
                     &device,
                     &config.into(),
                     buffer_clone,
+                    failed_clone,
                     sample_rate,
                     WHISPER_SAMPLE_RATE,
                     channels,
@@ -249,6 +285,7 @@ fn start_capture_with_device(device: cpal::Device) -> Result<(AudioBuffer, Audio
                     &device,
                     &config.into(),
                     buffer_clone,
+                    failed_clone,
                     sample_rate,
                     WHISPER_SAMPLE_RATE,
                     channels,
@@ -286,7 +323,7 @@ fn start_capture_with_device(device: cpal::Device) -> Result<(AudioBuffer, Audio
     rx.recv()
         .map_err(|_| AudioError::BuildStream("Audio thread failed to start".to_string()))??;
 
-    let handle = AudioCaptureHandle { stop_signal };
+    let handle = AudioCaptureHandle { stop_signal, failed };
 
     Ok((buffer, handle))
 }
@@ -295,6 +332,7 @@ fn build_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     buffer: AudioBuffer,
+    failed: Arc<AtomicBool>,
     input_sample_rate: u32,
     target_sample_rate: u32,
     channels: usize,
@@ -346,7 +384,10 @@ where
                 // Add to buffer
                 buffer.push(&resampled);
             },
-            |err| eprintln!("Audio stream error: {}", err),
+            move |err| {
+                eprintln!("Audio stream error: {}", err);
+                failed.store(true, Ordering::SeqCst);
+            },
             None,
         )
         .map_err(|e| AudioError::BuildStream(e.to_string()))?;
