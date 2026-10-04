@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { useReducedMotion } from "@/lib/motion";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -57,7 +59,7 @@ export function ConfirmDialog({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: reduceMotion ? 0 : 0.15 }}
           onClick={onCancel}
           className="absolute inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm"
         >
@@ -65,10 +67,10 @@ export function ConfirmDialog({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.15 }}
+            exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.96 }}
+            transition={{ duration: reduceMotion ? 0 : 0.15 }}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm mx-6 p-5 rounded-xl border border-border-card bg-surface-raised shadow-xl"
           >

@@ -605,6 +605,13 @@ neither you nor the application holds, and a refused save goes back to the new v
 The message at the foot of the window no longer disappears when you press Escape to close a
 rename, a menu, a field or a dialog: only an Escape that nothing else wanted dismisses it.
 
+- (history) Keep deleting and clearing true
+
+Deleting a history entry or clearing the history that fails shows the list as the application
+holds it, whatever was dictated or deleted in the meantime: a deletion never leaves a row that a
+clear removed, and a refused clear keeps your search and the page you had opened. A deletion
+issued before a clear is carried out before it.
+
 - (window) Say so when the application cannot start
 
 If the application could not tell whether setup was done, the window stayed on "Loading" for ever.
@@ -630,6 +637,18 @@ overlay now show a message instead of failing silently, and the overlay settings
 really kept. These choices, the language and the meeting mode switch stay locked until they have
 been read, and say so with Try again when they cannot be; the overlay tab no longer stays blank
 when its settings cannot be read. They follow the settings another PC brings.
+
+- (history) Respect reduced motion in the history and its dialogs
+
+With motion reduced, the history rows, the "Copied" badge and the confirmation dialogs no longer
+spring, scale or slide: they appear and go at once.
+
+- (history) Keep a long history light
+
+The history shows its first fifty dictations and loads fifty more on request, so a history of
+hundreds no longer weighs on every refresh of the page. Search still looks through all of it, and
+showing more moves the focus to the first new dictation. Only a dictation that arrives on its own
+is animated.
 
 ### Performance
 

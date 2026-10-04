@@ -1,6 +1,7 @@
 import { Transcription } from "@/App";
 import { useTranslation } from "react-i18next";
-import { locale } from "@/i18n";
+import { formatShortDay, formatTime } from "@/i18n";
+import { useReducedMotion } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -18,9 +19,13 @@ import { Check, Search, Sparkles, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
+/** How many rows are mounted at first, and how many more each press of Show more adds. */
+const PAGE_SIZE = 50;
+
 interface HistoryViewProps {
   transcriptions: Transcription[];
-  onClear: () => void;
+  /** Resolves to whether the history was cleared; the list is back on screen when it was not. */
+  onClear: () => Promise<boolean> | void;
   onDelete: (id: string) => void;
   shortcut: string;
   historyLimit: number;
@@ -56,8 +61,12 @@ export default function HistoryView({
 }: HistoryViewProps) {
   // Not `t`: the cards below map their rows under that name.
   const { t: tr } = useTranslation();
+  const reduceMotion = useReducedMotion();
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // Rows are mounted a page at a time: a long history is hundreds of animated cards.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [query, setQuery] = useState("");
   // A retention choice waiting on the reader, set only when applying it
   // would delete something.
@@ -69,24 +78,16 @@ export default function HistoryView({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString(locale(), {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const today = new Date();
+  const todayKey = today.toDateString();
+  today.setDate(today.getDate() - 1);
+  const yesterdayKey = today.toDateString();
 
   const formatDate = (date: Date) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return tr("history.today");
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return tr("history.yesterday");
-    }
-    return date.toLocaleDateString(locale(), { day: "numeric", month: "short" });
+    const key = date.toDateString();
+    if (key === todayKey) return tr("history.today");
+    if (key === yesterdayKey) return tr("history.yesterday");
+    return formatShortDay(date);
   };
 
   const isEmpty = transcriptions.length === 0;
@@ -95,16 +96,41 @@ export default function HistoryView({
     if (words.length === 0) return transcriptions;
     return transcriptions.filter((entry) => matches(entry.text, words));
   }, [transcriptions, words]);
+  const visible = useMemo(() => shown.slice(0, visibleCount), [shown, visibleCount]);
+  const hidden = shown.length - visible.length;
+
+  useEffect(() => setVisibleCount(PAGE_SIZE), [words]);
 
   // A row that comes back when the filter is cleared is not a new dictation and does not arrive again.
+  // Only a row that arrives alone, a live dictation, is animated: a sync that brings many rows
+  // at once shows them as they are rather than running as many animations.
   const seen = useRef<Set<string> | null>(null);
+  const arriving = useMemo(() => {
+    if (!seen.current) return null;
+    const fresh = transcriptions.filter((entry) => !seen.current?.has(entry.id));
+    return fresh.length === 1 ? fresh[0].id : null;
+  }, [transcriptions]);
   useEffect(() => {
     seen.current = new Set(transcriptions.map((entry) => entry.id));
   }, [transcriptions]);
 
+  // Show more takes the focus to the first row it added, so that the button going away on the
+  // last page does not leave it on the body.
+  const list = useRef<HTMLDivElement>(null);
+  const focusRow = useRef<string | null>(null);
   useEffect(() => {
-    if (isEmpty) setQuery("");
-  }, [isEmpty]);
+    const id = focusRow.current;
+    if (!id) return;
+    focusRow.current = null;
+    const row = Array.from(list.current?.children ?? []).find((el) => el.getAttribute("data-row-id") === id);
+    (row as HTMLElement | undefined)?.focus();
+  }, [visibleCount]);
+
+  // A history that emptied by itself takes the search with it; one being cleared keeps it until
+  // the clear has held, since a refused clear puts the list back.
+  useEffect(() => {
+    if (isEmpty && !clearing) setQuery("");
+  }, [isEmpty, clearing]);
 
   return (
     <PageShell
@@ -117,9 +143,17 @@ export default function HistoryView({
             description={tr("history.clearConfirm.description", { number: transcriptions.length })}
             confirmIcon={<Trash2 className="h-4 w-4 mr-2" />}
             onCancel={() => setConfirmClear(false)}
-            onConfirm={() => {
+            onConfirm={async () => {
               setConfirmClear(false);
-              onClear();
+              setClearing(true);
+              const cleared = await onClear();
+              setClearing(false);
+              // The search and the depth are given up once the clear held: the history they
+              // were about is gone. A refused clear brings the list back, and them with it.
+              if (cleared !== false) {
+                setQuery("");
+                setVisibleCount(PAGE_SIZE);
+              }
             }}
           />
 
@@ -226,24 +260,31 @@ export default function HistoryView({
           {tr("history.noMatch", { query: query.trim() })}
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div ref={list} className="flex flex-col gap-3">
         <AnimatePresence initial={false}>
-        {shown.map((t) => (
+        {visible.map((t) => (
           <motion.div
             key={t.id}
-            initial={seen.current && !seen.current.has(t.id) ? { opacity: 0, y: -20, scale: 0.95 } : false}
+            data-row-id={t.id}
+            tabIndex={-1}
+            initial={
+              arriving === t.id ? (reduceMotion ? { opacity: 0 } : { opacity: 0, y: -20, scale: 0.95 }) : false
+            }
             animate={{
               opacity: 1,
               y: 0,
               scale: 1,
             }}
-            exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.99 }}
-            layout
+            exit={
+              reduceMotion
+                ? { opacity: 0, height: 0, marginBottom: 0, overflow: "hidden", transition: { duration: 0 } }
+                : { opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }
+            }
+            transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 30 }}
+            whileHover={reduceMotion ? undefined : { y: -2 }}
+            whileTap={reduceMotion ? undefined : { scale: 0.99 }}
             onClick={() => copyToClipboard(t.text, t.id)}
-            className="group relative flex cursor-pointer flex-col gap-2.5 overflow-hidden rounded-[calc(var(--radius)+4px)] border border-border-card bg-surface-raised px-[18px] py-[14px] shadow-[var(--shadow)] transition-colors hover:border-[color-mix(in_oklch,var(--s1)_35%,var(--line))]"
+            className="group relative flex cursor-pointer flex-col gap-2.5 overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)] rounded-[calc(var(--radius)+4px)] border border-border-card bg-surface-raised px-[18px] py-[14px] shadow-[var(--shadow)] transition-colors hover:border-[color-mix(in_oklch,var(--s1)_35%,var(--line))]"
           >
             {/* Text content */}
             <p className="selectable text-sm break-words leading-[1.6]">{highlight(t.text, words)}</p>
@@ -261,10 +302,10 @@ export default function HistoryView({
                   {copiedId === t.id && (
                     <motion.span
                       role="status"
-                      initial={{ opacity: 0, scale: 0.4 }}
+                      initial={reduceMotion ? false : { opacity: 0, scale: 0.4 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                      transition={{ duration: reduceMotion ? 0 : 0.3, ease: "easeOut" }}
                       className="inline-flex items-center gap-[5px] font-medium text-success-text"
                     >
                       <Check className="h-[13px] w-[13px]" />
@@ -315,6 +356,15 @@ export default function HistoryView({
           </motion.div>
         ))}
         </AnimatePresence>
+        {hidden > 0 && (
+          <Button variant="ghost" size="sm" className="self-center" onClick={() => {
+              focusRow.current = shown[visible.length]?.id ?? null;
+              setVisibleCount((n) => n + PAGE_SIZE);
+            }}
+          >
+            {tr("history.showMore", { count: Math.min(PAGE_SIZE, hidden) })}
+          </Button>
+        )}
         </div>
       )}
     </PageShell>
