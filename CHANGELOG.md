@@ -364,6 +364,15 @@ includes the default window, the period and device filters each take a full row,
 and the four facts go two by two, and the three comparison cards stack. Labels in the facts strip
 wrap between words instead of being cut off.
 
+- (transcription) Word the Engine page as the design does
+
+The switch reads "On this PC" and "On a server", the loaded model wears a Loaded pill and the models
+card no longer counts what is downloaded, Download is a plain text button, and the card icons all
+take the accent colour instead of green, amber and blue. A note under the graphics card says that
+switching engine or card asks for confirmation while a model is loaded, sharing explains that it
+needs no Docker or Python, the timeouts read "10 s" and "1 min", and "Pair with this server" sits
+on the same line as the API key label.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded

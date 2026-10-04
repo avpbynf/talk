@@ -211,14 +211,12 @@
   "transcription": {
     "title": "Engine",
     "modes": {
-      "local": "Local",
-      "server": "Server"
+      "local": "On this PC",
+      "server": "On a server"
     },
     "fallbackSettings": "Local fallback settings",
     "local": {
       "title": "Whisper models",
-      "downloaded_one": "{{number}} downloaded",
-      "downloaded_other": "{{number}} downloaded",
       "quantised": "Quantised",
       "standard": "Standard",
       "deleteTitle": "Delete {{name}}?",
@@ -226,7 +224,6 @@
       "delete": "Delete"
     },
     "model": {
-      "active": "Active",
       "size": "{{size}} MB",
       "download": "DL",
       "unload": "Unload",
@@ -247,7 +244,8 @@
         "large-v3-turbo-q5_0": "Turbo, quantised. The best accuracy per megabyte",
         "large-v3": "The most accurate, and the slowest",
         "large-v3-q5_0": "Large, quantised"
-      }
+      },
+      "loaded": "Loaded"
     },
     "gpu": {
       "title": "Acceleration",
@@ -263,7 +261,8 @@
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
         "cpu": "Anywhere, slower"
-      }
+      },
+      "note": "Switching engine or card always asks for confirmation while a model is loaded."
     },
     "server": {
       "status": {
@@ -313,7 +312,7 @@
     },
     "share": {
       "title": "Share this PC",
-      "subtitle": "Let other machines dictate through the model loaded here",
+      "subtitle": "Lets other computers dictate through the model loaded here, with no Docker or Python. Turn it on to pick the port and pair machines.",
       "port": "Port",
       "portRange": "Enter a port between 1 and 65535",
       "portFailed": "Could not change the port",

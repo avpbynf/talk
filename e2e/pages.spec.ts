@@ -240,13 +240,13 @@ test.describe("engine page", () => {
     await expect(page.getByText("Share this PC")).toBeVisible();
     await expect(page.getByPlaceholder("http://localhost:8000")).toHaveCount(0);
 
-    await page.getByRole("radio", { name: "Server", exact: true }).click();
+    await page.getByRole("radio", { name: "On a server", exact: true }).click();
     await expect(page.getByPlaceholder("http://localhost:8000")).toBeVisible();
     await expect(page.getByText("Share this PC")).toHaveCount(0);
     expect((await app.calls("set_transcription_mode")).at(-1)?.args).toEqual({ mode: "server" });
     await expect(page.getByText("Connected")).toBeVisible();
 
-    await page.getByRole("radio", { name: "Local", exact: true }).click();
+    await page.getByRole("radio", { name: "On this PC", exact: true }).click();
     await expect(page.getByText("Share this PC")).toBeVisible();
     await expect(page.getByPlaceholder("http://localhost:8000")).toHaveCount(0);
     expect((await app.calls("set_transcription_mode")).at(-1)?.args).toEqual({ mode: "local" });

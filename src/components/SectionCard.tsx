@@ -2,15 +2,6 @@ import { Children, type ReactNode } from "react";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Accent = "active" | "server" | "warning";
-
-// Spelled out in full: only class names written in full reach the stylesheet.
-const TILE: Record<Accent, string> = {
-  active: "bg-[var(--tint)] text-[var(--color-active)]",
-  server: "bg-[color-mix(in_oklch,var(--color-server)_16%,transparent)] text-[var(--color-server)]",
-  warning: "bg-[color-mix(in_oklch,var(--color-warning)_16%,transparent)] text-[var(--color-warning)]",
-};
-
 interface SectionCardProps {
   icon: LucideIcon;
   title: ReactNode;
@@ -22,8 +13,6 @@ interface SectionCardProps {
   description?: ReactNode;
   /** Sits opposite the title: a switch, a toggle or a button. */
   action?: ReactNode;
-  /** Tints the icon with the colour of the area the card belongs to. */
-  accent?: Accent;
   className?: string;
   /** Each child is a section of its own, closed above by a hairline. */
   children?: ReactNode;
@@ -36,7 +25,6 @@ export function SectionCard({
   fold,
   description,
   action,
-  accent = "active",
   className,
   children,
 }: SectionCardProps) {
@@ -60,8 +48,7 @@ export function SectionCard({
         >
           <span
             className={cn(
-              "grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[calc(var(--radius)*0.7)]",
-              TILE[accent],
+              "grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[calc(var(--radius)*0.7)] bg-[var(--tint)] text-[var(--color-active)]",
             )}
           >
             <Icon className="h-[15px] w-[15px]" />

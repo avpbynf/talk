@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Download, Loader2, Trash2, X } from "lucide-react";
+import { Loader2, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ModelInfo, DownloadProgress } from "@/App";
 
@@ -54,19 +54,12 @@ export function ModelCard({
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {!isDownloaded ? (
             <Button variant="outline" size="sm" onClick={onDownload} disabled={isDownloading}>
-              {isCurrentlyDownloading ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <>
-                  <Download />
-                  {t("transcription.model.download")}
-                </>
-              )}
+              {isCurrentlyDownloading ? <Loader2 className="animate-spin" /> : t("transcription.model.download")}
             </Button>
           ) : isLoaded ? (
             <>
               <span className="rounded-full bg-[color-mix(in_oklch,var(--color-success)_16%,transparent)] px-[9px] py-[3px] text-[11px] font-medium text-success-text">
-                {t("transcription.model.active")}
+                {t("transcription.model.loaded")}
               </span>
               <Button
                 variant="ghost"

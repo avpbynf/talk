@@ -76,7 +76,6 @@ export function SharePanel({ currentModel }: SharePanelProps) {
   return (
     <SectionCard
       icon={Share2}
-      accent="active"
       title={t("transcription.share.title")}
       description={t("transcription.share.subtitle")}
       action={
