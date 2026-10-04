@@ -3,12 +3,12 @@ import { PageShell } from "@/components/PageShell";
 import { Segmented } from "@/components/ui/segmented";
 import type {
   ModelInfo,
-  DownloadProgress,
   GpuDevice,
   GpuInfo,
   GpuVendor,
   TranscriptionMode,
 } from "@/App";
+import { useDownloadProgress } from "@/lib/use-download-progress";
 import { LocalTab } from "./LocalTab";
 import { ServerTab } from "./ServerTab";
 import { SharePanel } from "./SharePanel";
@@ -22,7 +22,6 @@ interface TranscriptionViewProps {
   downloadedModels: string[];
   currentModel: string | null;
   isDownloading: boolean;
-  downloadProgress: DownloadProgress | null;
   isLoading: boolean;
   onDownload: (modelId: string) => void;
   onLoad: (modelId: string) => void;
@@ -57,7 +56,6 @@ export default function TranscriptionView({
   downloadedModels,
   currentModel,
   isDownloading,
-  downloadProgress,
   isLoading,
   onDownload,
   onLoad,
@@ -87,6 +85,7 @@ export default function TranscriptionView({
   onServerModelChange,
 }: TranscriptionViewProps) {
   const { t } = useTranslation();
+  const downloadProgress = useDownloadProgress(isDownloading);
   return (
     <PageShell>
       <Segmented

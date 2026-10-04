@@ -774,6 +774,12 @@ measured again: they hold still when the new size is too slow to draw them, and 
 In server mode the connection is no longer tested every few seconds while the window is not visible
 to the page, and it is tested once as soon as the window is visible again.
 
+- (models) Keep the window light during a model download
+
+The progress of a download no longer redraws the whole window several times a second, only the
+bar that shows it, and coming back to the Engine page in the middle of a download shows the bar
+where it was.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

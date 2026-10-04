@@ -29,6 +29,7 @@ import { tell } from "@/lib/notice";
 import { setting } from "@/lib/app-settings";
 import { onRetryReads, setReadFailed } from "@/lib/read-state";
 import { confirmSetting, saveSetting } from "@/lib/save-setting";
+import { clearDownloadProgress, startDownloadProgress } from "@/lib/use-download-progress";
 import { LoadGate } from "@/components/LoadGate";
 import { clearEntries, deleteEntry, useHistoryList } from "@/lib/history-list";
 import { historyQueryLimit, loadHistory, loadSettings, toTranscription, type SavedSettings, type SavedTranscription } from "@/lib/startup";
@@ -112,7 +113,6 @@ function App() {
   const [downloadedModels, setDownloadedModels] = useState<string[]>([]);
   const [currentModel, setCurrentModel] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   // Until the start-up has tried to load the last model, having none says
   // nothing yet, and warning about it would flash on every launch.
@@ -244,14 +244,10 @@ function App() {
   useEffect(() => {
     if (hasRegisteredListeners.current) return;
     hasRegisteredListeners.current = true;
-
-    const unlistenProgress = listen<DownloadProgress>("download-progress", (event) => {
-      setDownloadProgress(event.payload);
-    });
+    startDownloadProgress();
 
     const unlistenComplete = listen<{ model_id: string }>("download-complete", (event) => {
       setIsDownloading(false);
-      setDownloadProgress(null);
       setDownloadedModels((prev) => [...prev, event.payload.model_id]);
     });
 
@@ -317,7 +313,6 @@ function App() {
 
     return () => {
       hasRegisteredListeners.current = false;
-      unlistenProgress.then((f) => f());
       unlistenComplete.then((f) => f());
       unlistenTranscription.then((f) => f());
       unlistenRecordingStarted.then((f) => f());
@@ -638,10 +633,10 @@ function App() {
             downloadedModels={downloadedModels}
             currentModel={currentModel}
             isDownloading={isDownloading}
-            downloadProgress={downloadProgress}
             isLoading={isLoading}
             onDownload={async (modelId) => {
               setIsDownloading(true);
+              clearDownloadProgress();
               try {
                 await invoke("download_model", { modelId });
               } catch (error) {
@@ -650,7 +645,7 @@ function App() {
                 // stop showing a bar.
                 console.error("Download failed:", error);
                 setIsDownloading(false);
-                setDownloadProgress(null);
+                clearDownloadProgress();
               }
             }}
             onCancelDownload={() => {
