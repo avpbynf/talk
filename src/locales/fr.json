@@ -350,7 +350,7 @@
       "hold": "Maintenir",
       "holdHint": "Appuyer pour parler",
       "toggle": "Basculer",
-      "toggleHint": "Un clic pour démarrer, un clic pour arrêter"
+      "toggleHint": "Un appui pour démarrer, un autre pour arrêter"
     },
     "shortcuts": {
       "title": "Raccourcis",
@@ -366,7 +366,7 @@
       },
       "paste": {
         "label": "Coller la dernière",
-        "description": "Remet la dernière transcription en place, là où vous écrivez"
+        "description": "Là où vous écrivez"
       },
       "pressKeys": "Appuyez sur les touches...",
       "save": "Enregistrer",
@@ -383,7 +383,7 @@
       "playStart": "Jouer le son du démarrage",
       "playStop": "Jouer le son de l'arrêt",
       "whenRefuses": "Au refus",
-      "refusedHint": "Deux notes graves, quand il n'y a aucun modèle pour dicter",
+      "refusedHint": "Deux notes graves, sans modèle pour dicter",
       "playRefused": "Jouer le son de refus",
       "options": {
         "none": "Aucun",
@@ -394,9 +394,9 @@
     },
     "meeting": {
       "title": "Mode réunion",
-      "detected": "VB-Cable détecté ({{device}})",
-      "notInstalled": "VB-Cable non installé",
-      "hint": "Fait passer le micro par VB-Cable pour qu'une réunion n'entende rien",
+      "detected": "VB-Cable détecté ({{device}}).",
+      "notInstalled": "VB-Cable non installé.",
+      "hint": "Fait passer le micro par VB-Cable pour qu'une réunion n'entende rien.",
       "setup": "Réglez Teams ou Discord sur « CABLE Output » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien."
     },
     "system": {
@@ -455,8 +455,8 @@
       "cancelShortcut": {
         "label": "Raccourci d'annulation",
         "hint": "Quand il ne reste aucun enregistrement à annuler",
-        "all": "Abandonne tout ce qui attend",
-        "current": "Abandonne celle en cours"
+        "all": "Tout ce qui attend",
+        "current": "La plus ancienne"
       }
     }
   },

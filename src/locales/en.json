@@ -350,7 +350,7 @@
       "hold": "Hold",
       "holdHint": "Push-to-talk",
       "toggle": "Toggle",
-      "toggleHint": "Click on, click off"
+      "toggleHint": "One press to start, another to stop"
     },
     "shortcuts": {
       "title": "Shortcuts",
@@ -366,7 +366,7 @@
       },
       "paste": {
         "label": "Paste the last one",
-        "description": "Puts the last transcription back in, wherever you are typing"
+        "description": "Wherever you are typing"
       },
       "pressKeys": "Press the keys...",
       "save": "Save",
@@ -383,7 +383,7 @@
       "playStart": "Play the sound for when it starts",
       "playStop": "Play the sound for when it stops",
       "whenRefuses": "When it refuses",
-      "refusedHint": "Two low notes, when there is no model to dictate with",
+      "refusedHint": "Two low notes, with no model to dictate with",
       "playRefused": "Play the refusal sound",
       "options": {
         "none": "None",
@@ -394,9 +394,9 @@
     },
     "meeting": {
       "title": "Meeting mode",
-      "detected": "VB-Cable detected ({{device}})",
-      "notInstalled": "VB-Cable not installed",
-      "hint": "Routes the mic through VB-Cable so a meeting hears nothing",
+      "detected": "VB-Cable detected ({{device}}).",
+      "notInstalled": "VB-Cable not installed.",
+      "hint": "Routes the mic through VB-Cable so a meeting hears nothing.",
       "setup": "Set Teams or Discord to use \"CABLE Output\" as their microphone. While you dictate, the other participants hear nothing."
     },
     "system": {
@@ -455,8 +455,8 @@
       "cancelShortcut": {
         "label": "Cancel shortcut",
         "hint": "Once no recording is left to cancel",
-        "all": "Drops everything queued",
-        "current": "Drops the current one"
+        "all": "Everything waiting",
+        "current": "The oldest"
       }
     }
   },
