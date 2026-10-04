@@ -1,13 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useState } from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
+import { NoticeStrip } from "@/components/NoticeStrip";
+import { setReadFailed } from "@/lib/read-state";
+import { confirmSetting } from "@/lib/save-setting";
+import { LoadGate } from "@/components/LoadGate";
 import VocabularyView from "./VocabularyView";
 
 const invoked = vi.mocked(invoke);
 
+function holderOf(initial: string[]) {
+  confirmSetting("vocabulary", initial);
+  let words = initial;
+  function Holder() {
+    const [list, setList] = useState(initial);
+    words = list;
+    return <VocabularyView vocabulary={list} onVocabularyChange={setList} />;
+  }
+  return { Holder, latest: () => words };
+}
+
 function renderView(vocabulary: string[] = []) {
+  confirmSetting("vocabulary", vocabulary);
   const onVocabularyChange = vi.fn();
   render(<VocabularyView vocabulary={vocabulary} onVocabularyChange={onVocabularyChange} />);
   return { onVocabularyChange, user: userEvent.setup() };
@@ -147,6 +163,114 @@ describe("VocabularyView", () => {
     await waitFor(() => expect(seen[seen.length - 1]).toEqual(["Tauri", "Vulkan", "NeoForge"]));
     expect(invoked).toHaveBeenLastCalledWith("set_vocabulary", { words: ["Tauri", "Vulkan", "NeoForge"] });
     expect(screen.queryByText("Removed Vulkan.")).not.toBeInTheDocument();
+  });
+
+  it("keeps both removals when two are made before the first settles", async () => {
+    const settle: Array<() => void> = [];
+    invoked.mockImplementation(() => new Promise((resolve) => settle.push(() => resolve(undefined))));
+    const { Holder, latest } = holderOf(["Tauri", "Vulkan", "NeoForge"]);
+    render(<Holder />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Tauri" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Vulkan" }));
+    await act(async () => settle.forEach((resolve) => resolve()));
+
+    expect(latest()).toEqual(["NeoForge"]);
+  });
+
+  it("does not bring a term back when an earlier removal fails after a later one went through", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const calls: Array<{ command: string; resolve: () => void; reject: () => void }> = [];
+    invoked.mockImplementation(
+      (command) =>
+        new Promise((resolve, reject) => {
+          calls.push({ command, resolve: () => resolve(undefined), reject: () => reject(new Error("refused")) });
+        }),
+    );
+    const { Holder, latest } = holderOf(["Tauri", "Vulkan", "NeoForge"]);
+    render(<Holder />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Tauri" }), { detail: 1 });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Vulkan" }), { detail: 1 });
+    await act(async () => {});
+    expect(calls).toHaveLength(1);
+    await act(async () => calls[0].reject());
+    expect(calls).toHaveLength(2);
+    expect(invoked).toHaveBeenLastCalledWith("clear_vocabulary", { terms: ["Tauri", "Vulkan"] });
+    await act(async () => calls[1].resolve());
+
+    expect(latest()).toEqual(["NeoForge"]);
+  });
+
+  it("acts on the current list when Undo is used after another edit", async () => {
+    const { Holder, latest } = holderOf(["Tauri", "Vulkan", "NeoForge"]);
+    render(<Holder />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Remove Vulkan" }));
+    await screen.findByText("Removed Vulkan.");
+    await user.type(screen.getByPlaceholderText(/MyProject/), "Metal{Enter}");
+    await user.click(screen.getByRole("button", { name: "Undo" }));
+
+    await waitFor(() => expect(latest()).toEqual(["Tauri", "Vulkan", "NeoForge", "Metal"]));
+  });
+
+  it("is locked, with a way to retry, when the settings could not be read", async () => {
+    setReadFailed("settings", true);
+    render(
+      <LoadGate groups={["settings"]}>
+        <VocabularyView vocabulary={[]} onVocabularyChange={vi.fn()} />
+      </LoadGate>,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/locked/i);
+    expect(screen.getByRole("textbox", { name: "Add terms" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Add/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+  });
+
+  it("puts the term back and says so when the removal is refused", async () => {
+    invoked.mockRejectedValue(new Error("disk full"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { Holder, latest } = holderOf(["Tauri", "Vulkan"]);
+    render(
+      <>
+        <Holder />
+        <NoticeStrip />
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Tauri" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be saved");
+    expect(latest()).toEqual(["Tauri", "Vulkan"]);
+    expect(screen.queryByText("Removed Tauri.")).not.toBeInTheDocument();
+  });
+
+  it("moves focus to Undo after a keyboard removal, then back to the list when Undo is used", async () => {
+    const { Holder } = holderOf(["Tauri", "Vulkan", "NeoForge"]);
+    render(<Holder />);
+    const user = userEvent.setup();
+
+    screen.getByRole("button", { name: "Remove Vulkan" }).focus();
+    await user.keyboard("{Enter}");
+
+    const undo = await screen.findByRole("button", { name: "Undo" });
+    await waitFor(() => expect(undo).toHaveFocus());
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Remove Vulkan" })).toHaveFocus());
+  });
+
+  it("leaves focus alone after a pointer removal", async () => {
+    const { Holder } = holderOf(["Tauri", "Vulkan"]);
+    render(<Holder />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Vulkan" }), { detail: 1 });
+
+    const undo = await screen.findByRole("button", { name: "Undo" });
+    expect(undo).not.toHaveFocus();
   });
 
   it("gives each term a grip of its own and says how to use it", () => {

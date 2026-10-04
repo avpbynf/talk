@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, animate, motion } from "motion/react";
 import { useReducedMotion } from "@/lib/motion";
@@ -26,7 +25,8 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { parseVocabularyInput, repeatedTerms } from "@/lib/vocabulary";
+import { editVocabulary, parseVocabularyInput, repeatedTerms } from "@/lib/vocabulary";
+import { currentSetting } from "@/lib/save-setting";
 
 interface VocabularyViewProps {
   vocabulary: string[];
@@ -57,7 +57,8 @@ function SortableVocabularyItem({
   word: string;
   /** Bumped each time the same term is typed again. */
   shake: number;
-  onRemove: () => void;
+  /** Told whether the click came from the keyboard, which has no pointer to follow. */
+  onRemove: (fromKeyboard: boolean) => void;
 }) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
@@ -130,10 +131,10 @@ function SortableVocabularyItem({
             const p = press.current;
             if (p) p.moved = Math.hypot(e.clientX - p.x, e.clientY - p.y) > CLICK_SLOP;
           }}
-          onClick={() => {
+          onClick={(e) => {
             const moved = press.current?.moved;
             press.current = null;
-            if (!moved) onRemove();
+            if (!moved) onRemove(e.detail === 0);
           }}
           aria-label={t("vocabulary.remove", { word })}
           className="term relative cursor-pointer rounded-sm transition-colors duration-200 hover:text-faint focus-visible:text-faint focus-visible:outline-none after:absolute after:-inset-x-0.5 after:top-[54%] after:h-[1.5px] after:origin-left after:scale-x-0 after:rounded-sm after:bg-[var(--color-destructive)] after:transition-transform after:duration-[280ms] after:ease-[cubic-bezier(.22,1,.36,1)] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-reduce:after:transition-none"
@@ -159,22 +160,31 @@ export default function VocabularyView({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Every change builds on the list as it is now, saves under way included, not as it was at
+  // the click: two quick removals would otherwise put the first term back.
+  const latest = () => currentSetting("vocabulary", vocabulary);
+  const edit = (words: string[]) => editVocabulary(words, onVocabularyChange);
+
+  const undoButton = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
+  const focusUndoNext = useRef(false);
+  const undoHadFocus = useRef(false);
+  const removedAt = useRef(0);
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = vocabulary.indexOf(active.id as string);
-    const newIndex = vocabulary.indexOf(over.id as string);
-    const reordered = arrayMove(vocabulary, oldIndex, newIndex);
-
-    onVocabularyChange(reordered);
-    await invoke("set_vocabulary", { words: reordered });
+    const before = latest();
+    await edit(arrayMove(before, before.indexOf(active.id as string), before.indexOf(over.id as string)));
   };
 
   const addWord = async () => {
-    const words = parseVocabularyInput(newWord, vocabulary);
+    const before = latest();
+    const words = parseVocabularyInput(newWord, before);
 
-    const repeats = repeatedTerms(newWord, vocabulary);
+    const repeats = repeatedTerms(newWord, before);
     if (repeats.length > 0) {
       setShakes((prev) => {
         const next = { ...prev };
@@ -188,27 +198,27 @@ export default function VocabularyView({
       return;
     }
 
-    const newVocabulary = [...vocabulary, ...words];
-    await invoke("set_vocabulary", { words: newVocabulary });
-    onVocabularyChange(newVocabulary);
-    setNewWord("");
+    if (await edit([...before, ...words])) setNewWord("");
   };
 
-  const removeWord = async (word: string) => {
-    const index = vocabulary.indexOf(word);
-    await invoke("remove_vocabulary_word", { word });
-    onVocabularyChange(vocabulary.filter((w) => w !== word));
+  const removeWord = async (word: string, fromKeyboard: boolean) => {
+    const before = latest();
+    const index = before.indexOf(word);
+    if (index < 0) return;
+    if (!(await edit(before.filter((w) => w !== word)))) return;
+    focusUndoNext.current = fromKeyboard;
+    removedAt.current = index;
     setRemoved({ word, index });
   };
 
   const undoRemove = async () => {
     if (!removed) return;
     setRemoved(null);
-    if (vocabulary.some((w) => w.toLowerCase() === removed.word.toLowerCase())) return;
-    const restored = [...vocabulary];
+    const before = latest();
+    if (before.some((w) => w.toLowerCase() === removed.word.toLowerCase())) return;
+    const restored = [...before];
     restored.splice(Math.min(removed.index, restored.length), 0, removed.word);
-    await invoke("set_vocabulary", { words: restored });
-    onVocabularyChange(restored);
+    await edit(restored);
   };
 
   useEffect(() => {
@@ -217,10 +227,24 @@ export default function VocabularyView({
     return () => clearTimeout(id);
   }, [removed]);
 
-  const clearAll = async () => {
-    await invoke("clear_vocabulary", { terms: vocabulary });
-    onVocabularyChange([]);
-  };
+  // The button that was just pressed is gone, and focus with it: the keyboard
+  // lands on the offer to undo, and when the offer goes it lands on the term
+  // that took the removed one's place, or on the field when none is left.
+  useEffect(() => {
+    if (removed && focusUndoNext.current) {
+      focusUndoNext.current = false;
+      undoButton.current?.focus();
+      return;
+    }
+    if (removed || !undoHadFocus.current) return;
+    undoHadFocus.current = false;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    const terms = list.current?.querySelectorAll<HTMLButtonElement>("button.term");
+    const target = terms && terms.length > 0 ? terms[Math.min(removedAt.current, terms.length - 1)] : field.current;
+    target?.focus();
+  }, [removed]);
+
+  const clearAll = () => edit([]);
 
   return (
     <PageShell>
@@ -229,6 +253,7 @@ export default function VocabularyView({
           <p className="max-w-[64ch] text-[13px] leading-[1.55] text-muted-foreground">{t("vocabulary.help")}</p>
           <div className="flex flex-wrap gap-2">
             <Input
+              ref={field}
               value={newWord}
               onChange={(e) => setNewWord(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addWord())}
@@ -267,14 +292,14 @@ export default function VocabularyView({
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={vocabulary} strategy={rectSortingStrategy}>
-                <div className="flex flex-wrap content-start gap-[7px]">
+                <div ref={list} className="flex flex-wrap content-start gap-[7px]">
                   <AnimatePresence initial={false}>
                     {vocabulary.map((word) => (
                       <SortableVocabularyItem
                         key={word}
                         word={word}
                         shake={shakes[word] ?? 0}
-                        onRemove={() => removeWord(word)}
+                        onRemove={(fromKeyboard) => removeWord(word, fromKeyboard)}
                       />
                     ))}
                   </AnimatePresence>
@@ -286,7 +311,16 @@ export default function VocabularyView({
           {removed && (
             <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
               {t("vocabulary.removed", { word: removed.word })}
-              <button onClick={undoRemove} className="font-medium text-[var(--color-active)] hover:underline">
+              <button
+                ref={undoButton}
+                onClick={undoRemove}
+                onFocus={() => {
+                  undoHadFocus.current = true;
+                }}
+                onBlur={(e) => {
+                  if (e.relatedTarget) undoHadFocus.current = false;
+                }}
+                className="font-medium text-[var(--color-active)] hover:underline">
                 {t("vocabulary.undo")}
               </button>
             </p>
