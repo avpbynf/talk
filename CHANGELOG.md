@@ -574,6 +574,11 @@ a large screen no longer makes it slower to draw than a medium one.
 Switching theme still fades the surfaces, the text, the status colours, the accent and the lights,
 while the gradient stops and the focus ring take their new value at once.
 
+- (window) Check the lights again when the window changes size
+
+If the window is made much larger or much smaller some time after launch, the speed of the lights is
+measured again: they hold still when the new size is too slow to draw them, and move again when it is not.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features
