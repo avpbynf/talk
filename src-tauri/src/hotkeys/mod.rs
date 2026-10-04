@@ -1,4 +1,5 @@
 mod config;
+mod ending;
 mod paste_line;
 mod phase;
 mod press_line;
@@ -7,14 +8,16 @@ pub use config::{
     config, find, init, suspends_sync, tell_owed, update_config,
     HotkeyConfig,
 };
+pub use phase::Phase;
 
 use crate::audio::Capture;
 use crate::{audio, audio_encoder, database, overlay_feedback, server_transcription, AppState, RecordingMode};
 use crate::settings::TranscriptionMode;
 use crate::dictation_queue::{CancelScope, PasteTarget, Release, Transcript};
 use std::sync::atomic::{AtomicBool, Ordering};
+use ending::Ending;
 use paste_line::{PasteLine, Turn};
-use phase::{Opened, Phase};
+use phase::Opened;
 use press_line::{Edge, PressLine, Step};
 use std::sync::{Arc, OnceLock};
 use tauri::{AppHandle, Emitter, EventTarget, Manager};
@@ -357,12 +360,12 @@ fn release_overlay_after(app: &AppHandle, hold_ms: u64) {
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(hold_ms));
         let state = app.state::<AppState>();
-        // The decision and what it does happen under the recording lock, so a recording cannot
+        // The decision and what it does happen under the phase lock, so a recording cannot
         // start in between and have its overlay hidden under it.
-        let recording = state.is_recording.lock();
+        let phase = state.phase.lock();
         let jobs = state.jobs_in_flight.load(Ordering::SeqCst);
         let overlay = EventTarget::webview_window("overlay");
-        match overlay_feedback::after_hold(state.overlay_gen.is_current(generation), *recording, jobs) {
+        match overlay_feedback::after_hold(state.overlay_gen.is_current(generation), phase.active(), jobs) {
             overlay_feedback::Hold::Leave => {}
             overlay_feedback::Hold::ResumeRecording => {
                 *state.overlay_hold_until.lock() = None;
@@ -397,10 +400,10 @@ impl Drop for OverlayLease {
         if was_last {
             crate::sync::dictation_ended(&self.app);
         }
-        // Under the recording lock from the check to the hide, so a recording cannot start in
+        // Under the phase lock from the check to the hide, so a recording cannot start in
         // between and have its overlay hidden under it.
-        let recording = state.is_recording.lock();
-        if !was_last || *recording {
+        let phase = state.phase.lock();
+        if !was_last || phase.active() {
             return;
         }
 
@@ -476,9 +479,6 @@ async fn transcribe_locally(
     .map_err(|e| format!("Local transcription did not run: {}", e))?
 }
 
-/// Where the press path has got to. Taken for a moment and never across a wait.
-static PHASE: parking_lot::Mutex<Phase> = parking_lot::Mutex::new(Phase::Idle);
-
 /// Where every text on its way to the focused window waits its turn.
 static PASTES: PasteLine = PasteLine::new();
 
@@ -520,20 +520,16 @@ pub fn handle_shortcut_event(app: &AppHandle, state: ShortcutState) {
         .push((mode, edge));
 }
 
-/// A handler that panicked may have left a capture open or the recording flag up: back to
-/// nothing recording, so that the next press starts from a clean state.
+/// A handler that panicked may have left a capture open, the machine turned down and the
+/// overlay on "recording": it ends like any other dictation, so that the next press starts clean.
 fn reset_after_panic(app: &AppHandle) {
-    let state = app.state::<AppState>();
-    *state.audio_capture_handle.lock() = None;
-    *state.audio_buffer.lock() = None;
-    *state.is_recording.lock() = false;
-    *PHASE.lock() = Phase::Idle;
+    ending::end_dictation(app, Ending::Panicked);
 }
 
 /// Do what one event of the line amounts to. The line hands them over one at a
 /// time, so a release always finds the press before it already done.
 fn act_on(app: &AppHandle, mode: RecordingMode, edge: Edge) {
-    let recording = *app.state::<AppState>().is_recording.lock();
+    let recording = app.state::<AppState>().phase.lock().active();
     match press_line::step(mode, edge, recording) {
         Step::Start => {
             let _ = start_recording_internal(app);
@@ -559,9 +555,8 @@ fn act_on(app: &AppHandle, mode: RecordingMode, edge: Edge) {
 pub fn cancel(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
-        if *app.state::<AppState>().is_recording.lock() {
-            cancel_recording(&app);
-        } else {
+        // A press under way, opening or recording, is what goes first.
+        if !ending::end_dictation(&app, Ending::Cancelled) {
             cancel_transcriptions(&app);
         }
     });
@@ -609,71 +604,6 @@ fn hide_overlay(app: &AppHandle) {
     );
     if let Some(overlay) = app.get_webview_window("overlay") {
         let _ = overlay.hide();
-    }
-}
-
-fn cancel_recording(app: &AppHandle) {
-    let state = app.state::<AppState>();
-
-    // Only cancel if we're actually recording, or opening the device to: the flag is up for
-    // both, and a cancel in the second leaves its mark for the thread that is opening.
-    {
-        let mut recording = state.is_recording.lock();
-        if !*recording {
-            return;
-        }
-        *recording = false;
-    }
-    PHASE.lock().cancel();
-
-    // Stop audio capture and clear buffer
-    *state.audio_capture_handle.lock() = None;
-    *state.audio_buffer.lock() = None;
-
-    // Unmute virtual mic on cancel
-    {
-        let vm = state.virtual_mic.lock();
-        if vm.is_active() {
-            vm.unmute();
-        }
-    }
-
-    // A cancelled recording still ducked the machine on its way in.
-    restore_audio();
-
-    // Emit cancelled event
-    let _ = app.emit("recording-cancelled", ());
-
-    settle_after_cancel(app);
-
-    // Sound feedback: cancellation counts as stop
-    play_sound_feedback(app, "stop");
-
-    crate::sync::dictation_ended(app);
-}
-
-/// What a recording that will not come leaves to settle: the held paragraph it was part of,
-/// and the overlay it had.
-fn settle_after_cancel(app: &AppHandle) {
-    let state = app.state::<AppState>();
-
-    // The dictation this recording would have added to a held paragraph
-    // never comes, so the paragraph may be complete now.
-    let delivery = crate::settings::read(|s| s.queue.delivery);
-    let mut queue = state.dictation_queue.lock();
-    let release = queue.settle(delivery, false);
-    let turn = take_turn(&release);
-    let idle = queue.is_idle();
-    drop(queue);
-    hand_out_in_turn(app, release, turn);
-
-    // Earlier dictations still transcribing keep the overlay, which goes
-    // back to showing them.
-    if idle {
-        hide_overlay(app);
-    } else {
-        let job = *state.job_state.lock();
-        let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", job);
     }
 }
 
@@ -727,6 +657,8 @@ pub fn paste_last_transcription(app: &AppHandle) {
                 eprintln!("Failed to paste the last transcription: {}", e);
             }
         });
+        // The sync waits for a paste too, and its round may be owed.
+        crate::sync::dictation_ended(&app);
     });
 }
 
@@ -776,7 +708,7 @@ fn refuse_without_model(app: &AppHandle) -> bool {
         "no_model"
     };
 
-    refuse(app, reason);
+    ending::end_dictation(app, Ending::Refused(reason));
     true
 }
 
@@ -794,7 +726,7 @@ fn refuse(app: &AppHandle, reason: &str) {
 fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
 
-    if *state.is_recording.lock() {
+    if state.phase.lock().active() {
         return Ok(());
     }
 
@@ -803,12 +735,13 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     }
 
     // 1. A dictation is under way from the press, not from the moment the microphone is open:
-    // the flag is what an earlier dictation about to hide the overlay, the cancel shortcut and
+    // the phase is what an earlier dictation about to hide the overlay, the cancel shortcut and
     // the sync all read. Then show the overlay first (pre-created at startup, just show it,
     // never recreate): opening the microphone takes as long as the driver takes, and the user
     // sees the press answered.
-    *state.is_recording.lock() = true;
-    PHASE.lock().begin_open();
+    let Some(generation) = state.phase.lock().begin_open() else {
+        return Ok(());
+    };
     state.overlay_gen.begin();
     *state.overlay_hold_until.lock() = None;
     crate::overlay::show(app);
@@ -827,31 +760,19 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     let (buffer, handle) = match audio::start_capture_device(device_name.as_deref()) {
         Ok(started) => started,
         Err(e) => {
-            let cancelled = PHASE.lock().open_failed();
-            {
-                let vm = state.virtual_mic.lock();
-                if vm.is_active() {
-                    vm.unmute();
-                }
-            }
-            // The user cancelled while it opened: that cancel already turned the press away.
-            if !cancelled {
-                *state.is_recording.lock() = false;
-                // A microphone that will not open is a dictation turned away like any other: the
-                // recording the overlay was told about never happens.
-                let _ = app.emit("recording-cancelled", ());
-                refuse(app, "capture_failed");
-            }
+            // A microphone that will not open is a dictation turned away like any other, unless
+            // a cancel got there first and has already ended it.
+            ending::end_dictation(app, Ending::OpenFailed(generation));
             return Err(e.to_string());
         }
     };
     let buffer_for_spectrum = buffer.clone();
 
-    // Decided and stored in one step with the cancel's mark: a cancel after this clears what is
-    // stored, and one before it is read here.
+    // Decided and stored in one step with the phase: a cancel after this clears what is stored,
+    // and one before it ended the press this capture was opened for.
     let discarded = {
-        let mut phase = PHASE.lock();
-        match phase.opened() {
+        let mut phase = state.phase.lock();
+        match phase.opened(generation) {
             Opened::Keep => {
                 *state.audio_buffer.lock() = Some(buffer);
                 *state.audio_capture_handle.lock() = Some(handle);
@@ -864,7 +785,7 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
         // Dropping the handle ends the stream. The cancel did the rest, and the overlay it hid
         // may have been drawn again by the press that was still placing it.
         drop(handle);
-        settle_after_cancel(app);
+        ending::settle_overlay(app);
         return Ok(());
     }
 
@@ -873,19 +794,19 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
 
     // 5. Take the machine down so it does not talk over the speaker
     duck_audio();
-    if !*state.is_recording.lock() {
-        // Cancelled in between: its restore ran before the volume was taken down.
+    if !state.phase.lock().is_current(generation) {
+        // Ended in between: its restore ran before the volume was taken down.
         restore_audio();
         return Ok(());
     }
 
-    // 6. Start spectrum emission thread
+    // 6. Start spectrum emission thread, which ends with the recording it was started for
     let app_for_spectrum = app.clone();
     std::thread::spawn(move || {
         let num_bars = 8;
         loop {
             let state = app_for_spectrum.state::<AppState>();
-            if !*state.is_recording.lock() {
+            if !state.phase.lock().is_current(generation) {
                 break;
             }
 
@@ -918,7 +839,7 @@ struct Dictation {
 fn stop_recording(app: &AppHandle) -> Result<Dictation, String> {
     let state = app.state::<AppState>();
 
-    if !*state.is_recording.lock() {
+    if !state.phase.lock().recording() {
         return Err("Not recording".to_string());
     }
 
@@ -944,32 +865,12 @@ fn stop_recording(app: &AppHandle) -> Result<Dictation, String> {
     // that reported an error recorded silence from then on, and is read before it goes.
     let failed = state.audio_capture_handle.lock().take().is_some_and(|handle| handle.failed());
     let capture = Capture::of(failed, audio_data.len());
-    *state.is_recording.lock() = false;
-    PHASE.lock().stopped();
 
-    // Unmute virtual mic after STT recording
-    {
-        let vm = state.virtual_mic.lock();
-        if vm.is_active() {
-            vm.unmute();
-        }
-    }
-
-    // Put the volume back at the stop, not after the transcription: the
-    // speaker has finished and the wait is no reason to keep the room quiet.
-    restore_audio();
-
-    let _ = app.emit("recording-stopped", ());
-
-    // A capture that delivered nothing before it failed is turned away once its place in line is
-    // settled, with the refusal sound in place of this one. One that delivered something is
-    // transcribed like any other, and the loss is said after its paste.
-    if capture != Capture::Empty {
-        // Sound feedback (instant, from a pre-computed PCM buffer)
-        play_sound_feedback(app, "stop");
-
-        emit_to_overlay(app, "transcribing");
-    }
+    // A capture that delivered nothing before it failed is turned away, with the refusal sound in
+    // place of the stop one. One that delivered something is transcribed like any other, and the
+    // loss is said after its paste.
+    let ending = if capture == Capture::Empty { Ending::MicrophoneLost } else { Ending::Stopped };
+    ending::end_dictation(app, ending);
 
     Ok(Dictation { seq, cancel, audio: audio_data, capture, lease })
 }
@@ -986,6 +887,7 @@ async fn finish_dictation(app: AppHandle, dictation: Dictation) {
     let started = std::time::Instant::now();
 
     let outcome = if capture == Capture::Empty {
+        // Said already, by the ending that turned it away.
         Err("The microphone stopped during the recording".to_string())
     } else {
         transcribe(&app, audio_data, cancel).await
@@ -1014,13 +916,23 @@ async fn finish_dictation(app: AppHandle, dictation: Dictation) {
         }
     };
 
+    // What is still to be said about it once its text is out: the model that was not there when
+    // the engine was asked for it, and the microphone that gave out part way.
+    let refusal = match (&outcome, capture) {
+        (Err(e), _) if e == NO_MODEL => Some("no_model"),
+        (_, Capture::Cut) => Some("capture_lost"),
+        _ => None,
+    };
+
     let delivery = crate::settings::read(|s| s.queue.delivery);
-    let recording = *state.is_recording.lock();
     // The turn is taken under the lock, which keeps the order, and the paste waits for it
     // outside: two transcriptions finishing together do not paste over each other, and a
-    // cancel is not held up behind a paste.
+    // cancel is not held up behind a paste. Whether a recording is under way is read under the
+    // same lock the ending of a press settles the queue under, so that a paragraph is never held
+    // for a recording that has ended.
     let (release, turn) = {
         let mut queue = state.dictation_queue.lock();
+        let recording = state.phase.lock().active();
         let release = queue.finish(seq, transcript, delivery, recording);
         let turn = take_turn(&release);
         (release, turn)
@@ -1028,10 +940,10 @@ async fn finish_dictation(app: AppHandle, dictation: Dictation) {
     let app_for_paste = app.clone();
     let _ = tauri::async_runtime::spawn_blocking(move || {
         hand_out_in_turn(&app_for_paste, release, turn);
-        // After the paste, once: the text is in the window and the refusal sound and the
-        // overlay's refusal state say that the microphone gave out on the way.
-        if capture != Capture::Whole {
-            refuse(&app_for_paste, "capture_lost");
+        // After the paste, once: the text is in the window, and the refusal sound and the
+        // overlay's refusal state say why there is none, or that the microphone gave out.
+        if let Some(reason) = refusal {
+            ending::end_dictation(&app_for_paste, Ending::Refused(reason));
         }
     })
     .await;
@@ -1039,6 +951,9 @@ async fn finish_dictation(app: AppHandle, dictation: Dictation) {
     // The overlay goes down when the lease is dropped, and only if nothing else
     // still wants it.
 }
+
+/// What a transcription answers when the engine was asked for and none was there.
+const NO_MODEL: &str = "No model loaded";
 
 /// Run one dictation through whichever engine the mode says.
 ///
@@ -1129,7 +1044,7 @@ async fn transcribe(
         TranscriptionMode::Local => {
             match transcribe_locally(app, audio_data, vocabulary_prompt, cancel).await? {
                 Some(text) => Ok((text, "local")),
-                None => Err("No model loaded".to_string()),
+                None => Err(NO_MODEL.to_string()),
             }
         }
     }
@@ -1150,7 +1065,7 @@ fn emit_to_overlay(app: &AppHandle, processing_state: &'static str) {
     // Remembered even while a recording has the overlay: it is what the transcription goes
     // back to showing, with the same icon, whenever the overlay is given back to it.
     *state.job_state.lock() = processing_state;
-    if *state.is_recording.lock() {
+    if state.phase.lock().active() {
         return;
     }
     let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", processing_state);
@@ -1186,7 +1101,7 @@ fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
         }
 
         // Say what arrived, and what did not: a paste that failed never reads as one.
-        let recording = *state.is_recording.lock();
+        let recording = state.phase.lock().active();
         let jobs = state.jobs_in_flight.load(Ordering::SeqCst);
         let said = overlay_feedback::confirmation(recording, jobs, words, failures);
         match &said {

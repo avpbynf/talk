@@ -451,6 +451,15 @@ the application.
 
 ### Bug Fixes
 
+- (recording) Every way a dictation ends now tidies up the same things
+
+A dictation that ended some other way than a normal stop used to forget part of the clean-up. A
+paragraph held for a recording whose microphone then failed to open was never pasted, a handler
+error could leave the overlay on "recording", the virtual microphone muted and the volume down, and
+a cancelled text could still be pasted by the paste-last shortcut. All of them now put everything
+back, and the sync, if it was waiting, runs. The waveform of a recording also stops with it, even
+when you start another one right away.
+
 - (preferences) Leave a dictation alone while the account syncs
 
 Settings coming from your account used to be applied whenever the periodic sync happened to run,
