@@ -1,4 +1,5 @@
 mod config;
+mod press_line;
 
 pub use config::{
     config, find, init, suspends_sync, tell_owed, update_config,
@@ -9,7 +10,8 @@ use crate::{audio, audio_encoder, database, overlay_feedback, server_transcripti
 use crate::settings::TranscriptionMode;
 use crate::dictation_queue::{PasteTarget, Release, Transcript};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use press_line::{Edge, PressLine, Step};
+use std::sync::{Arc, OnceLock};
 use tauri::{AppHandle, Emitter, EventTarget, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
@@ -465,42 +467,48 @@ async fn transcribe_locally(
     .map_err(|e| format!("Local transcription did not run: {}", e))?
 }
 
-pub fn handle_shortcut_event(app: &AppHandle, state: ShortcutState) {
-    let app_state = app.state::<AppState>();
-    let mode = *app_state.recording_mode.lock();
+/// Where every press and release of the main shortcut goes through.
+static PRESSES: OnceLock<PressLine> = OnceLock::new();
 
-    match mode {
-        RecordingMode::PushToTalk => {
-            match state {
-                ShortcutState::Pressed => {
-                    // Start recording
-                    let app = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        let _ = start_recording_internal(&app);
-                    });
-                }
-                ShortcutState::Released => {
-                    // Stop recording and transcribe
-                    let app = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        let _ = stop_recording_internal(&app).await;
-                    });
-                }
+pub fn handle_shortcut_event(app: &AppHandle, state: ShortcutState) {
+    let mode = *app.state::<AppState>().recording_mode.lock();
+    let edge = match state {
+        ShortcutState::Pressed => Edge::Pressed,
+        ShortcutState::Released => Edge::Released,
+    };
+    PRESSES
+        .get_or_init(|| {
+            let app = app.clone();
+            let for_recovery = app.clone();
+            PressLine::spawn(move |(mode, edge)| act_on(&app, mode, edge), move || reset_after_panic(&for_recovery))
+        })
+        .push((mode, edge));
+}
+
+/// A handler that panicked may have left a capture open or the recording flag up: back to
+/// nothing recording, so that the next press starts from a clean state.
+fn reset_after_panic(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    *state.audio_capture_handle.lock() = None;
+    *state.audio_buffer.lock() = None;
+    *state.is_recording.lock() = false;
+}
+
+/// Do what one event of the line amounts to. The line hands them over one at a
+/// time, so a release always finds the press before it already done.
+fn act_on(app: &AppHandle, mode: RecordingMode, edge: Edge) {
+    let recording = *app.state::<AppState>().is_recording.lock();
+    match press_line::step(mode, edge, recording) {
+        Step::Start => {
+            let _ = start_recording_internal(app);
+        }
+        Step::Stop => {
+            if let Ok(dictation) = stop_recording(app) {
+                // The transcription runs on its own, so the next press is not held up behind it.
+                tauri::async_runtime::spawn(finish_dictation(app.clone(), dictation));
             }
         }
-        RecordingMode::Toggle => {
-            if matches!(state, ShortcutState::Pressed) {
-                let is_recording = *app_state.is_recording.lock();
-                let app = app.clone();
-                tauri::async_runtime::spawn(async move {
-                    if is_recording {
-                        let _ = stop_recording_internal(&app).await;
-                    } else {
-                        let _ = start_recording_internal(&app);
-                    }
-                });
-            }
-        }
+        Step::Ignore => {}
     }
 }
 
@@ -789,7 +797,17 @@ fn start_recording_internal(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
+/// A recording taken in, waiting to be transcribed.
+struct Dictation {
+    seq: u64,
+    cancel: Arc<AtomicBool>,
+    audio: Vec<f32>,
+    /// Keeps the overlay up for as long as this transcription runs, whichever way it ends.
+    lease: OverlayLease,
+}
+
+/// End the recording and take its audio, with a place in line for the text.
+fn stop_recording(app: &AppHandle) -> Result<Dictation, String> {
     let state = app.state::<AppState>();
 
     if !*state.is_recording.lock() {
@@ -812,9 +830,7 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
     // find nothing recording and nothing queued, and close the run without
     // this one. The overlay lease is taken for the same reason.
     let (seq, cancel) = state.dictation_queue.lock().enqueue();
-    // The lease keeps the overlay up for as long as this transcription runs,
-    // whichever way it ends.
-    let _overlay_lease = OverlayLease::take(app);
+    let lease = OverlayLease::take(app);
 
     // Stop audio capture - dropping the handle signals the stream thread to exit
     *state.audio_capture_handle.lock() = None;
@@ -839,13 +855,21 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
 
     emit_to_overlay(app, "transcribing");
 
+    Ok(Dictation { seq, cancel, audio: audio_data, lease })
+}
+
+/// Transcribe a recording and let its place in line go.
+async fn finish_dictation(app: AppHandle, dictation: Dictation) {
+    let state = app.state::<AppState>();
+    let Dictation { seq, cancel, audio: audio_data, lease: _lease } = dictation;
+
     // Both figures the history has always stored as null, because the frontend
     // was doing the saving and cannot know either of them. The capture is mono
     // at 16 kHz, which is what the encoder and whisper both assume.
     let audio_duration_ms = (audio_data.len() as f64 / 16_000.0 * 1000.0) as i64;
     let started = std::time::Instant::now();
 
-    let outcome = transcribe(app, audio_data, cancel).await;
+    let outcome = transcribe(&app, audio_data, cancel).await;
 
     // Nothing was said, or nothing came back. Whisper answers an empty string
     // for a recording with no speech in it, and a server can answer with
@@ -876,12 +900,11 @@ async fn stop_recording_internal(app: &AppHandle) -> Result<String, String> {
     let release = queue.finish(seq, transcript, delivery, recording);
     // Handed out under the lock: two transcriptions finishing together would
     // otherwise paste over each other in whatever order the threads ran.
-    hand_out(app, release);
+    hand_out(&app, release);
     drop(queue);
 
     // The overlay goes down when the lease is dropped, and only if nothing else
     // still wants it.
-    outcome.map(|(text, _)| text)
 }
 
 /// Run one dictation through whichever engine the mode says.
