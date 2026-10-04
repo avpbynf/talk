@@ -9,6 +9,7 @@ use super::drive::{Drive, DriveFile};
 use super::failure::{Failure, SyncError};
 
 /// What came off Drive, before anyone tried to read it.
+#[derive(Clone)]
 pub enum Fetched {
     Absent,
     /// The listing gives the file a size of zero: what a create that never got

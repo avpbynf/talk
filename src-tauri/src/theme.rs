@@ -2,8 +2,8 @@
 //!
 //! The frontend owns what the values mean: it draws every colour of the window from
 //! them. This side only stores them, keeps them in range, and reads whatever shape
-//! a settings file or a synced copy has, because `load_settings` drops the whole
-//! file on a parse error and a theme must never be the reason.
+//! a settings file or a synced copy has, because a settings file that does not
+//! parse is set aside whole and a theme must never be the reason.
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
@@ -273,9 +273,15 @@ pub fn saved_readable(raw: &Value) -> bool {
 }
 
 /// Values read field by field: a field this build cannot read keeps its default
-/// and the others are kept, where a derived `Deserialize` would refuse them all.
+/// and is counted as a refusal, and the others are kept, where a derived
+/// `Deserialize` would refuse them all.
 fn merge_values(raw: Value) -> ThemeValues {
-    let Value::Object(incoming) = raw else { return ThemeValues::default() };
+    let Value::Object(incoming) = raw else {
+        if !raw.is_null() {
+            note_refusal();
+        }
+        return ThemeValues::default();
+    };
     let Ok(Value::Object(mut merged)) = serde_json::to_value(ThemeValues::default()) else {
         return ThemeValues::default();
     };
@@ -283,9 +289,15 @@ fn merge_values(raw: Value) -> ThemeValues {
         let previous = merged.insert(key.clone(), value);
         if serde_json::from_value::<ThemeValues>(Value::Object(merged.clone())).is_err() {
             restore(&mut merged, key, previous);
+            note_refusal();
         }
     }
-    serde_json::from_value::<ThemeValues>(Value::Object(merged)).unwrap_or_default().sanitized()
+    serde_json::from_value::<ThemeValues>(Value::Object(merged))
+        .unwrap_or_else(|_| {
+            note_refusal();
+            ThemeValues::default()
+        })
+        .sanitized()
 }
 
 fn restore(fields: &mut Map<String, Value>, key: String, previous: Option<Value>) {
@@ -302,26 +314,75 @@ fn lenient_values<'de, D: Deserializer<'de>>(d: D) -> Result<ThemeValues, D::Err
 fn lenient_values_option<'de, D: Deserializer<'de>>(d: D) -> Result<Option<ThemeValues>, D::Error> {
     Ok(match Value::deserialize(d)? {
         Value::Object(fields) => Some(merge_values(Value::Object(fields))),
-        _ => None,
+        Value::Null => None,
+        _ => {
+            note_refusal();
+            None
+        }
     })
 }
 
-/// Any value that fails to read becomes the default, never an error.
+thread_local! {
+    /// How many values the lenient readers below replaced by a default, since it
+    /// was last taken. A file that cost any is not fully read.
+    static REFUSALS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn note_refusal() {
+    REFUSALS.with(|count| count.set(count.get() + 1));
+}
+
+/// The number of values the lenient readers refused on this thread since the last
+/// call, and the count starts again.
+pub fn take_refusals() -> usize {
+    REFUSALS.with(|count| count.replace(0))
+}
+
+/// Any value that fails to read becomes the default, never an error. A value that
+/// is there and does not fit is counted for `take_refusals`; an absent one, null,
+/// is not a refusal.
 pub fn lenient<'de, D, T>(d: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     T: serde::de::DeserializeOwned + Default,
 {
-    Ok(serde_json::from_value(Value::deserialize(d)?).unwrap_or_default())
+    lenient_or(d, |value| serde_json::from_value(value.clone()).ok(), T::default())
+}
+
+/// `lenient` for a value read by hand: `read` answers `None` for what does not fit.
+pub fn lenient_or<'de, D, T>(d: D, read: impl FnOnce(&Value) -> Option<T>, default: T) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(d)?;
+    Ok(read(&value).unwrap_or_else(|| {
+        if !value.is_null() {
+            note_refusal();
+        }
+        default
+    }))
 }
 
 /// A list read item by item, so one entry from a build that wrote another shape
 /// costs that entry and not the list.
 pub fn lenient_saved<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<SavedTheme>, D::Error> {
-    let Value::Array(items) = Value::deserialize(d)? else { return Ok(Vec::new()) };
+    let items = match Value::deserialize(d)? {
+        Value::Array(items) => items,
+        Value::Null => return Ok(Vec::new()),
+        _ => {
+            note_refusal();
+            return Ok(Vec::new());
+        }
+    };
     Ok(items
         .into_iter()
-        .filter_map(|item| serde_json::from_value::<SavedTheme>(item).ok())
+        .filter_map(|item| {
+            let read = serde_json::from_value::<SavedTheme>(item).ok();
+            if read.is_none() {
+                note_refusal();
+            }
+            read
+        })
         .collect())
 }
 

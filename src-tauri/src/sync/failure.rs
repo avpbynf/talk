@@ -21,8 +21,6 @@ pub enum Failure {
     RemoteUnreadable,
     /// The same, for the list of devices.
     RemoteDevicesUnreadable,
-    /// The settings file of this computer could not be read.
-    SettingsUnreadable,
     /// This computer's database failed.
     Database,
     SignInTimeout,
@@ -46,7 +44,6 @@ impl Failure {
             Failure::DriveFull => "drive_full",
             Failure::RemoteUnreadable => "remote_unreadable",
             Failure::RemoteDevicesUnreadable => "remote_devices_unreadable",
-            Failure::SettingsUnreadable => "settings_unreadable",
             Failure::Database => "database",
             Failure::SignInTimeout => "sign_in_timeout",
             Failure::SignInRefused => "sign_in_refused",
@@ -257,7 +254,6 @@ mod tests {
             Failure::DriveFull,
             Failure::RemoteUnreadable,
             Failure::RemoteDevicesUnreadable,
-            Failure::SettingsUnreadable,
             Failure::Database,
             Failure::SignInTimeout,
             Failure::SignInRefused,

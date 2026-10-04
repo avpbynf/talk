@@ -102,12 +102,9 @@ impl SyncedSettings {
         }
     }
 
-    /// What this machine holds now. A file that does not parse is an error
-    /// and not the defaults, which would otherwise be uploaded as if chosen.
-    pub fn collect() -> Result<Self, String> {
-        let settings = crate::settings::load_settings_strict()?;
-        let hotkeys = crate::hotkeys::load_config().map_err(|e| e.to_string())?;
-        Ok(Self::from_parts(&settings, &hotkeys))
+    /// What this machine holds now.
+    pub fn collect() -> Self {
+        Self::from_parts(&crate::settings::get(), &crate::hotkeys::config())
     }
 
     /// Overwrite the synced fields and leave every other one as it was.
@@ -265,14 +262,6 @@ impl SyncedSettings {
             Ok(serde_json::Value::Object(fields)) => fields,
             _ => serde_json::Map::new(),
         }
-    }
-}
-
-/// A settings file that could not be read here is not what the user chose, so
-/// nothing of it is ever uploaded.
-pub fn block_push(plan: &mut Plan, settings_unreadable: bool) {
-    if settings_unreadable {
-        plan.upload = false;
     }
 }
 
@@ -560,7 +549,7 @@ mod tests {
         "meeting_mode_enabled",
     ];
 
-    const KEPT_ON_THE_MACHINE: [&str; 17] = [
+    const KEPT_ON_THE_MACHINE: [&str; 16] = [
         "last_model",
         "accelerator_backend",
         "gpu_vendor",
@@ -569,7 +558,6 @@ mod tests {
         "output_device_name",
         "overlay_position",
         "overlay_placement",
-        "volume_before_duck",
         "setup_completed",
         "offered_servers",
         "share_enabled",
@@ -614,7 +602,6 @@ mod tests {
         settings.server_token = "sk-very-secret".to_string();
         settings.input_device_name = Some("Studio mic".to_string());
         settings.output_device_name = Some("Desk speakers".to_string());
-        settings.volume_before_duck = Some(0.8);
         settings.server_url = "http://office:4060".to_string();
         settings.history_limit = 5;
         settings.offered_servers = vec!["office-pc".to_string()];
@@ -799,15 +786,6 @@ mod tests {
         let mut local = SyncedSettings::default();
         local.start_sound = "chime".to_string();
         assert_eq!(local.with_refused(&refused).start_sound, "chime");
-    }
-
-    #[test]
-    fn an_unreadable_settings_file_blocks_the_push() {
-        let local = SyncedSettings::default();
-        let mut plan = plan(&local, 10, true, &VocabLedger::default(), None, 100);
-        assert!(plan.upload);
-        block_push(&mut plan, true);
-        assert!(!plan.upload);
     }
 
     #[test]

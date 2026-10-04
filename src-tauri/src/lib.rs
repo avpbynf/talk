@@ -6,7 +6,11 @@ mod database;
 mod dictation_queue;
 mod discovery;
 mod ducking;
+mod effects;
+mod file_damage;
+mod file_store;
 mod hotkeys;
+mod lenient;
 mod keystroke;
 mod models;
 mod overlay;
@@ -18,6 +22,8 @@ mod server_transcription;
 mod settings;
 mod share;
 mod sound;
+mod startup_notice;
+mod startup_text;
 mod sync;
 mod theme;
 mod transcription;
@@ -45,32 +51,8 @@ pub struct AppState {
     pub audio_buffer: Mutex<Option<AudioBuffer>>,
     pub audio_capture_handle: Mutex<Option<AudioCaptureHandle>>,
     pub whisper_engine: Mutex<Option<WhisperEngine>>,
-    pub accelerator_backend: Mutex<AcceleratorBackend>,
-    pub gpu_vendor: Mutex<GpuVendor>,
-    /// GPU picked by the user, resolved against the cards present at load time
-    pub gpu_device: Mutex<Option<GpuDevicePreference>>,
-    /// Custom vocabulary words to help Whisper recognize specific terms
-    pub vocabulary: Mutex<Vec<String>>,
-    /// Transcription mode: local or server
-    pub transcription_mode: Mutex<TranscriptionMode>,
-    /// Server URL for remote transcription
-    pub server_url: Mutex<String>,
-    /// Enable fallback to local Whisper if server unavailable
-    pub server_fallback: Mutex<bool>,
-    /// Server request timeout in milliseconds
-    pub server_timeout: Mutex<u64>,
-    /// Turn the machine down while recording
-    pub duck_audio_on_record: Mutex<bool>,
-    /// What to drop the volume to, as a percentage of where it was
-    pub duck_volume_percent: Mutex<u8>,
-    /// Preserve clipboard content after pasting transcription
-    pub preserve_clipboard: Mutex<bool>,
     /// Virtual mic controller for meeting mode
     pub virtual_mic: Mutex<virtual_mic::VirtualMicController>,
-    /// Selected input device name (None = system default)
-    pub input_device_name: Mutex<Option<String>>,
-    /// Where the feedback sounds play, or the system default when absent
-    pub output_device_name: Mutex<Option<String>>,
     /// Current main shortcut (stored for handler dispatch, never re-registered via on_shortcut)
     pub main_shortcut: Mutex<Option<Shortcut>>,
     /// Current cancel shortcut (stored for handler dispatch, never re-registered via on_shortcut)
@@ -79,8 +61,6 @@ pub struct AppState {
     pub paste_shortcut: Mutex<Option<Shortcut>>,
     /// Sound engine for instant audio feedback (pre-computed PCM buffers)
     pub sound_engine: Mutex<Option<sound::SoundEngine>>,
-    /// How many transcriptions the history keeps. Zero keeps every one.
-    pub history_limit: Mutex<usize>,
     /// Whether the main window still owes the screen its first appearance
     pub show_main_window_pending: Mutex<bool>,
     /// Transcriptions still running.
@@ -100,8 +80,6 @@ pub struct AppState {
     pub overlay_gen: overlay_feedback::Generation,
     /// Dictations chained while earlier ones are still being transcribed
     pub dictation_queue: Mutex<dictation_queue::DictationQueue>,
-    /// How chained dictations are pasted, recalled and cancelled
-    pub queue_settings: Mutex<dictation_queue::QueueSettings>,
     /// A model is being read into memory, so its absence is not for long
     pub model_loading: AtomicBool,
 }
@@ -116,32 +94,17 @@ impl Default for AppState {
             audio_buffer: Mutex::new(None),
             audio_capture_handle: Mutex::new(None),
             whisper_engine: Mutex::new(None),
-            accelerator_backend: Mutex::new(AcceleratorBackend::Cpu),
-            gpu_vendor: Mutex::new(GpuVendor::Cpu),
-            gpu_device: Mutex::new(None),
-            vocabulary: Mutex::new(Vec::new()),
-            transcription_mode: Mutex::new(TranscriptionMode::default()),
-            server_url: Mutex::new(String::new()),
-            server_fallback: Mutex::new(true),
-            server_timeout: Mutex::new(30000),
-            duck_audio_on_record: Mutex::new(false),
-            duck_volume_percent: Mutex::new(20),
-            preserve_clipboard: Mutex::new(false),
             virtual_mic: Mutex::new(virtual_mic::VirtualMicController::new()),
-            input_device_name: Mutex::new(None),
-            output_device_name: Mutex::new(None),
             main_shortcut: Mutex::new(None),
             cancel_shortcut: Mutex::new(None),
             paste_shortcut: Mutex::new(None),
             sound_engine: Mutex::new(None),
-            history_limit: Mutex::new(100),
             show_main_window_pending: Mutex::new(false),
             jobs_in_flight: AtomicUsize::new(0),
             overlay_hold_until: Mutex::new(None),
             job_state: Mutex::new("transcribing"),
             overlay_gen: Default::default(),
             dictation_queue: Mutex::new(dictation_queue::DictationQueue::default()),
-            queue_settings: Mutex::new(dictation_queue::QueueSettings::default()),
             model_loading: AtomicBool::new(false),
         }
     }
@@ -208,8 +171,8 @@ async fn load_model(
     }
 
     // Get the selected accelerator backend
-    let backend = *state.accelerator_backend.lock();
-    let device = current_gpu_device_index(&state, backend);
+    let backend = settings::read(|s| s.accelerator_backend);
+    let device = current_gpu_device_index(chosen_gpu().as_ref(), backend);
 
     state.model_loading.store(true, Ordering::SeqCst);
     let engine = WhisperEngine::new_with_backend(&model_path, backend, device);
@@ -219,12 +182,7 @@ async fn load_model(
     *state.whisper_engine.lock() = Some(engine);
     *state.current_model.lock() = Some(model_id.clone());
 
-    // Save last model to settings
-    let mut app_settings = settings::load_settings();
-    app_settings.last_model = Some(model_id);
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+    let _ = settings::update(|s| s.last_model = Some(model_id));
 
     share::model_changed(&app);
     Ok(())
@@ -264,7 +222,7 @@ fn delete_model(
 
 #[tauri::command]
 fn get_saved_settings() -> settings::AppSettings {
-    settings::load_settings()
+    settings::get()
 }
 
 // ============================================================================
@@ -280,21 +238,13 @@ fn db_delete_transcription(
 }
 
 #[tauri::command]
-fn get_history_limit(state: tauri::State<'_, AppState>) -> usize {
-    *state.history_limit.lock()
+fn get_history_limit() -> usize {
+    settings::read(|s| s.history_limit)
 }
 
 #[tauri::command]
-fn set_history_limit(
-    limit: usize,
-    db: tauri::State<'_, database::Database>,
-    state: tauri::State<'_, AppState>,
-) -> Result<usize, String> {
-    *state.history_limit.lock() = limit;
-
-    let mut settings = settings::load_settings();
-    settings.history_limit = limit;
-    settings::save_settings(&settings)?;
+fn set_history_limit(limit: usize, db: tauri::State<'_, database::Database>) -> Result<usize, String> {
+    settings::update(|s| s.history_limit = limit)?;
 
     // Applied at once rather than at the next dictation, so the list on screen
     // and what the database holds say the same thing. This deletes, which is
@@ -364,15 +314,19 @@ fn db_reset_stats(
     db.reset_stats().map_err(|e| e.to_string())
 }
 
+/// The GPU the user picked, which is resolved against the cards present when it is used.
+fn chosen_gpu() -> Option<GpuDevicePreference> {
+    settings::read(|s| s.gpu_device.clone())
+}
+
 /// The device index to hand whisper, resolved against the cards actually present.
 ///
 /// Only asked for in Vulkan mode: enumerating brings the Vulkan instance up, and a
 /// machine running on the CPU has no reason to pay for that.
-fn current_gpu_device_index(state: &AppState, backend: AcceleratorBackend) -> u32 {
+fn current_gpu_device_index(preference: Option<&GpuDevicePreference>, backend: AcceleratorBackend) -> u32 {
     match backend {
         AcceleratorBackend::Vulkan => {
-            let preference = state.gpu_device.lock().clone();
-            transcription::resolve_gpu_device(preference.as_ref(), &transcription::list_gpu_devices())
+            transcription::resolve_gpu_device(preference, &transcription::list_gpu_devices())
         }
         AcceleratorBackend::Cpu => 0,
     }
@@ -385,14 +339,18 @@ fn current_gpu_device_index(state: &AppState, backend: AcceleratorBackend) -> u3
 /// model is forgotten as well: a `current_model` still naming a model that is not
 /// there reads to every caller as a model that is loaded, and dictation would answer
 /// nothing at all rather than saying what happened.
-fn reload_engine(state: &AppState, backend: AcceleratorBackend) -> Result<(), String> {
+fn reload_engine(
+    state: &AppState,
+    backend: AcceleratorBackend,
+    gpu: Option<&GpuDevicePreference>,
+) -> Result<(), String> {
     let current_model = state.current_model.lock().clone();
     if let Some(model_id) = current_model {
         if let Some(model_path) = state.model_manager.get_model_path(&model_id) {
             // Unload current model
             *state.whisper_engine.lock() = None;
 
-            let device = current_gpu_device_index(state, backend);
+            let device = current_gpu_device_index(gpu, backend);
             // Said to be loading while it is, so a dictation in between hears
             // "still loading" rather than that there is no model at all.
             state.model_loading.store(true, Ordering::SeqCst);
@@ -428,13 +386,13 @@ fn get_best_accelerator() -> AcceleratorBackend {
 }
 
 #[tauri::command]
-fn get_current_accelerator(state: tauri::State<'_, AppState>) -> AcceleratorBackend {
-    *state.accelerator_backend.lock()
+fn get_current_accelerator() -> AcceleratorBackend {
+    settings::read(|s| s.accelerator_backend)
 }
 
 #[tauri::command]
-fn get_current_gpu_vendor(state: tauri::State<'_, AppState>) -> GpuVendor {
-    *state.gpu_vendor.lock()
+fn get_current_gpu_vendor() -> GpuVendor {
+    settings::read(|s| s.gpu_vendor)
 }
 
 #[tauri::command]
@@ -444,19 +402,14 @@ async fn set_gpu_vendor(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let backend = AcceleratorBackend::from_vendor(vendor);
-    *state.gpu_vendor.lock() = vendor;
-    *state.accelerator_backend.lock() = backend;
-
-    // Save to settings
-    let mut app_settings = settings::load_settings();
-    app_settings.gpu_vendor = vendor;
-    app_settings.accelerator_backend = backend;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+    // A change that was not written is not applied either, and says so.
+    settings::update(|s| {
+        s.gpu_vendor = vendor;
+        s.accelerator_backend = backend;
+    })?;
 
     // Reload model with new backend if one is loaded
-    reload_engine(&state, backend).inspect_err(|_| share::model_changed(&app))
+    reload_engine(&state, backend, chosen_gpu().as_ref()).inspect_err(|_| share::model_changed(&app))
 }
 
 /// The GPUs the local engine can run on, and the one it uses right now.
@@ -467,10 +420,9 @@ struct GpuDeviceList {
 }
 
 #[tauri::command]
-fn get_gpu_devices(state: tauri::State<'_, AppState>) -> GpuDeviceList {
+fn get_gpu_devices() -> GpuDeviceList {
     let devices = transcription::list_gpu_devices();
-    let preference = state.gpu_device.lock().clone();
-    let current = transcription::resolve_gpu_device(preference.as_ref(), &devices);
+    let current = transcription::resolve_gpu_device(chosen_gpu().as_ref(), &devices);
 
     GpuDeviceList { devices, current }
 }
@@ -488,25 +440,18 @@ async fn set_gpu_device(index: u32, app: tauri::AppHandle, state: tauri::State<'
         name: device.name.clone(),
     };
 
-    // Held in state first, since the reload reads the choice from there, and written to
-    // disk only once the card has actually taken the model. Saving before would leave a
-    // settings file naming a card the application never managed to run on, and the next
-    // launch would walk into it again.
-    let previous = state.gpu_device.lock().replace(preference.clone());
-
-    let backend = *state.accelerator_backend.lock();
-    if let Err(e) = reload_engine(&state, backend) {
-        *state.gpu_device.lock() = previous;
+    // The one effect that comes before its write, on purpose: the reload is handed the
+    // choice, and it is stored only once the card has actually taken the model. Saving
+    // before would leave a settings file naming a card the application never managed to
+    // run on, and the next launch would walk into it again.
+    let backend = settings::read(|s| s.accelerator_backend);
+    if let Err(e) = reload_engine(&state, backend, Some(&preference)) {
         // The reload left no model loaded, and the network still names one
         share::model_changed(&app);
         return Err(e);
     }
 
-    let mut app_settings = settings::load_settings();
-    app_settings.gpu_device = Some(preference);
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+    settings::update(|s| s.gpu_device = Some(preference))?;
 
     Ok(())
 }
@@ -517,17 +462,10 @@ async fn set_accelerator_backend(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    *state.accelerator_backend.lock() = backend;
-
-    // Save to settings
-    let mut app_settings = settings::load_settings();
-    app_settings.accelerator_backend = backend;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+    settings::update(|s| s.accelerator_backend = backend)?;
 
     // Reload model with new backend if one is loaded
-    reload_engine(&state, backend).inspect_err(|_| share::model_changed(&app))
+    reload_engine(&state, backend, chosen_gpu().as_ref()).inspect_err(|_| share::model_changed(&app))
 }
 
 #[tauri::command]
@@ -536,12 +474,11 @@ fn get_current_model(state: tauri::State<'_, AppState>) -> Option<String> {
 }
 
 #[tauri::command]
-fn set_recording_mode(mode: RecordingMode, state: tauri::State<'_, AppState>) {
+fn set_recording_mode(mode: RecordingMode, state: tauri::State<'_, AppState>) -> Result<(), String> {
+    // Written first: a mode that could not be saved is not the mode in use.
+    hotkeys::update_config(|c| c.mode = mode)?;
     *state.recording_mode.lock() = mode;
-    // Save to hotkeys config
-    let mut config = hotkeys::load_config().unwrap_or_default();
-    config.mode = mode;
-    let _ = hotkeys::save_config(&config);
+    Ok(())
 }
 
 #[tauri::command]
@@ -556,12 +493,12 @@ fn is_recording(state: tauri::State<'_, AppState>) -> bool {
 
 #[tauri::command]
 fn get_hotkey_config() -> hotkeys::HotkeyConfig {
-    hotkeys::load_config().unwrap_or_default()
+    hotkeys::config()
 }
 
 #[tauri::command]
 fn save_hotkey_config(config: hotkeys::HotkeyConfig) -> Result<(), String> {
-    hotkeys::save_config(&config).map_err(|e| e.to_string())
+    hotkeys::update_config(|c| *c = config).map(drop)
 }
 
 #[tauri::command]
@@ -601,9 +538,7 @@ fn list_screens(app: tauri::AppHandle) -> Vec<placement::ScreenView> {
 
 #[tauri::command]
 fn set_overlay_size(app: tauri::AppHandle, size: settings::OverlaySize) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.overlay_size = size;
-    settings::save_settings(&app_settings)?;
+    settings::update(|s| s.overlay_size = size)?;
 
     // Resize existing overlay if it exists
     if let Some(overlay) = app.get_webview_window("overlay") {
@@ -618,91 +553,85 @@ fn set_overlay_size(app: tauri::AppHandle, size: settings::OverlaySize) -> Resul
 
 #[tauri::command]
 fn set_overlay_theme(app: tauri::AppHandle, theme: settings::OverlayTheme) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.overlay_theme = theme;
-    settings::save_settings(&app_settings)?;
+    settings::update(|s| s.overlay_theme = theme)?;
     overlay::announce(&app);
     Ok(())
 }
 
 #[tauri::command]
 fn get_overlay_settings() -> overlay::OverlaySettingsView {
-    overlay::OverlaySettingsView::of(&settings::load_settings())
+    settings::read(overlay::OverlaySettingsView::of)
 }
 
 #[tauri::command]
 fn set_overlay_look(app: tauri::AppHandle, look: overlay_settings::OverlayLook) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    // What the frontend does not carry, keys a later build wrote, stays as it was.
-    let mut look = look.sanitized();
-    look.extra = app_settings.overlay_look.extra.clone();
-    let changed = look != app_settings.overlay_look;
-    app_settings.overlay_look = look;
-    if changed {
-        app_settings.overlay_look_modified = chrono::Utc::now().timestamp_millis();
-    }
-    settings::save_settings(&app_settings)?;
+    settings::update(|s| {
+        // What the frontend does not carry, keys a later build wrote, stays as it was.
+        let mut look = look.sanitized();
+        look.extra = s.overlay_look.extra.clone();
+        if look != s.overlay_look {
+            s.overlay_look_modified = chrono::Utc::now().timestamp_millis();
+        }
+        s.overlay_look = look;
+    })?;
     overlay::announce(&app);
     Ok(())
 }
 
 #[tauri::command]
 fn set_overlay_placement(app: tauri::AppHandle, placement: overlay_settings::OverlayPlacement) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.overlay_placement = placement.sanitized();
-    settings::save_settings(&app_settings)?;
+    settings::update(|s| s.overlay_placement = placement.sanitized())?;
     overlay::announce(&app);
     Ok(())
 }
 
 #[tauri::command]
 fn set_app_theme(theme: theme::ThemeSettings) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    // What the frontend does not carry, fields a later build wrote, stays as it was.
-    let mut theme = theme.sanitized();
-    if theme.extra.is_empty() {
-        theme.extra = std::mem::take(&mut app_settings.theme.extra);
-    }
-    app_settings.theme = theme;
-    settings::save_settings(&app_settings)
+    settings::update(|s| {
+        // What the frontend does not carry, fields a later build wrote, stays as it was.
+        let mut theme = theme.sanitized();
+        if theme.extra.is_empty() {
+            theme.extra = std::mem::take(&mut s.theme.extra);
+        }
+        s.theme = theme;
+    })
+    .map(drop)
 }
 
 #[tauri::command]
 fn set_window_buttons(side: settings::WindowButtons) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.window_buttons = side;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.window_buttons = side).map(drop)
 }
 
 /// Replaces the saved themes with the list the page holds, and answers with the list as stored.
 #[tauri::command]
 fn set_saved_themes(themes: Vec<theme::SavedTheme>) -> Result<Vec<theme::SavedTheme>, String> {
-    let mut app_settings = settings::load_settings();
     let now = chrono::Utc::now().timestamp_millis();
-    let (saved, removed) =
-        theme::apply_saved_edit(&app_settings.saved_themes, &app_settings.removed_themes, themes, now)?;
-    app_settings.saved_themes = saved.clone();
-    app_settings.removed_themes = removed;
-    settings::save_settings(&app_settings)?;
-    Ok(saved)
+    settings::update(|s| {
+        let (saved, removed) = theme::apply_saved_edit(&s.saved_themes, &s.removed_themes, themes, now)?;
+        s.saved_themes = saved.clone();
+        s.removed_themes = removed;
+        Ok(saved)
+    })
+    .and_then(|updated| updated.value)
 }
 
 /// Puts back a saved theme that was just removed. Always allowed, the limit being for new saves.
 #[tauri::command]
 fn restore_saved_theme(theme: theme::SavedTheme) -> Result<Vec<theme::SavedTheme>, String> {
-    let mut app_settings = settings::load_settings();
     let now = chrono::Utc::now().timestamp_millis();
-    let (saved, removed) =
-        theme::restore_saved(&app_settings.saved_themes, &app_settings.removed_themes, theme, now);
-    app_settings.saved_themes = saved.clone();
-    app_settings.removed_themes = removed;
-    settings::save_settings(&app_settings)?;
-    Ok(saved)
+    settings::update(|s| {
+        let (saved, removed) = theme::restore_saved(&s.saved_themes, &s.removed_themes, theme, now);
+        s.saved_themes = saved.clone();
+        s.removed_themes = removed;
+        saved
+    })
+    .map(|updated| updated.value)
 }
 
 #[tauri::command]
 fn get_language() -> Option<String> {
-    settings::load_settings().language
+    settings::read(|s| s.language.clone())
 }
 
 #[tauri::command]
@@ -712,9 +641,7 @@ fn set_language(app: tauri::AppHandle, language: Option<String>) -> Result<(), S
             return Err(format!("Unsupported language: {}", code));
         }
     }
-    let mut app_settings = settings::load_settings();
-    app_settings.language = language.clone();
-    settings::save_settings(&app_settings)?;
+    settings::update(|s| s.language = language.clone())?;
     let _ = app.emit("language-changed", language);
     Ok(())
 }
@@ -740,67 +667,52 @@ struct TrayLabels {
 }
 
 #[tauri::command]
-fn get_vocabulary(state: tauri::State<'_, AppState>) -> Vec<String> {
-    state.vocabulary.lock().clone()
+fn get_vocabulary() -> Vec<String> {
+    settings::read(|s| s.vocabulary.clone())
 }
 
-/// The vocabulary lock covers the whole read, change and write of the list, so
-/// a sync applying another machine's terms cannot interleave with an edit.
-/// Setting the list records the terms it holds as added and never removes one:
+/// The sync's ledger is told after the list is written, and not at all when it was
+/// not. Setting the list records the terms it holds as added and never removes one:
 /// a removal is only ever made by name, through the two commands below.
 #[tauri::command]
-fn set_vocabulary(words: Vec<String>, state: tauri::State<'_, AppState>) {
-    let mut vocab = state.vocabulary.lock();
-    *vocab = words.clone();
-    // Save to settings
-    let mut app_settings = settings::load_settings();
-    app_settings.vocabulary = words.clone();
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn set_vocabulary(words: Vec<String>) -> Result<(), String> {
+    settings::update(|s| s.vocabulary = words.clone())?;
     sync::note_vocabulary_added(&words);
+    Ok(())
 }
 
 #[tauri::command]
-fn add_vocabulary_word(word: String, state: tauri::State<'_, AppState>) {
-    let mut vocab = state.vocabulary.lock();
-    if !vocab.contains(&word) {
-        vocab.push(word);
-        // Save to settings
-        let mut app_settings = settings::load_settings();
-        app_settings.vocabulary = vocab.clone();
-        if let Err(e) = settings::save_settings(&app_settings) {
-            eprintln!("Failed to save settings: {}", e);
+fn add_vocabulary_word(word: String) -> Result<(), String> {
+    if settings::read(|s| s.vocabulary.contains(&word)) {
+        return Ok(());
+    }
+    let updated = settings::update(|s| {
+        let new = !s.vocabulary.contains(&word);
+        if new {
+            s.vocabulary.push(word);
         }
-        sync::note_vocabulary_added(&vocab);
+        new
+    })?;
+    if updated.value {
+        sync::note_vocabulary_added(&updated.after.vocabulary);
     }
+    Ok(())
 }
 
 #[tauri::command]
-fn remove_vocabulary_word(word: String, state: tauri::State<'_, AppState>) {
-    let mut vocab = state.vocabulary.lock();
-    vocab.retain(|w| w != &word);
-    // Save to settings
-    let mut app_settings = settings::load_settings();
-    app_settings.vocabulary = vocab.clone();
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn remove_vocabulary_word(word: String) -> Result<(), String> {
+    settings::update(|s| s.vocabulary.retain(|w| w != &word))?;
     sync::note_vocabulary_removed(&[word]);
+    Ok(())
 }
 
 /// Remove exactly the terms the page was showing. A term another machine
 /// brought in since stays.
 #[tauri::command]
-fn clear_vocabulary(terms: Vec<String>, state: tauri::State<'_, AppState>) {
-    let mut vocab = state.vocabulary.lock();
-    vocab.retain(|w| !terms.contains(w));
-    let mut app_settings = settings::load_settings();
-    app_settings.vocabulary = vocab.clone();
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn clear_vocabulary(terms: Vec<String>) -> Result<(), String> {
+    settings::update(|s| s.vocabulary.retain(|w| !terms.contains(w)))?;
     sync::note_vocabulary_removed(&terms);
+    Ok(())
 }
 
 // ============================================================================
@@ -808,27 +720,22 @@ fn clear_vocabulary(terms: Vec<String>, state: tauri::State<'_, AppState>) {
 // ============================================================================
 
 #[tauri::command]
-fn get_transcription_mode(state: tauri::State<'_, AppState>) -> TranscriptionMode {
-    *state.transcription_mode.lock()
+fn get_transcription_mode() -> TranscriptionMode {
+    settings::read(|s| s.transcription_mode)
 }
 
 #[tauri::command]
-fn set_transcription_mode(mode: TranscriptionMode, state: tauri::State<'_, AppState>) {
-    *state.transcription_mode.lock() = mode;
-    let mut app_settings = settings::load_settings();
-    app_settings.transcription_mode = mode;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn set_transcription_mode(mode: TranscriptionMode) -> Result<(), String> {
+    settings::update(|s| s.transcription_mode = mode).map(drop)
 }
 
 #[tauri::command]
-fn get_server_url(state: tauri::State<'_, AppState>) -> String {
-    state.server_url.lock().clone()
+fn get_server_url() -> String {
+    settings::read(|s| s.server_url.clone())
 }
 
 #[tauri::command]
-fn set_server_url(url: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
+fn set_server_url(url: String) -> Result<(), String> {
     if url.is_empty() {
         return Err("Server URL cannot be empty".to_string());
     }
@@ -837,43 +744,27 @@ fn set_server_url(url: String, state: tauri::State<'_, AppState>) -> Result<(), 
         "http" | "https" => {}
         scheme => return Err(format!("Invalid URL scheme '{}': only http and https are allowed", scheme)),
     }
-    *state.server_url.lock() = url.clone();
-    let mut app_settings = settings::load_settings();
-    app_settings.server_url = url;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
-    Ok(())
+    settings::update(|s| s.server_url = url).map(drop)
 }
 
 #[tauri::command]
-fn get_server_fallback(state: tauri::State<'_, AppState>) -> bool {
-    *state.server_fallback.lock()
+fn get_server_fallback() -> bool {
+    settings::read(|s| s.server_fallback)
 }
 
 #[tauri::command]
-fn set_server_fallback(enabled: bool, state: tauri::State<'_, AppState>) {
-    *state.server_fallback.lock() = enabled;
-    let mut app_settings = settings::load_settings();
-    app_settings.server_fallback = enabled;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn set_server_fallback(enabled: bool) -> Result<(), String> {
+    settings::update(|s| s.server_fallback = enabled).map(drop)
 }
 
 #[tauri::command]
-fn get_server_timeout(state: tauri::State<'_, AppState>) -> u64 {
-    *state.server_timeout.lock()
+fn get_server_timeout() -> u64 {
+    settings::read(|s| s.server_timeout)
 }
 
 #[tauri::command]
-fn set_server_timeout(timeout: u64, state: tauri::State<'_, AppState>) {
-    *state.server_timeout.lock() = timeout;
-    let mut app_settings = settings::load_settings();
-    app_settings.server_timeout = timeout;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn set_server_timeout(timeout: u64) -> Result<(), String> {
+    settings::update(|s| s.server_timeout = timeout).map(drop)
 }
 
 #[tauri::command]
@@ -887,25 +778,18 @@ fn list_discovered_servers(
 /// The id is recorded as offered the moment it is handed out, so a banner that
 /// is dismissed, ignored or answered never comes back for the same server.
 #[tauri::command]
-fn next_server_offer(
-    state: tauri::State<'_, AppState>,
-    discovery: tauri::State<'_, discovery::Discovery>,
-) -> Option<discovery::DiscoveredServer> {
-    if *state.transcription_mode.lock() != TranscriptionMode::Local {
-        return None;
-    }
-    let mut app_settings = settings::load_settings();
-    if !app_settings.setup_completed {
+fn next_server_offer(discovery: tauri::State<'_, discovery::Discovery>) -> Option<discovery::DiscoveredServer> {
+    if !settings::read(|s| s.transcription_mode == TranscriptionMode::Local && s.setup_completed) {
         return None;
     }
     let servers = discovery.list();
-    let server = discovery::pick_offer(&servers, &app_settings.offered_servers)?.clone();
-    app_settings.offered_servers.push(server.id.clone());
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-        return None;
-    }
-    Some(server)
+    settings::update(|s| {
+        let server = discovery::pick_offer(&servers, &s.offered_servers)?.clone();
+        s.offered_servers.push(server.id.clone());
+        Some(server)
+    })
+    .ok()
+    .and_then(|updated| updated.value)
 }
 
 #[tauri::command]
@@ -922,22 +806,17 @@ async fn pair_confirm(
     url: String,
     request_id: String,
     code: String,
-    state: tauri::State<'_, AppState>,
 ) -> Result<server_transcription::PairGrant, server_transcription::PairError> {
     let grant = server_transcription::pair_confirm(&url, &request_id, &code).await?;
-    set_server_url(url, state).map_err(|_| server_transcription::PairError::Unreachable)?;
+    set_server_url(url).map_err(|_| server_transcription::PairError::Unreachable)?;
     set_server_token(grant.token.clone())
         .map_err(|_| server_transcription::PairError::Unreachable)?;
     Ok(grant)
 }
 
 #[tauri::command]
-async fn test_server_connection(
-    state: tauri::State<'_, AppState>,
-) -> Result<server_transcription::ServerCheck, String> {
-    let url = state.server_url.lock().clone();
-    let timeout = *state.server_timeout.lock();
-    let token = settings::load_settings().server_token;
+async fn test_server_connection() -> Result<server_transcription::ServerCheck, String> {
+    let (url, timeout, token) = settings::read(|s| (s.server_url.clone(), s.server_timeout, s.server_token.clone()));
     Ok(server_transcription::check_server(&url, Some(&token), timeout).await)
 }
 
@@ -948,76 +827,57 @@ async fn test_server_connection(
 
 #[tauri::command]
 fn is_setup_completed() -> bool {
-    settings::load_settings().setup_completed
+    settings::read(|s| s.setup_completed)
 }
 
 #[tauri::command]
 fn complete_setup() -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.setup_completed = true;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.setup_completed = true).map(drop)
 }
 
 #[tauri::command]
-fn get_duck_audio_on_record(state: tauri::State<'_, AppState>) -> bool {
-    *state.duck_audio_on_record.lock()
+fn get_duck_audio_on_record() -> bool {
+    settings::read(|s| s.duck_audio_on_record)
 }
 
 #[tauri::command]
-fn set_duck_audio_on_record(enabled: bool, state: tauri::State<'_, AppState>) -> Result<(), String> {
-    *state.duck_audio_on_record.lock() = enabled;
-    let mut app_settings = settings::load_settings();
-    app_settings.duck_audio_on_record = enabled;
-    settings::save_settings(&app_settings)
+fn set_duck_audio_on_record(enabled: bool) -> Result<(), String> {
+    settings::update(|s| s.duck_audio_on_record = enabled).map(drop)
 }
 
 #[tauri::command]
-fn get_duck_volume_percent(state: tauri::State<'_, AppState>) -> u8 {
-    *state.duck_volume_percent.lock()
+fn get_duck_volume_percent() -> u8 {
+    settings::read(|s| s.duck_volume_percent)
 }
 
 #[tauri::command]
-fn set_duck_volume_percent(percent: u8, state: tauri::State<'_, AppState>) -> Result<(), String> {
-    let percent = percent.min(100);
-    *state.duck_volume_percent.lock() = percent;
-    let mut app_settings = settings::load_settings();
-    app_settings.duck_volume_percent = percent;
-    settings::save_settings(&app_settings)
+fn set_duck_volume_percent(percent: u8) -> Result<(), String> {
+    settings::update(|s| s.duck_volume_percent = percent.min(100)).map(drop)
 }
 
 #[tauri::command]
-fn get_queue_settings(state: tauri::State<'_, AppState>) -> dictation_queue::QueueSettings {
-    *state.queue_settings.lock()
+fn get_queue_settings() -> dictation_queue::QueueSettings {
+    settings::read(|s| s.queue)
 }
 
 #[tauri::command]
-fn set_queue_settings(settings: dictation_queue::QueueSettings, state: tauri::State<'_, AppState>) {
-    *state.queue_settings.lock() = settings;
-    let mut app_settings = settings::load_settings();
-    app_settings.queue = settings;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn set_queue_settings(settings: dictation_queue::QueueSettings) -> Result<(), String> {
+    settings::update(|s| s.queue = settings).map(drop)
 }
 
 #[tauri::command]
-fn get_preserve_clipboard(state: tauri::State<'_, AppState>) -> bool {
-    *state.preserve_clipboard.lock()
+fn get_preserve_clipboard() -> bool {
+    settings::read(|s| s.preserve_clipboard)
 }
 
 #[tauri::command]
-fn set_preserve_clipboard(enabled: bool, state: tauri::State<'_, AppState>) {
-    *state.preserve_clipboard.lock() = enabled;
-    let mut app_settings = settings::load_settings();
-    app_settings.preserve_clipboard = enabled;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn set_preserve_clipboard(enabled: bool) -> Result<(), String> {
+    settings::update(|s| s.preserve_clipboard = enabled).map(drop)
 }
 
 #[tauri::command]
 fn get_autostart_enabled() -> bool {
-    settings::load_settings().autostart_enabled
+    settings::read(|s| s.autostart_enabled)
 }
 
 /// Register or remove the Windows autostart entry. The Preferences switch and a
@@ -1036,11 +896,10 @@ fn apply_autostart(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> 
 
 #[tauri::command]
 async fn set_autostart_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
-    apply_autostart(&app, enabled)?;
-
-    let mut app_settings = settings::load_settings();
-    app_settings.autostart_enabled = enabled;
-    settings::save_settings(&app_settings)
+    let updated = settings::update(|s| std::mem::replace(&mut s.autostart_enabled, enabled))?;
+    apply_autostart(&app, enabled).inspect_err(|_| {
+        let _ = settings::update(|s| s.autostart_enabled = updated.value);
+    })
 }
 
 /// Show the main window, which is built hidden.
@@ -1067,50 +926,42 @@ fn show_main_window(app: tauri::AppHandle, state: tauri::State<'_, AppState>) {
 
 #[tauri::command]
 fn get_start_minimized() -> bool {
-    settings::load_settings().start_minimized
+    settings::read(|s| s.start_minimized)
 }
 
 #[tauri::command]
 fn set_start_minimized(enabled: bool) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.start_minimized = enabled;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.start_minimized = enabled).map(drop)
 }
 
 #[tauri::command]
 fn get_sound_feedback() -> bool {
-    settings::load_settings().sound_feedback
+    settings::read(|s| s.sound_feedback)
 }
 
 #[tauri::command]
 fn set_sound_feedback(enabled: bool) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.sound_feedback = enabled;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.sound_feedback = enabled).map(drop)
 }
 
 #[tauri::command]
 fn get_start_sound() -> String {
-    settings::load_settings().start_sound
+    settings::read(|s| s.start_sound.clone())
 }
 
 #[tauri::command]
 fn set_start_sound(preset: String) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.start_sound = preset;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.start_sound = preset).map(drop)
 }
 
 #[tauri::command]
 fn get_stop_sound() -> String {
-    settings::load_settings().stop_sound
+    settings::read(|s| s.stop_sound.clone())
 }
 
 #[tauri::command]
 fn set_stop_sound(preset: String) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.stop_sound = preset;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.stop_sound = preset).map(drop)
 }
 
 #[tauri::command]
@@ -1122,39 +973,33 @@ fn preview_sound(sound_type: String, preset: String, state: tauri::State<'_, App
 
 #[tauri::command]
 fn get_server_token() -> String {
-    settings::load_settings().server_token
+    settings::read(|s| s.server_token.clone())
 }
 
 #[tauri::command]
 fn set_server_token(token: String) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.server_token = token;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.server_token = token).map(drop)
 }
 
 #[tauri::command]
 fn get_server_model() -> String {
-    settings::load_settings().server_model.unwrap_or_default()
+    settings::read(|s| s.server_model.clone().unwrap_or_default())
 }
 
 #[tauri::command]
 fn set_server_model(model: String) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
     let model = model.trim();
-    app_settings.server_model = (!model.is_empty()).then(|| model.to_string());
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.server_model = (!model.is_empty()).then(|| model.to_string())).map(drop)
 }
 
 #[tauri::command]
 fn get_companion_shortcuts() -> Vec<settings::CompanionShortcut> {
-    settings::load_settings().companion_shortcuts
+    settings::read(|s| s.companion_shortcuts.clone())
 }
 
 #[tauri::command]
 fn set_companion_shortcuts(shortcuts: Vec<settings::CompanionShortcut>) -> Result<(), String> {
-    let mut app_settings = settings::load_settings();
-    app_settings.companion_shortcuts = shortcuts;
-    settings::save_settings(&app_settings)
+    settings::update(|s| s.companion_shortcuts = shortcuts).map(drop)
 }
 
 #[tauri::command]
@@ -1196,16 +1041,11 @@ fn set_meeting_mode(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    apply_meeting_mode(&app, &state, enabled)?;
-
-    // Save to settings
-    let mut app_settings = settings::load_settings();
-    app_settings.meeting_mode_enabled = enabled;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
-
-    Ok(())
+    // The switch is applied only once it is written, and put back when it cannot be applied.
+    let updated = settings::update(|s| std::mem::replace(&mut s.meeting_mode_enabled, enabled))?;
+    apply_meeting_mode(&app, &state, enabled).inspect_err(|_| {
+        let _ = settings::update(|s| s.meeting_mode_enabled = updated.value);
+    })
 }
 
 // ============================================================================
@@ -1218,18 +1058,13 @@ fn list_input_devices() -> Vec<String> {
 }
 
 #[tauri::command]
-fn get_input_device(state: tauri::State<'_, AppState>) -> Option<String> {
-    state.input_device_name.lock().clone()
+fn get_input_device() -> Option<String> {
+    settings::read(|s| s.input_device_name.clone())
 }
 
 #[tauri::command]
-fn set_input_device(device_name: Option<String>, state: tauri::State<'_, AppState>) {
-    *state.input_device_name.lock() = device_name.clone();
-    let mut app_settings = settings::load_settings();
-    app_settings.input_device_name = device_name;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+fn set_input_device(device_name: Option<String>) -> Result<(), String> {
+    settings::update(|s| s.input_device_name = device_name).map(drop)
 }
 
 #[tauri::command]
@@ -1252,23 +1087,17 @@ fn get_default_output_device() -> Option<String> {
 }
 
 #[tauri::command]
-fn get_output_device(state: tauri::State<'_, AppState>) -> Option<String> {
-    state.output_device_name.lock().clone()
+fn get_output_device() -> Option<String> {
+    settings::read(|s| s.output_device_name.clone())
 }
 
 #[tauri::command]
-fn set_output_device(device_name: Option<String>, state: tauri::State<'_, AppState>) {
-    *state.output_device_name.lock() = device_name.clone();
-
+fn set_output_device(device_name: Option<String>, state: tauri::State<'_, AppState>) -> Result<(), String> {
+    settings::update(|s| s.output_device_name = device_name.clone())?;
     if let Some(engine) = state.sound_engine.lock().as_ref() {
-        engine.set_device(device_name.clone());
+        engine.set_device(device_name);
     }
-
-    let mut app_settings = settings::load_settings();
-    app_settings.output_device_name = device_name;
-    if let Err(e) = settings::save_settings(&app_settings) {
-        eprintln!("Failed to save settings: {}", e);
-    }
+    Ok(())
 }
 
 // ============================================================================
@@ -1451,6 +1280,18 @@ pub fn run() {
             share::share_pending_pairings,
         ])
         .setup(|app| {
+            // The stores open here and not before the builder: a second launch is turned
+            // away by the single-instance plugin before this runs, and it must neither
+            // read the files nor say anything about them.
+            // Both files are judged before either is acted on: one that cannot be opened ends
+            // the launch with nothing yet written, and then each runs its own case. The
+            // shortcuts go first: the settings' handover of a lowered volume writes.
+            let (settings_found, hotkeys_found) = (settings::find(), hotkeys::find());
+            settings_found.exit_if_cannot_open();
+            hotkeys_found.exit_if_cannot_open();
+            hotkeys::init(hotkeys_found);
+            settings::init(settings_found);
+
             // Load .env file in dev mode only
             #[cfg(debug_assertions)]
             let _ = dotenvy::dotenv();
@@ -1468,23 +1309,7 @@ pub fn run() {
                         error
                     );
                     eprintln!("{}", message);
-                    #[cfg(windows)]
-                    {
-                        use windows::core::PCWSTR;
-                        use windows::Win32::UI::WindowsAndMessaging::{
-                            MessageBoxW, MB_ICONERROR, MB_OK,
-                        };
-                        let text: Vec<u16> = message.encode_utf16().chain(Some(0)).collect();
-                        let title: Vec<u16> = "Talk".encode_utf16().chain(Some(0)).collect();
-                        unsafe {
-                            MessageBoxW(
-                                None,
-                                PCWSTR(text.as_ptr()),
-                                PCWSTR(title.as_ptr()),
-                                MB_OK | MB_ICONERROR,
-                            );
-                        }
-                    }
+                    startup_notice::fatal(&message);
                     std::process::exit(1);
                 }
             };
@@ -1495,31 +1320,16 @@ pub fn run() {
             share::start_at_launch(app.handle());
 
             // Load saved settings into state
-            let hotkey_config = hotkeys::load_config().unwrap_or_default();
-            let app_settings = settings::load_settings();
+            let hotkey_config = hotkeys::config();
+            let app_settings = settings::get();
 
             {
                 let state = app.state::<AppState>();
                 *state.recording_mode.lock() = hotkey_config.mode;
-                *state.accelerator_backend.lock() = app_settings.accelerator_backend;
-                *state.gpu_vendor.lock() = app_settings.gpu_vendor;
-                *state.gpu_device.lock() = app_settings.gpu_device.clone();
-                *state.vocabulary.lock() = app_settings.vocabulary.clone();
-                *state.transcription_mode.lock() = app_settings.transcription_mode;
-                *state.server_url.lock() = app_settings.server_url.clone();
-                *state.server_fallback.lock() = app_settings.server_fallback;
-                *state.server_timeout.lock() = app_settings.server_timeout;
-                *state.duck_audio_on_record.lock() = app_settings.duck_audio_on_record;
-                *state.duck_volume_percent.lock() = app_settings.duck_volume_percent;
 
                 // A volume left ducked by a crash. Nothing else will ever
                 // put it back, so this is the only chance.
                 hotkeys::restore_audio_now();
-                *state.preserve_clipboard.lock() = app_settings.preserve_clipboard;
-                *state.input_device_name.lock() = app_settings.input_device_name.clone();
-                *state.output_device_name.lock() = app_settings.output_device_name.clone();
-                *state.history_limit.lock() = app_settings.history_limit;
-                *state.queue_settings.lock() = app_settings.queue;
 
                 // Auto-start meeting mode if previously enabled
                 if app_settings.meeting_mode_enabled {
@@ -1538,6 +1348,11 @@ pub fn run() {
             // Check if app should start minimized (via command line arg or setting)
             let args: Vec<String> = std::env::args().collect();
             let should_minimize = args.contains(&"--minimized".to_string()) || app_settings.start_minimized;
+
+            // What is owed about a damaged file is said at the first launch the user can
+            // see, and not over an autostart at login.
+            settings::tell_owed(should_minimize);
+            hotkeys::tell_owed(should_minimize);
 
             // The window is built hidden, so starting minimised is not a matter of
             // hiding it again but of never asking for it.
