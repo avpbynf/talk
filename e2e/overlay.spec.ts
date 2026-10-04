@@ -239,6 +239,30 @@ test.describe("the overlay page", () => {
     await expect.poll(avatar).not.toBe(guest);
   });
 
+  for (const timer of [true, false]) {
+    test(`the orb sits in the middle of its window, timer ${timer ? "on" : "off"}`, async ({ app, page }) => {
+      await open(app, page, { style: "orb", timer });
+      await show(app, "rec");
+      await settled(page, "rec");
+      const body = (await page.locator(".ovo-b").boundingBox())!;
+      expect(Math.abs(body.x + body.width / 2 - STAGE.width / 2)).toBeLessThanOrEqual(1);
+      expect(Math.abs(body.y + body.height / 2 - STAGE.height / 2)).toBeLessThanOrEqual(1);
+    });
+  }
+
+  test("words too long for the orb's side move the pair over until it is centred", async ({ app, page }) => {
+    await open(app, page, { style: "orb", end_text: true });
+    await show(app, "done");
+    await settled(page, "done");
+    await expect
+      .poll(async () => {
+        const body = (await page.locator(".ovo-b").boundingBox())!;
+        const words = (await page.locator(".ovo-done").boundingBox())!;
+        return Math.abs((body.x + words.x + words.width) / 2 - STAGE.width / 2);
+      })
+      .toBeLessThanOrEqual(1.5);
+  });
+
   test("the orb takes a thinking face, a smile and a scowl", async ({ app, page }) => {
     await open(app, page, { style: "orb" });
     const face = () => page.locator(".ovo-av svg").first().evaluate((el) => el.outerHTML);
