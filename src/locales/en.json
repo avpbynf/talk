@@ -800,7 +800,6 @@
     }
   },
   "account": {
-    "subtitle": "Keep your settings and statistics in step across your machines",
     "title": "Account",
     "hint": "Optional. Signing in only syncs your settings, statistics and history between your machines, through your own Google Drive.",
     "unavailable": "Sign-in is not available in this build.",
