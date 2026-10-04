@@ -638,6 +638,11 @@ really kept. These choices, the language and the meeting mode switch stay locked
 been read, and say so with Try again when they cannot be; the overlay tab no longer stays blank
 when its settings cannot be read. They follow the settings another PC brings.
 
+- (dashboard) Never show 100% local beside dictations through the server
+
+The share of dictations kept on this PC is no longer rounded up to 100 (or down to 0) while some
+dictations went the other way.
+
 - (preferences) Keep the shortcuts working after editing one
 
 Leaving the Dictation page in the middle of editing a shortcut used to leave every dictation
@@ -651,6 +656,18 @@ focus was stuck in it. Escape now gives the capture up and Tab moves on to the n
 shortcut editor, Escape, Cancel and a successful Save put the focus back on that shortcut's Edit
 button.
 
+- (dashboard) Do not keep a pasted typing test
+
+Pasting or dropping the sentence into the typing test counted as typing it in a millisecond and
+produced an absurd speed. Pasting is refused, with a line saying why, and a result no one can type
+(300 words a minute or more) is flagged and cannot be kept.
+
+- (dashboard) Keep the focus inside the typing test
+
+Clicking the edge of the typing test no longer leaves you typing into nothing, and Tab no longer
+reaches the page behind it. A result that cannot be kept leaves the focus on Start over, and
+Escape discards it.
+
 - (history) Respect reduced motion in the history and its dialogs
 
 With motion reduced, the history rows, the "Copied" badge and the confirmation dialogs no longer
@@ -662,6 +679,11 @@ The history shows its first fifty dictations and loads fifty more on request, so
 hundreds no longer weighs on every refresh of the page. Search still looks through all of it, and
 showing more moves the focus to the first new dictation. Only a dictation that arrives on its own
 is animated.
+
+- (dashboard) Print a whole number of hours as "98 h"
+
+The time saved read "98 h 00" on the Account page and the dashboard when the minutes were zero. It
+now reads "98 h".
 
 ### Performance
 

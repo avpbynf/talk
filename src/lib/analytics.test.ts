@@ -9,9 +9,12 @@ import {
   billingStart,
   calculateWpm,
   formatMonth,
+  formatTimeSaved,
   getRandomSentence,
+  isPlausibleWpm,
   loadUserWpm,
   loadUserWpmDate,
+  localSharePercent,
   monthsSince,
   realtimeFactor,
   saveUserWpm,
@@ -94,6 +97,30 @@ describe("calculateWpm", () => {
 
   it("returns zero rather than dividing by nothing", () => {
     expect(calculateWpm(100, 0)).toBe(0);
+  });
+});
+
+describe("formatTimeSaved", () => {
+  it("prints minutes under an hour and hours with their minutes", () => {
+    expect(formatTimeSaved(0.2)).toBe("< 1 min");
+    expect(formatTimeSaved(42)).toBe("42 min");
+    expect(formatTimeSaved(98 * 60 + 3)).toBe("98 h 03");
+  });
+
+  it("drops the minutes of a whole number of hours", () => {
+    expect(formatTimeSaved(98 * 60)).toBe("98 h");
+    expect(formatTimeSaved(60)).toBe("1 h");
+  });
+});
+
+describe("isPlausibleWpm", () => {
+  it("believes a fast typist and refuses what no hand can type", () => {
+    expect(isPlausibleWpm(45)).toBe(true);
+    expect(isPlausibleWpm(250)).toBe(true);
+    expect(isPlausibleWpm(300)).toBe(false);
+    expect(isPlausibleWpm(120_000)).toBe(false);
+    expect(isPlausibleWpm(0)).toBe(false);
+    expect(isPlausibleWpm(Number.NaN)).toBe(false);
   });
 });
 
@@ -237,6 +264,23 @@ describe("the measured figures", () => {
       summary({ measuredCount: 4, measuredAudioMinutes: 2 })
     );
     expect(seconds).toBeCloseTo(30);
+  });
+});
+
+describe("localSharePercent", () => {
+  it("reads 100 only when nothing went through the server", () => {
+    expect(localSharePercent(10, 0)).toBe(100);
+    expect(localSharePercent(0, 0)).toBe(100);
+    expect(localSharePercent(1999, 1)).toBe(99);
+  });
+
+  it("reads 0 only when nothing stayed local", () => {
+    expect(localSharePercent(0, 10)).toBe(0);
+    expect(localSharePercent(1, 1999)).toBe(1);
+  });
+
+  it("rounds an ordinary share", () => {
+    expect(localSharePercent(1, 2)).toBe(33);
   });
 });
 

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { formatNumber, locale } from "@/i18n";
-import { formatTimeSaved, speakingRate } from "@/lib/analytics";
+import { formatTimeSaved, localSharePercent, speakingRate } from "@/lib/analytics";
 import type { AnalyticsSummary } from "@/lib/analytics";
 
 interface HeroProps {
@@ -37,8 +37,7 @@ function Fact({ value, label }: { value: string; label: string }) {
 export function Hero({ summary, userWpm }: HeroProps) {
   const { t } = useTranslation();
   const rate = speakingRate(summary);
-  const dictated = summary.localCount + summary.serverCount;
-  const localShare = dictated > 0 ? Math.round((summary.localCount / dictated) * 100) : 100;
+  const localShare = localSharePercent(summary.localCount, summary.serverCount);
   const words = formatNumber(summary.totalWords);
 
   return (
