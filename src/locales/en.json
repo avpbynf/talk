@@ -7,6 +7,8 @@
     "notSet": "Not set",
     "dismiss": "Dismiss",
     "retry": "Try again",
+    "startupFailed": "Talk could not start. Try again, and restart the application if it keeps failing.",
+    "readFailed": "Some of your settings or history could not be read, so parts of the window may look empty.",
     "locked": "Your settings could not be read, so they are locked rather than risk saving over what is stored.",
     "saveFailed": "That could not be saved, so the previous value is back.",
     "nav": {
