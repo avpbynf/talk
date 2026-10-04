@@ -30,7 +30,8 @@
       "loadingModel": "Loading model",
       "serverUnreachable": "Server unreachable",
       "tokenRefused": "Token refused",
-      "fallingBack": "Using local model"
+      "fallingBack": "Using local model",
+      "noFallbackModel": "No fallback model"
     },
     "account": {
       "title": "Account",

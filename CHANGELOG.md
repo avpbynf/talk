@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (window) Say in the sidebar what is wrong with the engine
+
+The pill above the bottom links now says the server is unreachable even when no local model is
+loaded either, and says the fallback has no model when the server answers but nothing is there to
+fall back on. Several problems at once show the most serious one.
+
 - (window) Give the controls one shape
 
 Switches stretch while you press them and land with a small overshoot, menus open on a field whose
