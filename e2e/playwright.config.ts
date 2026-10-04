@@ -4,6 +4,15 @@ import { defineConfig, devices } from "@playwright/test";
 // it for a second checkout: two suites on one port are served whichever tree started first.
 const PORT = Number(process.env.E2E_PORT) || 1431;
 
+// The suite runs against one bundle served by `vite preview` on CI, instead of the hundred modules a
+// development server hands every fresh context. The bundle is built in development mode, with
+// React's development build and no minifying: the console errors the harness fails on (a missing
+// key, an invalid nesting, a controlled input turned uncontrolled) are written by that build alone.
+// Locally the dev server is kept, whose start is instant; E2E_BUILD=1 asks for the bundle there too.
+// The build has a folder of its own per port, so two suites never write over each other.
+const BUILT = !!process.env.CI || !!process.env.E2E_BUILD;
+const OUT = `dist-e2e-${PORT}`;
+
 export default defineConfig({
   testDir: ".",
   testMatch: "**/*.spec.ts",
@@ -31,10 +40,13 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: {
-    command: `bunx vite --port ${PORT} --strictPort`,
+    command: BUILT
+      ? `bunx vite build --mode development --minify false --outDir ${OUT} --emptyOutDir && bunx vite preview --mode development --outDir ${OUT} --port ${PORT} --strictPort`
+      : `bunx vite --port ${PORT} --strictPort`,
     cwd: "..",
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !BUILT,
+    env: { NODE_ENV: "development" },
     timeout: 120_000,
   },
 });

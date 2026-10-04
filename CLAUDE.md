@@ -26,16 +26,18 @@ so a cold build takes a long while. `tauri:check` is the fast feedback loop.
 seconds. `test:rust` pays the whisper.cpp build the first time in any fresh worktree.
 
 `bun run test:ui` is the one to run after touching a page, the sidebar or the styles. It starts
-Vite on its own port, loads the real frontend in Chromium and answers every `invoke` and `listen`
+Vite on its own port (on CI, or locally with `E2E_BUILD=1`, one development-mode bundle served by
+`vite preview`, so React still writes its development warnings), loads the real frontend in Chromium and answers every `invoke` and `listen`
 from `e2e/native-mock.ts`, which fails a test naming any command it does not know. The browser is
 fetched once with `bun run playwright install chromium-headless-shell`. Playwright needs Node and
 Bun's own runtime cannot drive the browser (the launch hangs), so `node-win-x64` is a dev
 dependency and `bun run` finds its `node`. Go through the scripts and not `bunx playwright`. A
 failing snapshot is looked at before it is regenerated.
 
-Outside CI the suite reuses a server already listening on its port, so two worktrees running it
-at once are both served the tree that started first, and the second fails on pages it never
-touched. Give each its own port: `E2E_PORT=1441 bun run test:ui`.
+With the dev server, which is the local default, the suite reuses a server already listening on its
+port, so two worktrees running it at once are both served the tree that started first, and the
+second fails on pages it never touched. With the bundle (CI, or `E2E_BUILD=1`) a busy port is
+refused instead. Either way, give each worktree its own port: `E2E_PORT=1441 bun run test:ui`.
 
 The runner has no graphics card, so the suite is also the check on what the window costs when the
 processor paints every layer: `E2E_SOFTWARE=1 bun run test:ui -- --workers 4` draws the same way
