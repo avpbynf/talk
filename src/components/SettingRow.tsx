@@ -7,31 +7,25 @@ interface SettingRowProps {
   hint?: ReactNode;
   /** The switch, select or button on the right. */
   children: ReactNode;
-  /** A rule above the row, for the second one onwards in a card. */
-  divided?: boolean;
   /** Dim the label, for a setting that cannot be reached. */
   disabled?: boolean;
+  /** Not used any more: the card rules its sections. Here until the last page stops passing it. */
+  divided?: boolean;
   /** Below the row, inside its rule. */
   below?: ReactNode;
 }
 
-export function SettingRow({
-  label,
-  hint,
-  children,
-  divided,
-  disabled,
-  below,
-}: SettingRowProps) {
+/** One section of a card: a bold label with a muted line under it, and the control opposite. */
+export function SettingRow({ label, hint, children, disabled, below }: SettingRowProps) {
   const labelId = useId();
   return (
-    <div className={cn(divided && "border-t border-border-subtle pt-4")}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-[3px]">
           <label id={labelId} className={cn("text-sm font-medium", disabled && "opacity-50")}>
             {label}
           </label>
-          {hint && <p className="text-sm text-muted-foreground mt-0.5">{hint}</p>}
+          {hint && <p className="text-xs leading-[1.45] text-muted-foreground">{hint}</p>}
         </div>
         <SettingLabelContext.Provider value={labelId}>{children}</SettingLabelContext.Provider>
       </div>

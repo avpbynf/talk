@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils";
 
 // Spelled out in full: only class names written in full reach the stylesheet.
 const ACCENT = {
-  active: "focus:ring-[var(--color-active)]/30 focus:border-[var(--color-active)]",
-  server: "focus:ring-[var(--color-server)]/30 focus:border-[var(--color-server)]",
+  active:
+    "focus:border-[var(--color-active)] focus:ring-4 focus:ring-[color-mix(in_oklch,var(--s1)_20%,transparent)]",
+  server:
+    "focus:border-[var(--color-server)] focus:ring-4 focus:ring-[color-mix(in_oklch,var(--color-server)_20%,transparent)]",
 };
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -18,7 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       ref={ref}
       type={type}
       className={cn(
-        "px-3 py-2 text-sm rounded-lg border border-border-card bg-surface-inset placeholder:text-muted-foreground focus:outline-none focus:ring-2",
+        "h-9 min-w-0 rounded-[var(--radius)] border border-input bg-surface px-3 text-[13px] transition-[border-color,box-shadow] duration-200 placeholder:text-faint focus:outline-none",
         ACCENT[accent],
         className
       )}
