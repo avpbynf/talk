@@ -271,7 +271,7 @@ test.describe("account page", () => {
     await expect(app.sidebar).toContainText("Signed out");
     await app.go(account);
 
-    await expect(page.getByText("Optional. Signing in only syncs")).toBeVisible();
+    await expect(page.getByText("Sign in to find your settings on another PC")).toBeVisible();
     await expect(page.getByRole("button", { name: "Sync now" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Sign in with Google" }).click();

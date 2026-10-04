@@ -215,12 +215,13 @@ describe("AccountView", () => {
     expect(screen.getByText("Sign-in is not available in this build")).toBeInTheDocument();
   });
 
-  it("offers to sign in, and says what signing in does", async () => {
+  it("offers to sign in, and says what signing in is for", async () => {
     answer(signedOut);
     render(<AccountView />);
 
     expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeInTheDocument();
-    expect(screen.getByText(/only syncs your settings, statistics and history/)).toBeInTheDocument();
+    expect(screen.getByText("No account")).toBeInTheDocument();
+    expect(screen.getByText("Sign in to find your settings on another PC")).toBeInTheDocument();
     expect(document.querySelector("svg.rounded-full")).toBeNull();
   });
 
@@ -242,8 +243,8 @@ describe("AccountView", () => {
     render(<AccountView />);
 
     expect(await screen.findByText("Google Drive")).toBeInTheDocument();
-    expect(screen.getByText("Shortcuts and companions")).toBeInTheDocument();
-    expect(screen.getByText("Server and token")).toBeInTheDocument();
+    expect(screen.getByText("Shortcuts")).toBeInTheDocument();
+    expect(screen.getByText("Server")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign in with Google" })).not.toBeInTheDocument();
   });
 

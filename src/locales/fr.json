@@ -799,7 +799,6 @@
   },
   "account": {
     "title": "Compte",
-    "hint": "Facultatif. La connexion synchronise seulement vos réglages, vos statistiques et votre historique entre vos machines, via votre propre Google Drive.",
     "unavailable": "La connexion n'est pas disponible dans cette version.",
     "signIn": "Se connecter avec Google",
     "signingIn": "En attente du navigateur",
@@ -807,26 +806,25 @@
     "signedInAs": "Connecté en tant que {{email}}",
     "provider": "Google Drive",
     "follows": {
-      "title": "Ce qui suit votre compte",
-      "shortcuts": "Raccourcis et raccourcis associés",
-      "recording": "Mode d'enregistrement et dictées enchaînées",
+      "title": "Ce qui suit le compte",
+      "shortcuts": "Raccourcis",
       "vocabulary": "Vocabulaire",
-      "sounds": "Sons de retour",
-      "themes": "Apparence de l'application et du bandeau",
+      "sounds": "Sons",
+      "themes": "Thème et dégradés",
       "language": "Langue",
-      "startup": "Lancement avec Windows et démarrage réduit",
-      "system": "Baisse du volume et presse-papiers",
-      "meeting": "Mode réunion",
+      "startup": "Démarrage",
+      "dictation": "Préférences de dictée",
       "stats": "Statistiques",
-      "history": "Historique"
+      "history": "Historique",
+      "system": "Volume et presse-papiers"
     },
     "stays": {
-      "title": "Reste propre à chaque PC",
-      "audio": "Microphone et sortie",
+      "title": "Restent propres à chaque PC",
+      "audio": "Micro",
       "gpu": "Carte graphique",
       "model": "Modèle",
-      "server": "Serveur et jeton",
-      "overlay": "Position et écran du bandeau",
+      "server": "Serveur",
+      "overlay": "Position du bandeau",
       "history": "Taille de l'historique"
     },
     "devices": {
@@ -875,7 +873,12 @@
     "lastSyncAgo": "Dernière synchronisation {{ago}}",
     "neverSynced": "Pas encore synchronisé",
     "syncFailed": "Échec de la dernière synchronisation : {{error}}",
-    "settingsNotUploaded": "Vos réglages ne sont pas envoyés, car le fichier de réglages de cet ordinateur n'a pas pu être lu."
+    "settingsNotUploaded": "Vos réglages ne sont pas envoyés, car le fichier de réglages de cet ordinateur n'a pas pu être lu.",
+    "noAccount": {
+      "label": "Pas de compte",
+      "title": "Aucun compte",
+      "prompt": "Connectez-vous pour retrouver vos réglages sur un autre PC"
+    }
   },
   "updates": {
     "title": "Mises à jour",
