@@ -451,6 +451,13 @@ the application.
 
 ### Bug Fixes
 
+- (recording) Cancel works while a text is being pasted
+
+Pasting a dictation takes most of a second, and for all of it a cancel, or the next dictation
+finishing, had to wait. Only the pasting itself is now held in line: texts still come out in the
+order they were spoken, and never run into each other. A text that is done and waiting for its turn
+to be pasted is cancelled like one still being transcribed, and a paste already typing finishes.
+
 - (models) A dictation made while a model loads waits for it
 
 Dictating while a model was being loaded, or reloaded for another graphics card, could lose the

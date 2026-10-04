@@ -1,4 +1,5 @@
 mod config;
+mod paste_line;
 mod phase;
 mod press_line;
 
@@ -9,8 +10,9 @@ pub use config::{
 
 use crate::{audio, audio_encoder, database, overlay_feedback, server_transcription, AppState, RecordingMode};
 use crate::settings::TranscriptionMode;
-use crate::dictation_queue::{PasteTarget, Release, Transcript};
+use crate::dictation_queue::{CancelScope, PasteTarget, Release, Transcript};
 use std::sync::atomic::{AtomicBool, Ordering};
+use paste_line::{PasteLine, Turn};
 use phase::{Opened, Phase};
 use press_line::{Edge, PressLine, Step};
 use std::sync::{Arc, OnceLock};
@@ -472,6 +474,22 @@ async fn transcribe_locally(
 /// Where the press path has got to. Taken for a moment and never across a wait.
 static PHASE: parking_lot::Mutex<Phase> = parking_lot::Mutex::new(Phase::Idle);
 
+/// Where every text on its way to the focused window waits its turn.
+static PASTES: PasteLine = PasteLine::new();
+
+/// Take a place in the paste line for what the queue just let go. Called while the
+/// queue's lock is still held, which is what makes the line's order the queue's order.
+fn take_turn(release: &Release) -> Option<Turn> {
+    (!release.is_empty()).then(|| PASTES.take(release.parts.clone()))
+}
+
+/// Act on a release once its turn has come, with no lock of the queue held.
+fn hand_out_in_turn(app: &AppHandle, release: Release, turn: Option<Turn>) {
+    if let Some(turn) = turn {
+        turn.run(|cancelled| hand_out(app, release, cancelled));
+    }
+}
+
 /// Where every press and release of the main shortcut goes through.
 static PRESSES: OnceLock<PressLine> = OnceLock::new();
 
@@ -542,13 +560,24 @@ fn cancel_transcriptions(app: &AppHandle) {
     let settings = crate::settings::read(|s| s.queue);
 
     let mut queue = state.dictation_queue.lock();
-    let (any, release) = queue.cancel(settings.cancel_scope, settings.delivery, false);
-    if !any {
+    // What the queue already let go and is waiting for its paste is cancellable too, under the
+    // same lock so that nothing slips out in between. The oldest waiting text is older than
+    // anything still transcribing, so for the "current" scope it is the one.
+    let pasting = PASTES.cancel(settings.cancel_scope);
+    // A cancelled text is forgotten everywhere, the paste-last batch included.
+    queue.forget(&pasting.parts);
+    let (any, release) = if pasting.any() && settings.cancel_scope == CancelScope::Current {
+        (false, Release::default())
+    } else {
+        queue.cancel(settings.cancel_scope, settings.delivery, false)
+    };
+    if !any && !pasting.any() {
         return;
     }
-    hand_out(app, release);
+    let turn = take_turn(&release);
     let idle = queue.is_idle();
     drop(queue);
+    hand_out_in_turn(app, release, turn);
 
     // The transcriptions themselves end when whisper or the server next
     // notices, which can be a second away. The user asked for it gone now.
@@ -619,9 +648,10 @@ fn settle_after_cancel(app: &AppHandle) {
     let delivery = crate::settings::read(|s| s.queue.delivery);
     let mut queue = state.dictation_queue.lock();
     let release = queue.settle(delivery, false);
-    hand_out(app, release);
+    let turn = take_turn(&release);
     let idle = queue.is_idle();
     drop(queue);
+    hand_out_in_turn(app, release, turn);
 
     // Earlier dictations still transcribing keep the overlay, which goes
     // back to showing them.
@@ -675,9 +705,14 @@ pub fn paste_last_transcription(app: &AppHandle) {
         };
 
         let preserve = crate::settings::read(|s| s.preserve_clipboard);
-        if let Err(e) = crate::clipboard::type_text(&text, preserve) {
-            eprintln!("Failed to paste the last transcription: {}", e);
-        }
+        PASTES.take(Vec::new()).run(|cancelled| {
+            if cancelled.load(Ordering::SeqCst) {
+                return;
+            }
+            if let Err(e) = crate::clipboard::type_text(&text, preserve) {
+                eprintln!("Failed to paste the last transcription: {}", e);
+            }
+        });
     });
 }
 
@@ -953,12 +988,17 @@ async fn finish_dictation(app: AppHandle, dictation: Dictation) {
 
     let delivery = crate::settings::read(|s| s.queue.delivery);
     let recording = *state.is_recording.lock();
-    let mut queue = state.dictation_queue.lock();
-    let release = queue.finish(seq, transcript, delivery, recording);
-    // Handed out under the lock: two transcriptions finishing together would
-    // otherwise paste over each other in whatever order the threads ran.
-    hand_out(&app, release);
-    drop(queue);
+    // The turn is taken under the lock, which keeps the order, and the paste waits for it
+    // outside: two transcriptions finishing together do not paste over each other, and a
+    // cancel is not held up behind a paste.
+    let (release, turn) = {
+        let mut queue = state.dictation_queue.lock();
+        let release = queue.finish(seq, transcript, delivery, recording);
+        let turn = take_turn(&release);
+        (release, turn)
+    };
+    let app_for_paste = app.clone();
+    let _ = tauri::async_runtime::spawn_blocking(move || hand_out_in_turn(&app_for_paste, release, turn)).await;
 
     // The overlay goes down when the lease is dropped, and only if nothing else
     // still wants it.
@@ -1082,7 +1122,7 @@ fn emit_to_overlay(app: &AppHandle, processing_state: &'static str) {
 
 /// Act on what the queue let go: paste what is due, and record and announce
 /// every dictation whose turn has come.
-fn hand_out(app: &AppHandle, release: Release) {
+fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
     let state = app.state::<AppState>();
 
     #[cfg(windows)]
@@ -1090,6 +1130,11 @@ fn hand_out(app: &AppHandle, release: Release) {
         let preserve = crate::settings::read(|s| s.preserve_clipboard);
         let (mut words, mut failures) = (0usize, 0usize);
         for text in &release.paste {
+            // Read before each paste: a cancel since the turn was taken voids what has not
+            // started, and the paste in the middle of its keystrokes finishes.
+            if cancelled.load(Ordering::SeqCst) {
+                break;
+            }
             match crate::clipboard::type_text(text, preserve) {
                 Ok(()) => words += text.split_whitespace().count(),
                 Err(e) => {
@@ -1097,6 +1142,11 @@ fn hand_out(app: &AppHandle, release: Release) {
                     failures += 1;
                 }
             }
+        }
+
+        // A dictation cancelled while it waited is not recorded either, like any other.
+        if cancelled.load(Ordering::SeqCst) {
+            return;
         }
 
         // Say what arrived, and what did not: a paste that failed never reads as one.

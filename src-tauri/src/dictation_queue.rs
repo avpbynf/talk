@@ -74,6 +74,15 @@ pub struct Release {
     pub delivered: Vec<Transcript>,
     /// Text to paste into the focused window, in order.
     pub paste: Vec<String>,
+    /// The dictations that paste carries, one by one: what has to be forgotten if the paste
+    /// is cancelled before it types.
+    pub parts: Vec<String>,
+}
+
+impl Release {
+    pub fn is_empty(&self) -> bool {
+        self.delivered.is_empty() && self.paste.is_empty()
+    }
 }
 
 struct Slot {
@@ -195,6 +204,18 @@ impl DictationQueue {
         }
     }
 
+    /// Forget texts whose paste was cancelled before it typed: they were released, so they
+    /// are in the batch and in the last batch, and a cancelled dictation is in neither.
+    pub fn forget(&mut self, parts: &[String]) {
+        for part in parts {
+            for texts in [&mut self.batch, &mut self.latest] {
+                if let Some(at) = texts.iter().rposition(|text| text == part) {
+                    texts.remove(at);
+                }
+            }
+        }
+    }
+
     /// Forget the last batch, for when the history it came from is cleared.
     pub fn forget_latest(&mut self) {
         self.latest.clear();
@@ -219,6 +240,7 @@ impl DictationQueue {
                 } else {
                     out.paste.push(format!(" {}", transcript.text));
                 }
+                out.parts.push(transcript.text.clone());
             }
             self.batch.push(transcript.text.clone());
             self.latest = self.batch.clone();
@@ -228,6 +250,7 @@ impl DictationQueue {
         if self.slots.is_empty() && !recording && !self.batch.is_empty() {
             if delivery == Delivery::Paragraph {
                 out.paste.push(self.batch.join(" "));
+                out.parts = self.batch.clone();
             }
             self.batch.clear();
         }
@@ -251,6 +274,46 @@ mod tests {
 
     fn texts(release: &Release) -> Vec<&str> {
         release.delivered.iter().map(|t| t.text.as_str()).collect()
+    }
+
+    #[test]
+    fn a_text_whose_paste_was_cancelled_is_forgotten_by_the_paste_last_batch() {
+        let mut queue = DictationQueue::default();
+        let (first, _) = queue.enqueue();
+        let (second, _) = queue.enqueue();
+        queue.finish(first, said("one"), Delivery::Each, true);
+        let release = queue.finish(second, said("two"), Delivery::Each, true);
+        assert_eq!(queue.latest_batch().as_deref(), Some("one two"));
+        assert_eq!(release.parts, vec!["two"]);
+
+        queue.forget(&release.parts);
+
+        assert_eq!(queue.latest_batch().as_deref(), Some("one"));
+    }
+
+    #[test]
+    fn a_cancelled_paragraph_is_forgotten_whole() {
+        let mut queue = DictationQueue::default();
+        let (first, _) = queue.enqueue();
+        let (second, _) = queue.enqueue();
+        queue.finish(first, said("one"), Delivery::Paragraph, true);
+        let release = queue.finish(second, said("two"), Delivery::Paragraph, false);
+        assert_eq!(release.paste, vec!["one two"]);
+        assert_eq!(release.parts, vec!["one", "two"]);
+
+        queue.forget(&release.parts);
+
+        assert_eq!(queue.latest_batch(), None);
+    }
+
+    #[test]
+    fn a_release_with_nothing_in_it_is_empty() {
+        let mut queue = DictationQueue::default();
+        let (seq, _) = queue.enqueue();
+
+        let release = queue.finish(seq, None, Delivery::Each, false);
+
+        assert!(release.is_empty());
     }
 
     #[test]
