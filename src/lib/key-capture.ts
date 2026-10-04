@@ -44,3 +44,17 @@ export function hasValidCombo(keys: string[]): boolean {
   const hasKey = keys.some((k) => !MODIFIER_NAMES.includes(k));
   return keys.length >= 2 && hasModifier && hasKey;
 }
+
+export type CaptureAction = "capture" | "cancel" | "leave";
+
+/**
+ * What a key does while a field is waiting for a shortcut. Escape on its own
+ * gives the capture up and Tab on its own moves on, so the keyboard is never
+ * trapped; with a modifier held they are keys like any other.
+ */
+export function captureAction(e: KeyEventLike): CaptureAction {
+  const bare = !e.ctrlKey && !e.altKey && !e.metaKey;
+  if (bare && e.key === "Escape" && !e.shiftKey) return "cancel";
+  if (bare && e.key === "Tab") return "leave";
+  return "capture";
+}

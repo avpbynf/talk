@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
+import { captureAction, hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
 
 interface KeyCaptureFieldProps {
   /** Current shortcut string, e.g. "Ctrl+Shift+M" */
@@ -29,10 +29,25 @@ export default function KeyCaptureField({
   const [capturing, setCapturing] = useState(false);
   const [pendingKeys, setPendingKeys] = useState<string[]>([]);
   const captureRef = useRef<HTMLDivElement>(null);
+  const idleRef = useRef<HTMLDivElement>(null);
+  const capturingRef = useRef(false);
+  const refocus = useRef(false);
+  capturingRef.current = capturing;
+
+  // Leaving the page mid-capture must not leave the global shortcuts off.
+  useEffect(
+    () => () => {
+      if (capturingRef.current) void invoke("enable_shortcuts");
+    },
+    [],
+  );
 
   useEffect(() => {
     if (capturing && captureRef.current) {
       captureRef.current.focus();
+    } else if (!capturing && refocus.current) {
+      refocus.current = false;
+      idleRef.current?.focus();
     }
   }, [capturing]);
 
@@ -43,6 +58,9 @@ export default function KeyCaptureField({
   };
 
   const stopCapture = async (save: boolean) => {
+    // A blur can follow the end of a capture, and must not save what was given up.
+    if (!capturingRef.current) return;
+    capturingRef.current = false;
     if (save && hasValidCombo(pendingKeys)) {
       onChange(pendingKeys.join("+"));
     }
@@ -52,8 +70,16 @@ export default function KeyCaptureField({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    const action = captureAction(e);
+    // Tab moves on by itself, and the blur that follows ends the capture.
+    if (action === "leave") return;
     e.preventDefault();
     e.stopPropagation();
+    if (action === "cancel") {
+      refocus.current = true;
+      void stopCapture(false);
+      return;
+    }
     setPendingKeys(parseKeyEvent(e));
   };
 
@@ -97,6 +123,7 @@ export default function KeyCaptureField({
           }}
           className="cursor-pointer p-0.5 rounded-md text-muted-foreground/40 hover:text-foreground transition-colors"
           title={t("common.cancel")}
+          tabIndex={-1}
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -106,6 +133,7 @@ export default function KeyCaptureField({
 
   return (
     <div
+      ref={idleRef}
       tabIndex={0}
       role="button"
       onClick={startCapture}
