@@ -451,6 +451,12 @@ the application.
 
 ### Bug Fixes
 
+- (models) A dictation made while a model loads waits for it
+
+Dictating while a model was being loaded, or reloaded for another graphics card, could lose the
+text without a word. The dictation now waits for the model to be there. Loading two models in a row
+no longer builds both at once.
+
 - (overlay) Show the overlay as soon as the shortcut is pressed
 
 The overlay used to appear only once the microphone was open, which on some devices takes a moment
