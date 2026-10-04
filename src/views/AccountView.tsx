@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/PageShell";
 import { SectionCard } from "@/components/SectionCard";
 import { useGoogleAccount, type GoogleStatus } from "@/lib/use-google-account";
+import { DevicesCard } from "@/views/account/DevicesCard";
 
 export type { GoogleStatus };
 
@@ -183,6 +184,8 @@ export default function AccountView() {
       )}
 
       {failure && <p className="text-sm text-destructive">{failure}</p>}
+
+      {status?.available && status.email && <DevicesCard />}
 
       {status?.available && (
         <SectionCard icon={RefreshCw} title={t("account.follows.title")}>

@@ -1,5 +1,6 @@
 use parking_lot::Mutex;
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, OptionalExtension, Result};
+use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -114,6 +115,21 @@ WHERE id NOT IN (SELECT id FROM hidden_transcriptions)
   AND id NOT IN (SELECT id FROM transcriptions);
 ";
 
+// The machines one account syncs, mirrored from the shared devices.json so the
+// Account page reads without the network: each one's name, when the name was
+// set and when the device last showed up.
+const SCHEMA_V6: &str = "
+CREATE TABLE IF NOT EXISTS devices (
+    device_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    renamed_at INTEGER NOT NULL DEFAULT 0,
+    seen_at INTEGER NOT NULL DEFAULT 0
+);
+";
+
+/// A device nobody has heard from for this long leaves the list.
+const DEVICE_SEEN_WINDOW_MS: i64 = 90 * 24 * 60 * 60 * 1000;
+
 pub const META_STATS_RESET: &str = "stats_reset";
 pub const META_HISTORY_CLEARED: &str = "history_cleared";
 const META_DEVICE_ID: &str = "device_id";
@@ -166,6 +182,30 @@ pub struct ShareDevice {
     pub name: String,
     pub created_at: String,
     pub last_used_at: Option<String>,
+}
+
+/// What the account's shared file says about one device: its name, when that
+/// name was set, and when the device last showed up. The two stamps move
+/// independently. A file written before `seen_at` existed reads as never seen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeviceName {
+    pub name: String,
+    pub renamed_at: i64,
+    #[serde(default)]
+    pub seen_at: i64,
+}
+
+/// One machine signed in to the account, as the Account page lists it.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceInfo {
+    pub id: String,
+    pub name: String,
+    pub is_this_device: bool,
+    pub time_saved_minutes: f64,
+    pub dictations: i64,
+    /// When the device last uploaded, for the others.
+    pub last_seen_ms: Option<i64>,
 }
 
 /// One day of one device's counters, as it travels between machines.
@@ -398,6 +438,11 @@ impl Database {
         if version < 5 {
             conn.execute_batch(SCHEMA_V5)?;
             conn.pragma_update(None, "user_version", 5)?;
+        }
+
+        if version < 6 {
+            conn.execute_batch(SCHEMA_V6)?;
+            conn.pragma_update(None, "user_version", 6)?;
         }
 
         Ok(())
@@ -1019,6 +1064,124 @@ impl Database {
         Ok(())
     }
 
+    // -- Device names -------------------------------------------------------
+
+    pub fn device_names(&self) -> Result<BTreeMap<String, DeviceName>> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare("SELECT device_id, name, renamed_at, seen_at FROM devices")?;
+        let names = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    DeviceName { name: row.get(1)?, renamed_at: row.get(2)?, seen_at: row.get(3)? },
+                ))
+            })?
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        Ok(names)
+    }
+
+    /// Give this machine a name when it has none. The oldest possible stamp
+    /// makes any name somebody chose win over it, wherever it was chosen.
+    pub fn ensure_device_name(&self, device_id: &str, name: &str) -> Result<()> {
+        self.conn.lock().execute(
+            "INSERT OR IGNORE INTO devices (device_id, name, renamed_at) VALUES (?1, ?2, 0)",
+            params![device_id, name],
+        )?;
+        Ok(())
+    }
+
+    /// Returns whether the device is known. The stamp always lands after the
+    /// one it replaces, whatever the clock says.
+    pub fn rename_device(&self, device_id: &str, name: &str, now_ms: i64) -> Result<bool> {
+        let changed = self.conn.lock().execute(
+            "UPDATE devices SET name = ?2, renamed_at = MAX(?3, renamed_at + 1)
+             WHERE device_id = ?1",
+            params![device_id, name, now_ms],
+        )?;
+        Ok(changed > 0)
+    }
+
+    /// Mirror the merged map. A name edited here while the sync ran is kept
+    /// over the older one it brings, and a stamp never moves back.
+    pub fn store_devices(&self, names: &BTreeMap<String, DeviceName>) -> Result<()> {
+        let mut conn = self.conn.lock();
+        let tx = conn.transaction()?;
+        for (id, entry) in names {
+            tx.execute(
+                "INSERT INTO devices (device_id, name, renamed_at, seen_at)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(device_id) DO UPDATE SET
+                    name = CASE WHEN excluded.renamed_at >= devices.renamed_at
+                                THEN excluded.name ELSE devices.name END,
+                    renamed_at = MAX(excluded.renamed_at, devices.renamed_at),
+                    seen_at = MAX(excluded.seen_at, devices.seen_at)",
+                params![id, entry.name, entry.renamed_at, entry.seen_at],
+            )?;
+        }
+        tx.commit()
+    }
+
+    /// Forget every other device's name, which is what signing out does.
+    pub fn clear_other_devices(&self, own_device: &str) -> Result<()> {
+        self.conn
+            .lock()
+            .execute("DELETE FROM devices WHERE device_id != ?1", params![own_device])?;
+        Ok(())
+    }
+
+    /// This machine first, then every other device seen within the last ninety
+    /// days, by name. The time saved is worked out the way the Analytics page
+    /// does, from each device's word count, and is zero for a device that has
+    /// uploaded no statistics.
+    pub fn list_devices(&self, own_device: &str, user_wpm: f64, now_ms: i64) -> Result<Vec<DeviceInfo>> {
+        let conn = self.conn.lock();
+        let own_name: Option<String> = conn
+            .query_row("SELECT name FROM devices WHERE device_id = ?1", params![own_device], |row| {
+                row.get(0)
+            })
+            .optional()?;
+        let (words, dictations): (i64, i64) = conn.query_row(
+            "SELECT COALESCE(SUM(word_count), 0), COALESCE(SUM(transcription_count), 0)
+             FROM daily_stats",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        let mut devices = vec![DeviceInfo {
+            id: own_device.to_string(),
+            name: own_name.unwrap_or_default(),
+            is_this_device: true,
+            time_saved_minutes: time_saved_minutes(words, user_wpm),
+            dictations,
+            last_seen_ms: None,
+        }];
+
+        let mut stmt = conn.prepare(
+            "SELECT d.device_id, d.name, d.seen_at,
+                    COALESCE((SELECT SUM(word_count) FROM remote_daily_stats r
+                              WHERE r.device_id = d.device_id), 0),
+                    COALESCE((SELECT SUM(transcription_count) FROM remote_daily_stats r
+                              WHERE r.device_id = d.device_id), 0)
+             FROM devices d
+             WHERE d.device_id != ?1 AND d.seen_at >= ?2
+             ORDER BY d.name COLLATE NOCASE, d.device_id",
+        )?;
+        let others = stmt.query_map(params![own_device, now_ms - DEVICE_SEEN_WINDOW_MS], |row| {
+            let words: i64 = row.get(3)?;
+            Ok(DeviceInfo {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                is_this_device: false,
+                time_saved_minutes: time_saved_minutes(words, user_wpm),
+                dictations: row.get(4)?,
+                last_seen_ms: Some(row.get(2)?),
+            })
+        })?;
+        for device in others {
+            devices.push(device?);
+        }
+        Ok(devices)
+    }
+
     // -- Shared engine tokens -----------------------------------------------
 
     pub fn add_share_token(&self, id: &str, name: &str, token_hash: &str, created_at: &str) -> Result<()> {
@@ -1627,5 +1790,153 @@ mod tests {
         db.clear_transcriptions().expect("should clear");
 
         assert_eq!(db.get_meta(META_HISTORY_CLEARED).expect("should read").as_deref(), Some("1"));
+    }
+
+    const NOW: i64 = 1_785_578_400_000;
+    const DAY: i64 = 86_400_000;
+
+    fn named(name: &str, renamed_at: i64, seen_at: i64) -> DeviceName {
+        DeviceName { name: name.to_string(), renamed_at, seen_at }
+    }
+
+    #[test]
+    fn this_machine_is_listed_first_with_its_own_counters() {
+        let db = in_memory();
+        add(&db, "t1", 1);
+        add(&db, "t2", 2);
+        db.ensure_device_name("me", "OFFICE-PC").expect("should name");
+        db.replace_remote_stats("far", &[stats_row("2026-08-01", 5, 100)]).expect("should store");
+        let names = BTreeMap::from([("far".to_string(), named("Laptop", 7, NOW - 60_000))]);
+        db.store_devices(&names).expect("should store");
+
+        let devices = db.list_devices("me", 4.0, NOW).expect("should list");
+
+        assert_eq!(devices.len(), 2);
+        assert!(devices[0].is_this_device);
+        assert_eq!(devices[0].name, "OFFICE-PC");
+        assert_eq!(devices[0].dictations, 2);
+        assert!((devices[0].time_saved_minutes - 1.0).abs() < 1e-9);
+        assert_eq!(devices[0].last_seen_ms, None);
+        assert_eq!(devices[1].name, "Laptop");
+        assert_eq!(devices[1].dictations, 5);
+        assert!((devices[1].time_saved_minutes - 25.0).abs() < 1e-9);
+        assert_eq!(devices[1].last_seen_ms, Some(NOW - 60_000));
+    }
+
+    #[test]
+    fn a_device_with_no_statistics_is_listed_with_zero_counters() {
+        let db = in_memory();
+        let names = BTreeMap::from([("far".to_string(), named("Fresh PC", 1, NOW))]);
+        db.store_devices(&names).expect("should store");
+
+        let devices = db.list_devices("me", 40.0, NOW).expect("should list");
+
+        assert_eq!(devices[1].name, "Fresh PC");
+        assert_eq!(devices[1].dictations, 0);
+        assert_eq!(devices[1].time_saved_minutes, 0.0);
+    }
+
+    #[test]
+    fn the_others_are_listed_by_name() {
+        let db = in_memory();
+        let names = BTreeMap::from([
+            ("a".to_string(), named("Zeta", 1, NOW)),
+            ("b".to_string(), named("alpha", 1, NOW)),
+        ]);
+        db.store_devices(&names).expect("should store");
+
+        let listed: Vec<String> = db
+            .list_devices("me", 40.0, NOW)
+            .expect("should list")
+            .into_iter()
+            .skip(1)
+            .map(|d| d.name)
+            .collect();
+
+        assert_eq!(listed, vec!["alpha", "Zeta"]);
+    }
+
+    #[test]
+    fn a_device_unheard_of_for_ninety_days_leaves_the_list_but_this_machine_stays() {
+        let db = in_memory();
+        db.ensure_device_name("me", "OFFICE-PC").expect("should name");
+        let names = BTreeMap::from([
+            ("edge".to_string(), named("Just in", 1, NOW - 90 * DAY)),
+            ("gone".to_string(), named("Too old", 1, NOW - 90 * DAY - 1)),
+            ("never".to_string(), named("Old shape", 1, 0)),
+        ]);
+        db.store_devices(&names).expect("should store");
+
+        let listed: Vec<String> =
+            db.list_devices("me", 40.0, NOW).expect("should list").into_iter().map(|d| d.name).collect();
+
+        assert_eq!(listed, vec!["OFFICE-PC", "Just in"]);
+    }
+
+    #[test]
+    fn the_default_name_never_replaces_one_somebody_chose() {
+        let db = in_memory();
+        db.ensure_device_name("me", "OFFICE-PC").expect("should name");
+        assert!(db.rename_device("me", "Desk", 5).expect("should rename"));
+
+        db.ensure_device_name("me", "OTHER").expect("should name");
+
+        assert_eq!(db.device_names().expect("should read")["me"].name, "Desk");
+    }
+
+    #[test]
+    fn a_rename_lands_after_the_stamp_it_replaces_whatever_the_clock_says() {
+        let db = in_memory();
+        db.ensure_device_name("me", "OFFICE-PC").expect("should name");
+        db.rename_device("me", "Desk", 100).expect("should rename");
+
+        db.rename_device("me", "Study", 50).expect("should rename");
+
+        assert_eq!(db.device_names().expect("should read")["me"], named("Study", 101, 0));
+    }
+
+    #[test]
+    fn renaming_a_device_nobody_knows_changes_nothing() {
+        let db = in_memory();
+
+        assert!(!db.rename_device("ghost", "Desk", 5).expect("should rename"));
+        assert!(db.device_names().expect("should read").is_empty());
+    }
+
+    #[test]
+    fn a_sync_in_flight_does_not_undo_a_rename_made_meanwhile() {
+        let db = in_memory();
+        db.ensure_device_name("me", "OFFICE-PC").expect("should name");
+        let before_the_edit = db.device_names().expect("should read");
+        db.rename_device("me", "Desk", 9).expect("should rename");
+
+        db.store_devices(&before_the_edit).expect("should store");
+
+        assert_eq!(db.device_names().expect("should read")["me"], named("Desk", 9, 0));
+    }
+
+    #[test]
+    fn a_stored_sighting_never_moves_back() {
+        let db = in_memory();
+        db.store_devices(&BTreeMap::from([("far".to_string(), named("Laptop", 1, 900))])).expect("should store");
+
+        db.store_devices(&BTreeMap::from([("far".to_string(), named("Laptop", 1, 400))])).expect("should store");
+
+        assert_eq!(db.device_names().expect("should read")["far"].seen_at, 900);
+    }
+
+    #[test]
+    fn signing_out_forgets_the_others_and_keeps_this_machines_name() {
+        let db = in_memory();
+        let names = BTreeMap::from([
+            ("far".to_string(), named("Laptop", 7, NOW)),
+            ("me".to_string(), named("Desk", 9, NOW)),
+        ]);
+        db.store_devices(&names).expect("should store");
+
+        db.clear_other_devices("me").expect("should clear");
+
+        let kept = db.device_names().expect("should read");
+        assert_eq!(kept.keys().collect::<Vec<_>>(), vec!["me"]);
     }
 }

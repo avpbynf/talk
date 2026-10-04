@@ -374,6 +374,12 @@ export function installNativeMock(init: MockInit): void {
       return s.google;
     },
 
+    list_devices: () => (s.google.email ? s.devices : []),
+    rename_device: (a) => {
+      s.devices = s.devices.map((d) => (d.id === a.deviceId ? { ...d, name: a.name } : d));
+      return null;
+    },
+
     // Plugins and the window
     "plugin:app|version": () => s.version,
     "plugin:updater|check": () =>

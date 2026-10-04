@@ -15,7 +15,17 @@ const signedOut: GoogleStatus = {
   lastError: null,
 };
 
-function answer(status: GoogleStatus, others: Record<string, GoogleStatus> = {}) {
+const here = { id: "d1", name: "OFFICE-PC", isThisDevice: true, timeSavedMinutes: 5880, dictations: 6412, lastSeenMs: null };
+const work = {
+  id: "d2",
+  name: "PC du boulot",
+  isThisDevice: false,
+  timeSavedMinutes: 4080,
+  dictations: 3000,
+  lastSeenMs: Date.now() - 4 * 60_000,
+};
+
+function answer(status: GoogleStatus, others: Record<string, unknown> = {}) {
   vi.mocked(invoke).mockImplementation(async (command: string) => {
     if (command in others) return others[command];
     if (command === "google_status") return status;
@@ -167,5 +177,161 @@ describe("AccountView", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Sync now" }));
 
     expect(invoke).toHaveBeenCalledWith("google_sync_now");
+  });
+
+  it("signed in, lists this machine first with its time saved, then the others", async () => {
+    answer({ ...signedOut, email: "me@example.com" }, { list_devices: [here, work] });
+    render(<AccountView />);
+
+    const rows = await screen.findAllByTestId("device-row");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("OFFICE-PC");
+    expect(rows[0]).toHaveTextContent("98 h 00 saved, 6,412 dictations");
+    expect(rows[0]).toHaveTextContent("Here");
+    expect(rows[1]).toHaveTextContent("PC du boulot");
+    expect(rows[1]).toHaveTextContent("68 h 00 saved, seen 4 minutes ago");
+    expect(rows[1]).not.toHaveTextContent("Here");
+    expect(invoke).toHaveBeenCalledWith("list_devices", { userWpm: 40 });
+  });
+
+  it("signed out, shows no devices and does not ask for them", async () => {
+    answer(signedOut, { list_devices: [here] });
+    render(<AccountView />);
+
+    await screen.findByRole("button", { name: "Sign in with Google" });
+    expect(screen.queryByText("Your devices")).not.toBeInTheDocument();
+    expect(invoke).not.toHaveBeenCalledWith("list_devices", expect.anything());
+  });
+
+  it("renames a device by id and reads the list again", async () => {
+    answer({ ...signedOut, email: "me@example.com" }, { list_devices: [here, work] });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rename PC du boulot" }));
+    const field = screen.getByRole("textbox", { name: "Device name" });
+    expect(field).toHaveValue("PC du boulot");
+    await userEvent.clear(field);
+    await userEvent.type(field, "Studio");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("rename_device", { deviceId: "d2", name: "Studio" }));
+    await waitFor(() => expect(screen.queryByRole("textbox")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(vi.mocked(invoke).mock.calls.filter(([command]) => command === "list_devices")).toHaveLength(2),
+    );
+  });
+
+  it("puts the keyboard focus back on the Rename button when the form closes", async () => {
+    answer({ ...signedOut, email: "me@example.com" }, { list_devices: [here, work] });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rename PC du boulot" }));
+    await userEvent.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Rename PC du boulot" })).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: "Rename OFFICE-PC" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Rename OFFICE-PC" })).toHaveFocus();
+  });
+
+  it("keeps the focus on the renamed device's button when the rename moves its row", async () => {
+    const third = { ...work, id: "d3", name: "Laptop", lastSeenMs: Date.now() - 60_000 };
+    let renamed = false;
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return { ...signedOut, email: "me@example.com" };
+      if (command === "list_devices") return renamed ? [here, third, { ...work, name: "Zulu" }] : [here, work, third];
+      if (command === "rename_device") renamed = true;
+      return undefined;
+    });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rename PC du boulot" }));
+    const field = screen.getByRole("textbox", { name: "Device name" });
+    await userEvent.clear(field);
+    await userEvent.type(field, "Zulu");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const rows = await screen.findAllByTestId("device-row");
+    expect(rows[2]).toHaveTextContent("Zulu");
+    expect(screen.getByRole("button", { name: "Rename Zulu" })).toHaveFocus();
+  });
+
+  it("counts characters the way the backend does, not UTF-16 units", async () => {
+    answer({ ...signedOut, email: "me@example.com" }, { list_devices: [here] });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rename OFFICE-PC" }));
+    const field = screen.getByRole("textbox", { name: "Device name" });
+    await userEvent.clear(field);
+    await userEvent.click(field);
+    await userEvent.paste("😀".repeat(60));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("rename_device", { deviceId: "d1", name: "😀".repeat(60) }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /Rename / }));
+    await userEvent.clear(screen.getByRole("textbox", { name: "Device name" }));
+    await userEvent.paste("x".repeat(61));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText(/A name is 1 to 60 characters/)).toBeInTheDocument();
+    expect(invoke).not.toHaveBeenCalledWith("rename_device", { deviceId: "d1", name: "x".repeat(61) });
+  });
+
+  it("shows a short error in place of the list when the devices cannot be read", async () => {
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return { ...signedOut, email: "me@example.com" };
+      if (command === "list_devices") throw "database is locked";
+      return undefined;
+    });
+    render(<AccountView />);
+
+    expect(await screen.findByText("Could not read the list of devices.")).toBeInTheDocument();
+    expect(screen.getByText("Your devices")).toBeInTheDocument();
+  });
+
+  it("does not save an empty name", async () => {
+    answer({ ...signedOut, email: "me@example.com" }, { list_devices: [here] });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rename OFFICE-PC" }));
+    await userEvent.clear(screen.getByRole("textbox", { name: "Device name" }));
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  });
+
+  it("says in words why a rename failed, keeps the field open, and drops the message when the form closes", async () => {
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return { ...signedOut, email: "me@example.com" };
+      if (command === "list_devices") return [here];
+      if (command === "rename_device") throw "unknown_device";
+      return undefined;
+    });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rename OFFICE-PC" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Device name" }), "x");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("That device is not on the account any more.")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Device name" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByText("That device is not on the account any more.")).not.toBeInTheDocument();
+  });
+
+  it("words an error it does not know as a failure to save", async () => {
+    vi.mocked(invoke).mockImplementation(async (command: string) => {
+      if (command === "google_status") return { ...signedOut, email: "me@example.com" };
+      if (command === "list_devices") return [here];
+      if (command === "rename_device") throw "something unexpected";
+      return undefined;
+    });
+    render(<AccountView />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rename OFFICE-PC" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Device name" }), "x");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Could not save the name.")).toBeInTheDocument();
   });
 });
