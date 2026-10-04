@@ -20,9 +20,11 @@ const THINKING_SIZE = 0.84;
 const RIPPLE_LEVEL = 0.55;
 const RIPPLE_GAP_MS = 380;
 /** The avatar's box and the gap to what is written beside it, as the stylesheet sets them. */
-const BODY = 80;
+const BODY = 76;
 const GAP = 10;
-/** What fits beside an avatar that sits in the middle of the stage. */
+/**
+ * What fits beside an avatar that sits in the middle of the stage. Keep equal to the max-width of the hidden words in overlay.css, which must follow any change here.
+ */
 const ROOM = (STAGE_WIDTH - BODY) / 2 - GAP;
 
 function hop(el: HTMLElement | null, phase: OverlayPhase, reduced: boolean) {

@@ -439,6 +439,11 @@ the volume down" are shorter, and the updates card has its check button in the h
 icon, an Install button beside it when an update is waiting, and one note under it that gives the
 version and where the check stands.
 
+- (overlay) Draw the orb a little smaller
+
+The orb is a touch smaller on screen and in the preview, with the avatar in proportion to its
+ripples, and it stays in the middle of its window.
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded
