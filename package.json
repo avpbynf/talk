@@ -1,7 +1,7 @@
 {
   "name": "talk-client",
   "private": true,
-  "version": "0.10.0-dev",
+  "version": "0.10.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
