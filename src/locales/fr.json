@@ -334,8 +334,6 @@
   },
   "dictation": {},
   "preferences": {
-    "title": "Paramètres",
-    "subtitle": "Périphériques, système, langue et mises à jour",
     "audio": {
       "title": "Périphériques audio",
       "microphone": "Microphone",
@@ -425,7 +423,6 @@
       }
     },
     "language": {
-      "title": "Langue",
       "label": "Langue de l'interface",
       "description": "Menus, messages et bandeau d'enregistrement",
       "system": "Système"
