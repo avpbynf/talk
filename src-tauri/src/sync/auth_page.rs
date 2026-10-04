@@ -77,13 +77,11 @@ const LOGO: &str = "<svg class=\"logo\" viewBox=\"0 0 512 512\" aria-hidden=\"tr
 <circle cx=\"100\" cy=\"256\" r=\"18\" fill=\"#fff\"/></svg>";
 
 // The page cannot reach the application's assets, so the typeface travels inside it.
-const OUTFIT_400: &[u8] = include_bytes!("../../assets/fonts/outfit-latin-400-normal.woff2");
-const OUTFIT_600: &[u8] = include_bytes!("../../assets/fonts/outfit-latin-600-normal.woff2");
+const GEIST: &[u8] = include_bytes!("../../assets/fonts/geist-latin-wght-normal.woff2");
 
-fn font_face(weight: u32, data: &[u8]) -> String {
+fn font_face(data: &[u8]) -> String {
     format!(
-        "@font-face{{font-family:Outfit;font-weight:{};font-style:normal;font-display:swap;src:url(data:font/woff2;base64,{}) format(\"woff2\")}}",
-        weight,
+        "@font-face{{font-family:Geist;font-weight:100 900;font-style:normal;font-display:swap;src:url(data:font/woff2;base64,{}) format(\"woff2\")}}",
         base64::engine::general_purpose::STANDARD.encode(data)
     )
 }
@@ -98,11 +96,11 @@ pub fn render(page: Page, french: bool) -> String {
     format!(
         "<!doctype html><html lang=\"{lang}\"><head><meta charset=\"utf-8\">\
 <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\
-<title>Talk</title><style>{face_400}{face_600}\
+<title>Talk</title><style>{face}\
 :root{{color-scheme:dark light;--bg:oklch(0.13 0.01 260);--fg:oklch(0.95 0.01 260);--card:oklch(0.15 0.01 260);--line:oklch(0.25 0.015 260);--muted:oklch(0.65 0.01 260);--ok:oklch(0.70 0.17 145);--bad:oklch(0.55 0.20 25)}}\
 @media(prefers-color-scheme:light){{:root{{--bg:oklch(0.97 0.005 260);--fg:oklch(0.20 0.015 260);--card:oklch(0.99 0.003 260);--line:oklch(0.86 0.008 260);--muted:oklch(0.45 0.01 260);--ok:oklch(0.52 0.17 145);--bad:oklch(0.48 0.20 25)}}}}\
 *{{box-sizing:border-box}}\
-body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);color:var(--fg);font:400 16px/1.5 Outfit,system-ui,sans-serif}}\
+body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);color:var(--fg);font:400 16px/1.5 Geist,system-ui,sans-serif}}\
 .card{{width:100%;max-width:420px;padding:48px 40px 44px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:12px}}\
 .logo{{display:block;width:40px;height:40px;margin:0 auto 32px}}\
 .mark{{width:56px;height:56px;margin:0 auto 24px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid currentColor}}\
@@ -114,8 +112,7 @@ p{{margin:0;font-size:15px;color:var(--muted)}}\
 <div class=\"mark {tone}\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\">{mark}</svg></div>\
 <h1>{title}</h1><p>{message}</p></main></body></html>",
         lang = if french { "fr" } else { "en" },
-        face_400 = font_face(400, OUTFIT_400),
-        face_600 = font_face(600, OUTFIT_600),
+        face = font_face(GEIST),
         logo = LOGO,
         tone = tone,
         mark = mark,
@@ -140,7 +137,7 @@ mod tests {
         let html = render(Page::Done, true);
         assert!(html.contains("Connexion réussie"));
         assert!(html.contains("Vous pouvez fermer cet onglet"));
-        assert!(html.contains("font-family:Outfit") && html.contains("data:font/woff2;base64,"));
+        assert!(html.contains("font-family:Geist") && html.contains("data:font/woff2;base64,"));
         assert!(!html.contains("<script") && !html.contains("setInterval"));
         assert!(!html.contains("http://") && !html.contains("https://") && !html.contains("src="));
         let refused = render(Page::Refused, false);
