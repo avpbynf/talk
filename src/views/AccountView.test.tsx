@@ -230,6 +230,8 @@ describe("AccountView", () => {
 
     expect(await screen.findByText("What follows your account")).toBeInTheDocument();
     expect(screen.getByText("Vocabulary")).toBeInTheDocument();
+    expect(screen.getByText("Statistics")).toBeInTheDocument();
+    expect(screen.getByText("History")).toBeInTheDocument();
     expect(screen.getByText("Stays on each PC")).toBeInTheDocument();
     expect(screen.getByText("Graphics card")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();

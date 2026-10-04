@@ -817,7 +817,9 @@
       "language": "Langue",
       "startup": "Lancement avec Windows et démarrage réduit",
       "system": "Baisse du volume et presse-papiers",
-      "meeting": "Mode réunion"
+      "meeting": "Mode réunion",
+      "stats": "Statistiques",
+      "history": "Historique"
     },
     "stays": {
       "title": "Reste propre à chaque PC",
