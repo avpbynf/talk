@@ -210,7 +210,6 @@
   },
   "transcription": {
     "title": "Moteur",
-    "subtitle": "Où la parole devient du texte, et avec quoi",
     "modes": {
       "local": "Local",
       "server": "Serveur"
@@ -252,11 +251,6 @@
     },
     "gpu": {
       "title": "Accélération",
-      "subtitle": "Moteur de calcul",
-      "tooltips": {
-        "vulkan": "Fonctionne avec AMD, NVIDIA et Intel. Une seule API graphique pour toutes les plateformes.",
-        "cpu": "Fonctionne partout, sans carte graphique. Plus lent, mais cela marche toujours."
-      },
       "unavailable": "Indisponible sur cette machine",
       "graphicsCard": "Carte graphique",
       "integrated": "Intégrée",
@@ -265,7 +259,11 @@
       "runningOn": "Exécution sur {{name}} ({{details}})",
       "switchTitle": "Recharger le modèle sur le nouveau périphérique ?",
       "switchDescription": "{{model}} va être rechargé sur le nouveau périphérique. Avec un gros modèle, cela peut prendre une minute ou plus, et la dictée est indisponible jusqu'à la fin.",
-      "switch": "Changer"
+      "switch": "Changer",
+      "about": {
+        "vulkan": "AMD, NVIDIA, Intel",
+        "cpu": "Partout, plus lent"
+      }
     },
     "server": {
       "status": {

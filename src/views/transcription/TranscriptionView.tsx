@@ -1,7 +1,6 @@
-import { Cpu, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { PageSeparator, PageShell } from "@/components/PageShell";
-import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/PageShell";
+import { Segmented } from "@/components/ui/segmented";
 import type {
   ModelInfo,
   DownloadProgress,
@@ -89,40 +88,17 @@ export default function TranscriptionView({
 }: TranscriptionViewProps) {
   const { t } = useTranslation();
   return (
-    <PageShell
-      title={t("transcription.title")}
-      subtitle={t("transcription.subtitle")}
-      separator={false}
-    >
-      {/* Mode selector */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => onTranscriptionModeChange("local")}
-          className={cn(
-            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200",
-            transcriptionMode === "local"
-              ? "border-[var(--color-active)] bg-[var(--color-active)]/10 text-[var(--color-active)]"
-              : "border-border-card bg-surface-inset text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
-          )}
-        >
-          <Cpu className="h-4 w-4" />
-          {t("transcription.modes.local")}
-        </button>
-        <button
-          onClick={() => onTranscriptionModeChange("server")}
-          className={cn(
-            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200",
-            transcriptionMode === "server"
-              ? "border-[var(--color-server)] bg-[var(--color-server)]/10 text-[var(--color-server)]"
-              : "border-border-card bg-surface-inset text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
-          )}
-        >
-          <Globe className="h-4 w-4" />
-          {t("transcription.modes.server")}
-        </button>
-      </div>
-
-      <PageSeparator />
+    <PageShell>
+      <Segmented
+        wide
+        label={t("transcription.title")}
+        value={transcriptionMode}
+        onChange={onTranscriptionModeChange}
+        options={[
+          { value: "local", label: t("transcription.modes.local") },
+          { value: "server", label: t("transcription.modes.server") },
+        ]}
+      />
 
       {/* Content */}
       {transcriptionMode === "local" && (

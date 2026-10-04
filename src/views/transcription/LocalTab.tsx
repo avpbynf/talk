@@ -2,7 +2,7 @@ import { useState } from "react";
 import { HardDrive, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { cn } from "@/lib/utils";
+import { Segmented } from "@/components/ui/segmented";
 import { SectionCard } from "@/components/SectionCard";
 import { GpuSelector } from "@/components/GpuSelector";
 import { ModelCard } from "@/components/ModelCard";
@@ -84,7 +84,43 @@ export function LocalTab({
   });
 
   return (
-    <div className="relative space-y-6">
+    <div className="relative flex flex-col gap-4">
+      {/* Models Selection */}
+      <SectionCard
+        icon={HardDrive}
+        accent="active"
+        title={t("transcription.local.title")}
+        count={t("transcription.local.downloaded", { count: downloadedModels.length, number: downloadedModels.length })}
+        action={
+          <Segmented
+            label={t("transcription.local.title")}
+            value={modelFamily}
+            onChange={setModelFamily}
+            options={[
+              { value: "quantized", label: t("transcription.local.quantised") },
+              { value: "standard", label: t("transcription.local.standard") },
+            ]}
+          />
+        }
+      >
+        {filteredModels.map((model) => (
+          <ModelCard
+            key={model.id}
+            model={model}
+            isDownloaded={downloadedModels.includes(model.id)}
+            isLoaded={currentModel === model.id}
+            isDownloading={isDownloading}
+            downloadProgress={downloadProgress}
+            isLoading={isLoading}
+            onDownload={() => onDownload(model.id)}
+            onLoad={() => onLoad(model.id)}
+            onUnload={onUnload}
+            onDelete={async () => setPendingDelete(model)}
+            onCancelDownload={onCancelDownload}
+          />
+        ))}
+      </SectionCard>
+
       {/* GPU Selection */}
       <GpuSelector
         gpus={gpus}
@@ -96,59 +132,6 @@ export function LocalTab({
         switchingDevice={switchingGpuDevice}
         onDeviceChange={(device) => requestSwitch({ device })}
       />
-
-      {/* Models Selection */}
-      <SectionCard
-        icon={HardDrive}
-        accent="active"
-        title={t("transcription.local.title")}
-        description={t("transcription.local.downloaded", { count: downloadedModels.length, number: downloadedModels.length })}
-        action={
-          <div className="flex gap-1 p-0.5 bg-surface-inset rounded-md border border-border-subtle">
-            <button
-              onClick={() => setModelFamily("quantized")}
-              className={cn(
-                "px-2.5 py-1 rounded text-xs font-medium transition-all",
-                modelFamily === "quantized"
-                  ? "bg-surface-active text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t("transcription.local.quantised")}
-            </button>
-            <button
-              onClick={() => setModelFamily("standard")}
-              className={cn(
-                "px-2.5 py-1 rounded text-xs font-medium transition-all",
-                modelFamily === "standard"
-                  ? "bg-surface-active text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t("transcription.local.standard")}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-2">
-          {filteredModels.map((model) => (
-            <ModelCard
-              key={model.id}
-              model={model}
-              isDownloaded={downloadedModels.includes(model.id)}
-              isLoaded={currentModel === model.id}
-              isDownloading={isDownloading}
-              downloadProgress={downloadProgress}
-              isLoading={isLoading}
-              onDownload={() => onDownload(model.id)}
-              onLoad={() => onLoad(model.id)}
-              onUnload={onUnload}
-              onDelete={async () => setPendingDelete(model)}
-              onCancelDownload={onCancelDownload}
-            />
-          ))}
-        </div>
-      </SectionCard>
 
       <ConfirmDialog
         open={pendingSwitch !== null}

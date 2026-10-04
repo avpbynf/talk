@@ -67,7 +67,11 @@ describe("LocalTab engine switch", () => {
       ],
     });
 
-    await user.click(screen.getByRole("button", { name: /Card B/ }));
+    await user.click(screen.getByRole("combobox", { name: "Graphics card" }));
+    // Each card in the list carries its own memory, so two can be compared before choosing
+    expect(await screen.findByText("8 GB")).toBeInTheDocument();
+    expect(screen.getByText("4 GB")).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Card B" }));
     expect(props.onGpuDeviceChange).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Switch" }));

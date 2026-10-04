@@ -32,6 +32,11 @@ window.matchMedia ??= ((query: string) => ({
   dispatchEvent: vi.fn(),
 })) as unknown as typeof window.matchMedia;
 
+// Radix's select asks the pointer and the viewport for things jsdom does not have.
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.releasePointerCapture ??= () => {};
+Element.prototype.scrollIntoView ??= () => {};
+
 globalThis.ResizeObserver ??= class {
   observe() {}
   unobserve() {}
