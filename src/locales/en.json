@@ -463,7 +463,6 @@
   },
   "appearance": {
     "title": "Appearance",
-    "subtitle": "How the application looks",
     "theme": {
       "title": "Themes",
       "description": "Pick a look, then change whatever you like. Your changes and the themes you save follow your Google account.",

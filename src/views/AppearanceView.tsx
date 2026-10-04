@@ -26,7 +26,7 @@ export default function AppearanceView({ appTheme, windowButtons, onWindowButton
   const [tab, setTab] = useState<Tab>("application");
 
   return (
-    <PageShell title={t("appearance.title")} subtitle={t("appearance.subtitle")}>
+    <PageShell>
       <Segmented
         wide
         label={t("appearance.title")}

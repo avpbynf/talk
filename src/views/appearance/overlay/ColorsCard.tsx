@@ -35,7 +35,7 @@ function Chip({ colors, label, active, onClick }: { colors: readonly string[]; l
         aria-hidden="true"
         className={cn(
           "h-[34px] w-[34px] rounded-full transition-[transform,box-shadow] duration-300 group-hover:scale-110",
-          active && "shadow-[0_0_0_2px_var(--color-background),0_0_0_4px_var(--color-active)]",
+          active && "shadow-[0_0_0_2px_var(--bg),0_0_0_4px_var(--s1)]",
         )}
         style={{ background: `conic-gradient(${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[0]})` }}
       />
@@ -88,7 +88,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
       </SettingRow>
 
       {look.palette === "custom" && (
-        <SettingRow divided label={t("appearance.overlay.colors.customColors")}>
+        <SettingRow label={t("appearance.overlay.colors.customColors")}>
           <div className="flex items-center gap-3">
             {look.custom_colors.map((color, i) => (
               <ColorSwatch
@@ -107,7 +107,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
         </SettingRow>
       )}
 
-      <SettingRow divided label={t("appearance.overlay.colors.background")}>
+      <SettingRow label={t("appearance.overlay.colors.background")}>
         <Segmented
           label={t("appearance.overlay.colors.background")}
           value={look.background}

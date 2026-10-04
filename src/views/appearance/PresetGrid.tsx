@@ -59,7 +59,7 @@ function Tile({
         <span
           className={cn(
             "block rounded-lg shadow-[0_0_0_1px_var(--line)] transition-shadow duration-300",
-            on && "shadow-[0_0_0_2px_var(--bg),0_0_0_4px_var(--ring)]",
+            on && "shadow-[0_0_0_2px_var(--bg),0_0_0_4px_var(--s1)]",
           )}
         >
           <Preview values={values} />
@@ -94,7 +94,7 @@ function FixedButton({ children, onClick }: { children: ReactNode; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-[6px] border border-[#9ca3af] bg-[#1f2937] px-3 text-xs font-medium text-white outline-none hover:bg-[#374151] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f59e0b] [&_svg]:size-3.5"
+      className="inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-[6px] border border-[#9ca3af] bg-[#1f2937] px-3 text-xs font-medium text-white hover:bg-[#374151] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f59e0b] [&_svg]:size-3.5"
     >
       {children}
     </button>
@@ -157,7 +157,7 @@ export default function PresetGrid({ theme }: { theme: AppThemeController }) {
         </div>
       }
     >
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(118px,1fr))] gap-x-2.5 gap-y-4 border-t border-border-subtle pt-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(118px,1fr))] gap-2.5">
         {saved.length > 0 && (
           <>
             <Heading>{t("appearance.theme.yours")}</Heading>
@@ -197,7 +197,7 @@ export default function PresetGrid({ theme }: { theme: AppThemeController }) {
 
 function Heading({ children }: { children: string }) {
   return (
-    <div className="col-span-full pt-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="col-span-full pt-1 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
       {children}
     </div>
   );

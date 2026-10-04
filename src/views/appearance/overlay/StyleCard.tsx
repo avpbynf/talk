@@ -5,7 +5,6 @@ import { SectionCard } from "@/components/SectionCard";
 import { useReducedMotion } from "@/lib/motion";
 import type { OverlayLook, OverlayStyle } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
-import { cn } from "@/lib/utils";
 import SimulatedOverlay from "@/overlay/Simulated";
 
 const STYLES: readonly OverlayStyle[] = ["halo", "capsule", "orb"];
@@ -30,7 +29,7 @@ export default function StyleCard({ look, colors, email, onChange }: StyleCardPr
       <div
         role="group"
         aria-label={t("appearance.overlay.style.label")}
-        className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 border-t border-border-subtle pt-4"
+        className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3"
       >
         {STYLES.map((style) => {
           const active = look.style === style;
@@ -44,12 +43,8 @@ export default function StyleCard({ look, colors, email, onChange }: StyleCardPr
               onPointerLeave={() => setLive((now) => (now === style ? null : now))}
               onFocus={() => setLive(style)}
               onBlur={() => setLive((now) => (now === style ? null : now))}
-              className={cn(
-                "flex cursor-pointer flex-col gap-1.5 rounded-lg border p-2.5 pb-3.5 text-left outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
-                active
-                  ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
-                  : "border-border-card bg-surface-deep hover:border-border-hover hover:bg-surface-raised",
-              )}
+
+              className="choice-card cursor-pointer gap-1.5 rounded-[calc(var(--radius)+2px)] p-2.5 pb-3.5 hover:-translate-y-0.5"
             >
               <span
                 aria-hidden="true"

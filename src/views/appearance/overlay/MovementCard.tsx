@@ -38,7 +38,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         </div>
       </SettingRow>
 
-      <SettingRow divided label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
+      <SettingRow label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
         <Segmented
           label={t("appearance.overlay.movement.entrance")}
           value={look.entrance}
@@ -47,7 +47,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         />
       </SettingRow>
 
-      <SettingRow divided label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
+      <SettingRow label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
         <Segmented
           label={t("appearance.overlay.movement.size")}
           value={size}
@@ -56,15 +56,15 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         />
       </SettingRow>
 
-      <SettingRow divided label={t("appearance.overlay.movement.timer")}>
+      <SettingRow label={t("appearance.overlay.movement.timer")}>
         <Switch checked={look.timer} onCheckedChange={(timer) => onLook({ timer })} />
       </SettingRow>
 
-      <SettingRow divided label={t("appearance.overlay.movement.mic")} hint={t("appearance.overlay.movement.micHint")}>
+      <SettingRow label={t("appearance.overlay.movement.mic")} hint={t("appearance.overlay.movement.micHint")}>
         <Switch checked={look.mic} onCheckedChange={(mic) => onLook({ mic })} />
       </SettingRow>
 
-      <SettingRow divided label={t("appearance.overlay.movement.endText")} hint={t("appearance.overlay.movement.endTextHint")}>
+      <SettingRow label={t("appearance.overlay.movement.endText")} hint={t("appearance.overlay.movement.endTextHint")}>
         <Switch checked={look.end_text} onCheckedChange={(end_text) => onLook({ end_text })} />
       </SettingRow>
     </SectionCard>

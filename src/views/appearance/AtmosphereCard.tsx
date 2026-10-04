@@ -17,83 +17,80 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
 
   return (
     <SectionCard icon={Cloud} title={t("appearance.atmosphere.title")}>
-      <div className="flex flex-col gap-4 border-t border-border-subtle pt-4">
-        <SettingRow label={t("appearance.atmosphere.lights.label")} hint={t("appearance.atmosphere.lights.hint")}>
-          <span className="flex items-center gap-2">
-            <Range
-              value={values.ambient}
-              min={0}
-              max={100}
-              label={t("appearance.atmosphere.lights.label")}
-              onChange={(ambient) => change({ ambient }, true)}
-            />
-            <span className="w-10 text-right font-mono text-xs tabular-nums text-muted-foreground">{values.ambient} %</span>
-          </span>
-        </SettingRow>
+      <SettingRow label={t("appearance.atmosphere.lights.label")} hint={t("appearance.atmosphere.lights.hint")}>
+        <span className="flex items-center gap-2">
+          <Range
+            value={values.ambient}
+            min={0}
+            max={100}
+            label={t("appearance.atmosphere.lights.label")}
+            onChange={(ambient) => change({ ambient }, true)}
+          />
+          <span className="w-10 text-right font-mono text-xs tabular-nums text-muted-foreground">{values.ambient} %</span>
+        </span>
+      </SettingRow>
 
-        <SettingRow divided label={t("appearance.atmosphere.glass.label")} hint={t("appearance.atmosphere.glass.hint")}>
-          <span className="flex items-center gap-2">
-            <Range
-              value={values.glass}
-              min={MIN_GLASS}
-              max={100}
-              label={t("appearance.atmosphere.glass.label")}
-              onChange={(glass) => change({ glass }, true)}
-            />
-            <span className="w-10 text-right font-mono text-xs tabular-nums text-muted-foreground">{values.glass} %</span>
-          </span>
-        </SettingRow>
+      <SettingRow label={t("appearance.atmosphere.glass.label")} hint={t("appearance.atmosphere.glass.hint")}>
+        <span className="flex items-center gap-2">
+          <Range
+            value={values.glass}
+            min={MIN_GLASS}
+            max={100}
+            label={t("appearance.atmosphere.glass.label")}
+            onChange={(glass) => change({ glass }, true)}
+          />
+          <span className="w-10 text-right font-mono text-xs tabular-nums text-muted-foreground">{values.glass} %</span>
+        </span>
+      </SettingRow>
 
-        <SettingRow
-          divided
+      <SettingRow
+        label={t("appearance.atmosphere.source.label")}
+        hint={t("appearance.atmosphere.source.hint")}
+        below={
+          values.lights && (
+            <div className="slide-enter mt-4 flex items-center justify-between gap-4">
+              <span className="text-sm text-muted-foreground">{t("appearance.atmosphere.source.own")}</span>
+              <span className="flex items-center gap-2">
+                {lights.map((color, i) => (
+                  <ColorSwatch
+                    key={i}
+                    showCode={false}
+                    value={color}
+                    label={t("appearance.atmosphere.source.light", { n: i + 1 })}
+                    onChange={(next) => change({ lights: lights.map((c, k) => (k === i ? next : c)) }, true)}
+                  />
+                ))}
+              </span>
+            </div>
+          )
+        }
+      >
+        <Segmented
           label={t("appearance.atmosphere.source.label")}
-          hint={t("appearance.atmosphere.source.hint")}
-          below={
-            values.lights && (
-              <div className="slide-enter mt-4 flex items-center justify-between gap-4">
-                <span className="text-sm text-muted-foreground">{t("appearance.atmosphere.source.own")}</span>
-                <span className="flex items-center gap-2">
-                  {lights.map((color, i) => (
-                    <ColorSwatch
-                      key={i}
-                      showCode={false}
-                      value={color}
-                      label={t("appearance.atmosphere.source.light", { n: i + 1 })}
-                      onChange={(next) => change({ lights: lights.map((c, k) => (k === i ? next : c)) }, true)}
-                    />
-                  ))}
-                </span>
-              </div>
-            )
-          }
-        >
-          <Segmented
-            label={t("appearance.atmosphere.source.label")}
-            value={values.lights ? "own" : "gradient"}
-            onChange={(source) => change({ lights: source === "own" ? lights : null })}
-            options={[
-              { value: "gradient", label: t("appearance.atmosphere.source.gradient") },
-              { value: "own", label: t("appearance.atmosphere.source.apart") },
-            ]}
-          />
-        </SettingRow>
+          value={values.lights ? "own" : "gradient"}
+          onChange={(source) => change({ lights: source === "own" ? lights : null })}
+          options={[
+            { value: "gradient", label: t("appearance.atmosphere.source.gradient") },
+            { value: "own", label: t("appearance.atmosphere.source.apart") },
+          ]}
+        />
+      </SettingRow>
 
-        <SettingRow divided label={t("appearance.atmosphere.drift.label")} hint={t("appearance.atmosphere.drift.hint")}>
-          <Switch
-            checked={values.drift}
-            onCheckedChange={(drift) => change({ drift })}
-            aria-label={t("appearance.atmosphere.drift.label")}
-          />
-        </SettingRow>
+      <SettingRow label={t("appearance.atmosphere.drift.label")} hint={t("appearance.atmosphere.drift.hint")}>
+        <Switch
+          checked={values.drift}
+          onCheckedChange={(drift) => change({ drift })}
+          aria-label={t("appearance.atmosphere.drift.label")}
+        />
+      </SettingRow>
 
-        <SettingRow divided label={t("appearance.atmosphere.grain.label")} hint={t("appearance.atmosphere.grain.hint")}>
-          <Switch
-            checked={values.grain}
-            onCheckedChange={(grain) => change({ grain })}
-            aria-label={t("appearance.atmosphere.grain.label")}
-          />
-        </SettingRow>
-      </div>
+      <SettingRow label={t("appearance.atmosphere.grain.label")} hint={t("appearance.atmosphere.grain.hint")}>
+        <Switch
+          checked={values.grain}
+          onCheckedChange={(grain) => change({ grain })}
+          aria-label={t("appearance.atmosphere.grain.label")}
+        />
+      </SettingRow>
     </SectionCard>
   );
 }

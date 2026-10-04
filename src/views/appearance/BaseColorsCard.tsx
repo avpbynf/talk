@@ -21,32 +21,29 @@ export default function BaseColorsCard({ theme }: { theme: AppThemeController })
 
   return (
     <SectionCard icon={Palette} title={t("appearance.base.title")} description={t("appearance.base.description")}>
-      <div className="flex flex-col gap-4 border-t border-border-subtle pt-4">
-        {COLORS.map((key, i) => (
-          <SettingRow
-            divided={i > 0}
-            key={key}
+      {COLORS.map((key) => (
+        <SettingRow
+          key={key}
+          label={t(`appearance.base.${key}.label`)}
+          hint={t(`appearance.base.${key}.hint`)}
+        >
+          <ColorSwatch
+            value={values[key]}
             label={t(`appearance.base.${key}.label`)}
-            hint={t(`appearance.base.${key}.hint`)}
-          >
-            <ColorSwatch
-              value={values[key]}
-              label={t(`appearance.base.${key}.label`)}
-              onChange={(color) => change({ [key]: color }, true)}
-            />
-          </SettingRow>
-        ))}
-        {(settled.page.adjusted || settled.card.adjusted) && (
-          <p role="status" className="text-xs text-warning">
-            {t("appearance.base.adjusted")}
-          </p>
-        )}
-        {settled.surfacesAdjusted && (
-          <p role="status" className="text-xs text-warning">
-            {t("appearance.base.solidified")}
-          </p>
-        )}
-      </div>
+            onChange={(color) => change({ [key]: color }, true)}
+          />
+        </SettingRow>
+      ))}
+      {(settled.page.adjusted || settled.card.adjusted) && (
+        <p role="status" className="text-xs text-warning">
+          {t("appearance.base.adjusted")}
+        </p>
+      )}
+      {settled.surfacesAdjusted && (
+        <p role="status" className="text-xs text-warning">
+          {t("appearance.base.solidified")}
+        </p>
+      )}
     </SectionCard>
   );
 }
