@@ -83,7 +83,7 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
         <Trans
           i18nKey="transcription.pair.title"
           values={{ label }}
-          components={{ label: <span className="normal-case" /> }}
+          components={{ label: <span /> }}
         />
       }
       description={t("transcription.pair.subtitle")}
@@ -94,7 +94,7 @@ export function PairPanel({ url, label, onPaired, onClose }: PairPanelProps) {
           size="icon"
           onClick={onClose}
           aria-label={t("common.close")}
-          className="h-7 w-7 text-muted-foreground"
+          className="text-muted-foreground"
         >
           <X />
         </Button>
