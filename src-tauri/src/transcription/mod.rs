@@ -400,7 +400,7 @@ impl WhisperEngine {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
         // Configure for optimal performance
-        params.set_n_threads(num_cpus::get() as i32 / 2);
+        params.set_n_threads(threads_for(num_cpus::get()));
         params.set_language(language);
         params.set_translate(false);
         params.set_print_special(false);
@@ -467,9 +467,23 @@ fn without_nul(text: &str) -> String {
     text.replace('\0', "")
 }
 
+/// Half the cores, and never none: zero would leave the choice to whisper on a
+/// single-core machine.
+fn threads_for(cores: usize) -> i32 {
+    (cores / 2).max(1) as i32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_single_core_still_gets_a_thread() {
+        assert_eq!(threads_for(1), 1);
+        assert_eq!(threads_for(2), 1);
+        assert_eq!(threads_for(3), 1);
+        assert_eq!(threads_for(16), 8);
+    }
 
     #[test]
     fn a_nul_byte_is_dropped_before_it_reaches_whisper() {
