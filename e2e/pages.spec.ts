@@ -284,7 +284,7 @@ test.describe("account page", () => {
   });
 
   test("signed in, shows the account and signs out", async ({ app, page }) => {
-    await app.open({ state: { google: SIGNED_IN } });
+    await app.open({ frozen: true, state: { google: SIGNED_IN } });
     await expect(app.sidebar).toContainText("nicolas.example@gmail.com");
     await app.go(account);
 
@@ -295,6 +295,13 @@ test.describe("account page", () => {
     await expect(page.getByText("nicolas.example@gmail.com")).toHaveCount(0);
     await expect(app.sidebar).toContainText("Signed out");
     expect(await app.calls("google_sign_out")).toHaveLength(1);
+  });
+
+  test("says how long ago the last sync was when it is not from today", async ({ app, page }) => {
+    await app.open({ frozen: true, state: { google: { ...SIGNED_IN, lastSyncMs: Date.parse("2026-09-12T09:42:00.000Z") } } });
+    await app.go(account);
+
+    await expect(page.getByText("Last synced 3 days ago")).toBeVisible();
   });
 
   test("signed in, lists this machine first and the others after it", async ({ app, page }) => {

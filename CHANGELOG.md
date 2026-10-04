@@ -549,6 +549,11 @@ read, the sync still succeeds and the page says so under the last sync time. Whe
 signing you out and keeps what the account already synced. Reconnecting with a different Google
 account does what signing out and in again does.
 
+- (preferences) Show how long ago the last sync was
+
+The Account page gave only the hour of the last sync, so a sync from last week looked like one from
+this morning. When it is not from today the page now says how long ago it was.
+
 ## [0.9.0] - 2026-09-07
 
 ### Features

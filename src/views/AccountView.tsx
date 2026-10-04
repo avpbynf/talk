@@ -4,7 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import { Blobatar } from "@blobatar/react";
 import "blobatar/motion.css";
-import { formatTime } from "@/i18n";
+import { formatAgo, formatTime } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/PageShell";
 import { SectionCard } from "@/components/SectionCard";
@@ -101,7 +101,11 @@ export default function AccountView() {
     if (busy === "sync" || current.syncing) return t("account.syncing");
     const failed = statusFailure(current.lastError, current.lastErrorDetail);
     if (failed) return t("account.syncFailed", { error: t(`account.errors.${failed.code}`) });
-    if (current.lastSyncMs) return t("account.lastSync", { time: formatTime(new Date(current.lastSyncMs)) });
+    if (current.lastSyncMs) {
+      const when = new Date(current.lastSyncMs);
+      if (when.toDateString() === new Date().toDateString()) return t("account.lastSync", { time: formatTime(when) });
+      return t("account.lastSyncAgo", { ago: formatAgo(current.lastSyncMs) });
+    }
     return t("account.neverSynced");
   }
 
