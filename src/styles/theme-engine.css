@@ -84,7 +84,6 @@
   --hyb-card: var(--hyb);
 
   /* Glows follow the status colours */
-  --rec-glow: color-mix(in oklch, var(--rec) 40%, transparent);
   --srv-glow: color-mix(in oklch, var(--srv) 30%, transparent);
   --hyb-glow: color-mix(in oklch, var(--hyb) 30%, transparent);
 
@@ -126,7 +125,6 @@
  */
 @layer base {
   :is(
-    .on-card,
     [class~="bg-surface-raised"],
     [class~="bg-surface-inset"],
     [class~="bg-surface-elevated"],
@@ -160,9 +158,9 @@
  * feedback that work is going on, so it keeps turning.
  */
 :root[data-motion="reduced"] { --tt: 0s; transition: none; }
-:root[data-motion="reduced"] :not(.animate-spin, .animate-spin-slow),
-:root[data-motion="reduced"] :not(.animate-spin, .animate-spin-slow)::before,
-:root[data-motion="reduced"] :not(.animate-spin, .animate-spin-slow)::after {
+:root[data-motion="reduced"] :not(.animate-spin),
+:root[data-motion="reduced"] :not(.animate-spin)::before,
+:root[data-motion="reduced"] :not(.animate-spin)::after {
   animation-duration: 0s !important;
   transition-duration: 0s !important;
 }
