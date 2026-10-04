@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Its own port, so a `tauri dev` running on 1421 is never the server under test.
-const PORT = 1431;
+// Its own port, so a `tauri dev` running on 1421 is never the server under test. E2E_PORT moves
+// it for a second checkout: two suites on one port are served whichever tree started first.
+const PORT = Number(process.env.E2E_PORT) || 1431;
 
 export default defineConfig({
   testDir: ".",
