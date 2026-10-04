@@ -129,14 +129,14 @@ describe("text on the accent", () => {
   ];
 
   it.each(everyGradient.map((g) => [g.id, g.stops] as const))(
-    "reaches 4.5 on every stop of %s once the layer behind the text is on",
+    "reaches 3 on every stop of %s once the layer behind the text is on",
     (_id, stops) => {
       const plan = accentPlan(stops);
       const match = /rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/.exec(plan.scrim);
       expect(match).not.toBeNull();
       const overlay = rgbToHex([Number(match?.[1]), Number(match?.[2]), Number(match?.[3])]);
       for (const stop of stops) {
-        expect(contrast(plan.text, mixHex(stop.color, overlay, Number(match?.[4])))).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(plan.text, mixHex(stop.color, overlay, Number(match?.[4])))).toBeGreaterThanOrEqual(3);
       }
     },
   );
@@ -147,8 +147,34 @@ describe("text on the accent", () => {
     expect(plan.alpha).toBe(0);
   });
 
-  it("only lays a layer where neither white nor dark would do", () => {
-    expect(accentPlan(PRESETS[3].values.stops).alpha).toBeGreaterThan(0);
+  it("sets dark text on Aurora, whose cyan stop would need more than 0.15 of black for white", () => {
+    const plan = accentPlan(aurora.stops);
+    expect(plan.text).toBe("#101018");
+    expect(plan.alpha).toBe(0);
+  });
+
+  it("sets white where a layer of at most 0.15 is enough, on Peach", () => {
+    const plan = accentPlan(PRESETS.find((p) => p.id === "peach")!.values.stops);
+    expect(plan.text).toBe("#ffffff");
+    expect(plan.alpha).toBeLessThanOrEqual(0.15);
+  });
+
+  it("sets dark text on a pale yellow gradient, with no layer", () => {
+    const plan = accentPlan([{ color: "#fde047", pos: 0 }, { color: "#fef9c3", pos: 100 }]);
+    expect(plan.text).toBe("#101018");
+    expect(plan.alpha).toBe(0);
+  });
+
+  it("sets dark text on pure white, with no layer", () => {
+    const plan = accentPlan([{ color: "#ffffff", pos: 0 }, { color: "#ffffff", pos: 100 }]);
+    expect(plan.text).toBe("#101018");
+    expect(plan.alpha).toBe(0);
+  });
+
+  it("gives Graphite, whose first stop is near white, dark text under a light layer", () => {
+    const plan = accentPlan(PRESETS.find((p) => p.id === "graphite")!.values.stops);
+    expect(plan.text).toBe("#101018");
+    expect(plan.alpha).toBe(0.1);
   });
 });
 
@@ -162,10 +188,12 @@ describe("legible colours", () => {
     const props = style.properties;
     const page = settled.pageSurfaces;
     const cards = settled.cardSurfaces;
-    for (const name of ["--fg", "--muted", "--accent-text", "--rec", "--ok", "--warn", "--bad", "--srv", "--hyb"]) {
-      expect(worstOn(props[name], page), `${name} on the page`).toBeGreaterThanOrEqual(4.5);
-      const own = props[name.replace(/^--(fg|muted|accent-text|rec|ok|warn|bad|srv|hyb)$/, "--$1-card")] ?? props[name];
-      expect(worstOn(own, cards), `${name} on a card`).toBeGreaterThanOrEqual(4.5);
+    for (const name of ["--fg", "--muted", "--accent-text", "--rec", "--ok", "--ok-text", "--warn", "--bad", "--srv", "--hyb"]) {
+      // Secondary text is held to 3, everything else that is read to 4.5.
+      const floor = name === "--muted" ? 3 : 4.5;
+      expect(worstOn(props[name], page), `${name} on the page`).toBeGreaterThanOrEqual(floor);
+      const own = props[name.replace(/^--(fg|muted|accent-text|rec|ok|ok-text|warn|bad|srv|hyb)$/, "--$1-card")] ?? props[name];
+      expect(worstOn(own, cards), `${name} on a card`).toBeGreaterThanOrEqual(floor);
     }
     return { style, settled };
   }

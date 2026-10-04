@@ -44,6 +44,7 @@
 
   /* Status colors */
   --color-success: var(--ok);
+  --color-success-text: var(--ok-text);
   --color-warning: var(--warn);
   --color-destructive: var(--bad);
   --color-destructive-foreground: var(--bad-on);
@@ -71,6 +72,14 @@
   --color-hybrid: var(--hyb);
   --color-hybrid-glow: var(--hyb-glow);
 
+  /* Type sizes carry no line height of their own: the face sets it, and prose says its own */
+  --text-xs--line-height: normal;
+  --text-sm--line-height: normal;
+  --text-base--line-height: normal;
+  --text-lg--line-height: normal;
+  --text-xl--line-height: normal;
+  --text-2xl--line-height: normal;
+
   /* Radii follow the corner step of the theme */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -87,6 +96,9 @@
     @apply h-full overflow-hidden;
   }
 
+  html {
+    line-height: normal;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Geist Variable', 'Segoe UI', system-ui, sans-serif;
@@ -123,6 +135,14 @@
     user-select: text;
   }
 
+  /* Tailwind's preflight sets these in a monospace face */
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: inherit;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
@@ -135,14 +155,6 @@
 
   ::-webkit-scrollbar-thumb {
     border: 3px solid transparent;
-  /* Tailwind's preflight sets these in a monospace face */
-  code,
-  kbd,
-  samp,
-  pre {
-    font-family: inherit;
-  }
-
     border-radius: 99px;
     background: var(--color-border-hover);
     background-clip: padding-box;
@@ -491,6 +503,7 @@ input[type="color"].swatch:focus-visible {
 /* ===== KEYBOARD SHORTCUTS ===== */
 
 kbd {
+  font-family: inherit;
   font-size: 11px;
   padding: 3px 7px;
   background: var(--raised);
@@ -503,7 +516,6 @@ kbd {
 /* ===== PROGRESS BAR ===== */
 
 .progress-glow {
-  font-family: inherit;
   box-shadow: 0 0 8px var(--color-active-glow);
 }
 

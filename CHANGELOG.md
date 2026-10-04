@@ -22,6 +22,13 @@ The whole window, the overlay included, now uses Geist, and nothing is set in a 
 anymore: the timer, the counters, the server addresses, the ports and the pairing code keep their
 digits the same width, so they line up.
 
+- (preferences) Make the colours and the spacing less dull
+
+The thumb of a switch is white whether it is on or not, and text on a button takes white or dark
+depending on which the gradient carries with the lighter touch, so buttons keep their brightness.
+Secondary text is dimmer, the green of a working engine is a little greener, and text takes the
+typeface's own line height, so cards are no longer padded with air.
+
 - (window) Say in the sidebar what is wrong with the engine
 
 The pill above the bottom links now says the server is unreachable even when no local model is

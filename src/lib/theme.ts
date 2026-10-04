@@ -6,6 +6,7 @@ import {
   legibleOn,
   modeOf,
   onFill,
+  readableOn,
   ringColor,
   semanticColors,
   settle,
@@ -372,6 +373,7 @@ export function themeStyle(values: ThemeValues, reducedMotion = false): ThemeSty
     "--ring": ringColor(values.stops, [...settled.pageSurfaces, ...settled.cardSurfaces]),
     "--rec": page.rec,
     "--ok": page.ok,
+    "--ok-text": okText(page.ok, settled.page.fg, settled.pageSurfaces),
     "--warn": page.warn,
     "--bad": page.bad,
     "--bad-on": onFill(page.bad),
@@ -383,6 +385,7 @@ export function themeStyle(values: ThemeValues, reducedMotion = false): ThemeSty
     ["--fg-card", settled.card.fg, settled.page.fg],
     ["--muted-card", settled.card.muted, settled.page.muted],
     ["--accent-text-card", accentCard, accentPage],
+    ["--ok-text-card", okText(onCard.ok, settled.card.fg, settled.cardSurfaces), okText(page.ok, settled.page.fg, settled.pageSurfaces)],
     ...(["rec", "ok", "warn", "bad", "srv", "hyb"] as const).map((k): [string, string, string] => [
       `--${k}-card`,
       onCard[k],
@@ -408,6 +411,11 @@ export function themeStyle(values: ThemeValues, reducedMotion = false): ThemeSty
     still: !values.drift || motion === "reduced",
     grained: values.grain,
   };
+}
+
+/** The success colour on its way to the text colour, held readable: what a loaded model or an active pill is written in. */
+function okText(ok: string, fg: string, surfaces: readonly string[]): string {
+  return readableOn(mixHex(ok, fg, 0.28), surfaces);
 }
 
 export function prefersReducedMotion(): boolean {
