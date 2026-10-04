@@ -1,4 +1,4 @@
-import { Activity } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { OverlaySize } from "@/App";
 import { SectionCard } from "@/components/SectionCard";
@@ -23,7 +23,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
   const { t } = useTranslation();
 
   return (
-    <SectionCard icon={Activity} title={t("appearance.overlay.movement.title")}>
+    <SectionCard icon={Volume2} title={t("appearance.overlay.movement.title")}>
       <SettingRow label={t("appearance.overlay.movement.reaction")} hint={t("appearance.overlay.movement.reactionHint")}>
         <div className="flex items-center gap-3">
           <Range
@@ -60,12 +60,12 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         <Switch checked={look.timer} onCheckedChange={(timer) => onLook({ timer })} />
       </SettingRow>
 
-      <SettingRow label={t("appearance.overlay.movement.mic")} hint={t("appearance.overlay.movement.micHint")}>
-        <Switch checked={look.mic} onCheckedChange={(mic) => onLook({ mic })} />
-      </SettingRow>
-
       <SettingRow label={t("appearance.overlay.movement.endText")} hint={t("appearance.overlay.movement.endTextHint")}>
         <Switch checked={look.end_text} onCheckedChange={(end_text) => onLook({ end_text })} />
+      </SettingRow>
+
+      <SettingRow label={t("appearance.overlay.movement.mic")} hint={t("appearance.overlay.movement.micHint")}>
+        <Switch checked={look.mic} onCheckedChange={(mic) => onLook({ mic })} />
       </SettingRow>
     </SectionCard>
   );

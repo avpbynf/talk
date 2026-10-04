@@ -502,11 +502,11 @@
         },
         "capsule": {
           "name": "Capsule",
-          "text": "A dark pill that stretches. Your voice scrolls by as a wave, and the text shimmers while it transcribes."
+          "text": "A black pill that stretches. Your voice scrolls by as a wave, and the text shimmers while it transcribes."
         },
         "orb": {
           "name": "Orb",
-          "text": "Your own blobatar. It swells with your voice and sends out ripples, thinks while it transcribes and smiles once the text is pasted."
+          "text": "Your own blobatar. It swells with your voice and sends out ripples, thinks while it transcribes, smiles when it is pasted."
         }
       },
       "preview": {
@@ -518,7 +518,7 @@
         "pasted": "Pasted",
         "refused": "Refused",
         "desktop": "A fake desktop. Drag the overlay to put it anywhere.",
-        "window": "Meeting notes",
+        "window": "Notes, product review",
         "earlier": "To pick up tomorrow morning:",
         "later": "Check that the vocabulary survives a change of PC, then try the turbo model on the Intel card before the release."
       },
@@ -540,7 +540,7 @@
         "reaction": "Reaction to your voice",
         "reactionHint": "How much the overlay moves when you speak",
         "entrance": "Appearance",
-        "entranceHint": "How it arrives when a recording starts",
+        "entranceHint": "When the recording starts",
         "bounce": "Bounce",
         "slide": "Slide",
         "fade": "Fade",
@@ -549,7 +549,7 @@
         "timer": "Timer",
         "mic": "Microphone icon",
         "micHint": "Halo and Capsule",
-        "endText": "Words after pasting",
+        "endText": "Text at the end",
         "endTextHint": "Shows \"Pasted, 14 words\" once the text is in place. Off, the overlay confirms with a tick and no words. A refused dictation always says why, in a few words."
       },
       "position": {

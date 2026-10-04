@@ -424,6 +424,14 @@ button next to a Reset appearance button of the same height, the gradient summar
 135 degrees" without the colour count, the borders colour has no hint, and the shape card takes the
 dashboard icon.
 
+- (overlay) Order the overlay settings as the design does
+
+In Movement, the timer comes first, then "Text at the end", then the microphone icon, and the
+appearance setting says "When the recording starts". The style and movement cards take the
+microphone and speaker icons, the position card the screen icon, the capsule is described as a black
+pill, the orb as smiling when it is pasted, and the preview's fake window is titled "Notes, product
+review".
+
 ### Bug Fixes
 
 - (models) A failed model download no longer counts as downloaded
