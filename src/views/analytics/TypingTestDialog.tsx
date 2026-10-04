@@ -86,7 +86,9 @@ function TypingTest({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !finished) onClose();
+      if (e.key !== "Escape" || finished) return;
+      e.preventDefault();
+      onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
+import { NoticeStrip } from "@/components/NoticeStrip";
+import { clearNotice } from "@/lib/notice";
 import { SharePanel } from "./SharePanel";
 import type { ShareDevice, ShareInfo } from "@/lib/share";
 
@@ -125,6 +127,50 @@ describe("SharePanel", () => {
     await user.click(screen.getByRole("button", { name: /Revoke/ }));
 
     expect(invoked).toHaveBeenCalledWith("share_revoke_device", { id: "d1" });
+  });
+
+  it("says so when a machine could not be revoked", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    clearNotice();
+    invoked.mockImplementation(async (cmd: string) => {
+      if (cmd === "share_get_status") return serving;
+      if (cmd === "share_list_devices") return [laptop];
+      if (cmd === "share_revoke_device") throw new Error("refused");
+      return undefined;
+    });
+    const user = userEvent.setup();
+    render(
+      <>
+        <SharePanel currentModel="ggml-small-q5_1" />
+        <NoticeStrip />
+      </>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /Revoke/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be revoked");
+  });
+
+  it("says so when sharing could not be turned on", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    clearNotice();
+    invoked.mockImplementation(async (cmd: string) => {
+      if (cmd === "share_get_status") return off;
+      if (cmd === "share_list_devices") return [];
+      if (cmd === "share_set_enabled") throw new Error("refused");
+      return undefined;
+    });
+    const user = userEvent.setup();
+    render(
+      <>
+        <SharePanel currentModel="ggml-small-q5_1" />
+        <NoticeStrip />
+      </>,
+    );
+
+    await user.click(await screen.findByRole("switch", { name: "Share this PC" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sharing could not be changed");
   });
 
   it("tells the user how to pair when nobody has", async () => {

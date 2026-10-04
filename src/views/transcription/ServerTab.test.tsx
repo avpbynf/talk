@@ -159,6 +159,59 @@ describe("ServerTab pairing", () => {
   });
 });
 
+describe("ServerTab drafts", () => {
+  function tabWith(serverUrl: string, serverToken: string, serverModel: string) {
+    const props = {
+      serverTimeout: 30000,
+      serverStatus: "unknown" as const,
+      onServerUrlChange: vi.fn(),
+      onServerTimeoutChange: vi.fn(),
+      checkServerHealth: vi.fn(),
+      onServerTokenChange: vi.fn(),
+      onServerModelChange: vi.fn(),
+      serverFallback: true,
+      onServerFallbackChange: vi.fn(),
+    };
+    const view = (url: string, token: string, model: string) => (
+      <ServerTab {...props} serverUrl={url} serverToken={token} serverModel={model} />
+    );
+    const rendered = render(view(serverUrl, serverToken, serverModel));
+    return { rerender: (url: string, token: string, model: string) => rendered.rerender(view(url, token, model)) };
+  }
+
+  it("goes back to the confirmed value when a refused save rolls the prop back", async () => {
+    invoked.mockResolvedValue([]);
+    const user = userEvent.setup();
+    const { rerender } = tabWith("http://old:1", "tok", "m1");
+    const url = screen.getByPlaceholderText("http://localhost:8000");
+
+    await user.clear(url);
+    await user.type(url, "http://new:2");
+    await user.tab();
+    // The shell shows the value at once, then the refusal rolls it back.
+    rerender("http://new:2", "tok", "m1");
+    expect(url).toHaveValue("http://new:2");
+    rerender("http://old:1", "tok", "m1");
+
+    expect(url).toHaveValue("http://old:1");
+  });
+
+  it("follows a value the backend changed (a sync) while the field is not being edited, and not while it is", async () => {
+    invoked.mockResolvedValue([]);
+    const user = userEvent.setup();
+    const { rerender } = tabWith("http://old:1", "tok", "m1");
+    const model = screen.getByPlaceholderText(/whisper-1, gpt-4o-transcribe/);
+
+    rerender("http://old:1", "tok", "m2");
+    expect(model).toHaveValue("m2");
+
+    await user.click(model);
+    await user.type(model, "x");
+    rerender("http://old:1", "tok", "m3");
+    expect(model).toHaveValue("m2x");
+  });
+});
+
 describe("ServerTab model", () => {
   it("saves the model typed in the field once it loses focus", async () => {
     invoked.mockResolvedValue([]);

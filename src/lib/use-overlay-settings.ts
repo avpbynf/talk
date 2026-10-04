@@ -4,6 +4,9 @@ import { listen } from "@tauri-apps/api/event";
 import type { OverlaySize } from "@/App";
 import { type OverlayLook, type OverlayPlacement, type OverlaySettings, DEFAULT_SETTINGS, coerceSettings } from "@/lib/overlay";
 import type { OverlayThemeId } from "@/lib/overlay-themes";
+import i18n from "@/i18n";
+import { setReadFailed } from "@/lib/read-state";
+import { reportFailure, reportSuccess } from "@/lib/save-setting";
 
 const SAVE_DELAY_MS = 250;
 
@@ -43,7 +46,13 @@ export function useOverlaySettings() {
     (command: string, args: Record<string, unknown>) => {
       editing.current += 1;
       return invoke(command, args)
-        .catch((error) => console.error(`Failed to save (${command}):`, error))
+        .then(() => reportSuccess("overlay_settings"))
+        .catch((error) => {
+          console.error(`Failed to save (${command}):`, error);
+          // The window already shows the edit: what the backend kept is read back.
+          missed.current = true;
+          reportFailure("overlay_settings", i18n.t("common.saveFailed"));
+        })
         .finally(() => {
           editing.current -= 1;
           if (editing.current === 0 && missed.current && !timers.current.look && !timers.current.placement) {
@@ -55,15 +64,24 @@ export function useOverlaySettings() {
     [reread],
   );
 
-  useEffect(() => {
-    alive.current = true;
+  /** The first read, and what Retry runs: while it has failed the tab says so instead of staying blank. */
+  const load = useCallback(() => {
     invoke<unknown>("get_overlay_settings")
       .then((raw) => {
         if (!alive.current) return;
         setSettings(coerceSettings(raw));
         setReady(true);
+        setReadFailed("overlay", false);
       })
-      .catch((error) => console.error("Failed to read the overlay settings:", error));
+      .catch((error) => {
+        console.error("Failed to read the overlay settings:", error);
+        if (alive.current) setReadFailed("overlay", true);
+      });
+  }, []);
+
+  useEffect(() => {
+    alive.current = true;
+    load();
     const changed = listen<unknown>("overlay-settings-changed", (event) => {
       if (editing.current > 0 || timers.current.look || timers.current.placement) missed.current = true;
       else setSettings(coerceSettings(event.payload));
@@ -136,5 +154,5 @@ export function useOverlaySettings() {
     [write],
   );
 
-  return { settings, ready, setLook, setPlacement, setTheme, setSize };
+  return { settings, ready, reload: load, setLook, setPlacement, setTheme, setSize };
 }

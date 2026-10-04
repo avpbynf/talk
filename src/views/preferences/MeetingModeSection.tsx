@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
+import { LoadGate } from "@/components/LoadGate";
+import { useSettingRead } from "@/lib/use-setting-read";
 import { Switch } from "@/components/ui/switch";
 import { SectionCard } from "@/components/SectionCard";
 import { Mic } from "lucide-react";
@@ -20,10 +22,17 @@ export default function MeetingModeSection() {
   const [meetingMode, setMeetingMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    invoke<VBCableStatus>("get_vbcable_status").then(setVbCableStatus);
-    invoke<boolean>("get_meeting_mode").then(setMeetingMode);
+  // The switch stays locked until both are known, and says so with a Retry when they cannot be read.
+  const { pending, reload } = useSettingRead(
+    "meeting",
+    () => Promise.all([invoke<VBCableStatus>("get_vbcable_status"), invoke<boolean>("get_meeting_mode")]),
+    ([status, enabled]) => {
+      setVbCableStatus(status);
+      setMeetingMode(enabled);
+    },
+  );
 
+  useEffect(() => {
     const unlisten = listen<boolean>("meeting-mode-changed", (e) => {
       setMeetingMode(e.payload);
     });
@@ -46,6 +55,7 @@ export default function MeetingModeSection() {
   };
 
   return (
+    <LoadGate groups={["meeting"]} onRetry={reload} pending={pending} inline>
     <SectionCard
       icon={Mic}
       title={t("preferences.meeting.title")}
@@ -69,5 +79,6 @@ export default function MeetingModeSection() {
         <p className="text-xs text-muted-foreground">{t("preferences.meeting.setup")}</p>
       )}
     </SectionCard>
+    </LoadGate>
   );
 }

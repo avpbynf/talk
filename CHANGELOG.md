@@ -590,6 +590,30 @@ carry an icon (check the connection, delete a model), now announce what they are
 When Start over drew the same sentence again, the focus stayed on the button and the keys went
 nowhere until you clicked the sentence. The field has the focus back every time.
 
+- (preferences) Say so when a setting could not be saved
+
+A switch, a choice or a field that the application failed to save used to keep showing the new
+value as if it had worked. It now goes back to the last value that was really saved, and a message
+at the foot of the content says the change was not kept, once, however many steps of a slider it
+took. Saves of one setting go one at a time, so two quick changes can no longer undo each other.
+The server address, token and model fields and the theme go back to what was saved too. When
+another PC's settings arrive while you are changing one, the screen never shows a value that
+neither you nor the application holds, and a refused save goes back to the new value.
+
+- (window) Keep Escape for what is using it
+
+The message at the foot of the window no longer disappears when you press Escape to close a
+rename, a menu, a field or a dialog: only an Escape that nothing else wanted dismisses it.
+
+- (preferences) Say so when a device, sharing or overlay setting fails
+
+The chained dictations choices and the microphone and speaker pickers go back to their previous
+value when the save fails. Turning sharing on or off, revoking a paired machine and editing the
+overlay now show a message instead of failing silently, and the overlay settings show what was
+really kept. These choices, the language and the meeting mode switch stay locked until they have
+been read, and say so with Try again when they cannot be; the overlay tab no longer stays blank
+when its settings cannot be read. They follow the settings another PC brings.
+
 ### Performance
 
 - (audio) Keep a very long recording smooth

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Clock, Cloud, RefreshCw } from "lucide-react";
@@ -54,6 +54,31 @@ function statusText(serverStatus: ServerStatus, t: TFunction) {
   }
 }
 
+/**
+ * What a field shows while it is being typed in, which follows the value the backend confirmed
+ * as soon as the field is left: a save that is refused rolls the value back, and the field
+ * must not keep showing the text that was refused.
+ */
+function useDraft(value: string): [string, (draft: string) => void, { onFocus: () => void; onBlur: () => void }] {
+  const [draft, setDraft] = useState(value);
+  const editing = useRef(false);
+  useEffect(() => {
+    if (!editing.current) setDraft(value);
+  }, [value]);
+  return [
+    draft,
+    setDraft,
+    {
+      onFocus: () => {
+        editing.current = true;
+      },
+      onBlur: () => {
+        editing.current = false;
+      },
+    },
+  ];
+}
+
 export function ServerTab({
   serverUrl,
   serverTimeout,
@@ -69,10 +94,10 @@ export function ServerTab({
   onServerFallbackChange,
 }: ServerTabProps) {
   const { t } = useTranslation();
-  const [urlInput, setUrlInput] = useState(serverUrl);
+  const [urlInput, setUrlInput, urlField] = useDraft(serverUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
-  const [tokenInput, setTokenInput] = useState(serverToken || "");
-  const [modelInput, setModelInput] = useState(serverModel || "");
+  const [tokenInput, setTokenInput, tokenField] = useDraft(serverToken || "");
+  const [modelInput, setModelInput, modelField] = useDraft(serverModel || "");
 
   const [pairTarget, setPairTarget] = useState<{ url: string; label: string } | null>(null);
 
@@ -181,7 +206,11 @@ export function ServerTab({
             <Input
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              onBlur={() => urlInput !== serverUrl && saveServerUrl()}
+              onFocus={urlField.onFocus}
+              onBlur={() => {
+                urlField.onBlur();
+                if (urlInput !== serverUrl) saveServerUrl();
+              }}
               onKeyDown={(e) => e.key === "Enter" && saveServerUrl()}
               placeholder="http://localhost:8000"
               className="flex-1 text-xs tabular-nums"
@@ -227,7 +256,11 @@ export function ServerTab({
             type="password"
             value={tokenInput}
             onChange={(e) => setTokenInput(e.target.value)}
-            onBlur={() => { if (tokenInput !== serverToken) onServerTokenChange(tokenInput); }}
+            onFocus={tokenField.onFocus}
+            onBlur={() => {
+              tokenField.onBlur();
+              if (tokenInput !== serverToken) onServerTokenChange(tokenInput);
+            }}
             placeholder={t("transcription.server.tokenPlaceholder")}
             className="w-full text-xs tabular-nums"
           />
@@ -242,7 +275,11 @@ export function ServerTab({
           <Input
             value={modelInput}
             onChange={(e) => setModelInput(e.target.value)}
-            onBlur={() => { if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim()); }}
+            onFocus={modelField.onFocus}
+            onBlur={() => {
+              modelField.onBlur();
+              if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim());
+            }}
             placeholder="whisper-1, gpt-4o-transcribe..."
             className="w-full text-xs tabular-nums"
           />

@@ -18,6 +18,7 @@ import {
 } from "@/lib/theme";
 import { readCachedTheme, writeCachedTheme } from "@/lib/theme-cache";
 import { watchFrameRate } from "@/lib/frame-budget";
+import { confirmSetting, saveSetting } from "@/lib/save-setting";
 
 const SAVE_DELAY_MS = 300;
 
@@ -112,15 +113,42 @@ export function useAppTheme(): AppThemeController {
     };
   }, []);
 
-  const timer = useRef<number | undefined>(undefined);
-  const persist = useCallback((next: ThemeSetting) => {
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      invoke("set_app_theme", { theme: next }).catch((error) => {
-        setProblem(wording(error));
-      });
-    }, SAVE_DELAY_MS);
+  // What the settings file holds as the theme, given the saved themes it holds with it: a theme
+  // removed on another machine leaves the look on screen as an unsaved one.
+  const themeIn = useCallback((settings: { theme?: unknown; saved_themes?: unknown }): ThemeSetting => {
+    const stored = coerceSaved(settings.saved_themes);
+    const theme = coerceSetting(settings.theme);
+    if (!theme.custom && !hasBase(theme.preset, stored)) {
+      return settingFor(DEFAULT_PRESET_ID, latest.current.resolved.values, findBase(DEFAULT_PRESET_ID, []));
+    }
+    return theme;
   }, []);
+  const readTheme = useCallback(
+    async () => themeIn(await invoke<{ theme?: unknown; saved_themes?: unknown }>("get_saved_settings")),
+    [themeIn],
+  );
+
+  const timer = useRef<number | undefined>(undefined);
+  // The save goes through the helper: a refusal puts the theme the backend holds back on screen
+  // and says so, instead of leaving a look on screen that will be gone at the next start.
+  const persist = useCallback(
+    (next: ThemeSetting) => {
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => {
+        void saveSetting({
+          key: "app_theme",
+          next,
+          apply: (theme) => {
+            instant.current = false;
+            setSetting(theme);
+          },
+          save: (theme) => invoke("set_app_theme", { theme }),
+          read: readTheme,
+        });
+      }, SAVE_DELAY_MS);
+    },
+    [readTheme],
+  );
 
   const move = useCallback(
     (next: ThemeSetting, live: boolean) => {
@@ -196,14 +224,9 @@ export function useAppTheme(): AppThemeController {
       // Whatever was about to be written describes the theme from before this one.
       window.clearTimeout(timer.current);
       instant.current = true;
-      const nextSaved = coerceSaved(settings.saved_themes);
-      let nextSetting = coerceSetting(settings.theme);
-      if (!nextSetting.custom && !hasBase(nextSetting.preset, nextSaved)) {
-        // The theme on screen was removed on another machine: the look stays, as an unsaved theme.
-        nextSetting = settingFor(DEFAULT_PRESET_ID, latest.current.resolved.values, findBase(DEFAULT_PRESET_ID, []));
-      }
-      setSetting(nextSetting);
-      setSaved(nextSaved);
+      // With a save under way the theme on screen is left alone and read again once it settled.
+      confirmSetting("app_theme", themeIn(settings), { apply: setSetting, read: readTheme });
+      setSaved(coerceSaved(settings.saved_themes));
     },
   };
 }

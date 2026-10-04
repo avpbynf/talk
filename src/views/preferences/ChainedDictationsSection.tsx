@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Mic } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LoadGate } from "@/components/LoadGate";
+import { useSettingRead } from "@/lib/use-setting-read";
+import { confirmSetting, currentSetting, saveSetting } from "@/lib/save-setting";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,21 +26,32 @@ interface Choice<T extends string> {
   label: string;
 }
 
+const readQueue = () => invoke<QueueSettings>("get_queue_settings");
+
 export default function ChainedDictationsSection() {
   const { t } = useTranslation();
   const [settings, setSettings] = useState<QueueSettings>(DEFAULTS);
 
-  useEffect(() => {
-    invoke<QueueSettings>("get_queue_settings").then(setSettings).catch(() => {});
-  }, []);
+  // Read at mount and again when a sync changed them: the next edit is built on what the
+  // backend holds, not on what was there before the sync.
+  const { pending, reload } = useSettingRead("queue", readQueue, (stored) => {
+    confirmSetting("queue_settings", stored, { apply: setSettings, read: readQueue });
+  });
 
+  // Built on what the screen shows now, which a save still under way may already have changed.
   const change = <K extends keyof QueueSettings>(key: K, value: QueueSettings[K]) => {
-    const next = { ...settings, [key]: value };
-    setSettings(next);
-    invoke("set_queue_settings", { settings: next }).catch(() => {});
+    void saveSetting({
+      key: "queue_settings",
+      group: "queue",
+      next: { ...currentSetting("queue_settings", settings), [key]: value },
+      apply: setSettings,
+      save: (next) => invoke("set_queue_settings", { settings: next }),
+      read: readQueue,
+    });
   };
 
   return (
+    <LoadGate groups={["queue"]} onRetry={reload} pending={pending} inline>
     <SectionCard
       icon={Mic}
       title={t("preferences.chained.title")}
@@ -76,6 +90,7 @@ export default function ChainedDictationsSection() {
         onChange={(value) => change("cancel_scope", value)}
       />
     </SectionCard>
+    </LoadGate>
   );
 }
 

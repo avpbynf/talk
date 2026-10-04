@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { CompanionShortcut } from "@/App";
 import { Keyboard, Plus, X, GripVertical } from "lucide-react";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/SectionCard";
 import KeyCaptureField from "@/components/KeyCaptureField";
 import { cn } from "@/lib/utils";
+import { currentSetting } from "@/lib/save-setting";
 import {
   DndContext,
   closestCenter,
@@ -30,25 +31,13 @@ interface CompanionShortcutsSectionProps {
   onCompanionShortcutsChange: (shortcuts: CompanionShortcut[]) => void;
 }
 
-const TRIGGER_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  start: {
-    label: "On start",
-    color: "text-[var(--color-success)]",
-    bg: "bg-[var(--color-success)]/12",
-    border: "border-[var(--color-success)]/25",
-  },
-  stop: {
-    label: "On stop",
-    color: "text-[var(--color-warning)]",
-    bg: "bg-[var(--color-warning)]/12",
-    border: "border-[var(--color-warning)]/25",
-  },
-  both: {
-    label: "Both",
-    color: "text-[var(--color-active)]",
-    bg: "bg-[var(--color-active)]/12",
-    border: "border-[var(--color-active)]/25",
-  },
+/** How long typing in a name has to pause before the list is saved. */
+const LABEL_PAUSE_MS = 600;
+
+const TRIGGER_COLOR: Record<string, string> = {
+  start: "text-[var(--color-success)]",
+  stop: "text-[var(--color-warning)]",
+  both: "text-[var(--color-active)]",
 };
 
 function SortableRow({
@@ -61,6 +50,22 @@ function SortableRow({
   onDelete: (id: string) => void;
 }) {
   const { t } = useTranslation();
+  // The name is kept here while it is typed and handed over when typing pauses or the field is
+  // left: it saves the whole list, and a save per keystroke would be forty of them.
+  const [label, setLabel] = useState(companion.label);
+  const typed = useRef<{ timer?: ReturnType<typeof setTimeout>; dirty: boolean }>({ dirty: false });
+  const commitLabel = useRef((_value: string) => {});
+  commitLabel.current = (value: string) => onUpdate(companion.id, { label: value });
+  useEffect(() => setLabel(companion.label), [companion.label]);
+  const flushLabel = (value: string) => {
+    clearTimeout(typed.current.timer);
+    if (!typed.current.dirty) return;
+    typed.current.dirty = false;
+    commitLabel.current(value);
+  };
+  const latestLabel = useRef(label);
+  latestLabel.current = label;
+  useEffect(() => () => flushLabel(latestLabel.current), []);
   const {
     attributes,
     listeners,
@@ -76,8 +81,6 @@ function SortableRow({
     opacity: isDragging ? 0.4 : 1,
     zIndex: isDragging ? 10 : undefined,
   };
-
-  const meta = TRIGGER_META[companion.trigger];
 
   return (
     <div
@@ -100,8 +103,15 @@ function SortableRow({
       {/* Label — inline editable */}
       <input
         type="text"
-        value={companion.label}
-        onChange={(e) => onUpdate(companion.id, { label: e.target.value })}
+        value={label}
+        onChange={(e) => {
+          const value = e.target.value;
+          setLabel(value);
+          typed.current.dirty = true;
+          clearTimeout(typed.current.timer);
+          typed.current.timer = setTimeout(() => flushLabel(value), LABEL_PAUSE_MS);
+        }}
+        onBlur={(e) => flushLabel(e.target.value)}
         placeholder={t("preferences.companion.name")}
         className="flex-1 px-2 py-0.5 rounded-md bg-transparent border border-transparent hover:border-border-card focus:border-border-card focus:bg-surface-deep text-sm text-foreground/80 placeholder:text-muted-foreground min-w-0 transition-colors focus:outline-none"
       />
@@ -114,7 +124,7 @@ function SortableRow({
         }
       >
         <SelectTrigger className="cursor-pointer w-[150px] shrink-0 bg-transparent border-transparent hover:border-border-card hover:bg-surface-deep text-foreground h-7 text-xs transition-colors">
-          <span className={cn("text-[11px] font-semibold uppercase tracking-wider", meta.color)}>
+          <span className={cn("text-[11px] font-semibold uppercase tracking-wider", TRIGGER_COLOR[companion.trigger])}>
             <SelectValue />
           </span>
         </SelectTrigger>
@@ -153,19 +163,21 @@ export default function CompanionShortcutsSection({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Each edit is built on the list as it is now, saves under way included.
+  const latest = () => currentSetting("companion_shortcuts", companionShortcuts);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = companionShortcuts.findIndex((c) => c.id === active.id);
-    const newIndex = companionShortcuts.findIndex((c) => c.id === over.id);
-    onCompanionShortcutsChange(arrayMove(companionShortcuts, oldIndex, newIndex));
+    const before = latest();
+    const oldIndex = before.findIndex((c) => c.id === active.id);
+    const newIndex = before.findIndex((c) => c.id === over.id);
+    onCompanionShortcutsChange(arrayMove(before, oldIndex, newIndex));
   };
 
   const updateShortcut = (id: string, patch: Partial<CompanionShortcut>) => {
-    onCompanionShortcutsChange(
-      companionShortcuts.map((c) => (c.id === id ? { ...c, ...patch } : c))
-    );
+    onCompanionShortcutsChange(latest().map((c) => (c.id === id ? { ...c, ...patch } : c)));
   };
 
   // Shut by default: a page nobody scrolls past should not open on a list most
@@ -173,9 +185,7 @@ export default function CompanionShortcutsSection({
   const [open, setOpen] = useState(false);
 
   const deleteShortcut = (id: string) => {
-    onCompanionShortcutsChange(
-      companionShortcuts.filter((c) => c.id !== id)
-    );
+    onCompanionShortcutsChange(latest().filter((c) => c.id !== id));
   };
 
   return (
@@ -191,7 +201,7 @@ export default function CompanionShortcutsSection({
           onClick={() => {
             setOpen(true);
             onCompanionShortcutsChange([
-              ...companionShortcuts,
+              ...latest(),
               {
                 id: crypto.randomUUID(),
                 label: "",
