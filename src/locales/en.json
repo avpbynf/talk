@@ -349,8 +349,6 @@
       "microphoneHint": "What it listens to",
       "output": "Output",
       "outputHint": "Where the feedback sounds play",
-      "devices_one": "{{count}} device",
-      "devices_other": "{{count}} devices",
       "systemDefault": "System default",
       "systemDefaultNamed": "System default ({{name}})",
       "refresh": "Look for devices again"
@@ -417,11 +415,11 @@
       },
       "minimized": {
         "label": "Start minimised",
-        "hint": "Open straight into the tray"
+        "hint": "In the notification area"
       },
       "duck": {
         "label": "Turn the volume down",
-        "hint": "Everything the machine plays drops to a share of where it was while you talk, and comes back after",
+        "hint": "While you speak, then it comes back",
         "downTo": "Down to",
         "ariaLabel": "How much of the volume to keep while recording",
         "percent": "{{percent}}% of it"
@@ -888,17 +886,16 @@
   },
   "updates": {
     "title": "Updates",
-    "version": "Version",
-    "versionNumber": "Version {{version}}",
     "checkNow": "Check now",
     "status": {
-      "checking": "Asking GitHub",
-      "available": "Talk {{version}} is out, and the banner up top installs it",
-      "downloading": "Downloading, {{progress}}%",
-      "ready": "Installing, the window closes and comes back",
-      "failed": "The check failed",
-      "schedule": "Checked at every launch, and every hour after",
-      "upToDate": "Up to date, checked at {{time}}"
+      "checking": "Version {{version}}. Asking GitHub...",
+      "available": "Version {{version}}. Talk {{next}} is out.",
+      "downloading": "Version {{version}}. Downloading, {{progress}}%.",
+      "ready": "Version {{version}}. Installing, the window closes and comes back.",
+      "failed": "Version {{version}}. The check failed.",
+      "schedule": "Version {{version}}. Checked at every launch, and every hour after.",
+      "upToDate": "Version {{version}}. Up to date, checked at {{time}}.",
+      "error": "Version {{version}}. {{error}}"
     },
     "banner": {
       "available": "Talk {{version}} is available",
