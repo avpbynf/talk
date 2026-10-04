@@ -33,6 +33,10 @@ Bun's own runtime cannot drive the browser (the launch hangs), so `node-win-x64`
 dependency and `bun run` finds its `node`. Go through the scripts and not `bunx playwright`. A
 failing snapshot is looked at before it is regenerated.
 
+Outside CI the suite reuses a server already listening on its port, so two worktrees running it
+at once are both served the tree that started first, and the second fails on pages it never
+touched. Give each its own port: `E2E_PORT=1441 bun run test:ui`.
+
 The runner has no graphics card, so the suite is also the check on what the window costs when the
 processor paints every layer: `E2E_SOFTWARE=1 bun run test:ui -- --workers 4` draws the same way
 here. Anything that moves behind the content has to be cheap in software: the ambient lights are
