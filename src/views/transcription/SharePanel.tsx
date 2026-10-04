@@ -92,7 +92,7 @@ export function SharePanel({ currentModel }: SharePanelProps) {
       }
     >
       {info.enabled && (
-        <div className="space-y-1.5 text-xs border-t border-border-subtle pt-4">
+        <div className="space-y-1.5 text-xs">
           <p className={cn("flex items-center gap-1.5 font-medium", statusClass)}>
             {failed ? <AlertCircle className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
             {describeShare(info, t)}
@@ -136,7 +136,7 @@ export function SharePanel({ currentModel }: SharePanelProps) {
               onChange={(e) => setPortInput(e.target.value.replace(/\D/g, ""))}
               onBlur={() => void savePort()}
               onKeyDown={(e) => e.key === "Enter" && void savePort()}
-              className="w-24 py-1.5 text-right font-mono"
+              className="h-8 w-24 text-right font-mono text-xs"
             />
           </div>
           {portError && (
