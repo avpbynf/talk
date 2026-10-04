@@ -108,8 +108,7 @@ export class App {
 
   /**
    * Fonts are in and nothing of the page is still arriving: the page
-   * transition leaves inline opacity and transform on a block until it ends,
-   * and the sidebar width is a spring.
+   * transition says so on its root when it ends, and the sidebar width is a spring.
    */
   async settle(): Promise<void> {
     await this.page.evaluate(() => document.fonts.ready);
@@ -117,19 +116,17 @@ export class App {
       .poll(
         () =>
           this.page.evaluate(() => {
-            const blocks = Array.from(document.querySelectorAll<HTMLElement>("[data-page-blocks] > *"));
+            const moving = document.querySelectorAll('[data-transition="running"]').length;
             const nav = document.querySelector("nav");
             const width = nav ? Math.round(nav.getBoundingClientRect().width) : 0;
             return {
-              blocks: blocks
-                .filter((el) => el.style.opacity || el.style.transform || el.style.filter)
-                .map((el) => el.getAttribute("style")),
+              moving,
               nav: width === 66 || width === 226,
             };
           }),
         { message: "the page and the sidebar settle", timeout: 10_000 },
       )
-      .toEqual({ blocks: [], nav: true });
+      .toEqual({ moving: 0, nav: true });
   }
 
   async calls(cmd?: string): Promise<MockCall[]> {

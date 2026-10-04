@@ -50,6 +50,7 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
     // Once a page has started to leave it keeps leaving, whatever is clicked
     // meanwhile; the page that comes in is the last one asked for.
     leaving.current = true;
+    el.dataset.transition = "running";
     const dir = order.indexOf(view) > order.indexOf(shown) ? 1 : -1;
     animate(
       el,
@@ -72,6 +73,7 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
     const el = root.current;
     if (!swap || swap.epoch !== epoch || !el) return;
 
+    el.dataset.transition = "running";
     const blocks = blocksOf(el);
     // motion writes its first keyframe on the next frame, and a staggered block waits for its
     // delay first. Until then the new page would be painted at rest for a frame and would
@@ -94,7 +96,10 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
     // land after this promise has resolved, so the styles are cleared again a frame later.
     run.then(() => {
       blocks.forEach(clearStyles);
-      requestAnimationFrame(() => blocks.forEach(clearStyles));
+      requestAnimationFrame(() => {
+        blocks.forEach(clearStyles);
+        el.dataset.transition = "idle";
+      });
     });
     return () => {
       run.stop();
@@ -103,7 +108,7 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
   }, [epoch]);
 
   return (
-    <div ref={root} className="flex-1 min-h-0 min-w-0" key={epoch}>
+    <div ref={root} className="flex-1 min-h-0 min-w-0" key={epoch} data-transition="idle">
       {children(shown)}
     </div>
   );
