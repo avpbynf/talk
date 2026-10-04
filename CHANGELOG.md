@@ -374,6 +374,11 @@ behind. Asking for a model that is already downloading is refused, a download th
 an error instead of blocking that model until you restart, cancelling takes effect at once, and
 partial files left by an earlier crash are removed at launch.
 
+- (window) Say why the app closes when its database will not open
+
+When the history database could not be opened at launch, the app vanished without a word. It now
+shows a message with the file it tried and the reason, then closes.
+
 - (window) Stop a page flashing before it slides in
 
 When you opened a page it could be painted in its final place for a frame, then jump back and slide
