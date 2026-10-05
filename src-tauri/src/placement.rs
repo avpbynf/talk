@@ -56,7 +56,7 @@ pub struct Whereabouts {
 
 /// Room kept between a spot and the edge of the work area, in logical pixels.
 /// The window already carries some of its own, so this is only a little more.
-const MARGIN: f64 = 8.0;
+pub const MARGIN: f64 = 8.0;
 
 fn screen_at(screens: &[Screen], point: Option<(i32, i32)>) -> Option<&Screen> {
     let (x, y) = point?;
@@ -92,13 +92,25 @@ pub fn window_pixels(logical: (f64, f64), scale: f64) -> (i32, i32) {
 }
 
 /// The top left corner of the overlay on a screen, always whole inside its work area.
+#[cfg(test)]
 pub fn position(spot: Spot, free: Option<FreePosition>, screen: &Screen, logical: (f64, f64)) -> (i32, i32) {
+    position_keeping(spot, free, screen, logical, MARGIN)
+}
+
+/// The same, for a window that keeps a margin of its own from the edges.
+pub fn position_keeping(
+    spot: Spot,
+    free: Option<FreePosition>,
+    screen: &Screen,
+    logical: (f64, f64),
+    margin: f64,
+) -> (i32, i32) {
     let work = screen.work;
     // A window larger than the room it has is cut down to it, so the clamp below
     // has something to hold on to.
     let (w, h) = window_pixels(logical, screen.scale);
     let (w, h) = (w.min(work.w), h.min(work.h));
-    let margin = (MARGIN * screen.scale).round() as i32;
+    let margin = (margin * screen.scale).round() as i32;
 
     let left = work.x + margin;
     let centre = work.x + (work.w - w) / 2;
@@ -204,9 +216,10 @@ pub fn target<'a>(
     screens: &'a [Screen],
     whereabouts: Whereabouts,
     logical: (f64, f64),
+    margin: f64,
 ) -> Option<(&'a Screen, (i32, i32))> {
     let screen = pick_screen(screens, placement.screen, placement.chosen_screen.as_deref(), whereabouts)?;
-    Some((screen, position(placement.spot, placement.free, screen, logical)))
+    Some((screen, position_keeping(placement.spot, placement.free, screen, logical, margin)))
 }
 
 /// What is to be done about a move the window reported. The corner `place` put the window at
@@ -535,7 +548,7 @@ mod tests {
     fn no_screen_at_all_places_nothing() {
         assert!(pick_screen(&[], ScreenChoice::Typing, None, Whereabouts::default()).is_none());
         assert!(free_from_window((0, 0), (10, 10), &[]).is_none());
-        assert!(target(&OverlayPlacement::default(), &[], Whereabouts::default(), LOGICAL).is_none());
+        assert!(target(&OverlayPlacement::default(), &[], Whereabouts::default(), LOGICAL, MARGIN).is_none());
     }
 
     fn free_at(x: f64, y: f64) -> OverlayPlacement {
@@ -550,13 +563,13 @@ mod tests {
     fn a_free_position_is_a_share_of_whichever_screen_the_rule_picks() {
         let desk = desk();
         let placement = free_at(0.25, 1.0);
-        let (screen, corner) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL).expect("a screen");
+        let (screen, corner) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL, MARGIN).expect("a screen");
         assert_eq!(screen.id, "laptop");
         let (w, _) = window_pixels(LOGICAL, 1.25);
         assert_eq!(corner.0, ((1920 - w) as f64 * 0.25).round() as i32);
 
         let on_the_panel = Whereabouts { typing: Some((-500, 300)), pointer: Some((100, 100)) };
-        let (screen, corner) = target(&placement, &desk, on_the_panel, LOGICAL).expect("a screen");
+        let (screen, corner) = target(&placement, &desk, on_the_panel, LOGICAL, MARGIN).expect("a screen");
         assert_eq!(screen.id, "panel", "the rule still decides the screen");
         assert!(inside(screen.work, corner, window_pixels(LOGICAL, 2.0)));
     }
@@ -569,7 +582,7 @@ mod tests {
             chosen_screen: Some("tv".to_string()),
             ..Default::default()
         };
-        let (screen, corner) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL).expect("a screen");
+        let (screen, corner) = target(&placement, &desk, typing_on_the_laptop(), LOGICAL, MARGIN).expect("a screen");
         assert_eq!(screen.id, "tv");
         assert!(inside(screen.work, corner, window_pixels(LOGICAL, 1.0)));
     }
@@ -583,7 +596,7 @@ mod tests {
         assert_eq!(placement.chosen_screen, None, "the screen rule is left alone");
 
         let on_the_panel = Whereabouts { typing: Some((-500, 300)), pointer: None };
-        let (screen, corner) = target(&placement, &desk, on_the_panel, LOGICAL).expect("a screen");
+        let (screen, corner) = target(&placement, &desk, on_the_panel, LOGICAL, MARGIN).expect("a screen");
         assert_eq!(screen.id, "panel");
         assert!((corner.0 + 1000).abs() <= 1 && (corner.1 - 300).abs() <= 1, "and lands where it was left: {corner:?}");
 
@@ -690,7 +703,7 @@ mod tests {
             typing: typing_point(Some(Rect::new(-3840, -1480, 5760, 3240)), &desk),
             pointer: Some((-500, 300)),
         };
-        let (screen, _) = target(&OverlayPlacement::default(), &desk, whereabouts, LOGICAL).expect("a screen");
+        let (screen, _) = target(&OverlayPlacement::default(), &desk, whereabouts, LOGICAL, MARGIN).expect("a screen");
         assert_eq!(screen.id, "panel");
     }
 }

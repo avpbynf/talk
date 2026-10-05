@@ -7,7 +7,7 @@ import { findLayoutProblems } from "./layout-checks";
 /** A spectrum held still, so what is drawn does not depend on a microphone. */
 const SPECTRUM = [0.2, 0.5, 0.8, 0.6, 0.9, 0.4, 0.7, 0.3];
 const STAGE = { width: 244, height: 92 };
-const STYLES = ["halo", "capsule", "orb"] as const;
+const STYLES = ["halo", "capsule", "orb", "flyout"] as const;
 const STATES = ["rec", "trans", "done", "refuse"] as const;
 type State = (typeof STATES)[number];
 
@@ -122,7 +122,7 @@ test.describe("the overlay page", () => {
         await show(app, "done");
         await settled(page, "done");
         await expect(page.locator(".words")).toHaveCount(0);
-        await expect(page.locator(".st-done svg, .ovo-done svg").first()).toBeVisible();
+        await expect(page.locator(".st-done svg, .st-done .ovf-glyph, .ovo-done svg").first()).toBeVisible();
       });
 
       test("says Pasted, 14 words when the look asks for words", async ({ app, page }) => {

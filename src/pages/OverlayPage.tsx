@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
-import { STAGE_HEIGHT, STAGE_WIDTH, overlayColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, FLYOUT_WIDTH, STAGE_HEIGHT, STAGE_WIDTH, overlayColors } from "@/lib/overlay";
 import { useGoogleAccount } from "@/lib/use-google-account";
 import { useOverlaySettings } from "@/lib/use-overlay-settings";
 import { useReducedMotion } from "@/lib/motion";
@@ -72,9 +72,12 @@ function OverlayPage() {
 
   // Follow the window rather than the setting behind it: the same measurement
   // then covers a size chosen in the preferences and a window resized by hand,
-  // and the scale is right before the setting has been read back.
+  // and the scale is right before the setting has been read back. The flyout's
+  // window is its card alone, which is what the native side sizes it to.
+  const windowed = settings.look.style === "flyout";
   useEffect(() => {
-    const measure = () => setScale(Math.min(window.innerWidth / STAGE_WIDTH, window.innerHeight / STAGE_HEIGHT));
+    const [width, height] = windowed ? [FLYOUT_WIDTH, FLYOUT_HEIGHT] : [STAGE_WIDTH, STAGE_HEIGHT];
+    const measure = () => setScale(Math.min(window.innerWidth / width, window.innerHeight / height));
 
     measure();
     window.addEventListener("resize", measure);
@@ -85,7 +88,7 @@ function OverlayPage() {
       window.removeEventListener("resize", measure);
       unlistenResize.then((f) => f());
     };
-  }, []);
+  }, [windowed]);
 
   // Timer for recording elapsed time. Nothing ticks unless it is to be shown.
   const counting = visible && phase === "rec" && settings.look.timer;
@@ -177,6 +180,9 @@ function OverlayPage() {
           fromTop={fromTop}
           reduced={reduced}
           nudge={nudge}
+          desktopPointer
+          windowed={windowed}
+          accent={settings.accent}
         />
       )}
     </div>

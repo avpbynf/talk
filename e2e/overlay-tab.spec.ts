@@ -56,6 +56,7 @@ test.describe("the overlay tab", () => {
       ["Halo", "halo"],
       ["Capsule", "capsule"],
       ["Orb", "orb"],
+      ["Windows", "flyout"],
     ] as const) {
       test(`${name} can be picked, and is saved`, async ({ app, page }) => {
         await openTab(app, page, { state: { settings: { overlay_look: { style: style === "orb" ? "halo" : "orb" } } } });
@@ -64,7 +65,7 @@ test.describe("the overlay tab", () => {
         await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.style).toBe(style);
         // The preview draws the style that was picked.
         await hold(page, "Recording");
-        const drawn = { halo: ".ovh", capsule: ".ovc", orb: ".ovo" }[style];
+        const drawn = { halo: ".ovh", capsule: ".ovc", orb: ".ovo", flyout: ".ovf" }[style];
         await expect(page.getByTestId("overlay-preview").locator(drawn)).toHaveCount(1);
       });
     }

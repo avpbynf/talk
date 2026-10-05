@@ -1,6 +1,7 @@
 //! The overlay window, and the one thing Windows will not keep on its own.
 
-use crate::overlay_settings::{OverlayLook, OverlayPlacement};
+use crate::backdrop::{self, Backdrop, SystemAccent};
+use crate::overlay_settings::{OverlayLook, OverlayPlacement, OverlayStyle};
 use crate::placement::{self, Rect, Screen, Whereabouts};
 use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
 use parking_lot::Mutex;
@@ -14,6 +15,8 @@ pub struct OverlaySettingsView {
     pub theme: OverlayTheme,
     pub size: OverlaySize,
     pub placement: OverlayPlacement,
+    /// The system's accent colour, which the flyout style draws with. Absent where it cannot be read.
+    pub accent: Option<SystemAccent>,
 }
 
 impl OverlaySettingsView {
@@ -23,6 +26,7 @@ impl OverlaySettingsView {
             theme: settings.overlay_theme,
             size: settings.overlay_size,
             placement: settings.overlay_placement.clone(),
+            accent: backdrop::system_accent(),
         }
     }
 }
@@ -96,7 +100,7 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) {
     if screens.is_empty() {
         return;
     }
-    let logical = settings.overlay_size.dimensions();
+    let logical = window_size(&settings);
     if settings.overlay_position.is_some() {
         let _ = settings::update(|s| {
             if let Some(saved) = s.overlay_position.take() {
@@ -110,7 +114,13 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) {
         typing: placement::typing_point(placement::typing_window(own_window(overlay)), &screens),
         pointer: app.cursor_position().ok().map(|at| (at.x.round() as i32, at.y.round() as i32)),
     };
-    let Some((screen, (x, y))) = placement::target(&settings.overlay_placement, &screens, whereabouts, logical) else {
+    let margin = match settings.overlay_look.style {
+        OverlayStyle::Flyout => FLYOUT_MARGIN,
+        _ => placement::MARGIN,
+    };
+    let Some((screen, (x, y))) =
+        placement::target(&settings.overlay_placement, &screens, whereabouts, logical, margin)
+    else {
         return;
     };
     let (width, height) = placement::window_pixels(logical, screen.scale);
@@ -122,6 +132,24 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) {
     let _ = overlay.set_position(PhysicalPosition::new(x, y));
     let _ = overlay.set_size(PhysicalSize::new(width as u32, height as u32));
     let _ = overlay.set_position(PhysicalPosition::new(x, y));
+}
+
+/// The card of the flyout style, the size of the one Windows shows for the volume
+/// keys. The overlay page measures its window against the same two numbers.
+const FLYOUT_CARD: (f64, f64) = (192.0, 47.0);
+
+/// What the system's flyout keeps between itself and the taskbar, so that at the bottom
+/// centre the overlay sits exactly where the volume does.
+const FLYOUT_MARGIN: f64 = 14.0;
+
+/// The window the overlay is drawn in, in logical pixels. The flyout's is its card
+/// and nothing round it, because Windows draws its acrylic behind a whole window and
+/// never behind a part of one, and it has the system's size whatever size was picked.
+fn window_size(settings: &AppSettings) -> (f64, f64) {
+    match settings.overlay_look.style {
+        OverlayStyle::Flyout => FLYOUT_CARD,
+        _ => settings.overlay_size.dimensions(),
+    }
 }
 
 #[cfg(windows)]
@@ -182,6 +210,7 @@ pub fn dragged_to(app: &AppHandle, corner: (i32, i32)) -> Result<(), String> {
 pub fn show(app: &AppHandle) {
     if let Some(overlay) = app.get_webview_window("overlay") {
         place(app, &overlay);
+        backdrop::apply(&overlay, settings::read(|s| Backdrop::of(&s.overlay_look)));
         let _ = overlay.show();
         raise(&overlay);
     }

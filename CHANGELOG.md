@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 The Meeting mode card was the last one on the Dictation page, out of sight until you scrolled to the
 bottom. It now comes third, under the shortcuts and the recording mode.
 
+- (overlay) Add a style that looks like the Windows volume flyout
+
+The Recording overlay tab has a fourth style, Windows: the card the system shows when you press a
+volume key, in the same place, at the same size and on the same kind of blurred background, drawn in
+your Windows accent colour. Your voice is shown where the slider would be, as a scrolling wave, a
+spectrum, a slider cut into segments or the halo's bars, and the timer sits where the volume figure
+would be. A thin bar shows the progress while the text is transcribed. The styles are shown two to a
+row.
+
+- (overlay) Make the orb watch your pointer and move more with your voice
+
+The orb's eyes follow the mouse wherever it is on the desktop while it listens and thinks. It moves
+more at the same setting, the light behind it is much fainter, and the reaction to your voice now
+goes up to 250 % for every style.
+
 ### Bug Fixes
 
 - (audio) Meeting mode follows the microphone you chose, and says when it is silent

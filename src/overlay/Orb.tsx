@@ -1,10 +1,13 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Blobatar } from "@blobatar/react";
+import { useGaze } from "@blobatar/react/gaze";
 import { happy, idle, mad, thinking } from "blobatar/expression";
 import "blobatar/motion.css";
+import "blobatar/gaze.css";
 import { Check, X } from "lucide-react";
 import { STAGE_WIDTH, clock, type OverlayPhase } from "@/lib/overlay";
 import { QueueBadge, type StyleProps } from "./parts";
+import { useDesktopPointer } from "./pointer";
 import { smileOf } from "./smile";
 
 const NAMESPACE = "http://www.w3.org/2000/svg";
@@ -16,9 +19,15 @@ const FACE = { rec: idle, trans: thinking, done: happy, refuse: mad } as const;
 
 /** The avatar's size while it thinks, as a share of its size while it listens. */
 const THINKING_SIZE = 0.84;
+/** What the voice is multiplied by before the avatar moves with it: an ordinary voice already makes it jump. */
+const GAIN = 1.6;
+/** The most the avatar is given, which keeps its head inside the window at the loudest. */
+const LOUDEST = 1.25;
 /** The level above which the voice sends out a ripple, and the least time between two. */
-const RIPPLE_LEVEL = 0.55;
-const RIPPLE_GAP_MS = 380;
+const RIPPLE_LEVEL = 0.4;
+const RIPPLE_GAP_MS = 260;
+/** How far the eyes travel towards the pointer, in the avatar's own units. */
+const EYE_TRAVEL = 3;
 /** The avatar's box and the gap to what is written beside it, as the stylesheet sets them. */
 const BODY = 76;
 const GAP = 10;
@@ -39,13 +48,14 @@ function hop(el: HTMLElement | null, phase: OverlayPhase, reduced: boolean) {
  * The account's blobatar. It swells with the voice and sends out ripples while
  * it records, shrinks inside a spinning ring and takes a thinking face while it
  * transcribes, smiles and hops when the text is pasted, and scowls when the
- * dictation is turned away.
+ * dictation is turned away. While it listens and thinks its eyes follow the
+ * pointer, wherever on the desktop that is.
  *
  * Each frame writes the avatar's transform and the glow's transform, and adds a
  * ripple now and then: a circle animated by transform and opacity, a few at a
  * time. The halo is a radial gradient, not a blur.
  */
-export default function Orb({ subscribe, phase, look, jobs, progress, label, reduced, phaseRef, elapsed, email }: StyleProps & { email: string | null }) {
+export default function Orb({ subscribe, phase, look, jobs, progress, label, reduced, phaseRef, elapsed, email, desktopPointer = false }: StyleProps & { email: string | null; desktopPointer?: boolean }) {
   const gradient = useId();
   const name = email ?? GUEST;
   const smile = useMemo(() => smileOf(name), [name]);
@@ -56,6 +66,15 @@ export default function Orb({ subscribe, phase, look, jobs, progress, label, red
   const lastRipple = useRef(0);
   const words = useRef<HTMLSpanElement>(null);
   const [shift, setShift] = useState(0);
+  const { ref: eyes, lookAt } = useGaze({ travel: EYE_TRAVEL });
+  const watching = !reduced && (phase === "rec" || phase === "trans");
+
+  // Inside the application the page hears the pointer by itself; the overlay's own window has to ask.
+  useEffect(() => {
+    if (!watching) lookAt("rest");
+    else if (!desktopPointer) lookAt("pointer");
+  }, [watching, desktopPointer, lookAt]);
+  useDesktopPointer(lookAt, watching && desktopPointer);
 
   // The avatar sits in the middle of the stage and what is written hangs beside it. Words too
   // long for that side move the pair over, just far enough for the two to be centred together.
@@ -79,12 +98,12 @@ export default function Orb({ subscribe, phase, look, jobs, progress, label, red
   useEffect(
     () =>
       subscribe((frame) => {
-        const level = Math.min(1.25, frame.level);
+        const level = Math.min(LOUDEST, frame.level * GAIN);
         const rest = phaseRef.current === "trans" ? THINKING_SIZE : 1;
         if (avatar.current) {
           avatar.current.style.transform = reduced
             ? `scale(${rest})`
-            : `translateY(${(-level * 3).toFixed(1)}px) scale(${(rest * (1 + level * 0.12)).toFixed(3)}, ${(rest * (1 + level * 0.2)).toFixed(3)})`;
+            : `translateY(${(-level * 2).toFixed(1)}px) scale(${(rest * (1 + level * 0.18)).toFixed(3)}, ${(rest * (1 + level * 0.28)).toFixed(3)})`;
         }
         if (halo.current) halo.current.style.transform = `scale(${(1 + (reduced ? 0 : level) * 0.2).toFixed(3)})`;
 
@@ -135,6 +154,7 @@ export default function Orb({ subscribe, phase, look, jobs, progress, label, red
         </svg>
         <span ref={avatar} className="ovo-av">
           <Blobatar
+            ref={eyes}
             name={name}
             animate={reduced ? undefined : "always"}
             expression={FACE[phase]}

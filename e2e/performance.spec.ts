@@ -26,7 +26,7 @@ const filtered = (page: Page) =>
   );
 
 test.describe("the overlay", () => {
-  for (const style of ["halo", "capsule", "orb"]) {
+  for (const style of ["halo", "capsule", "orb", "flyout"]) {
     test(`the page draws the ${style} style with no filter or blur`, async ({ app, page }) => {
       await page.setViewportSize({ width: 244, height: 92 });
       await app.open({
@@ -42,7 +42,7 @@ test.describe("the overlay", () => {
     });
   }
 
-  test("the settings tab previews all three with no filter or blur either", async ({ app, page }) => {
+  test("the settings tab previews every style with no filter or blur either", async ({ app, page }) => {
     await app.open();
     await page.getByRole("button", { name: "Appearance" }).click();
     await page.getByRole("radio", { name: "Recording overlay" }).click();

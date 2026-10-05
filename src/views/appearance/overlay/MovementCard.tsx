@@ -7,7 +7,7 @@ import { SettingRow } from "@/components/SettingRow";
 import { Range } from "@/components/ui/range";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
-import { type OverlayEntrance, type OverlayLook, REACTION_MAX, REACTION_MIN } from "@/lib/overlay";
+import { type OverlayEntrance, type OverlayLook, type OverlayVoice, REACTION_MAX, REACTION_MIN, VOICES } from "@/lib/overlay";
 
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
 const SIZES: readonly OverlaySize[] = ["small", "medium", "large"];
@@ -22,6 +22,8 @@ interface MovementCardProps {
 /** How the overlay moves with the voice and arrives, how large it is, and what it shows. */
 export default function MovementCard({ look, size, onLook, onSize }: MovementCardProps) {
   const { t } = useTranslation();
+  // The Windows style is the system's flyout: it has its size and it fades in, as that one does.
+  const system = look.style === "flyout";
 
   return (
     <SectionCard icon={Volume2} title={t("appearance.overlay.movement.title")}>
@@ -39,23 +41,38 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         </div>
       </SettingRow>
 
-      <SettingRow label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
-        <Segmented
-          label={t("appearance.overlay.movement.entrance")}
-          value={look.entrance}
-          onChange={(entrance: OverlayEntrance) => onLook({ entrance })}
-          options={ENTRANCES.map((value) => ({ value, label: t(`appearance.overlay.movement.${value}`) }))}
-        />
-      </SettingRow>
+      {system && (
+        <SettingRow label={t("appearance.overlay.movement.voice")} hint={t("appearance.overlay.movement.voiceHint")}>
+          <Segmented
+            label={t("appearance.overlay.movement.voice")}
+            value={look.voice}
+            onChange={(voice: OverlayVoice) => onLook({ voice })}
+            options={VOICES.map((value) => ({ value, label: t(`appearance.overlay.movement.voices.${value}`) }))}
+          />
+        </SettingRow>
+      )}
 
-      <SettingRow label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
-        <Segmented
-          label={t("appearance.overlay.movement.size")}
-          value={size}
-          onChange={onSize}
-          options={SIZES.map((value) => ({ value, label: t(`appearance.overlay.sizes.${value}`) }))}
-        />
-      </SettingRow>
+      {!system && (
+        <SettingRow label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
+          <Segmented
+            label={t("appearance.overlay.movement.entrance")}
+            value={look.entrance}
+            onChange={(entrance: OverlayEntrance) => onLook({ entrance })}
+            options={ENTRANCES.map((value) => ({ value, label: t(`appearance.overlay.movement.${value}`) }))}
+          />
+        </SettingRow>
+      )}
+
+      {!system && (
+        <SettingRow label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
+          <Segmented
+            label={t("appearance.overlay.movement.size")}
+            value={size}
+            onChange={onSize}
+            options={SIZES.map((value) => ({ value, label: t(`appearance.overlay.sizes.${value}`) }))}
+          />
+        </SettingRow>
+      )}
 
       <SettingRow label={t("appearance.overlay.movement.timer")}>
         <Switch checked={look.timer} onCheckedChange={(timer) => onLook({ timer })} />

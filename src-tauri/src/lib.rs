@@ -1,6 +1,7 @@
 mod atomic_file;
 mod audio;
 mod audio_encoder;
+mod backdrop;
 mod clipboard;
 mod database;
 mod dictation_queue;

@@ -522,7 +522,11 @@
         },
         "orb": {
           "name": "Orb",
-          "text": "Your own blobatar. It swells with your voice and sends out ripples, thinks while it transcribes, smiles when it is pasted."
+          "text": "Your own blobatar. It swells with your voice and sends out ripples, watches your pointer, thinks while it transcribes, smiles when it is pasted."
+        },
+        "flyout": {
+          "name": "Windows",
+          "text": "The card Windows shows for the volume keys. On the same blurred background and in your accent colour, your voice where its slider would be."
         }
       },
       "preview": {
@@ -566,7 +570,15 @@
         "mic": "Microphone icon",
         "micHint": "Halo and Capsule",
         "endText": "Text at the end",
-        "endTextHint": "Shows \"Pasted, 14 words\" once the text is in place. Off, the overlay confirms with a tick and no words. A refused dictation always says why, in a few words."
+        "endTextHint": "Shows \"Pasted, 14 words\" once the text is in place. Off, the overlay confirms with a tick and no words. A refused dictation always says why, in a few words.",
+        "voice": "Your voice",
+        "voiceHint": "How the card draws it while it records",
+        "voices": {
+          "wave": "Wave",
+          "bars": "Spectrum",
+          "meter": "Slider",
+          "halo": "Halo"
+        }
       },
       "position": {
         "title": "Position",

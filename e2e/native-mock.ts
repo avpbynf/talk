@@ -410,6 +410,9 @@ export function installNativeMock(init: MockInit): void {
     },
     "plugin:window|close": () => null,
     "plugin:window|start_dragging": () => null,
+    "plugin:window|cursor_position": () => ({ x: 0, y: 0 }),
+    "plugin:window|outer_position": () => ({ x: 0, y: 0 }),
+    "plugin:window|scale_factor": () => 1,
   };
 
   async function invoke(cmd: string, args?: any): Promise<unknown> {
