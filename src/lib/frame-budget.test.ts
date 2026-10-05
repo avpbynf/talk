@@ -78,6 +78,31 @@ describe("watching the frame rate", () => {
     expect(document.documentElement.dataset.perf).toBeUndefined();
   });
 
+  it("looks again every few seconds, and holds things still on two slow rounds in a row", () => {
+    draw(16, 400);
+    vi.advanceTimersByTime(2000);
+    expect(queue).toHaveLength(1);
+
+    draw(80, 30);
+    expect(document.documentElement.dataset.perf).toBeUndefined();
+    draw(80, 30);
+    expect(document.documentElement.dataset.perf).toBe("low");
+    expect(queue).toHaveLength(0);
+  });
+
+  it("forgives one slow round found after launch when the next is steady", () => {
+    draw(16, 400);
+    vi.advanceTimersByTime(2000);
+    // The first frame only sets the clock, so a round is twenty-five frames here and no more.
+    draw(80, 25);
+    draw(16, 24);
+    expect(document.documentElement.dataset.perf).toBeUndefined();
+
+    vi.advanceTimersByTime(2000);
+    draw(80, 25);
+    expect(document.documentElement.dataset.perf).toBeUndefined();
+  });
+
   it("measures again once the window has become much larger", () => {
     draw(16, 400);
     resizeTo(2200, 1300);

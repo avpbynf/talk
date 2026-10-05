@@ -255,7 +255,7 @@ export function Sidebar<Id extends string>({
               size={32}
               animate="always"
               aria-hidden="true"
-              className="shrink-0 rounded-full"
+              className="avatar-live shrink-0 rounded-full"
             />
           ) : (
             <span className="h-8 w-8 shrink-0 rounded-full bg-surface-active text-muted-foreground flex items-center justify-center">

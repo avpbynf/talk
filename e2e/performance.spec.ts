@@ -1,6 +1,9 @@
 import type { Page } from "@playwright/test";
-import { test, expect } from "./harness";
+import { test, expect, PAGES } from "./harness";
+import { SIGNED_IN } from "./data";
 import { SIZES } from "./sizes";
+
+const account = PAGES.find((entry) => entry.id === "account")!;
 
 const lightsState = (page: Page) =>
   page.evaluate(() => {
@@ -59,6 +62,24 @@ test.describe("the lights behind the window", () => {
     await expect
       .poll(() => lightsState(page), { timeout: 20_000 })
       .toEqual({ perf: "low", playState: "paused" });
+  });
+
+  test("the avatars of the window hold still with them", async ({ app, page }) => {
+    // No word on how they start: a machine that is slow for real has them held before anyone looks.
+    await page.addInitScript(() => {
+      const slow = (callback: FrameRequestCallback) => window.setTimeout(() => callback(performance.now()), 90);
+      window.requestAnimationFrame = slow as typeof window.requestAnimationFrame;
+    });
+    await app.open({ state: { google: SIGNED_IN } });
+    await app.go(account);
+    const held = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll(".avatar-live")].map((avatar) => {
+          const states = avatar.getAnimations({ subtree: true }).map((animation) => animation.playState);
+          return states.length > 0 && states.every((state) => state === "paused");
+        }),
+      );
+    await expect.poll(held, { timeout: 20_000 }).toEqual([true, true]);
   });
 
   const largest = SIZES.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a));

@@ -785,6 +785,14 @@ now reads "98 h".
 
 ### Performance
 
+- (window) Hold the avatars still on a machine that cannot keep up
+
+On a computer without a graphics card, the animated avatar of the sidebar and of the Account page
+kept most of a processor core busy for as long as the window was open, and the Account page could
+become slow to answer. The speed of the window is now looked at every few seconds instead of only at
+launch, and the avatars hold still, like the lights behind the window, when it is too slow or when
+the window is not the one in use.
+
 - (recording) Start dictating without waiting on the disk
 
 With the volume lowering switched on, every dictation rewrote the settings file and ran the sync's

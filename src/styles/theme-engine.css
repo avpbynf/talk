@@ -228,6 +228,14 @@
   animation-play-state: paused;
 }
 
+/*
+ * The avatars of the window do the same, for the same two reasons. Drift being off says nothing
+ * about them, so that mark is left out.
+ */
+:root:is([data-awake="false"], [data-perf="low"]) :is(.avatar-live, .avatar-live *) {
+  animation-play-state: paused !important;
+}
+
 @keyframes drift1 { to { transform: translate(18%, 22%) scale(1.15); } }
 @keyframes drift2 { to { transform: translate(-24%, -10%) scale(0.9); } }
 @keyframes drift3 { to { transform: translate(-16%, -28%) scale(1.2); } }
