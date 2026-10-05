@@ -172,7 +172,8 @@ The path, in order:
 3. `git push origin origin/dev:main`, and the request closes itself as merged.
 4. `git tag v<version> origin/main` and push the tag. **The tag is what publishes**: `release.yml`
    runs on tags and on nothing else, builds the NSIS installer on Windows, and uploads it with its
-   signature and the manifest the updater reads.
+   signature and the manifest the updater reads. The release page takes the changelog section named
+   after the tag, and a tag whose section is missing or empty is refused before the build.
 5. Open the next version on `dev` straight away, `build/open-next-dev-version`, carrying the four files
    moved to `<next>-dev` and nothing else.
 

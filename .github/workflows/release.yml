@@ -41,6 +41,38 @@ jobs:
           }
           Write-Host "the tag and the configuration agree on $configured"
 
+      # The release page says what the version does in the words of the changelog, so
+      # the section named after the tag is cut out here. A tag whose section is missing
+      # or empty stops now, for the same reason as above: before the build, not after.
+      - name: Cut the section of this version out of the changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          $lines = Get-Content CHANGELOG.md
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i].StartsWith("## [$version]")) { $start = $i; break }
+          }
+          if ($start -lt 0) { throw "CHANGELOG.md has no section for $version" }
+          $end = $lines.Count
+          for ($i = $start + 1; $i -lt $lines.Count; $i++) {
+            if ($lines[$i].StartsWith("## [")) { $end = $i; break }
+          }
+          $section = if ($end -gt $start + 1) { ($lines[($start + 1)..($end - 1)] -join "`n").Trim() } else { "" }
+          if (-not $section) { throw "the section for $version in CHANGELOG.md is empty" }
+          $notes = @(
+            'Windows installer. Download the `.exe` under Assets and run it; an installed Talk offers this version by itself.'
+            ''
+            'Meeting mode needs VB-Audio Virtual Cable installed separately; this build does not ship the driver.'
+            ''
+            $section
+          ) -join "`n"
+          $file = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          [System.IO.File]::WriteAllText($file, $notes + "`n", [System.Text.UTF8Encoding]::new($false))
+          "RELEASE_NOTES=$file" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "$($section.Length) characters of notes for $version"
+
       # cl.exe and the Windows SDK are installed on the runner but are not on PATH.
       # This is what scripts/vcenv.bat does locally.
       - name: Load the MSVC environment
@@ -100,20 +132,23 @@ jobs:
           # this guard a dispatch from main would create a release tagged "main".
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: Talk ${{ github.ref_name }}
-          releaseBody: |
-            Windows installer. Download the `.exe` under Assets and run it.
-
-            Transcription is server first: set your server URL and token on the
-            Transcription page, or leave them empty to transcribe locally.
-
-            Meeting mode needs VB-Audio Virtual Cable installed separately;
-            this build does not ship the driver.
+          # Short on purpose: this text is also copied into latest.json, which every
+          # installed copy downloads each time it looks for an update. The release page
+          # gets the changelog section in the step after this one.
+          releaseBody: Windows installer. Download the `.exe` under Assets and run it.
           releaseDraft: false
           prerelease: false
           # latest.json is the feed the installed application polls. It is published
           # as a release asset, which is why the endpoint points at
           # releases/latest/download and follows the newest release on its own.
           includeUpdaterJson: true
+
+      - name: Put the changelog section on the release page
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: gh release edit "${{ github.ref_name }}" --notes-file $env:RELEASE_NOTES
 
       # A manual run publishes nothing, so keep the installer reachable for testing.
       - name: Upload the installer as a build artifact
