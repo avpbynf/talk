@@ -18,6 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "playwright test -c e2e/playwright.config.ts",
     "test:ui:update": "playwright test -c e2e/playwright.config.ts --update-snapshots=changed",
+    "test:ui:ci": "CI=1 E2E_SOFTWARE=1 playwright test -c e2e/playwright.config.ts",
     "test:rust": "cmd /c \"cd src-tauri && ..\\scripts\\vcenv.bat cargo test\""
   },
   "dependencies": {

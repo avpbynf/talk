@@ -14,6 +14,8 @@ bun run tauri:check    # cargo check, no full build
 bun run dev            # frontend alone, no Tauri shell
 bun run test           # frontend suite, vitest on jsdom
 bun run test:coverage  # same, with a coverage report
+bun run test:ui        # interface suite, Playwright against the faked native side
+bun run test:ui:ci     # same, as the runner runs it: run it before any push
 bun run test:ui        # interface suite, Playwright on Chromium, native side mocked
 bun run test:ui:update # regenerate the visual baselines (Windows draws the real ones)
 bun run test:rust      # cargo test, MSVC env loaded the same way
