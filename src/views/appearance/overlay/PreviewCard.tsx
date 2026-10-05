@@ -61,7 +61,8 @@ export default function PreviewCard({ settings, colors, email, onFree }: Preview
     return () => observer.disconnect();
   }, []);
 
-  const factor = SIZE_FACTOR[settings.size];
+  // The Windows style has the system's size, whatever size was picked.
+  const factor = settings.look.style === "flyout" ? 1 : SIZE_FACTOR[settings.size];
   const box = { width: STAGE_WIDTH * factor, height: STAGE_HEIGHT * factor };
   const at = placeOnDesk(settings.placement, room, box);
   // It glides when another spot is picked, and only then: a desk that is measured late or resized
@@ -163,6 +164,7 @@ export default function PreviewCard({ settings, colors, email, onFree }: Preview
             <SimulatedOverlay
               key={settings.look.style}
               look={settings.look}
+              accent={settings.accent}
               phase={phase}
               colors={colors}
               scale={factor}

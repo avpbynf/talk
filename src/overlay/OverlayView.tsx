@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type MutableRefObject } from "react";
-import { STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, legibleColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, FLYOUT_WIDTH, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type SystemAccent, legibleColors } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import Capsule from "./Capsule";
 import { useOverlayEngine } from "./engine";
+import Flyout from "./Flyout";
 import Halo from "./Halo";
 import Orb from "./Orb";
 import type { StyleProps } from "./parts";
@@ -35,14 +36,21 @@ export interface OverlayViewProps {
   still?: boolean;
   /** Counts the refusals: a second one while the first is still showing shakes the overlay again. */
   nudge?: number;
+  /** The overlay is a window of its own, which the pointer is seldom over: where it is has to be asked of the desktop. */
+  desktopPointer?: boolean;
+  /** The window is the flyout's card and nothing else, and Windows draws what is behind it: the card fills the window and only tints it. */
+  windowed?: boolean;
+  /** The system's accent colour, which the flyout style draws with. */
+  accent?: SystemAccent | null;
 }
 
 const ENTER = "cubic-bezier(.16,1,.3,1)";
 
 /** How the overlay arrives: this runs once, when it is first drawn. */
-function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: boolean) {
+function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: boolean, windowed: boolean) {
   if (typeof el.animate !== "function") return;
-  if (reduced || look.entrance === "fade") {
+  // A window that is the card cannot travel inside itself.
+  if (reduced || windowed || look.entrance === "fade") {
     el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reduced ? 200 : 420, easing: ENTER });
   } else if (look.entrance === "slide") {
     const from = fromTop ? -30 : 30;
@@ -86,7 +94,7 @@ function shake(el: Element | null) {
  * given and keeps nothing of its own: the page that listens for the native side
  * and the preview that plays the states both render it the same way.
  */
-export default function OverlayView({ look, phase, colors: palette, levels, elapsed, progress, server, jobs, label, email, scale, fromTop, reduced: asked, still = false, nudge = 0 }: OverlayViewProps) {
+export default function OverlayView({ look, phase, colors: palette, levels, elapsed, progress, server, jobs, label, email, scale, fromTop, reduced: asked, still = false, nudge = 0, desktopPointer = false, windowed = false, accent = null }: OverlayViewProps) {
   // A picture has no movement to leave in: the stylesheet's own animations stop with it.
   const reduced = asked || still;
   const colors = useMemo(() => legibleColors(palette, look.background), [palette, look.background]);
@@ -97,27 +105,29 @@ export default function OverlayView({ look, phase, colors: palette, levels, elap
   const pill = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    if (stage.current) enter(stage.current, look, fromTop, reduced);
+    if (stage.current) enter(stage.current, look, fromTop, reduced, windowed);
     // Once, when the overlay is first drawn: the look changing under it is not an arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (phase === "refuse" && !reduced) shake(pill.current?.firstElementChild ?? null);
-  }, [phase, reduced, nudge]);
+    // A card that fills its window cannot move in it: what shakes there is what it says.
+    if (phase === "refuse" && !reduced) shake((windowed ? pill.current?.querySelector(".ovf-end") : pill.current?.firstElementChild) ?? null);
+  }, [phase, reduced, nudge, windowed]);
 
+  const frame = windowed ? { width: FLYOUT_WIDTH, height: FLYOUT_HEIGHT } : { width: STAGE_WIDTH, height: STAGE_HEIGHT };
   const style: CSSProperties & Record<string, string | number> = {
-    width: STAGE_WIDTH * scale,
-    height: STAGE_HEIGHT * scale,
+    width: frame.width * scale,
+    height: frame.height * scale,
     "--c1": colors[0],
     "--c2": colors[1],
     "--c3": colors[2],
   };
-  const shared: StyleProps = { subscribe, phase, look, jobs, progress, label, reduced, phaseRef, elapsed, server, colors, scale };
+  const shared: StyleProps = { subscribe, phase, look, jobs, progress, label, reduced, phaseRef, elapsed, server, colors, scale, accent };
 
   return (
     <div className="ovbox" style={style}>
-      <div className="ovscale" style={{ transform: `scale(${scale})` }}>
+      <div className="ovscale" style={{ ...frame, transform: `scale(${scale})` }}>
         <div ref={stage} className="ovanim">
           <div
             ref={pill}
@@ -128,10 +138,12 @@ export default function OverlayView({ look, phase, colors: palette, levels, elap
             data-mic={look.mic ? "on" : "off"}
             data-words={look.end_text ? "on" : "off"}
             data-reduced={reduced}
+            data-windowed={windowed}
           >
             {look.style === "halo" && <Halo {...shared} />}
             {look.style === "capsule" && <Capsule {...shared} />}
-            {look.style === "orb" && <Orb {...shared} email={email} />}
+            {look.style === "orb" && <Orb {...shared} email={email} desktopPointer={desktopPointer} />}
+            {look.style === "flyout" && <Flyout {...shared} />}
           </div>
         </div>
       </div>

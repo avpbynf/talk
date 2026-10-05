@@ -1,6 +1,6 @@
 import type { MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
-import type { OverlayLook, OverlayPhase } from "@/lib/overlay";
+import type { OverlayLook, OverlayPhase, SystemAccent } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import type { Subscribe } from "./engine";
 
@@ -25,6 +25,8 @@ export interface StyleProps {
   elapsed: number;
   /** The dictation goes to a server, which reports no progress. */
   server: boolean;
+  /** The system's accent colour, for the style that is the system's own. */
+  accent: SystemAccent | null;
   /** The phase as a ref, for a frame that must not draw what is not shown. */
   phaseRef: MutableRefObject<OverlayPhase>;
 }

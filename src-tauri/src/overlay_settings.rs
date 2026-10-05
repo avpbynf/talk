@@ -20,6 +20,8 @@ pub enum OverlayStyle {
     Capsule,
     /// The signed-in account's blobatar, swelling with the voice.
     Orb,
+    /// The flyout Windows shows for the volume keys, the voice scrolling where its slider would be.
+    Flyout,
 }
 
 /// Where the three colours of the overlay come from.
@@ -54,8 +56,23 @@ pub enum OverlayEntrance {
     Fade,
 }
 
+/// How the flyout style draws the voice while it records.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OverlayVoice {
+    /// Small bars scrolling by, the newest on the right.
+    #[default]
+    Wave,
+    /// The spectrum, each bar standing for a band of the voice.
+    Bars,
+    /// The slider cut into segments that light up with the level.
+    Meter,
+    /// The seven bars the halo style draws, gathered in the middle.
+    Halo,
+}
+
 pub const REACTION_MIN: u8 = 20;
-pub const REACTION_MAX: u8 = 160;
+pub const REACTION_MAX: u8 = 250;
 const REACTION_DEFAULT: u8 = 100;
 
 fn default_custom_colors() -> [String; 3] {
@@ -107,6 +124,9 @@ pub struct OverlayLook {
     /// The words shown at the end ("Pasted, 14 words", "No model").
     #[serde(deserialize_with = "off")]
     pub end_text: bool,
+    /// Read by the flyout style alone.
+    #[serde(deserialize_with = "lenient")]
+    pub voice: OverlayVoice,
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -123,6 +143,7 @@ impl Default for OverlayLook {
             timer: true,
             mic: true,
             end_text: false,
+            voice: OverlayVoice::default(),
             extra: Extra::new(),
         }
     }
@@ -262,7 +283,7 @@ mod tests {
         assert!(look_readable(&json!({ "style": "orb", "reaction": 120 })));
         assert!(look_readable(&json!({ "style": "orb", "a_key_from_the_future": [1, 2] })));
         assert!(!look_readable(&json!({ "style": "ribbon" })));
-        assert!(!look_readable(&json!({ "reaction": 250 })));
+        assert!(!look_readable(&json!({ "reaction": 251 })));
         assert!(!look_readable(&json!({ "custom_colors": ["#fff", "#000", "#123456"] })));
         assert!(!look_readable(&json!("orb")));
     }

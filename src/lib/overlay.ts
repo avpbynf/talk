@@ -3,10 +3,12 @@ import { contrast, mixHex } from "@/lib/color";
 import { type Colors, type OverlayThemeId, THEME_IDS, getThemeColors } from "@/lib/overlay-themes";
 import { sortedStops, type Stop } from "@/lib/theme";
 
-export type OverlayStyle = "halo" | "capsule" | "orb";
+export type OverlayStyle = "halo" | "capsule" | "orb" | "flyout";
 export type OverlayPalette = "accent" | "preset" | "custom";
 export type OverlayBackground = "dark" | "glass" | "light";
 export type OverlayEntrance = "bounce" | "slide" | "fade";
+/** How the Windows style draws the voice: bars scrolling by, the spectrum, a slider cut into segments, or the halo's seven bars. */
+export type OverlayVoice = "wave" | "bars" | "meter" | "halo";
 /** What the overlay is showing: listening, thinking, text pasted, dictation turned away. */
 export type OverlayPhase = "rec" | "trans" | "done" | "refuse";
 
@@ -22,6 +24,8 @@ export interface OverlayLook {
   mic: boolean;
   /** The words at the end: "Pasted, 14 words", "No model". */
   end_text: boolean;
+  /** Read by the Windows style alone. */
+  voice: OverlayVoice;
 }
 
 export type Spot = "top_left" | "top_center" | "top_right" | "bottom_left" | "bottom_center" | "bottom_right" | "free";
@@ -40,8 +44,16 @@ export interface OverlayPlacement {
   chosen_screen: string | null;
 }
 
+/** The two shades of the Windows accent colour: the light one for a dark surface, the dark one for a light surface. */
+export interface SystemAccent {
+  light: string;
+  dark: string;
+}
+
 /** What the backend answers in one go, and announces whenever any of it changes. */
 export interface OverlaySettings {
+  /** Absent where the system has none to give. */
+  accent: SystemAccent | null;
   look: OverlayLook;
   theme: OverlayThemeId;
   size: OverlaySize;
@@ -57,11 +69,14 @@ export interface Screen {
 
 export const SPOTS = ["top_left", "top_center", "top_right", "bottom_left", "bottom_center", "bottom_right"] as const;
 export const REACTION_MIN = 20;
-export const REACTION_MAX = 160;
+export const REACTION_MAX = 250;
 
 /** The stage every style is drawn on at the medium size, which is what the window is made of. */
 export const STAGE_WIDTH = 244;
 export const STAGE_HEIGHT = 92;
+/** The card of the flyout style, which is all its window holds: Windows blurs what is behind a window, not behind a part of one. */
+export const FLYOUT_WIDTH = 192;
+export const FLYOUT_HEIGHT = 47;
 /** What each size scales the stage by. Mirrors OverlaySize::dimensions() on the Rust side. */
 export const SIZE_FACTOR: Record<OverlaySize, number> = { small: 160 / 220, medium: 1, large: 341 / 220 };
 
@@ -75,6 +90,7 @@ export const DEFAULT_LOOK: OverlayLook = {
   timer: true,
   mic: true,
   end_text: false,
+  voice: "wave",
 };
 
 export const DEFAULT_PLACEMENT: OverlayPlacement = {
@@ -85,16 +101,18 @@ export const DEFAULT_PLACEMENT: OverlayPlacement = {
 };
 
 export const DEFAULT_SETTINGS: OverlaySettings = {
+  accent: null,
   look: DEFAULT_LOOK,
   theme: "frost",
   size: "small",
   placement: DEFAULT_PLACEMENT,
 };
 
-const STYLES: readonly OverlayStyle[] = ["halo", "capsule", "orb"];
+export const STYLES: readonly OverlayStyle[] = ["halo", "capsule", "orb", "flyout"];
 const PALETTES: readonly OverlayPalette[] = ["accent", "preset", "custom"];
 const BACKGROUNDS: readonly OverlayBackground[] = ["dark", "glass", "light"];
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
+export const VOICES: readonly OverlayVoice[] = ["wave", "bars", "meter", "halo"];
 const SPOT_VALUES: readonly Spot[] = [...SPOTS, "free"];
 const SCREENS: readonly ScreenChoice[] = ["typing", "pointer", "primary", "chosen"];
 const SIZES: readonly OverlaySize[] = ["small", "medium", "large"];
@@ -113,7 +131,9 @@ export function coerceSettings(raw: unknown): OverlaySettings {
   const colors = Array.isArray(look.custom_colors) ? look.custom_colors : [];
   const free = placement.free as Record<string, unknown> | null | undefined;
   const reaction = typeof look.reaction === "number" ? look.reaction : DEFAULT_LOOK.reaction;
+  const accent = (settings as { accent?: Record<string, unknown> | null }).accent;
   return {
+    accent: accent && HEX.test(String(accent.light)) && HEX.test(String(accent.dark)) ? { light: String(accent.light), dark: String(accent.dark) } : null,
     look: {
       style: oneOf(STYLES, look.style, DEFAULT_LOOK.style),
       palette: oneOf(PALETTES, look.palette, DEFAULT_LOOK.palette),
@@ -124,6 +144,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       timer: look.timer !== false,
       mic: look.mic !== false,
       end_text: look.end_text === true,
+      voice: oneOf(VOICES, look.voice, DEFAULT_LOOK.voice),
     },
     theme: oneOf(THEME_IDS, settings.theme, DEFAULT_SETTINGS.theme),
     size: oneOf(SIZES, settings.size, DEFAULT_SETTINGS.size),

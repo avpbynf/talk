@@ -3,11 +3,9 @@ import { Mic } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { useReducedMotion } from "@/lib/motion";
-import type { OverlayLook, OverlayStyle } from "@/lib/overlay";
+import { STYLES, type OverlayLook, type OverlayStyle } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import SimulatedOverlay from "@/overlay/Simulated";
-
-const STYLES: readonly OverlayStyle[] = ["halo", "capsule", "orb"];
 
 interface StyleCardProps {
   look: OverlayLook;
@@ -16,12 +14,12 @@ interface StyleCardProps {
   onChange: (style: OverlayStyle) => void;
 }
 
-/** Three tiles, each showing its own overlay listening, in the colours and on the background picked. */
+/** A tile for each style, two to a row, each showing its own overlay listening, in the colours and on the background picked. */
 export default function StyleCard({ look, colors, email, onChange }: StyleCardProps) {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
-  // A tile moves only under the pointer or the keyboard: a page of three live overlays beside a
-  // fourth in the preview is more than a machine without a graphics card can draw.
+  // A tile moves only under the pointer or the keyboard: a page of live overlays beside
+  // another in the preview is more than a machine without a graphics card can draw.
   const [live, setLive] = useState<OverlayStyle | null>(null);
 
   return (
@@ -29,7 +27,7 @@ export default function StyleCard({ look, colors, email, onChange }: StyleCardPr
       <div
         role="group"
         aria-label={t("appearance.overlay.style.label")}
-        className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3"
+        className="grid grid-cols-2 gap-3"
       >
         {STYLES.map((style) => {
           const active = look.style === style;
