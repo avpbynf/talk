@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (window) Draw the sidebar and the top strip as one surface
+
+The line between the sidebar and the strip that carries the window buttons is gone: the two are one
+plain surface, and the page sits in their corner with a rounded edge. The name of the application
+stays when the sidebar is folded, centred above the icons.
+
 - (preferences) List your devices on the Account page
 
 When you are signed in, the Account page shows every PC on the account with the time it saved you

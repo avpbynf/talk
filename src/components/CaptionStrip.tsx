@@ -25,7 +25,8 @@ function Glyph({ children, width = 1.6 }: { children: ReactNode; width?: number 
 }
 
 /**
- * The strip across the top of the content, on the same surface as the sidebar.
+ * The strip across the top of the content, on the same surface as the sidebar and with no line
+ * between the two: the page is what carries the edge, see the frame around it in App.
  * It carries the window controls and nothing else; everything around them drags the window.
  * With the controls in the sidebar instead, it stays as the part that drags.
  */
@@ -37,7 +38,7 @@ export function CaptionStrip({ buttons = true }: { buttons?: boolean }) {
     <div
       data-tauri-drag-region
       onDoubleClick={toggleMaximize}
-      className="h-8 shrink-0 flex justify-end bg-surface-inset border-b border-border-subtle select-none"
+      className="h-8 shrink-0 flex justify-end bg-surface-inset select-none"
     >
       {buttons && (
         <>

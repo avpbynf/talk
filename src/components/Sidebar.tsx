@@ -51,6 +51,11 @@ const TONE_PILL: Record<StatusTone, string> = {
 const LABEL =
   "transition-[opacity,transform] duration-300 group-data-[collapsed=true]/side:opacity-0 group-data-[collapsed=true]/side:-translate-x-1.5 group-data-[collapsed=true]/side:pointer-events-none";
 
+// The name stays when the sidebar folds, and glides to the middle of what is left: a margin
+// that brings its left edge to the middle of the row, less half of its own width.
+const WORDMARK =
+  "transition-[margin,translate] duration-500 group-data-[collapsed=true]/side:ml-[11px] group-data-[collapsed=true]/side:-translate-x-1/2";
+
 function readCollapsed(): boolean {
   try {
     return localStorage.getItem(STORAGE_KEY) === "1";
@@ -181,23 +186,19 @@ export function Sidebar<Id extends string>({
       initial={false}
       animate={{ width: collapsed ? 66 : 226 }}
       transition={reduced ? { duration: 0 } : { duration: 0.55, ease: [0.34, 1.25, 0.64, 1] }}
-      className="group/side relative shrink-0 motion-reduce:**:transition-none flex flex-col overflow-hidden bg-surface-inset border-r border-border-subtle pb-2.5"
+      className="group/side relative shrink-0 motion-reduce:**:transition-none flex flex-col overflow-hidden bg-surface-inset pb-2.5"
     >
       <div
         data-tauri-drag-region
         className={cn(
           "mx-2.5 mt-3 mb-[18px] h-[34px] shrink-0 flex items-center pl-3 select-none",
           windowButtons === "left" &&
-            "justify-between group-data-[collapsed=true]/side:h-auto group-data-[collapsed=true]/side:flex-col group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:pl-0",
+            "justify-between group-data-[collapsed=true]/side:h-auto group-data-[collapsed=true]/side:flex-col group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:gap-2 group-data-[collapsed=true]/side:pl-0",
         )}
       >
         <span
           data-tauri-drag-region
-          className={cn(
-            "text-[15px] font-semibold tracking-tight",
-            windowButtons === "left" && "group-data-[collapsed=true]/side:absolute",
-            LABEL,
-          )}
+          className={cn("text-[15px] font-semibold tracking-tight", windowButtons === "right" && WORDMARK)}
         >
           Talk
         </span>
