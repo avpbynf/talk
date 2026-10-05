@@ -140,7 +140,7 @@ export default function AccountView() {
                   size={104}
                   animate="always"
                   aria-hidden="true"
-                  className="relative block h-full w-full rounded-full"
+                  className="avatar-live relative block h-full w-full rounded-full"
                 />
               ) : (
                 <span className="relative flex h-full w-full items-center justify-center rounded-full bg-surface-active text-muted-foreground">
