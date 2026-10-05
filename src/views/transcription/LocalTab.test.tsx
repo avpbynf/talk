@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitForElementToBeRemoved } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocalTab } from "./LocalTab";
 
@@ -55,7 +55,8 @@ describe("LocalTab engine switch", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(props.onGpuVendorChange).not.toHaveBeenCalled();
-    await waitForElementToBeRemoved(() => screen.queryByRole("dialog"));
+    // The dialog may already be gone by the time this line runs, which a wait for its removal refuses.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("asks for a change of graphics card too", async () => {
