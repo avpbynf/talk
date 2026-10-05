@@ -570,8 +570,16 @@ function App() {
         windowButtons={windowButtons}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="relative flex-1 min-w-0 flex flex-col">
       <CaptionStrip buttons={windowButtons === "right"} />
+
+      {/* The sidebar and the strip are one surface, and the page sits in their corner. This
+          fills what the page's rounded corner leaves open with that surface. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-8 h-3.5 w-3.5 bg-[radial-gradient(circle_at_100%_100%,transparent_13.5px,var(--color-surface-inset)_14px)]"
+      />
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-tl-[14px] border-l border-t border-border-subtle">
 
       {/* What a release found on GitHub says for itself, when there is one */}
       <UpdateBanner updater={updater} />
@@ -816,6 +824,7 @@ function App() {
         )}
       </PageTransition>
       <NoticeStrip />
+      </div>
       </div>
     </div>
   );
