@@ -109,6 +109,7 @@ The two feedback loops are not symmetric, and it is worth knowing which one a ch
     bun run build      # tsc and vite, the same pass the release runs
     bun run test       # the frontend suite, vitest on jsdom, seconds
     bun run test:ui    # the interface suite, Playwright on Chromium, a couple of minutes
+    bun run test:ui:ci # the same suite the way the runner runs it
     bun run tauri:check # cargo check, MSVC environment loaded by scripts/vcenv.bat
     bun run test:rust  # cargo test, the same environment
 
@@ -127,6 +128,13 @@ Run it after any change to a page, the sidebar, the theme or the styles. A chang
 baselines, and the new images are reviewed in the diff like code:
 
     bun run test:ui:update
+
+**Before pushing, run `bunx tsc -p e2e` and `bun run test:ui:ci`.** The first is the type check the
+`interface` workflow runs ahead of the suite. The second is the suite as the runner sees it: one
+bundle instead of the development server, four workers, and every frame painted by the processor,
+the runner having no graphics card. A page that is merely slow on a desk is a page that times out
+there, and what is slow there is a defect of the application rather than of the runner: nothing
+that moves without end may cost a frame it does not need. A red check is found, never rerun.
 
 The baselines are the ones Windows draws, which is the machine CI runs on; they are not regenerated
 anywhere else. The first run needs the browser, `bun run playwright install chromium-headless-shell`.
