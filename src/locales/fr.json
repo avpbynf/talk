@@ -892,6 +892,7 @@
       "remote_devices_unreadable": "La liste des appareils de ce compte a été écrite par une version plus récente de Talk, ou n'a pas pu être lue. Mettez Talk à jour, il réessaiera.",
       "sign_in_failed": "Google n'a pas terminé la connexion.",
       "sign_in_no_email": "Google n'a pas indiqué quel compte s'est connecté, Talk n'a donc rien gardé. Réessayez.",
+      "sign_in_no_drive": "Talk n'a pas reçu l'accès à Google Drive. Reconnectez-vous et cochez la case Google Drive sur l'écran de Google.",
       "other": "Un problème est survenu en parlant à Google."
     },
     "notices": {

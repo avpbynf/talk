@@ -30,6 +30,8 @@ pub enum Failure {
     SignInFailed,
     /// The token response did not say which account signed in.
     SignInNoEmail,
+    /// The consent was given without the access to Drive.
+    SignInNoDrive,
     Other,
 }
 
@@ -49,6 +51,7 @@ impl Failure {
             Failure::SignInRefused => "sign_in_refused",
             Failure::SignInFailed => "sign_in_failed",
             Failure::SignInNoEmail => "sign_in_no_email",
+            Failure::SignInNoDrive => "sign_in_no_drive",
             Failure::Other => "other",
         }
     }
@@ -259,6 +262,7 @@ mod tests {
             Failure::SignInRefused,
             Failure::SignInFailed,
             Failure::SignInNoEmail,
+            Failure::SignInNoDrive,
             Failure::Other,
         ]
         .map(Failure::code);
