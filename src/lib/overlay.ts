@@ -80,6 +80,9 @@ export const STAGE_HEIGHT = 92;
 /** The card of the flyout style, which is all its window holds: Windows blurs what is behind a window, not behind a part of one. */
 export const FLYOUT_WIDTH = 192;
 export const FLYOUT_HEIGHT = 47;
+
+/** How long the overlay takes to leave. The native side hides the window a little after, see `LEAVE` in `overlay.rs`. */
+export const LEAVE_MS = 220;
 /** What each size scales the stage by. Mirrors OverlaySize::dimensions() on the Rust side. */
 export const SIZE_FACTOR: Record<OverlaySize, number> = { small: 160 / 220, medium: 1, large: 341 / 220 };
 

@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
-import { FLYOUT_HEIGHT, FLYOUT_WIDTH, STAGE_HEIGHT, STAGE_WIDTH, overlayColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, overlayColors } from "@/lib/overlay";
 import { useGoogleAccount } from "@/lib/use-google-account";
 import { useOverlaySettings } from "@/lib/use-overlay-settings";
 import { useReducedMotion } from "@/lib/motion";
@@ -133,6 +133,17 @@ function OverlayPage() {
     };
   }, []);
 
+  // The view outlives the state by the time it takes to leave.
+  const [present, setPresent] = useState(visible);
+  useEffect(() => {
+    if (visible) {
+      setPresent(true);
+      return;
+    }
+    const gone = window.setTimeout(() => setPresent(false), LEAVE_MS);
+    return () => window.clearTimeout(gone);
+  }, [visible]);
+
   useEffect(() => {
     if (!visible) {
       armed.current = false;
@@ -169,8 +180,9 @@ function OverlayPage() {
     // No closed hand while it is pressed: the native move loop swallows the release, and the page
     // would go on believing the button is down until the pointer next moved.
     <div className="h-screen w-screen select-none cursor-grab" onMouseDown={handleMouseDown}>
-      {visible && (
+      {(visible || present) && (
         <OverlayView
+          leaving={!visible}
           look={settings.look}
           phase={phase}
           colors={colors}
