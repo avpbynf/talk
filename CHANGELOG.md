@@ -88,6 +88,12 @@ The line under the introduction of a card stopped where the text did, short of t
 The button that runs the typing test again is now a small icon beside the title. As a word it dropped
 under the title in a narrow window.
 
+- (preferences) Refuse a Google sign-in that was not given access to Drive
+
+Google's screen offers the access to Google Drive as a box to tick, and lets the sign-in through
+without it. Talk then looked signed in and every sync failed with a technical message. Such a sign-in
+is now refused at once, saying which box to tick.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features

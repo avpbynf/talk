@@ -12,6 +12,7 @@ export const GOOGLE_ERRORS = [
   "sign_in_refused",
   "sign_in_failed",
   "sign_in_no_email",
+  "sign_in_no_drive",
   "other",
 ] as const;
 
@@ -27,6 +28,7 @@ const WORDED_IN_FULL: readonly GoogleErrorCode[] = [
   "remote_devices_unreadable",
   "sign_in_timeout",
   "sign_in_no_email",
+  "sign_in_no_drive",
 ];
 
 function isCode(text: string): text is GoogleErrorCode {

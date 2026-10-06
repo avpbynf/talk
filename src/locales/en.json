@@ -892,6 +892,7 @@
       "remote_devices_unreadable": "This account's list of devices was written by a newer version of Talk, or could not be read. Update Talk, it will try again.",
       "sign_in_failed": "Google would not complete the sign-in.",
       "sign_in_no_email": "Google did not say which account signed in, so Talk kept nothing. Try again.",
+      "sign_in_no_drive": "Talk was not given access to Google Drive. Sign in again and tick the Google Drive box on Google's screen.",
       "other": "Something went wrong while talking to Google."
     },
     "notices": {

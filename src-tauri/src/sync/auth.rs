@@ -25,6 +25,8 @@ const CLIENT_SECRET: Option<&str> = option_env!("TALK_GOOGLE_CLIENT_SECRET");
 
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+/// The one access to Drive, a folder of its own that only this application reads.
+const DRIVE_SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
 const SCOPES: &str = "openid email https://www.googleapis.com/auth/drive.appdata";
 const SIGN_IN_TIMEOUT: Duration = Duration::from_secs(180);
 
@@ -234,6 +236,8 @@ struct TokenResponse {
     expires_in: u64,
     refresh_token: Option<String>,
     id_token: Option<String>,
+    /// What was granted, separated by spaces, which can be less than what was asked.
+    scope: Option<String>,
 }
 
 /// A failed answer of the token endpoint. `invalid_grant` means a revoked grant only when
@@ -277,6 +281,17 @@ fn account_email(id_token: Option<&str>) -> Result<String, SyncError> {
         .and_then(email_from_id_token)
         .filter(|email| !email.is_empty())
         .ok_or_else(|| SyncError::new(Failure::SignInNoEmail, "Google's answer did not say which account signed in"))
+}
+
+/// Google's consent screen offers the access to Drive as a box of its own, and completes the
+/// sign-in with the box left empty. Every sync would then be refused, so that sign-in is not kept.
+fn drive_granted(scope: Option<&str>) -> Result<(), SyncError> {
+    match scope {
+        Some(granted) if !granted.split_whitespace().any(|one| one == DRIVE_SCOPE) => {
+            Err(SyncError::new(Failure::SignInNoDrive, "the access to Google Drive was not granted"))
+        }
+        _ => Ok(()),
+    }
 }
 
 /// A completed sign-in that has not been kept yet.
@@ -351,6 +366,7 @@ pub async fn authorize(app: &tauri::AppHandle) -> Result<Option<PendingSignIn>, 
     // Read before anything is stored or wiped: an account that cannot be named is
     // never kept, and the one already here is left as it is.
     let email = account_email(tokens.id_token.as_deref())?;
+    drive_granted(tokens.scope.as_deref())?;
 
     let refresh_token = tokens
         .refresh_token
@@ -496,6 +512,14 @@ mod tests {
             Some(CachedToken { value: "old".to_string(), expires: Instant::now() + Duration::from_secs(600) });
         forget_access_token();
         assert!(ACCESS_TOKEN.lock().is_none());
+    }
+
+    #[test]
+    fn a_sign_in_without_the_access_to_drive_fails_with_its_own_code() {
+        assert!(drive_granted(Some(SCOPES)).is_ok());
+        assert!(drive_granted(None).is_ok(), "an answer that lists nothing is not a refusal");
+        let without = "openid https://www.googleapis.com/auth/userinfo.email";
+        assert_eq!(drive_granted(Some(without)).unwrap_err().failure, Failure::SignInNoDrive);
     }
 
     #[test]
