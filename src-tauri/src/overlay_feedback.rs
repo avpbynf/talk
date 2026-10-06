@@ -7,8 +7,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-/// How long the overlay stays up to say the text was pasted. Long enough to be seen.
-pub const PASTED_HOLD_MS: u64 = 1500;
 /// How long it stays to say a dictation was turned away. Long enough to be read, and for the
 /// head to shake.
 pub const REFUSED_HOLD_MS: u64 = 1800;

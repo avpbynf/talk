@@ -75,6 +75,11 @@ pub const REACTION_MIN: u8 = 20;
 pub const REACTION_MAX: u8 = 250;
 const REACTION_DEFAULT: u8 = 100;
 
+/// How long the overlay may stay up to say the text was pasted, in milliseconds.
+pub const PASTED_HOLD_MAX_MS: u16 = 3000;
+/// Long enough to be seen.
+const PASTED_HOLD_DEFAULT_MS: u16 = 1500;
+
 fn default_custom_colors() -> [String; 3] {
     ["#ff7a59".to_string(), "#ff4f8b".to_string(), "#a259ff".to_string()]
 }
@@ -85,6 +90,10 @@ fn is_hex(color: &str) -> bool {
 
 fn reaction<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
     lenient_or(d, |value| value.as_u64().and_then(|n| u8::try_from(n).ok()), REACTION_DEFAULT)
+}
+
+fn pasted_hold<'de, D: Deserializer<'de>>(d: D) -> Result<u16, D::Error> {
+    lenient_or(d, |value| value.as_u64().and_then(|n| u16::try_from(n).ok()), PASTED_HOLD_DEFAULT_MS)
 }
 
 fn colors<'de, D: Deserializer<'de>>(d: D) -> Result<[String; 3], D::Error> {
@@ -124,6 +133,9 @@ pub struct OverlayLook {
     /// The words shown at the end ("Pasted, 14 words", "No model").
     #[serde(deserialize_with = "off")]
     pub end_text: bool,
+    /// How long the overlay stays up once the text is pasted. Nothing, and it leaves at once.
+    #[serde(deserialize_with = "pasted_hold")]
+    pub pasted_hold_ms: u16,
     /// Read by the flyout style alone.
     #[serde(deserialize_with = "lenient")]
     pub voice: OverlayVoice,
@@ -143,6 +155,7 @@ impl Default for OverlayLook {
             timer: true,
             mic: true,
             end_text: false,
+            pasted_hold_ms: PASTED_HOLD_DEFAULT_MS,
             voice: OverlayVoice::default(),
             extra: Extra::new(),
         }
@@ -153,6 +166,7 @@ impl OverlayLook {
     /// The values brought back into range, so nothing but a colour reaches a style.
     pub fn sanitized(mut self) -> Self {
         self.reaction = self.reaction.clamp(REACTION_MIN, REACTION_MAX);
+        self.pasted_hold_ms = self.pasted_hold_ms.min(PASTED_HOLD_MAX_MS);
         let defaults = default_custom_colors();
         for (color, fallback) in self.custom_colors.iter_mut().zip(defaults) {
             if !is_hex(color) {

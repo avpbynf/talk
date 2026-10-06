@@ -24,6 +24,8 @@ export interface OverlayLook {
   mic: boolean;
   /** The words at the end: "Pasted, 14 words", "No model". */
   end_text: boolean;
+  /** Milliseconds the overlay stays up once the text is pasted. Nothing, and it leaves at once. */
+  pasted_hold_ms: number;
   /** Read by the Windows style alone. */
   voice: OverlayVoice;
 }
@@ -70,6 +72,7 @@ export interface Screen {
 export const SPOTS = ["top_left", "top_center", "top_right", "bottom_left", "bottom_center", "bottom_right"] as const;
 export const REACTION_MIN = 20;
 export const REACTION_MAX = 250;
+export const PASTED_HOLD_MAX_MS = 3000;
 
 /** The stage every style is drawn on at the medium size, which is what the window is made of. */
 export const STAGE_WIDTH = 244;
@@ -90,6 +93,7 @@ export const DEFAULT_LOOK: OverlayLook = {
   timer: true,
   mic: true,
   end_text: false,
+  pasted_hold_ms: 1500,
   voice: "wave",
 };
 
@@ -132,6 +136,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
   const free = placement.free as Record<string, unknown> | null | undefined;
   const reaction = typeof look.reaction === "number" ? look.reaction : DEFAULT_LOOK.reaction;
   const accent = (settings as { accent?: Record<string, unknown> | null }).accent;
+  const hold = typeof look.pasted_hold_ms === "number" ? look.pasted_hold_ms : DEFAULT_LOOK.pasted_hold_ms;
   return {
     accent: accent && HEX.test(String(accent.light)) && HEX.test(String(accent.dark)) ? { light: String(accent.light), dark: String(accent.dark) } : null,
     look: {
@@ -144,6 +149,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       timer: look.timer !== false,
       mic: look.mic !== false,
       end_text: look.end_text === true,
+      pasted_hold_ms: Math.min(PASTED_HOLD_MAX_MS, Math.max(0, Math.round(hold))),
       voice: oneOf(VOICES, look.voice, DEFAULT_LOOK.voice),
     },
     theme: oneOf(THEME_IDS, settings.theme, DEFAULT_SETTINGS.theme),

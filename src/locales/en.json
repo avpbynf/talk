@@ -571,6 +571,9 @@
         "micHint": "Halo and Capsule",
         "endText": "Text at the end",
         "endTextHint": "Shows \"Pasted, 14 words\" once the text is in place. Off, the overlay confirms with a tick and no words. A refused dictation always says why, in a few words.",
+        "pastedHold": "How long it confirms",
+        "pastedHoldHint": "How long the overlay stays once the text is pasted. At zero it leaves at once.",
+        "seconds": "{{value}} s",
         "voice": "Your voice",
         "voiceHint": "How the card draws it while it records",
         "voices": {
