@@ -571,6 +571,9 @@
         "micHint": "Halo et Capsule",
         "endText": "Texte à la fin",
         "endTextHint": "Affiche \"Collé, 14 mots\" une fois le texte en place. Désactivé, le bandeau confirme par une coche, sans mot. Une dictée refusée dit toujours pourquoi, en quelques mots.",
+        "pastedHold": "Durée de la confirmation",
+        "pastedHoldHint": "Combien de temps le bandeau reste une fois le texte collé. À zéro, il disparaît aussitôt.",
+        "seconds": "{{value}} s",
         "voice": "Votre voix",
         "voiceHint": "Comment la carte la dessine pendant l'enregistrement",
         "voices": {

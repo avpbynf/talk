@@ -1107,7 +1107,7 @@ fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
         match &said {
             overlay_feedback::Confirmation::Pasted(count) => {
                 let _ = app.emit_to(EventTarget::webview_window("overlay"), "dictation-pasted", count);
-                release_overlay_after(app, overlay_feedback::PASTED_HOLD_MS);
+                release_overlay_after(app, u64::from(crate::settings::read(|s| s.overlay_look.pasted_hold_ms)));
             }
             // A refusal like any other: the state and the sound together, once. Over a recording
             // or a transcription it is brief, and the overlay then returns to what is in flight.

@@ -23,6 +23,11 @@ spectrum, a slider cut into segments or the halo's bars, and the timer sits wher
 would be. A thin bar shows the progress while the text is transcribed. The styles are shown two to a
 row.
 
+- (overlay) Choose how long the overlay confirms a paste
+
+The Movement card has a setting for how long the overlay stays once the text is pasted, from nothing
+to three seconds. At zero it leaves as soon as the text is in place.
+
 - (overlay) Make the orb watch your pointer and move more with your voice
 
 The orb's eyes follow the mouse wherever it is on the desktop while it listens and thinks. It moves
