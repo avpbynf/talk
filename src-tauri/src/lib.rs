@@ -1045,22 +1045,67 @@ fn get_vbcable_status() -> virtual_mic::VBCableStatus {
     virtual_mic::detect_vbcable()
 }
 
+/// What the switch asks for and what the cable is doing about it, which differ when
+/// the route did not start or failed since.
+#[derive(serde::Serialize)]
+struct MeetingModeState {
+    enabled: bool,
+    routing: bool,
+    microphone: Option<String>,
+    failure: Option<String>,
+}
+
 #[tauri::command]
-fn get_meeting_mode(state: tauri::State<'_, AppState>) -> bool {
-    state.virtual_mic.lock().is_active()
+fn get_meeting_mode(state: tauri::State<'_, AppState>) -> MeetingModeState {
+    let enabled = settings::read(|s| s.meeting_mode_enabled);
+    let vm = state.virtual_mic.lock();
+    MeetingModeState {
+        enabled,
+        routing: vm.is_active(),
+        microphone: vm.microphone(),
+        failure: vm.failure(),
+    }
+}
+
+/// Route the microphone Talk records from through the virtual cable, in place of
+/// whatever was routed before. The page is told when the route fails later on, and
+/// a route on the system default is opened again when Windows names another one.
+fn route_meeting_mode(app: &tauri::AppHandle, state: &AppState) -> Result<(), String> {
+    let microphone = settings::read(|s| s.input_device_name.clone());
+    let told = app.clone();
+    let on_end = move |end| match end {
+        virtual_mic::RouteEnd::Lost => {
+            let _ = told.emit("meeting-mode-changed", ());
+        }
+        // Off the router's own thread, which the new route is about to stop.
+        virtual_mic::RouteEnd::DefaultMoved => {
+            let app = told.clone();
+            std::thread::spawn(move || {
+                if settings::read(|s| s.meeting_mode_enabled) {
+                    if let Err(e) = route_meeting_mode(&app, &app.state::<AppState>()) {
+                        eprintln!("Failed to follow the default microphone: {}", e);
+                    }
+                }
+                let _ = app.emit("meeting-mode-changed", ());
+            });
+        }
+    };
+    let mut vm = state.virtual_mic.lock();
+    // Read under the same lock the press path mutes under: a route opened while a
+    // dictation is under way starts silent, and one opened just before is muted by it.
+    let muted = state.phase.lock().active();
+    vm.enable(microphone.as_deref(), muted, on_end).map_err(|e| e.to_string())
 }
 
 /// Start or stop routing through the virtual cable and tell the page. The
 /// Preferences switch and a settings sync both go through here.
 fn apply_meeting_mode(app: &tauri::AppHandle, state: &AppState, enabled: bool) -> Result<(), String> {
-    let mut vm = state.virtual_mic.lock();
-
     if enabled {
-        vm.enable().map_err(|e| e.to_string())?;
+        route_meeting_mode(app, state)?;
     } else {
-        vm.disable();
+        state.virtual_mic.lock().disable();
     }
-    let _ = app.emit("meeting-mode-changed", enabled);
+    let _ = app.emit("meeting-mode-changed", ());
     Ok(())
 }
 
@@ -1092,8 +1137,21 @@ fn get_input_device() -> Option<String> {
 }
 
 #[tauri::command]
-fn set_input_device(device_name: Option<String>) -> Result<(), String> {
-    settings::update(|s| s.input_device_name = device_name).map(drop)
+fn set_input_device(
+    device_name: Option<String>,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    settings::update(|s| s.input_device_name = device_name)?;
+    // Meeting mode routes the microphone a dictation records from, so it moves with it.
+    // A route that cannot start on the new one is said by the Meeting mode card.
+    if settings::read(|s| s.meeting_mode_enabled) {
+        if let Err(e) = route_meeting_mode(&app, &state) {
+            eprintln!("Failed to route the new microphone: {}", e);
+        }
+        let _ = app.emit("meeting-mode-changed", ());
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -1362,8 +1420,7 @@ pub fn run() {
 
                 // Auto-start meeting mode if previously enabled
                 if app_settings.meeting_mode_enabled {
-                    let mut vm = state.virtual_mic.lock();
-                    if let Err(e) = vm.enable() {
+                    if let Err(e) = route_meeting_mode(app.handle(), &state) {
                         eprintln!("Failed to start meeting mode: {}", e);
                     }
                 }

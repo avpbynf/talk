@@ -215,7 +215,7 @@ pub fn find_output_device(device_name: Option<&str>) -> Option<(cpal::Device, St
 }
 
 /// Find an input device by name, or fall back to the system default.
-fn find_input_device(device_name: Option<&str>) -> Result<cpal::Device, AudioError> {
+pub(crate) fn find_input_device(device_name: Option<&str>) -> Result<cpal::Device, AudioError> {
     let host = cpal::default_host();
 
     if let Some(name) = device_name {

@@ -418,7 +418,10 @@
       "title": "Meeting mode",
       "detected": "VB-Cable detected ({{device}}).",
       "notInstalled": "VB-Cable not installed.",
-      "hint": "Routes the mic through VB-Cable so a meeting hears nothing.",
+      "hint": "Routes your microphone through VB-Cable so a meeting hears nothing while you dictate.",
+      "routing": "Sending {{microphone}} to the cable. It follows the microphone chosen in Settings.",
+      "silent": "Meeting mode is on but your microphone is not reaching VB-Cable, so a meeting listening to it hears nothing at all.",
+      "refused": "Meeting mode could not be switched.",
       "setup": "Set Teams or Discord to use \"CABLE Output\" as their microphone. While you dictate, the other participants hear nothing."
     },
     "system": {

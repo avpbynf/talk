@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- (audio) Meeting mode follows the microphone you chose, and says when it is silent
+
+Meeting mode used to send the Windows default microphone to VB-Cable whatever microphone was chosen
+in Settings, so a meeting could hear one microphone while Talk dictated from another. It now sends
+the one Talk records from, moves with it when you pick another or when Windows changes its default,
+stays silent when that happens in the middle of a dictation, and its card names it. When the
+microphone cannot reach the cable, at start-up or because a device went away, a meeting listening to
+the cable hears nothing at all: Talk now says so at the foot of the window and on the card, with a
+button to try again, instead of leaving the switch looking off. A microphone that is the cable's own
+output is refused, since it would feed the cable back into itself.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features

@@ -516,3 +516,25 @@ test.describe("dashboard", () => {
       .toMatchObject({ periodDays: 7 });
   });
 });
+
+test.describe("meeting mode", () => {
+  const dictation = PAGES.find((p) => p.id === "dictation")!;
+  const cable = { installed: true, device_name: "CABLE Input (VB-Audio Virtual Cable)" };
+
+  test("names the microphone it sends to the cable once switched on", async ({ app, page }) => {
+    await app.open({ state: { vbcable: cable } });
+    await app.go(dictation);
+    await page.getByRole("switch", { name: "Meeting mode" }).click();
+    await expect(page.getByText("Sending Microphone (USB Audio Device) to the cable.")).toBeVisible();
+  });
+
+  test("says on every page, and on its card, that it is on and silent", async ({ app, page }) => {
+    await app.open({ state: { vbcable: cable, meetingMode: true, meetingFailure: "No input device available" } });
+    const silent = page.getByRole("alert").filter({ hasText: "not reaching VB-Cable" });
+    await expect(silent).toHaveCount(1);
+    await app.go(dictation);
+    await expect(page.getByRole("switch", { name: "Meeting mode" })).toBeChecked();
+    await expect(silent).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+});

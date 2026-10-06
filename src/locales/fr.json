@@ -418,7 +418,10 @@
       "title": "Mode réunion",
       "detected": "VB-Cable détecté ({{device}}).",
       "notInstalled": "VB-Cable non installé.",
-      "hint": "Fait passer le micro par VB-Cable pour qu'une réunion n'entende rien.",
+      "hint": "Fait passer votre micro par VB-Cable pour qu'une réunion n'entende rien pendant que vous dictez.",
+      "routing": "{{microphone}} est envoyé vers le câble. Il suit le micro choisi dans les Paramètres.",
+      "silent": "Le mode réunion est activé mais votre micro n'arrive pas jusqu'à VB-Cable, une réunion qui l'écoute n'entend donc rien du tout.",
+      "refused": "Le mode réunion n'a pas pu être basculé.",
       "setup": "Réglez Teams ou Discord sur « CABLE Output » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien."
     },
     "system": {

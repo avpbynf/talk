@@ -23,6 +23,7 @@ import { NoModelBanner } from "@/components/NoModelBanner";
 import { useAppTheme } from "@/lib/use-app-theme";
 import { readCachedTheme, writeCachedTheme } from "@/lib/theme-cache";
 import { useUpdater } from "@/lib/use-updater";
+import { useMeetingModeWatch } from "@/lib/meeting-mode";
 import { useServerOffer } from "@/lib/use-server-offer";
 import { usePendingPairings } from "@/lib/share";
 import { tell } from "@/lib/notice";
@@ -164,6 +165,7 @@ function App() {
 
   const { offer: serverOffer, dismiss: dismissServerOffer } = useServerOffer(setupCompleted === true);
   const pendingPairings = usePendingPairings();
+  useMeetingModeWatch();
 
   // One strip at a time: the invitation waits for the others to go
   const otherStripShowing =

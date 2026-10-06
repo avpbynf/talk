@@ -1,4 +1,4 @@
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::traits::{DeviceTrait, StreamTrait};
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -12,6 +12,8 @@ pub enum AudioRouterError {
     NoInputDevice,
     #[error("VB-Cable device not found")]
     VBCableNotFound,
+    #[error("The microphone is the virtual cable itself")]
+    MicrophoneIsCable,
     #[error("Failed to get device config: {0}")]
     DeviceConfig(String),
     #[error("Failed to build stream: {0}")]
@@ -20,30 +22,74 @@ pub enum AudioRouterError {
     StartStream(String),
 }
 
-/// Audio routing engine. Captures from the default input device (real mic)
+/// How often a route on the system default asks Windows which microphone that is.
+const DEFAULT_CHECK: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// Why a route no longer does what it was started for.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RouteEnd {
+    /// A stream failed: nothing reaches the cable any more.
+    Lost,
+    /// The route is on the system default, and Windows now names another microphone.
+    /// A stream stays on the endpoint it was opened on, so the route has to be opened again.
+    DefaultMoved,
+}
+
+/// Audio routing engine. Captures from the microphone Talk records from
 /// and plays to the VB-Cable Input device.
 pub struct AudioRouter {
     stop_signal: Arc<AtomicBool>,
     muted: Arc<AtomicBool>,
+    lost: Arc<AtomicBool>,
+    microphone: String,
 }
 
 impl AudioRouter {
-    /// Start routing real mic -> VB-Cable Input.
+    /// Start routing real mic -> VB-Cable Input, from the named microphone or the
+    /// system default, which is the choice a dictation makes too, and silent from the
+    /// first sample when `muted`. `on_end` is called from one of the router's own
+    /// threads, at most once for each reason, when the route stops doing that.
     /// Spawns a dedicated thread that owns both cpal streams.
-    pub fn start() -> Result<Self, AudioRouterError> {
+    pub fn start(
+        microphone: Option<&str>,
+        muted: bool,
+        on_end: impl Fn(RouteEnd) + Send + Sync + 'static,
+    ) -> Result<Self, AudioRouterError> {
         let stop_signal = Arc::new(AtomicBool::new(false));
-        let muted = Arc::new(AtomicBool::new(false));
+        let muted = Arc::new(AtomicBool::new(muted));
+        let lost = Arc::new(AtomicBool::new(false));
+        let on_end = Arc::new(on_end);
 
         let stop_clone = stop_signal.clone();
         let muted_clone = muted.clone();
 
         // Find devices before spawning thread
-        let host = cpal::default_host();
-        let input_device = host
-            .default_input_device()
-            .ok_or(AudioRouterError::NoInputDevice)?;
+        let follows_default = microphone.is_none();
+        let input_device = crate::audio::find_input_device(microphone)
+            .map_err(|_| AudioRouterError::NoInputDevice)?;
+        let microphone = input_device
+            .name()
+            .map_err(|e| AudioRouterError::DeviceConfig(e.to_string()))?;
+        // The cable's own recording side fed back into the cable is a loop.
+        if microphone.contains("CABLE Output") {
+            return Err(AudioRouterError::MicrophoneIsCable);
+        }
         let output_device =
             find_vbcable_device().ok_or(AudioRouterError::VBCableNotFound)?;
+
+        let report_lost = {
+            let lost = lost.clone();
+            let on_end = on_end.clone();
+            Arc::new(move |side: &str, err: cpal::StreamError| {
+                eprintln!("Virtual mic {} error: {}", side, err);
+                if !lost.swap(true, Ordering::SeqCst) {
+                    on_end(RouteEnd::Lost);
+                }
+            })
+        };
+        let routed = microphone.clone();
+        let input_lost = report_lost.clone();
+        let output_lost = report_lost;
 
         // Get configs
         let input_config = input_device
@@ -144,7 +190,7 @@ impl AudioRouter {
                                 }
                             }
                         },
-                        |err| eprintln!("Virtual mic input error: {}", err),
+                        move |err| input_lost("input", err),
                         None,
                     )
                     .map_err(|e| AudioRouterError::BuildStream(e.to_string()))?;
@@ -162,7 +208,7 @@ impl AudioRouter {
                             }
                             ring.drain(0..available);
                         },
-                        |err| eprintln!("Virtual mic output error: {}", err),
+                        move |err| output_lost("output", err),
                         None,
                     )
                     .map_err(|e| AudioRouterError::BuildStream(e.to_string()))?;
@@ -180,8 +226,19 @@ impl AudioRouter {
             match result {
                 Ok((input_stream, output_stream)) => {
                     let _ = tx.send(Ok(()));
+                    let mut watches_default = follows_default;
+                    let mut checked = std::time::Instant::now();
                     while !stop_clone.load(Ordering::SeqCst) {
                         std::thread::sleep(std::time::Duration::from_millis(50));
+                        if watches_default && checked.elapsed() >= DEFAULT_CHECK {
+                            checked = std::time::Instant::now();
+                            let moved = crate::audio::default_input_device_name()
+                                .is_some_and(|name| name != routed);
+                            if moved {
+                                watches_default = false;
+                                on_end(RouteEnd::DefaultMoved);
+                            }
+                        }
                     }
                     drop(input_stream);
                     drop(output_stream);
@@ -195,7 +252,17 @@ impl AudioRouter {
         rx.recv()
             .map_err(|_| AudioRouterError::BuildStream("Router thread failed".to_string()))??;
 
-        Ok(Self { stop_signal, muted })
+        Ok(Self { stop_signal, muted, lost, microphone })
+    }
+
+    /// The microphone being routed, by the name Windows gives it.
+    pub fn microphone(&self) -> &str {
+        &self.microphone
+    }
+
+    /// Whether a stream failed since the start, which leaves the cable silent.
+    pub fn is_lost(&self) -> bool {
+        self.lost.load(Ordering::SeqCst)
     }
 
     /// Mute: write silence to VB-Cable instead of real audio.

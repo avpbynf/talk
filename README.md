@@ -117,8 +117,8 @@ change that. Memory alone would not decide it: an integrated chip reports the sh
 system memory as its own and comes out ahead of a discrete card carrying half as much of
 its own. The model reloads on the card you pick, without restarting the app.
 
-**Meeting mode routes the microphone through VB-Cable**, so a call keeps hearing you
-while Talk captures the same input. Everything the machine plays can be turned down for
+**Meeting mode routes the microphone you chose through VB-Cable**, so a call listening to
+the cable hears you until you dictate and nothing while you do. Everything the machine plays can be turned down for
 the length of a recording, to a share of where it already was, and put back at the stop
 rather than after the transcription.
 

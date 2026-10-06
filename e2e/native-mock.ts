@@ -292,9 +292,15 @@ export function installNativeMock(init: MockInit): void {
       s.queue = a.settings;
       return null;
     },
-    get_meeting_mode: () => s.meetingMode,
+    get_meeting_mode: () => ({
+      enabled: s.meetingMode,
+      routing: s.meetingMode && s.meetingFailure === null,
+      microphone: s.meetingMode && s.meetingFailure === null ? (s.inputDevice ?? s.defaultInput) : null,
+      failure: s.meetingMode ? s.meetingFailure : null,
+    }),
     set_meeting_mode: (a) => {
       s.meetingMode = a.enabled;
+      emit("meeting-mode-changed");
       return null;
     },
     get_vbcable_status: () => s.vbcable,
