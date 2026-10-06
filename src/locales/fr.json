@@ -737,12 +737,6 @@
         "lively": "Vives",
         "gentle": "Douces",
         "reduced": "Réduites"
-      },
-      "buttons": {
-        "label": "Boutons de fenêtre",
-        "hint": "Réduire, agrandir, fermer",
-        "left": "À gauche",
-        "right": "À droite"
       }
     }
   },

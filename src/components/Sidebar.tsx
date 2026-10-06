@@ -7,7 +7,6 @@ import { Blobatar } from "@blobatar/react";
 import "blobatar/motion.css";
 import { cn } from "@/lib/utils";
 import { useGoogleAccount, type GoogleStatus } from "@/lib/use-google-account";
-import { WindowDots } from "@/components/WindowDots";
 
 export interface NavItem<Id extends string = string> {
   id: Id;
@@ -35,8 +34,6 @@ interface SidebarProps<Id extends string> {
   accountTarget: Id;
   onNavigate: (id: Id) => void;
   status: SidebarStatus<Id> | null;
-  /** Where the window buttons are. On the left they sit in the top row of the sidebar. */
-  windowButtons?: "left" | "right";
 }
 
 const STORAGE_KEY = "talk.sidebar.collapsed";
@@ -71,7 +68,6 @@ export function Sidebar<Id extends string>({
   accountTarget,
   onNavigate,
   status,
-  windowButtons = "right",
 }: SidebarProps<Id>) {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
@@ -190,19 +186,11 @@ export function Sidebar<Id extends string>({
     >
       <div
         data-tauri-drag-region
-        className={cn(
-          "mx-2.5 mt-3 mb-[18px] h-[34px] shrink-0 flex items-center pl-3 select-none",
-          windowButtons === "left" &&
-            "justify-between group-data-[collapsed=true]/side:h-auto group-data-[collapsed=true]/side:flex-col group-data-[collapsed=true]/side:justify-center group-data-[collapsed=true]/side:gap-2 group-data-[collapsed=true]/side:pl-0",
-        )}
+        className="mx-2.5 mb-3 h-8 shrink-0 flex items-center pl-3 select-none"
       >
-        <span
-          data-tauri-drag-region
-          className={cn("text-[15px] font-semibold tracking-tight", windowButtons === "right" && WORDMARK)}
-        >
+        <span data-tauri-drag-region className={cn("text-[15px] font-semibold tracking-tight", WORDMARK)}>
           Talk
         </span>
-        {windowButtons === "left" && <WindowDots />}
       </div>
 
       <div ref={listRef} className="relative flex-1 min-h-0 flex flex-col gap-0.5 px-2.5">

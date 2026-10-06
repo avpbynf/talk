@@ -136,7 +136,6 @@ export function defaultState() {
       overlay_placement: { spot: "bottom_center", free: null, screen: "typing", chosen_screen: null } as Record<string, unknown>,
       theme: { preset: "aurora", custom: null } as { preset: string; custom: unknown },
       saved_themes: [] as { id: string; name: string; values: unknown; modified: number }[],
-      window_buttons: "right",
       vocabulary: ["Talk", "Whisper", "Tauri", "VB-Cable", "Vulkan", "Marta", "Daniel"],
       transcription_mode: "local",
       server_url: "http://192.168.1.40:8000",

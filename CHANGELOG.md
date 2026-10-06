@@ -39,6 +39,12 @@ goes up to 250 % for every style.
 The overlay used to vanish at once when a dictation ended. It now fades out, slides away or shrinks,
 whichever way it arrived, in a fifth of a second.
 
+- (window) Put the name on the line of the window buttons, which stay on the right
+
+Talk's name sits in the strip at the top of the window, level with the window buttons, with the
+sidebar open or folded, and the menu starts higher. The choice of the side the window buttons are on
+is gone from Appearance: they are on the right.
+
 ### Bug Fixes
 
 - (audio) Meeting mode follows the microphone you chose, and says when it is silent

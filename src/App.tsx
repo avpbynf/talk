@@ -21,7 +21,6 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { ServerOfferBanner } from "@/components/ServerOfferBanner";
 import { NoModelBanner } from "@/components/NoModelBanner";
 import { useAppTheme } from "@/lib/use-app-theme";
-import { readCachedTheme, writeCachedTheme } from "@/lib/theme-cache";
 import { useUpdater } from "@/lib/use-updater";
 import { useMeetingModeWatch } from "@/lib/meeting-mode";
 import { useServerOffer } from "@/lib/use-server-offer";
@@ -67,7 +66,6 @@ export type RecordingMode = "push_to_talk" | "toggle";
 export type AcceleratorBackend = "cpu" | "vulkan";
 export type GpuVendor = "vulkan" | "cpu";
 export type OverlaySize = "small" | "medium" | "large";
-export type WindowButtonsSide = "left" | "right";
 export type TranscriptionMode = "local" | "server";
 
 export type CompanionShortcut = {
@@ -152,8 +150,6 @@ function App() {
   const [stopSound, setStopSound] = useState("beep");
   const [companionShortcuts, setCompanionShortcuts] = useState<CompanionShortcut[]>([]);
   const appTheme = useAppTheme();
-  const [windowButtons, setWindowButtons] = useState<WindowButtonsSide>(() => readCachedTheme().windowButtons);
-  useEffect(() => writeCachedTheme({ windowButtons }), [windowButtons]);
   // Matches default_history_limit() on the Rust side. The two drifting apart
   // is what made the sound state show the wrong thing until the settings
   // loaded, so this one starts where Rust starts.
@@ -181,7 +177,7 @@ function App() {
   const settingSetters = {
     setRecordingMode, setShortcut, setCancelShortcut, setPasteShortcut, setVocabulary, setTranscriptionMode,
     setServerUrl, setServerFallback, setServerTimeout, setDuckAudioOnRecord, setDuckVolumePercent,
-    setPreserveClipboard, setAutostartEnabled, setStartMinimized, setWindowButtons, setServerToken,
+    setPreserveClipboard, setAutostartEnabled, setStartMinimized, setServerToken,
     setServerModel, setSoundFeedback, setStartSound, setStopSound, setCompanionShortcuts, setHistoryLimit,
     loadTheme: appTheme.load,
   };
@@ -468,7 +464,6 @@ function App() {
     serverTimeout: setting("server_timeout", setServerTimeout, "set_server_timeout", "timeout"),
     serverToken: setting("server_token", setServerToken, "set_server_token", "token"),
     serverModel: setting("server_model", setServerModel, "set_server_model", "model"),
-    windowButtons: setting("window_buttons", setWindowButtons, "set_window_buttons", "side"),
     recordingMode: setting("recording_mode", setRecordingMode, "set_recording_mode", "mode"),
     companionShortcuts: setting("companion_shortcuts", setCompanionShortcuts, "set_companion_shortcuts", "shortcuts"),
     soundFeedback: setting("sound_feedback", setSoundFeedback, "set_sound_feedback", "enabled"),
@@ -569,11 +564,10 @@ function App() {
         accountTarget="account"
         onNavigate={setCurrentView}
         status={sidebarStatus}
-        windowButtons={windowButtons}
       />
 
       <div className="relative flex-1 min-w-0 flex flex-col">
-      <CaptionStrip buttons={windowButtons === "right"} />
+      <CaptionStrip />
 
       {/* The sidebar and the strip are one surface, and the page sits in their corner. This
           fills what the page's rounded corner leaves open with that surface. */}
@@ -766,11 +760,7 @@ function App() {
         )}
         {view === "appearance" && (
           <LoadGate groups={["settings"]}>
-          <AppearanceView
-            appTheme={appTheme}
-            windowButtons={windowButtons}
-            onWindowButtonsChange={save.windowButtons}
-          />
+          <AppearanceView appTheme={appTheme} />
           </LoadGate>
         )}
         {view === "dictation" && (

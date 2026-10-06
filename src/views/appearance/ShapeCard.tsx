@@ -1,5 +1,4 @@
 import { LayoutDashboard } from "lucide-react";
-import type { WindowButtonsSide } from "@/App";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
@@ -9,11 +8,9 @@ import type { AppThemeController } from "@/lib/use-app-theme";
 
 interface ShapeCardProps {
   theme: AppThemeController;
-  windowButtons: WindowButtonsSide;
-  onWindowButtonsChange: (side: WindowButtonsSide) => void;
 }
 
-export default function ShapeCard({ theme, windowButtons, onWindowButtonsChange }: ShapeCardProps) {
+export default function ShapeCard({ theme }: ShapeCardProps) {
   const { t } = useTranslation();
   const values = theme.resolved.values;
   const change = (patch: Partial<ThemeValues>) => theme.edit({ ...values, ...patch });
@@ -39,17 +36,6 @@ export default function ShapeCard({ theme, windowButtons, onWindowButtonsChange 
           options={(["compact", "normal", "large"] as const).map((value) => ({
             value,
             label: t(`appearance.shape.text.${value}`),
-          }))}
-        />
-      </SettingRow>
-      <SettingRow label={t("appearance.shape.buttons.label")} hint={t("appearance.shape.buttons.hint")}>
-        <Segmented
-          label={t("appearance.shape.buttons.label")}
-          value={windowButtons}
-          onChange={onWindowButtonsChange}
-          options={(["left", "right"] as const).map((value) => ({
-            value,
-            label: t(`appearance.shape.buttons.${value}`),
           }))}
         />
       </SettingRow>

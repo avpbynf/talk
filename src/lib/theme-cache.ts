@@ -1,4 +1,3 @@
-import type { WindowButtonsSide } from "@/App";
 import {
   type SavedTheme,
   type ThemeSetting,
@@ -22,10 +21,9 @@ const KEY = "talk.theme";
 export interface CachedTheme {
   setting: ThemeSetting;
   saved: SavedTheme[];
-  windowButtons: WindowButtonsSide;
 }
 
-const defaults = (): CachedTheme => ({ setting: defaultSetting(), saved: [], windowButtons: "right" });
+const defaults = (): CachedTheme => ({ setting: defaultSetting(), saved: [] });
 
 /** The cached entry when it is whole; otherwise it is deleted and the defaults stand. */
 export function readCachedTheme(): CachedTheme {
@@ -46,7 +44,6 @@ export function readCachedTheme(): CachedTheme {
       return {
         setting: coerceSetting(raw.setting),
         saved: coerceSaved(saved),
-        windowButtons: raw.windowButtons === "left" ? "left" : "right",
       };
     }
     localStorage.removeItem(KEY);
