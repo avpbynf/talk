@@ -74,6 +74,11 @@ audio devices, meeting mode and chained dictations cards were drawn a second tim
 values were read, the account card only appeared once the account had answered, and listing the
 audio devices held the window still while the page was arriving.
 
+- (window) Give fields, lists and outlined buttons their background
+
+Text fields, drop-down lists and outlined buttons had no background of their own, so the lights
+behind the page showed through them. They now stand on the same surface as the cards.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features

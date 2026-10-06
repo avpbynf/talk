@@ -54,6 +54,7 @@
 
   /* Surface hierarchy */
   --color-surface-deep: color-mix(in oklch, var(--bg) calc(100% - var(--depth)), var(--sink));
+  --color-surface: var(--surface);
   --color-surface-inset: var(--surface-2);
   --color-surface-raised: var(--surface);
   --color-surface-elevated: color-mix(in oklch, var(--card) 88%, var(--fg));
