@@ -60,6 +60,7 @@ export default function DictationView({
         recordingMode={recordingMode}
         onRecordingModeChange={onRecordingModeChange}
       />
+      <MeetingModeSection />
       <ChainedDictationsSection />
       <SoundFeedbackSection
         soundFeedback={soundFeedback}
@@ -73,7 +74,6 @@ export default function DictationView({
         companionShortcuts={companionShortcuts}
         onCompanionShortcutsChange={onCompanionShortcutsChange}
       />
-      <MeetingModeSection />
     </PageShell>
   );
 }
