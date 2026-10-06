@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import i18n from "@/i18n";
+import { forgetAccount } from "@/lib/use-google-account";
 import AccountView, { type GoogleStatus } from "./AccountView";
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn().mockResolvedValue(undefined) }));
@@ -53,6 +54,7 @@ function answer(status: GoogleStatus, others: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.mocked(invoke).mockReset();
+  forgetAccount();
 });
 
 describe("AccountView", () => {

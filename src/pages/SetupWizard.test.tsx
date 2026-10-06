@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import SetupWizard from "./SetupWizard";
-import type { GoogleStatus } from "@/lib/use-google-account";
+import { forgetAccount, type GoogleStatus } from "@/lib/use-google-account";
 
 const signedOut: GoogleStatus = {
   available: true,
@@ -45,8 +45,9 @@ async function toTheStepAfterOptions() {
 }
 
 beforeEach(() => {
+  forgetAccount();
   vi.mocked(invoke).mockReset();
-  startup = { autostart: true, minimized: true };
+  startup ={ autostart: true, minimized: true };
   vi.mocked(listen).mockImplementation(async (name: string, handler: unknown) => {
     handlers[name] = handler as () => void;
     return () => {};

@@ -1122,7 +1122,7 @@ fn set_meeting_mode(
 // Input Device Commands
 // ============================================================================
 
-#[tauri::command]
+#[tauri::command(async)]
 fn list_input_devices() -> Vec<String> {
     audio::list_input_devices()
 }
@@ -1150,7 +1150,7 @@ fn set_input_device(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_default_input_device() -> Option<String> {
     audio::default_input_device_name()
 }
@@ -1159,12 +1159,12 @@ fn get_default_input_device() -> Option<String> {
 // Output Device Commands
 // ============================================================================
 
-#[tauri::command]
+#[tauri::command(async)]
 fn list_output_devices() -> Vec<String> {
     audio::list_output_devices()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn get_default_output_device() -> Option<String> {
     audio::default_output_device_name()
 }

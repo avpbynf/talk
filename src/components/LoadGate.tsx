@@ -24,9 +24,13 @@ interface LoadGateProps {
 export function LoadGate({ groups, onRetry = retryReads, inline = false, pending = false, children }: LoadGateProps) {
   const { t } = useTranslation();
   const failed = useReadFailed(...groups);
-  if (!failed && pending) {
+  // The same element before and after the first read: swapping it for its bare children would
+  // mount the content a second time, and a card that was arriving with its page would be replaced
+  // by one that is simply there. It is not dimmed while it waits either, since the wait is the
+  // length of the arrival and a card brightening as it lands reads as a flash.
+  if (!failed && (inline || pending)) {
     return (
-      <fieldset disabled className="m-0 min-w-0 border-0 p-0 opacity-60">
+      <fieldset disabled={pending} className="m-0 min-w-0 border-0 p-0">
         {children}
       </fieldset>
     );
