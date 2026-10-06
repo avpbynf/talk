@@ -83,6 +83,11 @@ behind the page showed through them. They now stand on the same surface as the c
 
 The line under the introduction of a card stopped where the text did, short of the card's edge.
 
+- (dashboard) Keep the title of the typing card on one line
+
+The button that runs the typing test again is now a small icon beside the title. As a word it dropped
+under the title in a narrow window.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features

@@ -1,4 +1,4 @@
-import { Keyboard } from "lucide-react";
+import { Keyboard, RotateCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/SectionCard";
@@ -36,8 +36,15 @@ export function TypingCard({ summary, userWpm, measuredOn, onRecalibrate }: Typi
       icon={Keyboard}
       title={t("dashboard.typing.title")}
       action={
-        <Button variant="outline" size="sm" onClick={onRecalibrate} title={t("dashboard.typing.retestTitle")}>
-          {t("dashboard.typing.retest")}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onRecalibrate}
+          aria-label={t("dashboard.typing.retest")}
+          title={t("dashboard.typing.retestTitle")}
+          className="-my-1.5 -mr-1.5"
+        >
+          <RotateCw />
         </Button>
       }
     >
