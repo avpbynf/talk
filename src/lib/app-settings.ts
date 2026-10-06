@@ -11,7 +11,6 @@ const GROUP: Record<string, ReadGroup> = {
   server_timeout: "settings",
   server_token: "token",
   server_model: "serverModel",
-  window_buttons: "settings",
   autostart_enabled: "settings",
   start_minimized: "settings",
   duck_audio_on_record: "settings",

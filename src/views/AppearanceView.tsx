@@ -1,6 +1,5 @@
 import { Suspense, lazy, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { WindowButtonsSide } from "@/App";
 import type { AppThemeController } from "@/lib/use-app-theme";
 import { PageShell } from "@/components/PageShell";
 import { Segmented } from "@/components/ui/segmented";
@@ -15,13 +14,11 @@ const OverlayTab = lazy(() => import("./appearance/OverlayTab"));
 
 interface AppearanceViewProps {
   appTheme: AppThemeController;
-  windowButtons: WindowButtonsSide;
-  onWindowButtonsChange: (side: WindowButtonsSide) => void;
 }
 
 type Tab = "application" | "overlay";
 
-export default function AppearanceView({ appTheme, windowButtons, onWindowButtonsChange }: AppearanceViewProps) {
+export default function AppearanceView({ appTheme }: AppearanceViewProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("application");
 
@@ -44,11 +41,7 @@ export default function AppearanceView({ appTheme, windowButtons, onWindowButton
           <GradientEditor theme={appTheme} />
           <AtmosphereCard theme={appTheme} />
           <BaseColorsCard theme={appTheme} />
-          <ShapeCard
-            theme={appTheme}
-            windowButtons={windowButtons}
-            onWindowButtonsChange={onWindowButtonsChange}
-          />
+          <ShapeCard theme={appTheme} />
         </>
       ) : (
         <Suspense fallback={null}>

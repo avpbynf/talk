@@ -5,7 +5,6 @@ import type {
   RecordingMode,
   Transcription,
   TranscriptionMode,
-  WindowButtonsSide,
 } from "@/App";
 import { confirmSetting } from "@/lib/save-setting";
 import { setReadFailed, type ReadGroup } from "@/lib/read-state";
@@ -15,7 +14,6 @@ export interface SavedSettings {
   accelerator_backend: AcceleratorBackend;
   theme?: unknown;
   saved_themes?: unknown;
-  window_buttons?: WindowButtonsSide;
   vocabulary: string[];
   transcription_mode: TranscriptionMode;
   server_url: string;
@@ -79,7 +77,6 @@ export interface SettingsSetters {
   setPreserveClipboard: (value: boolean) => void;
   setAutostartEnabled: (value: boolean) => void;
   setStartMinimized: (value: boolean) => void;
-  setWindowButtons: (value: WindowButtonsSide) => void;
   setServerToken: (value: string) => void;
   setServerModel: (value: string) => void;
   setSoundFeedback: (value: boolean) => void;
@@ -128,7 +125,6 @@ function savedValues(saved: SavedSettings) {
     preserve_clipboard: saved.preserve_clipboard || false,
     autostart_enabled: saved.autostart_enabled === true,
     start_minimized: saved.start_minimized === true,
-    window_buttons: saved.window_buttons === "left" ? ("left" as const) : ("right" as const),
   };
 }
 
@@ -168,7 +164,6 @@ export async function loadSettings(set: SettingsSetters): Promise<LoadedSettings
       bind("preserve_clipboard", set.setPreserveClipboard);
       bind("autostart_enabled", set.setAutostartEnabled);
       bind("start_minimized", set.setStartMinimized);
-      bind("window_buttons", set.setWindowButtons);
       set.loadTheme(saved);
     }),
     read("token", () => invoke<string>("get_server_token"), (value) => {
