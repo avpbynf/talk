@@ -3,7 +3,7 @@
  * has a model loaded, a few weeks of history and nobody signed in.
  *
  * Everything is plain JSON because it is handed to the page as an argument. The
- * dates hang off FIXED_NOW, which the harness also pins as the browser's clock.
+ * dates hang off FIXED_NOW, which the harness also pins as the page's date.
  */
 
 export const FIXED_NOW = "2026-09-15T10:00:00.000Z";

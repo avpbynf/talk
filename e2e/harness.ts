@@ -53,6 +53,26 @@ export interface OpenOptions {
   frozen?: boolean;
 }
 
+/**
+ * Makes the page read one date, and leaves everything else to the browser. Playwright's own
+ * `clock.setFixedTime` also takes over the timers, the frames and `performance.now`, and the time
+ * it hands out falls behind on a machine short of processor: a page that fades out in 170 ms took
+ * between three and eight seconds to leave, which is what failed the Account tests on the runner.
+ */
+function pinDate(fixed: number): void {
+  const Real = Date;
+  class Pinned extends Real {
+    constructor(...given: unknown[]) {
+      if (given.length === 0) super(fixed);
+      else super(...(given as ConstructorParameters<typeof Date>));
+    }
+    static now(): number {
+      return fixed;
+    }
+  }
+  globalThis.Date = Pinned as DateConstructor;
+}
+
 function isPlain(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -76,7 +96,7 @@ export class App {
     for (const [cmd, message] of Object.entries(options.failing ?? {})) answers[cmd] = { __reject: message };
     for (const cmd of options.pending ?? []) answers[cmd] = { __pending: true };
 
-    if (options.frozen) await this.page.clock.setFixedTime(new Date(FIXED_NOW));
+    if (options.frozen) await this.page.addInitScript(pinDate, Date.parse(FIXED_NOW));
     await this.page.addInitScript(installNativeMock, { state: state as unknown as NativeState, answers });
     await this.page.goto(options.path ?? "/");
     if (!options.bare) await this.ready();
