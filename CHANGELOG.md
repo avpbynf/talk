@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (window) The first-run setup is redrawn in the look of the rest of the application
+
+Every step of the setup now uses the theme you have: choice cards with a ring and a check, a header
+with a progress bar that fills as you go, status tiles, the ambient lights behind, and pages that
+fade and rise into one another. The window buttons are there from the first step. While a model
+downloads, the other models and the Quantised and Standard tabs hold still. A download that fails
+now says so and offers to try again, instead of quietly going back to the button, and the last
+page lists "Start minimised" beside "Start with Windows".
+
 - (preferences) Meeting mode sits higher on the Dictation page
 
 The Meeting mode card was the last one on the Dictation page, out of sight until you scrolled to the

@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
+import { CaptionStrip } from "@/components/CaptionStrip";
+import { PageTransition } from "@/components/PageTransition";
 import { statusFromCheck, type ServerCheck, type ServerStatus } from "@/lib/server";
-import { ChevronRight, ChevronLeft, Loader2, Rocket, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useGoogleAccount } from "@/lib/use-google-account";
 import { answerGoogleInvite } from "@/lib/use-google-invite";
 import { ModeStep } from "./setup/ModeStep";
@@ -15,14 +14,11 @@ import { ModelStep } from "./setup/ModelStep";
 import { StartupStep } from "./setup/StartupStep";
 import { GoogleStep } from "./setup/GoogleStep";
 import { SummaryStep } from "./setup/SummaryStep";
-import type {
-  DownloadProgress,
-  GpuInfo,
-  GpuVendor,
-  ModelFamily,
-  ModelInfo,
-  TranscriptionMode,
-} from "./setup/types";
+import { SetupHeader } from "./setup/SetupHeader";
+import { SetupFooter } from "./setup/SetupFooter";
+import { isServerUrl } from "./setup/serverUrl";
+import { useModelDownload } from "./setup/useModelDownload";
+import type { GpuInfo, GpuVendor, ModelFamily, ModelInfo, TranscriptionMode } from "./setup/types";
 
 const DEFAULT_SERVER_URL = "";
 
@@ -49,9 +45,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelFamily, setModelFamily] = useState<ModelFamily>("quantized");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [downloadedModels, setDownloadedModels] = useState<string[]>([]);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
+  const download = useModelDownload();
+  const { downloaded: downloadedModels, setDownloaded: setDownloadedModels } = download;
 
   // Options
   const [autostartEnabled, setAutostartEnabled] = useState(false);
@@ -97,24 +92,6 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     loadInitialData();
   }, []);
 
-  // Listen for download events
-  useEffect(() => {
-    const unlistenProgress = listen<DownloadProgress>("download-progress", (event) => {
-      setDownloadProgress(event.payload);
-    });
-
-    const unlistenComplete = listen<{ model_id: string }>("download-complete", (event) => {
-      setIsDownloading(false);
-      setDownloadProgress(null);
-      setDownloadedModels((prev) => [...prev, event.payload.model_id]);
-    });
-
-    return () => {
-      unlistenProgress.then((f) => f());
-      unlistenComplete.then((f) => f());
-    };
-  }, []);
-
   async function loadInitialData() {
     const [availableModels, downloaded, availableGpus, bestGpu] = await Promise.all([
       invoke<ModelInfo[]>("get_available_models"),
@@ -147,17 +124,6 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       setServerStatus(statusFromCheck(check));
     } catch {
       setServerStatus("offline");
-    }
-  }
-
-  async function handleDownloadModel() {
-    if (!selectedModel || downloadedModels.includes(selectedModel)) return;
-    setIsDownloading(true);
-    try {
-      await invoke("download_model", { modelId: selectedModel });
-    } catch (error) {
-      console.error("Download failed:", error);
-      setIsDownloading(false);
     }
   }
 
@@ -219,77 +185,25 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     if (googleStepOffered && stepContent === "complete") answerGoogleInvite();
   }, [googleStepOffered, stepContent]);
 
-  const isValidUrl = (url: string): boolean => {
-    try {
-      const parsed = new URL(url);
-      return parsed.protocol === "http:" || parsed.protocol === "https:";
-    } catch {
-      return false;
-    }
-  };
-
   const canProceed = () => {
     switch (stepContent) {
-      case "mode":
-        return true;
-      case "hardware":
-        return true;
       case "server":
-        return isValidUrl(serverUrl);
+        return isServerUrl(serverUrl);
       case "model":
-        return selectedModel && downloadedModels.includes(selectedModel);
-      case "options":
-        return true;
-      case "google":
-        return true;
-      case "complete":
-        return true;
+        return Boolean(selectedModel && downloadedModels.includes(selectedModel));
       default:
-        return false;
+        return true;
     }
   };
 
-  return (
-    <div className="h-full flex flex-col bg-background overflow-hidden noise-overlay">
-      {/* Header */}
-      <div className="flex-none p-6 border-b border-border">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--color-active)] to-[var(--color-active)]/60 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">Talk</h1>
-            <p className="text-sm text-muted-foreground">{t("setup.subtitle")}</p>
-          </div>
-        </div>
-
-        {/* Progress indicators */}
-        <div className="flex items-center gap-2 mt-4">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-1.5 flex-1 rounded-full transition-all duration-300",
-                i + 1 < currentStep
-                  ? "bg-[var(--color-success)]"
-                  : i + 1 === currentStep
-                  ? "bg-[var(--color-active)]"
-                  : "bg-muted"
-              )}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        {stepContent === "mode" && <ModeStep mode={mode} onChange={setMode} />}
-
-        {stepContent === "hardware" && (
-          <HardwareStep detectedGpu={detectedGpu} gpus={gpus} onPick={setDetectedGpu} />
-        )}
-
-        {stepContent === "server" && (
+  function renderStep(step: string) {
+    switch (step) {
+      case "mode":
+        return <ModeStep mode={mode} onChange={setMode} />;
+      case "hardware":
+        return <HardwareStep detectedGpu={detectedGpu} gpus={gpus} onPick={setDetectedGpu} />;
+      case "server":
+        return (
           <ServerStep
             url={serverUrl}
             token={serverToken}
@@ -304,23 +218,27 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             }}
             onTest={checkServerHealth}
           />
-        )}
-
-        {stepContent === "model" && (
+        );
+      case "model":
+        return (
           <ModelStep
             models={models}
             family={modelFamily}
             selected={selectedModel}
             downloaded={downloadedModels}
-            isDownloading={isDownloading}
-            progress={downloadProgress}
+            isDownloading={download.isDownloading}
+            failed={download.failed}
+            progress={download.progress}
             onFamilyChange={setModelFamily}
-            onSelect={setSelectedModel}
-            onDownload={handleDownloadModel}
+            onSelect={(id) => {
+              setSelectedModel(id);
+              download.clearFailure();
+            }}
+            onDownload={() => selectedModel && download.start(selectedModel)}
           />
-        )}
-
-        {stepContent === "options" && (
+        );
+      case "options":
+        return (
           <StartupStep
             autostart={autostartEnabled}
             minimized={startMinimized}
@@ -335,67 +253,52 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               setMinimizedTouched(true);
             }}
           />
-        )}
-
-        {stepContent === "google" && (
-          <GoogleStep google={google} onSkip={() => setCurrentStep((s) => s + 1)} />
-        )}
-
-        {stepContent === "complete" && (
+        );
+      case "google":
+        return <GoogleStep google={google} onSkip={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))} />;
+      default:
+        return (
           <SummaryStep
             mode={mode}
             gpu={detectedGpu}
             modelName={models.find((m) => m.id === selectedModel)?.name || selectedModel}
             serverUrl={serverUrl}
             autostart={autostartEnabled}
+            minimized={startMinimized}
             error={completionError}
           />
-        )}
+        );
+    }
+  }
+
+  return (
+    <div className="relative isolate flex h-full flex-col overflow-hidden bg-background">
+      <div className="amb" aria-hidden="true">
+        <i />
+        <i />
+        <i />
       </div>
+      <div className="grain" aria-hidden="true" />
+      {/* The window has no frame of its own: the strip carries its buttons and drags it */}
+      <CaptionStrip bare className="absolute inset-x-0 top-0 z-20" />
 
-      {/* Footer with navigation */}
-      <div className="flex-none p-6 border-t border-border">
-        <div className="flex justify-between items-center max-w-2xl mx-auto">
-          <Button
-            variant="ghost"
-            onClick={() => setCurrentStep((s) => Math.max(1, s - 1))}
-            disabled={currentStep === 1 || isCompleting}
-            className="gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            {t("setup.nav.back")}
-          </Button>
+      <SetupHeader total={totalSteps} current={currentStep} />
 
-          <span className="text-sm text-muted-foreground">
-            {t("setup.nav.step", { current: currentStep, total: totalSteps })}
-          </span>
+      <PageTransition view={stepContent} order={steps}>
+        {renderStep}
+      </PageTransition>
 
-          {stepContent === "complete" ? (
-            <Button onClick={handleComplete} disabled={isCompleting} className="gap-2">
-              {isCompleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {t("setup.nav.settingUp")}
-                </>
-              ) : (
-                <>
-                  <Rocket className="h-4 w-4" />
-                  {t("setup.nav.getStarted")}
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))}
-              disabled={!canProceed()}
-              className="gap-2"
-            >
-              {t("setup.nav.next")}
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
+      <SetupFooter
+        current={currentStep}
+        total={totalSteps}
+        isLast={stepContent === "complete"}
+        canProceed={canProceed()}
+        isCompleting={isCompleting}
+        failed={completionError !== null}
+        onBack={() => setCurrentStep((s) => Math.max(1, s - 1))}
+        onNext={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))}
+        onFinish={handleComplete}
+      />
     </div>
   );
 }

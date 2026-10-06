@@ -798,7 +798,9 @@
       "subtitle": "Which Whisper model to load",
       "quantised": "Quantised (recommended)",
       "standard": "Standard",
-      "download": "Download the model"
+      "download": "Download the model",
+      "downloaded": "Downloaded",
+      "failed": "The download was interrupted. Check the connection."
     },
     "options": {
       "title": "Starting up",
@@ -813,11 +815,12 @@
       "title": "All set",
       "subtitle": "Talk is ready",
       "chosen": "What you chose",
-      "mode": "Mode:",
-      "acceleration": "Acceleration:",
-      "model": "Model:",
-      "server": "Server:",
-      "autostart": "Start with Windows:",
+      "mode": "Mode",
+      "acceleration": "Acceleration",
+      "model": "Model",
+      "server": "Server",
+      "autostart": "Start with Windows",
+      "minimized": "Start minimised",
       "yes": "Yes",
       "no": "No"
     },
