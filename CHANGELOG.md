@@ -34,6 +34,11 @@ The orb's eyes follow the mouse wherever it is on the desktop while it listens a
 more at the same setting, the light behind it is much fainter, and the reaction to your voice now
 goes up to 250 % for every style.
 
+- (overlay) Let the overlay leave the way it came
+
+The overlay used to vanish at once when a dictation ended. It now fades out, slides away or shrinks,
+whichever way it arrived, in a fifth of a second.
+
 ### Bug Fixes
 
 - (audio) Meeting mode follows the microphone you chose, and says when it is silent

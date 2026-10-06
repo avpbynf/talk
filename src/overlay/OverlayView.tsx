@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type MutableRefObject } from "react";
-import { FLYOUT_HEIGHT, FLYOUT_WIDTH, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type SystemAccent, legibleColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type SystemAccent, legibleColors } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import Capsule from "./Capsule";
 import { useOverlayEngine } from "./engine";
@@ -42,6 +42,8 @@ export interface OverlayViewProps {
   windowed?: boolean;
   /** The system's accent colour, which the flyout style draws with. */
   accent?: SystemAccent | null;
+  /** It is over and the overlay is on its way out. */
+  leaving?: boolean;
 }
 
 const ENTER = "cubic-bezier(.16,1,.3,1)";
@@ -73,6 +75,21 @@ function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: bo
   }
 }
 
+/** How the overlay leaves: the way it came, in less time, and it stays gone until the animation is cancelled. */
+function leave(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: boolean, windowed: boolean): Animation | null {
+  if (typeof el.animate !== "function") return null;
+  const timing = { duration: LEAVE_MS, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" as const };
+  if (reduced || windowed || look.entrance === "fade") return el.animate([{ opacity: 1 }, { opacity: 0 }], timing);
+  const to = look.entrance === "slide" ? `translateY(${fromTop ? -18 : 18}px)` : "scale(.86)";
+  return el.animate(
+    [
+      { opacity: 1, transform: "none" },
+      { opacity: 0, transform: to },
+    ],
+    timing,
+  );
+}
+
 /** A head shaking no. */
 function shake(el: Element | null) {
   if (!el || typeof el.animate !== "function") return;
@@ -94,7 +111,7 @@ function shake(el: Element | null) {
  * given and keeps nothing of its own: the page that listens for the native side
  * and the preview that plays the states both render it the same way.
  */
-export default function OverlayView({ look, phase, colors: palette, levels, elapsed, progress, server, jobs, label, email, scale, fromTop, reduced: asked, still = false, nudge = 0, desktopPointer = false, windowed = false, accent = null }: OverlayViewProps) {
+export default function OverlayView({ look, phase, colors: palette, levels, elapsed, progress, server, jobs, label, email, scale, fromTop, reduced: asked, still = false, nudge = 0, desktopPointer = false, windowed = false, accent = null, leaving = false }: OverlayViewProps) {
   // A picture has no movement to leave in: the stylesheet's own animations stop with it.
   const reduced = asked || still;
   const colors = useMemo(() => legibleColors(palette, look.background), [palette, look.background]);
@@ -109,6 +126,15 @@ export default function OverlayView({ look, phase, colors: palette, levels, elap
     // Once, when the overlay is first drawn: the look changing under it is not an arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!leaving || !stage.current) return;
+    const gone = leave(stage.current, look, fromTop, reduced, windowed);
+    // Asked for again before the window went: it is simply there again.
+    return () => gone?.cancel();
+    // The look and the side it came from are read as it starts to leave, and not followed after.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaving]);
 
   useEffect(() => {
     // A card that fills its window cannot move in it: what shakes there is what it says.

@@ -418,9 +418,7 @@ impl Drop for OverlayLease {
             "processing-state",
             "idle",
         );
-        if let Some(overlay) = self.app.get_webview_window("overlay") {
-            let _ = overlay.hide();
-        }
+        crate::overlay::hide(&self.app);
     }
 }
 
@@ -602,9 +600,7 @@ fn hide_overlay(app: &AppHandle) {
         "processing-state",
         "idle",
     );
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        let _ = overlay.hide();
-    }
+    crate::overlay::hide(app);
 }
 
 /// Paste what was dictated last, wherever the caret happens to be.

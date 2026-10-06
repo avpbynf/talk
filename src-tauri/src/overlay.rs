@@ -6,6 +6,8 @@ use crate::placement::{self, Rect, Screen, Whereabouts};
 use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
 use parking_lot::Mutex;
 use serde::Serialize;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 /// Everything the overlay and its settings tab read, in one answer.
@@ -208,12 +210,36 @@ pub fn dragged_to(app: &AppHandle, corner: (i32, i32)) -> Result<(), String> {
 /// application put it back, which is why restarting was the repair: that builds
 /// the window again.
 pub fn show(app: &AppHandle) {
+    SHOWS.fetch_add(1, Ordering::SeqCst);
     if let Some(overlay) = app.get_webview_window("overlay") {
         place(app, &overlay);
         backdrop::apply(&overlay, settings::read(|s| Backdrop::of(&s.overlay_look)));
         let _ = overlay.show();
         raise(&overlay);
     }
+}
+
+/// How many times the overlay was shown, which is how a hide still waiting knows it is stale.
+static SHOWS: AtomicU64 = AtomicU64::new(0);
+
+/// How long the page is given to play the overlay's departure before the window goes. The
+/// page's own animation is a little shorter, see `LEAVE_MS` in `src/lib/overlay.ts`.
+const LEAVE: Duration = Duration::from_millis(260);
+
+/// Hide the overlay once its page has played its departure. The page is told it is over by
+/// whoever calls this; a show that arrives in the meantime keeps the window.
+pub fn hide(app: &AppHandle) {
+    let shown = SHOWS.load(Ordering::SeqCst);
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(LEAVE);
+        if SHOWS.load(Ordering::SeqCst) != shown {
+            return;
+        }
+        if let Some(overlay) = app.get_webview_window("overlay") {
+            let _ = overlay.hide();
+        }
+    });
 }
 
 /// Ask Windows for the topmost band again, whatever tao believes the flag is.
