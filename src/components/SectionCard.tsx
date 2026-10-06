@@ -71,7 +71,12 @@ export function SectionCard({
       </div>
       {hasBody && (
         <div className="divide-y divide-border-subtle border-t border-border-subtle [&>*]:px-[18px] [&>*]:py-[14px]">
-          {description && <p className="max-w-[64ch] text-[13px] leading-[1.55] text-muted-foreground">{description}</p>}
+          {/* The line under it belongs to the row, which spans the card; the text alone is kept short. */}
+          {description && (
+            <div>
+              <p className="max-w-[64ch] text-[13px] leading-[1.55] text-muted-foreground">{description}</p>
+            </div>
+          )}
           {children}
         </div>
       )}

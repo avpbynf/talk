@@ -79,6 +79,10 @@ audio devices held the window still while the page was arriving.
 Text fields, drop-down lists and outlined buttons had no background of their own, so the lights
 behind the page showed through them. They now stand on the same surface as the cards.
 
+- (window) Draw the line under a card's introduction across the whole card
+
+The line under the introduction of a card stopped where the text did, short of the card's edge.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features
