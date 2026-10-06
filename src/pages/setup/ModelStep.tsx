@@ -1,9 +1,13 @@
-import { Check, Download, Loader2 } from "lucide-react";
+import { Check, Download, Loader2, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Segmented } from "@/components/ui/segmented";
 import { formatNumber } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { WIZARD_BUTTON } from "./controls";
+import { Note } from "./Note";
+import { StepPage } from "./StepPage";
 import { StepTitle } from "./StepTitle";
 import type { DownloadProgress, ModelFamily, ModelInfo } from "./types";
 
@@ -13,6 +17,8 @@ interface ModelStepProps {
   selected: string | null;
   downloaded: string[];
   isDownloading: boolean;
+  /** The last download ended in an error rather than a model. */
+  failed: boolean;
   progress: DownloadProgress | null;
   onFamilyChange: (family: ModelFamily) => void;
   onSelect: (id: string) => void;
@@ -25,6 +31,7 @@ export function ModelStep({
   selected,
   downloaded,
   isDownloading,
+  failed,
   progress,
   onFamilyChange,
   onSelect,
@@ -35,106 +42,110 @@ export function ModelStep({
     const isQuantized = m.id.includes("-q5");
     return family === "quantized" ? isQuantized : !isQuantized;
   });
+  const needsDownload = selected !== null && !downloaded.includes(selected);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <StepTitle title={t("setup.model.title")} subtitle={t("setup.model.subtitle")} />
+    <StepPage wide>
+      <StepTitle title={t("setup.model.title")} subtitle={t("setup.model.subtitle")} compact />
 
-      {/* Family selector */}
-      <div className="flex gap-2 p-1 rounded-lg bg-muted">
-        <button
-          onClick={() => onFamilyChange("quantized")}
-          className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all",
-            family === "quantized"
-              ? "bg-background shadow text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {t("setup.model.quantised")}
-        </button>
-        <button
-          onClick={() => onFamilyChange("standard")}
-          className={cn(
-            "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all",
-            family === "standard"
-              ? "bg-background shadow text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {t("setup.model.standard")}
-        </button>
-      </div>
+      <Segmented
+        wide
+        large
+        disabled={isDownloading}
+        label={t("setup.model.title")}
+        value={family}
+        onChange={onFamilyChange}
+        options={[
+          { value: "quantized", label: t("setup.model.quantised") },
+          { value: "standard", label: t("setup.model.standard") },
+        ]}
+      />
 
-      {/* Models grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         {filteredModels.map((model) => {
           const isDownloaded = downloaded.includes(model.id);
-          const isSelected = selected === model.id;
           const isCurrentlyDownloading = isDownloading && progress?.model_id === model.id;
 
           return (
             <button
               key={model.id}
+              type="button"
+              aria-pressed={selected === model.id}
               onClick={() => onSelect(model.id)}
-              disabled={isCurrentlyDownloading}
+              disabled={isDownloading}
               className={cn(
-                "p-4 rounded-xl border-2 transition-all text-left relative",
-                isSelected
-                  ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
-                  : "border-border hover:border-muted-foreground/50"
+                "choice-card relative min-h-[92px] cursor-pointer gap-[5px]! rounded-[calc(var(--radius)+4px)]! px-4! pb-4! pt-3.5! disabled:cursor-not-allowed disabled:active:transform-none",
+                isDownloading && !isCurrentlyDownloading && "opacity-50",
               )}
             >
-              {isDownloaded && (
-                <div className="absolute top-2 right-2">
-                  <Check className="h-4 w-4 text-[var(--color-success)]" />
-                </div>
-              )}
-
-              <h3 className="font-semibold mb-1">{model.name}</h3>
-              <p className="text-xs text-muted-foreground mb-2">
+              <span className="flex items-center gap-2">
+                <b className="text-[15px] font-semibold tracking-[-0.01em]">{model.name}</b>
+                {isDownloaded && (
+                  <span
+                    role="img"
+                    aria-label={t("setup.model.downloaded")}
+                    className="grid size-[18px] place-items-center rounded-full bg-[color-mix(in_oklch,var(--color-success)_18%,transparent)] text-success-text"
+                  >
+                    <Check aria-hidden="true" className="size-[11px]" />
+                  </span>
+                )}
+                <span className="ml-auto text-[12.5px] tabular-nums text-muted-foreground">
+                  {isCurrentlyDownloading && progress
+                    ? t("transcription.model.progress", {
+                        downloaded: progress.downloaded_mb.toFixed(0),
+                        total: progress.total_mb.toFixed(0),
+                      })
+                    : model.size_mb >= 1000
+                      ? t("transcription.gpu.gigabytes", { size: formatNumber(model.size_mb / 1000, 1) })
+                      : t("transcription.gpu.megabytes", { size: model.size_mb })}
+                </span>
+              </span>
+              <small className="pr-1 text-[12.5px] leading-[1.45] text-muted-foreground">
                 {t(`transcription.model.descriptions.${model.id}`, { defaultValue: model.description })}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {model.size_mb >= 1000
-                  ? t("transcription.gpu.gigabytes", { size: formatNumber(model.size_mb / 1000, 1) })
-                  : t("transcription.gpu.megabytes", { size: model.size_mb })}
-              </p>
-
+              </small>
               {isCurrentlyDownloading && progress && (
-                <div className="mt-2">
-                  <Progress value={progress.progress} className="h-1" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t("transcription.model.progress", {
-                      downloaded: progress.downloaded_mb.toFixed(0),
-                      total: progress.total_mb.toFixed(0),
-                    })}
-                  </p>
-                </div>
+                // Clipped to the card by a box of its own: clipping the card would cut its ring.
+                <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+                  <Progress
+                    value={progress.progress}
+                    aria-hidden="true"
+                    className="absolute inset-x-0 bottom-0 h-1 rounded-none bg-foreground/10"
+                  />
+                </span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Download button */}
-      {selected && !downloaded.includes(selected) && (
-        <div className="flex justify-center">
-          <Button onClick={onDownload} disabled={isDownloading} className="gap-2">
-            {isDownloading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t("transcription.model.downloading")}
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4" />
-                {t("setup.model.download")}
-              </>
-            )}
-          </Button>
-        </div>
-      )}
-    </div>
+      <div className="flex min-h-[72px] flex-col items-center justify-center gap-2.5">
+        {needsDownload &&
+          (failed && !isDownloading ? (
+            <div className="flex w-full items-center gap-3">
+              <Note tone="bad" alert className="flex-1">
+                {t("setup.model.failed")}
+              </Note>
+              <Button onClick={onDownload} className={WIZARD_BUTTON}>
+                <RefreshCw />
+                {t("common.retry")}
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={onDownload} disabled={isDownloading} className={WIZARD_BUTTON}>
+              {isDownloading ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  {t("transcription.model.downloading")}
+                </>
+              ) : (
+                <>
+                  <Download />
+                  {t("setup.model.download")}
+                </>
+              )}
+            </Button>
+          ))}
+      </div>
+    </StepPage>
   );
 }

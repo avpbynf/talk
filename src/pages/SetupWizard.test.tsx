@@ -6,6 +6,17 @@ import { listen } from "@tauri-apps/api/event";
 import SetupWizard from "./SetupWizard";
 import { forgetAccount, type GoogleStatus } from "@/lib/use-google-account";
 
+vi.mock("@tauri-apps/api/window", () => {
+  const appWindow = {
+    isMaximized: () => Promise.resolve(false),
+    onResized: () => Promise.resolve(() => {}),
+    minimize: () => Promise.resolve(),
+    toggleMaximize: () => Promise.resolve(),
+    close: () => Promise.resolve(),
+  };
+  return { getCurrentWindow: () => appWindow };
+});
+
 const signedOut: GoogleStatus = {
   available: true,
   email: null,
@@ -16,7 +27,7 @@ const signedOut: GoogleStatus = {
 
 // The startup settings of this PC, which the account's sync rewrites
 let startup = { autostart: true, minimized: true };
-const handlers: Record<string, () => void> = {};
+const handlers: Record<string, (event?: unknown) => void> = {};
 
 /** The round that follows the sign-in has applied the account's settings. */
 function syncApplied(values: { autostart: boolean; minimized: boolean }) {
@@ -46,10 +57,12 @@ async function toTheStepAfterOptions() {
 
 beforeEach(() => {
   forgetAccount();
+  // A step is swapped at once, instead of after the page has faded out
+  document.documentElement.dataset.motion = "reduced";
   vi.mocked(invoke).mockReset();
-  startup ={ autostart: true, minimized: true };
+  startup = { autostart: true, minimized: true };
   vi.mocked(listen).mockImplementation(async (name: string, handler: unknown) => {
-    handlers[name] = handler as () => void;
+    handlers[name] = handler as (event?: unknown) => void;
     return () => {};
   });
 });
@@ -114,7 +127,8 @@ describe("SetupWizard startup options", () => {
   it("leaves the startup options to the account when it was connected here", async () => {
     const finish = await toTheEnd("Sign in with Google");
 
-    expect(await screen.findByText("Yes")).toBeInTheDocument();
+    // Both startup rows read Yes: the account's values, not the wizard's defaults
+    expect(await screen.findAllByText("Yes")).toHaveLength(2);
     await userEvent.click(finish);
 
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("complete_setup"));
@@ -129,6 +143,14 @@ describe("SetupWizard startup options", () => {
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("complete_setup"));
     expect(invoke).toHaveBeenCalledWith("set_autostart_enabled", { enabled: false });
     expect(invoke).toHaveBeenCalledWith("set_start_minimized", { enabled: false });
+  });
+
+  it("shows both startup choices in the summary", async () => {
+    await toTheEnd("Skip");
+
+    expect(screen.getByText("Start with Windows")).toBeInTheDocument();
+    expect(screen.getByText("Start minimised")).toBeInTheDocument();
+    expect(screen.getAllByText("No")).toHaveLength(2);
   });
 
   async function toTheOptions(status: GoogleStatus) {

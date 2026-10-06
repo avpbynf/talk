@@ -798,7 +798,9 @@
       "subtitle": "Quel modèle Whisper charger",
       "quantised": "Quantifiés (recommandés)",
       "standard": "Standard",
-      "download": "Télécharger le modèle"
+      "download": "Télécharger le modèle",
+      "downloaded": "Téléchargé",
+      "failed": "Téléchargement interrompu, vérifiez la connexion."
     },
     "options": {
       "title": "Démarrage",
@@ -813,11 +815,12 @@
       "title": "Tout est prêt",
       "subtitle": "Talk est prêt",
       "chosen": "Votre choix",
-      "mode": "Mode :",
-      "acceleration": "Accélération :",
-      "model": "Modèle :",
-      "server": "Serveur :",
-      "autostart": "Lancer avec Windows :",
+      "mode": "Mode",
+      "acceleration": "Accélération",
+      "model": "Modèle",
+      "server": "Serveur",
+      "autostart": "Lancer avec Windows",
+      "minimized": "Démarrer réduit",
       "yes": "Oui",
       "no": "Non"
     },

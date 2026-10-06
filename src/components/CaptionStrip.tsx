@@ -29,7 +29,14 @@ function Glyph({ children, width = 1.6 }: { children: ReactNode; width?: number 
  * between the two: the page is what carries the edge, see the frame around it in App.
  * It carries the window controls and nothing else; everything around them drags the window.
  */
-export function CaptionStrip() {
+export function CaptionStrip({
+  bare = false,
+  className,
+}: {
+  /** Draws no surface of its own, for a window whose own background shows through. */
+  bare?: boolean;
+  className?: string;
+}) {
   const { t } = useTranslation();
   const { isMaximized, minimize, toggleMaximize, close } = useWindowControls();
 
@@ -37,7 +44,7 @@ export function CaptionStrip() {
     <div
       data-tauri-drag-region
       onDoubleClick={toggleMaximize}
-      className="h-8 shrink-0 flex justify-end bg-surface-inset select-none"
+      className={cn("h-8 shrink-0 flex justify-end select-none", !bare && "bg-surface-inset", className)}
     >
       <button
         onClick={minimize}

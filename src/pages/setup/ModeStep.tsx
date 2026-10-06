@@ -1,7 +1,9 @@
-import { Computer, Server } from "lucide-react";
+import { Monitor, Server } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { ChoiceMark } from "./ChoiceMark";
+import { StepPage } from "./StepPage";
 import { StepTitle } from "./StepTitle";
+import { Tile } from "./Tile";
 import type { TranscriptionMode } from "./types";
 
 interface ModeStepProps {
@@ -9,41 +11,35 @@ interface ModeStepProps {
   onChange: (mode: TranscriptionMode) => void;
 }
 
+const CHOICES = [
+  { mode: "local", icon: Monitor },
+  { mode: "server", icon: Server },
+] as const;
+
 export function ModeStep({ mode, onChange }: ModeStepProps) {
   const { t } = useTranslation();
   return (
-    <div className="max-w-lg mx-auto space-y-6">
+    <StepPage>
       <StepTitle title={t("setup.mode.title")} subtitle={t("setup.mode.subtitle")} />
 
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          onClick={() => onChange("local")}
-          className={cn(
-            "p-6 rounded-xl border-2 transition-all text-left",
-            mode === "local"
-              ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
-              : "border-border hover:border-muted-foreground/50"
-          )}
-        >
-          <Computer className="h-8 w-8 mb-3 text-[var(--color-active)]" />
-          <h3 className="font-semibold mb-1">{t("setup.mode.local.title")}</h3>
-          <p className="text-sm text-muted-foreground">{t("setup.mode.local.description")}</p>
-        </button>
-
-        <button
-          onClick={() => onChange("server")}
-          className={cn(
-            "p-6 rounded-xl border-2 transition-all text-left",
-            mode === "server"
-              ? "border-[var(--color-active)] bg-[var(--color-active)]/10"
-              : "border-border hover:border-muted-foreground/50"
-          )}
-        >
-          <Server className="h-8 w-8 mb-3 text-[var(--color-active)]" />
-          <h3 className="font-semibold mb-1">{t("setup.mode.server.title")}</h3>
-          <p className="text-sm text-muted-foreground">{t("setup.mode.server.description")}</p>
-        </button>
+      <div className="grid grid-cols-2 gap-3.5">
+        {CHOICES.map(({ mode: value, icon }) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={mode === value}
+            onClick={() => onChange(value)}
+            className="choice-card group min-h-[214px] cursor-pointer gap-3! rounded-[calc(var(--radius)+4px)]! px-5! py-[22px]!"
+          >
+            <ChoiceMark />
+            <Tile icon={icon} size="xl" />
+            <b className="mt-2 text-[17px] font-semibold tracking-[-0.01em]">{t(`setup.mode.${value}.title`)}</b>
+            <small className="text-[13.5px] leading-[1.5] text-muted-foreground">
+              {t(`setup.mode.${value}.description`)}
+            </small>
+          </button>
+        ))}
       </div>
-    </div>
+    </StepPage>
   );
 }

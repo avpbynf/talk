@@ -11,6 +11,10 @@ interface SegmentedProps<V extends string> {
   label: string;
   /** Spread across the full width instead of fitting its content; "narrow" does so only on a narrow page. */
   wide?: boolean | "narrow";
+  /** The roomier size, for a control that is the main thing on its page. */
+  large?: boolean;
+  /** Holds the choice still, as while what it chooses between is being fetched. */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -21,6 +25,8 @@ export function Segmented<V extends string>({
   onChange,
   label,
   wide,
+  large,
+  disabled,
   className,
 }: SegmentedProps<V>) {
   const id = useId();
@@ -29,6 +35,7 @@ export function Segmented<V extends string>({
   const chosen = options.some((o) => o.value === value);
 
   function onKeyDown(event: KeyboardEvent) {
+    if (disabled) return;
     const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
     if (!step) return;
     event.preventDefault();
@@ -59,13 +66,16 @@ export function Segmented<V extends string>({
             type="button"
             role="radio"
             aria-checked={active}
+            disabled={disabled}
             tabIndex={active || (!chosen && index === 0) ? 0 : -1}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative whitespace-nowrap rounded-[var(--radius)] px-3 py-[5px] text-center text-[13px] outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring",
+              "relative whitespace-nowrap rounded-[var(--radius)] px-3 text-center outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed",
+              large ? "py-2 text-[13.5px]" : "py-[5px] text-[13px]",
               wide === true && "flex-1",
               wide === "narrow" && "@max-[700px]:flex-1 @max-[700px]:px-1.5",
-              active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+              active ? "font-medium text-foreground" : "text-muted-foreground enabled:hover:text-foreground",
+              disabled && !active && "text-faint",
             )}
           >
             {active && (

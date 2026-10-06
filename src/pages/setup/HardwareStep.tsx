@@ -1,6 +1,10 @@
 import { Cpu, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Card } from "./Card";
+import { Note } from "./Note";
+import { StepPage } from "./StepPage";
 import { StepTitle } from "./StepTitle";
+import { Tile } from "./Tile";
 import { gpuLabel, type GpuInfo, type GpuVendor } from "./types";
 
 interface HardwareStepProps {
@@ -11,49 +15,47 @@ interface HardwareStepProps {
 
 export function HardwareStep({ detectedGpu, gpus, onPick }: HardwareStepProps) {
   const { t } = useTranslation();
+  const cpu = detectedGpu === "cpu";
   return (
-    <div className="max-w-lg mx-auto space-y-6">
+    <StepPage>
       <StepTitle title={t("setup.hardware.title")} subtitle={t("setup.hardware.subtitle")} />
 
-      <div className="p-6 rounded-xl border border-border bg-card">
-        <div className="flex items-center gap-4">
-          {detectedGpu === "cpu" ? (
-            <Cpu className="h-12 w-12 text-muted-foreground" />
-          ) : (
-            <Zap className="h-12 w-12 text-[var(--color-success)]" />
-          )}
-          <div>
-            <h3 className="font-semibold text-lg">{gpuLabel(detectedGpu)}</h3>
-            <p className="text-muted-foreground">
-              {detectedGpu === "vulkan" ? t("setup.hardware.vulkanFound") : t("setup.hardware.noGpu")}
+      <Card>
+        <div className="flex items-center gap-3.5 px-[22px] py-5">
+          <Tile icon={cpu ? Cpu : Zap} tone={cpu ? "muted" : "ok"} size="lg" />
+          <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+            <h3 className="text-[17px] font-semibold">{gpuLabel(detectedGpu)}</h3>
+            <p className="text-sm text-muted-foreground">
+              {cpu ? t("setup.hardware.noGpu") : t("setup.hardware.vulkanFound")}
             </p>
           </div>
         </div>
+      </Card>
 
-        {detectedGpu === "cpu" && (
-          <div className="mt-4 p-3 rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30">
-            <p className="text-sm text-[var(--color-warning)]">{t("setup.hardware.slowWarning")}</p>
-          </div>
-        )}
-      </div>
+      {cpu && <Note tone="warn">{t("setup.hardware.slowWarning")}</Note>}
 
       {gpus.length > 1 && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium">{t("setup.hardware.others")}</label>
+        <div className="flex flex-col gap-2">
+          <span className="text-[13px] font-medium">{t("setup.hardware.others")}</span>
           {gpus
             .filter((g) => g.available && g.vendor !== detectedGpu)
             .map((gpu) => (
               <button
                 key={gpu.vendor}
+                type="button"
                 onClick={() => onPick(gpu.vendor as GpuVendor)}
-                className="w-full p-3 rounded-lg border border-border hover:border-muted-foreground/50 text-left flex items-center gap-3"
+                className="choice-card cursor-pointer flex-row! items-center gap-3! rounded-[calc(var(--radius)+4px)]! px-3.5! py-3! text-sm"
               >
-                <Cpu className="h-5 w-5 text-muted-foreground" />
+                {gpu.vendor === "cpu" ? (
+                  <Cpu aria-hidden="true" className="size-[18px] text-muted-foreground" />
+                ) : (
+                  <Zap aria-hidden="true" className="size-[18px] text-muted-foreground" />
+                )}
                 <span>{gpu.name}</span>
               </button>
             ))}
         </div>
       )}
-    </div>
+    </StepPage>
   );
 }
