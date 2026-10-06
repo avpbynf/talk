@@ -66,12 +66,15 @@ export default function MeetingModeSection() {
         />
       }
     >
-      <p className="max-w-[64ch] text-[13px] leading-[1.55] text-muted-foreground">
-        {t("preferences.meeting.hint")}{" "}
-        {vbCableStatus.installed
-          ? t("preferences.meeting.detected", { device: vbCableStatus.device_name })
-          : t("preferences.meeting.notInstalled")}
-      </p>
+      {/* A row of the card, so the line under it spans the card while the text stays short. */}
+      <div>
+        <p className="max-w-[64ch] text-[13px] leading-[1.55] text-muted-foreground">
+          {t("preferences.meeting.hint")}{" "}
+          {vbCableStatus.installed
+            ? t("preferences.meeting.detected", { device: vbCableStatus.device_name })
+            : t("preferences.meeting.notInstalled")}
+        </p>
+      </div>
 
       {silent && (
         <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px]">
