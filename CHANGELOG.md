@@ -52,6 +52,10 @@ output is refused, since it would feed the cable back into itself.
 Clicking the overlay to move it no longer shows a text cursor in it, and the next dictation is typed
 where you were writing rather than into the overlay.
 
+- (overlay) Open the hand again after a click on the overlay
+
+The pointer stayed a closed hand over the overlay after a click, until it was next moved.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features

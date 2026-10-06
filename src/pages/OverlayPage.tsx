@@ -166,7 +166,9 @@ function OverlayPage() {
   };
 
   return (
-    <div className="h-screen w-screen select-none cursor-grab active:cursor-grabbing" onMouseDown={handleMouseDown}>
+    // No closed hand while it is pressed: the native move loop swallows the release, and the page
+    // would go on believing the button is down until the pointer next moved.
+    <div className="h-screen w-screen select-none cursor-grab" onMouseDown={handleMouseDown}>
       {visible && (
         <OverlayView
           look={settings.look}
