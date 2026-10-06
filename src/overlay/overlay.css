@@ -39,6 +39,7 @@
   color: var(--ovfg);
   font-family: "Geist Variable", "Segoe UI", system-ui, sans-serif;
   user-select: none;
+  caret-color: transparent;
 }
 .ovw[data-bg="glass"] {
   --ovbg: rgb(28 30 42 / 0.5);
