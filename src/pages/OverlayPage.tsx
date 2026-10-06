@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type MouseEvent } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -153,7 +153,10 @@ function OverlayPage() {
   const fromTop = spot.startsWith("top") || (spot === "free" && (free?.y ?? 1) < 0.5);
   const colors = useMemo(() => overlayColors(settings.look, settings.theme, theme.stops), [settings.look, settings.theme, theme.stops]);
 
-  const handleMouseDown = async () => {
+  const handleMouseDown = async (event: MouseEvent) => {
+    // A press is the start of a drag and nothing else: it neither focuses the page nor starts a
+    // selection, which is what put a text caret among the overlay's words.
+    event.preventDefault();
     armed.current = true;
     try {
       await getCurrentWindow().startDragging();

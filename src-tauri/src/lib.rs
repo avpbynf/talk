@@ -1544,7 +1544,10 @@ pub fn run() {
                 .always_on_top(true)
                 .skip_taskbar(true)
                 .resizable(false)
-                .focused(false);
+                .focused(false)
+                // A click on the overlay, to drag it, must not take the focus off the window the
+                // dictation is about to be typed into.
+                .focusable(false);
 
             if let Ok(overlay_window) = overlay_builder.build() {
                 overlay::place(app.handle(), &overlay_window);

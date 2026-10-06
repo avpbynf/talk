@@ -42,6 +42,11 @@ the cable hears nothing at all: Talk now says so at the foot of the window and o
 button to try again, instead of leaving the switch looking off. A microphone that is the cable's own
 output is refused, since it would feed the cable back into itself.
 
+- (overlay) Stop the overlay taking the keyboard when it is clicked
+
+Clicking the overlay to move it no longer shows a text cursor in it, and the next dictation is typed
+where you were writing rather than into the overlay.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features
