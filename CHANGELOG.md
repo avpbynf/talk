@@ -67,6 +67,13 @@ where you were writing rather than into the overlay.
 
 The pointer stayed a closed hand over the overlay after a click, until it was next moved.
 
+- (window) Make the Settings and account pages arrive like the others
+
+Going to Settings or to the account page showed their cards at once instead of fading them in. The
+audio devices, meeting mode and chained dictations cards were drawn a second time as soon as their
+values were read, the account card only appeared once the account had answered, and listing the
+audio devices held the window still while the page was arriving.
+
 ## [0.10.0] - 2026-10-05
 
 ### Features

@@ -26,18 +26,27 @@ const COMMANDS: Record<GoogleAction, string> = {
 
 const subscribers = new Set<(status: GoogleStatus) => void>();
 
+/** The last answer, so that a page mounted later is drawn whole from its first frame. */
+let known: GoogleStatus | null = null;
+
+/** Drops the remembered answer, for a test that starts as a fresh session would. */
+export function forgetAccount() {
+  known = null;
+}
+
 /** Every mounted user of the hook sees an answer, whichever of them asked. */
 function publish(status: GoogleStatus) {
+  known = status;
   subscribers.forEach((listener) => listener(status));
 }
 
 /**
  * The Google account as the backend reports it, and the calls that change it.
- * `status` stays null until the first answer arrives. The sidebar and the
+ * `status` stays null until the first answer of the session arrives. The sidebar and the
  * Account card each call this and stay in step through `publish`.
  */
 export function useGoogleAccount() {
-  const [status, setStatus] = useState<GoogleStatus | null>(null);
+  const [status, setStatus] = useState<GoogleStatus | null>(known);
   const [busy, setBusy] = useState<GoogleAction | null>(null);
   const [failureCode, setFailureCode] = useState<GoogleFailure | null>(null);
   const { t } = useTranslation();
