@@ -242,6 +242,7 @@ export function defaultState() {
       primary: boolean;
     }[],
     meetingMode: false,
+    meetingFailure: null as string | null,
     vbcable: { installed: false, device_name: null as string | null },
     queue: { delivery: "each", paste_target: "last", cancel_scope: "all" },
     maximized: false,

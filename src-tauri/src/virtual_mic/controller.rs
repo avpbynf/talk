@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use super::detector::detect_vbcable;
-use super::router::{AudioRouter, AudioRouterError};
+use super::router::{AudioRouter, AudioRouterError, RouteEnd};
 
 #[derive(Error, Debug)]
 pub enum VirtualMicError {
@@ -9,32 +9,59 @@ pub enum VirtualMicError {
     VBCableNotInstalled,
     #[error("Router error: {0}")]
     Router(#[from] AudioRouterError),
+    #[error("The microphone or the virtual cable stopped answering")]
+    Lost,
 }
 
 /// High-level control API for the virtual mic routing.
 pub struct VirtualMicController {
     router: Option<AudioRouter>,
+    /// Why the last attempt to route did not start.
+    refusal: Option<String>,
 }
 
 impl VirtualMicController {
     pub fn new() -> Self {
-        Self { router: None }
+        Self { router: None, refusal: None }
     }
 
-    /// Enable meeting mode: start routing real mic -> VB-Cable.
-    pub fn enable(&mut self) -> Result<(), VirtualMicError> {
-        let status = detect_vbcable();
-        if !status.installed {
+    /// Enable meeting mode: start routing the named microphone, or the system
+    /// default, to VB-Cable, in place of whatever was routed before, and silent from
+    /// the start when `muted`, which is what a route opened during a dictation has
+    /// to be. `on_end` is called if the route stops doing that later on.
+    pub fn enable(
+        &mut self,
+        microphone: Option<&str>,
+        muted: bool,
+        on_end: impl Fn(RouteEnd) + Send + Sync + 'static,
+    ) -> Result<(), VirtualMicError> {
+        self.disable();
+        match Self::open(microphone, muted, on_end) {
+            Ok(router) => {
+                self.router = Some(router);
+                Ok(())
+            }
+            Err(e) => {
+                self.refusal = Some(e.to_string());
+                Err(e)
+            }
+        }
+    }
+
+    fn open(
+        microphone: Option<&str>,
+        muted: bool,
+        on_end: impl Fn(RouteEnd) + Send + Sync + 'static,
+    ) -> Result<AudioRouter, VirtualMicError> {
+        if !detect_vbcable().installed {
             return Err(VirtualMicError::VBCableNotInstalled);
         }
-        self.disable();
-        let router = AudioRouter::start()?;
-        self.router = Some(router);
-        Ok(())
+        Ok(AudioRouter::start(microphone, muted, on_end)?)
     }
 
     /// Disable meeting mode: stop routing.
     pub fn disable(&mut self) {
+        self.refusal = None;
         if let Some(router) = self.router.take() {
             router.stop();
         }
@@ -54,9 +81,24 @@ impl VirtualMicController {
         }
     }
 
-    /// Check if meeting mode is active.
+    /// Check if meeting mode is active: a route was started and has not failed since.
     pub fn is_active(&self) -> bool {
-        self.router.is_some()
+        self.router.as_ref().is_some_and(|r| !r.is_lost())
+    }
+
+    /// The microphone being routed, by the name Windows gives it.
+    pub fn microphone(&self) -> Option<String> {
+        self.router.as_ref().map(|r| r.microphone().to_string())
+    }
+
+    /// Why nothing is routed although it was asked for: the start was refused, or
+    /// the route failed afterwards.
+    pub fn failure(&self) -> Option<String> {
+        match &self.router {
+            Some(router) if router.is_lost() => Some(VirtualMicError::Lost.to_string()),
+            Some(_) => None,
+            None => self.refusal.clone(),
+        }
     }
 
     /// Check if currently muted.
@@ -83,6 +125,8 @@ mod tests {
         let ctrl = VirtualMicController::new();
         assert!(!ctrl.is_active());
         assert!(!ctrl.is_muted());
+        assert!(ctrl.microphone().is_none());
+        assert!(ctrl.failure().is_none());
     }
 
     #[test]
