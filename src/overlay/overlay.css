@@ -41,6 +41,12 @@
   user-select: none;
   caret-color: transparent;
 }
+/* A press on the overlay is a drag of its window and nothing in it takes part in it. */
+.ovw,
+.ovw * {
+  pointer-events: none;
+  outline: none;
+}
 .ovw[data-bg="glass"] {
   --ovbg: rgb(28 30 42 / 0.5);
 }
