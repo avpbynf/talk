@@ -51,6 +51,9 @@ export function PageTransition<Id extends string>({ view, order, children }: Pag
     // meanwhile; the page that comes in is the last one asked for.
     leaving.current = true;
     el.dataset.transition = "running";
+    // A page on its way out takes no more clicks: what it would change is no longer what is shown.
+    // The page that comes in is a new element, so nothing has to give this back.
+    el.inert = true;
     const dir = order.indexOf(view) > order.indexOf(shown) ? 1 : -1;
     animate(
       el,
