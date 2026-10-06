@@ -37,14 +37,26 @@ function useBars(subscribe: Subscribe, phaseRef: VoiceProps["phaseRef"], draw: (
 const bars = Array.from({ length: BARS }, (_, i) => <i key={i} />);
 const seven = bars.slice(0, 7);
 
-/** The spectrum: the eight bands of the voice, mirrored round the middle so the low ones meet there. */
+/** How many of the voice's bands the halo's drawing reads, the first ones. */
+const HALO_BANDS = 7;
+
+/** The halo's movement: a bar grows from a dot and brightens with its band. */
+function swell(bar: HTMLElement, band: number) {
+  bar.style.transform = `scaleY(${((3 + band * 19) / 22).toFixed(3)})`;
+  bar.style.opacity = (0.55 + band * 0.45).toFixed(2);
+}
+
+/** The spectrum: the halo's bands spread over the whole slider, each bar between the two bands it sits between. */
 function Spectrum({ subscribe, phaseRef }: VoiceProps) {
   const row = useBars(subscribe, phaseRef, (bar, at, frame) => {
-    const band = at < BARS / 2 ? BARS / 2 - 1 - at : at - BARS / 2;
-    bar.style.transform = `scaleY(${Math.max(0.14, Math.min(1, frame.bands[band] ?? 0)).toFixed(3)})`;
+    const place = (at / (BARS - 1)) * (HALO_BANDS - 1);
+    const low = Math.floor(place);
+    const from = frame.bands[low] ?? 0;
+    const to = frame.bands[Math.min(HALO_BANDS - 1, low + 1)] ?? 0;
+    swell(bar, Math.min(1, from + (to - from) * (place - low)));
   });
   return (
-    <span ref={row} className="ovf-bars">
+    <span ref={row} className="ovf-bars ovf-swell">
       {bars}
     </span>
   );
@@ -52,13 +64,9 @@ function Spectrum({ subscribe, phaseRef }: VoiceProps) {
 
 /** The halo style's own drawing: seven bars in the middle, one for each of the first bands, taller and brighter with it. */
 function Seven({ subscribe, phaseRef }: VoiceProps) {
-  const row = useBars(subscribe, phaseRef, (bar, at, frame) => {
-    const band = Math.min(1, frame.bands[at] ?? 0);
-    bar.style.transform = `scaleY(${((3 + band * 19) / 22).toFixed(3)})`;
-    bar.style.opacity = (0.55 + band * 0.45).toFixed(2);
-  });
+  const row = useBars(subscribe, phaseRef, (bar, at, frame) => swell(bar, Math.min(1, frame.bands[at] ?? 0)));
   return (
-    <span ref={row} className="ovf-bars ovf-seven">
+    <span ref={row} className="ovf-bars ovf-swell ovf-seven">
       {seven}
     </span>
   );

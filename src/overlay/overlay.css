@@ -589,12 +589,20 @@
   align-items: center;
   gap: 8px;
 }
+/*
+ * Whatever stands where the system's slider is keeps the slider's width, with or without a figure
+ * beside it: nothing in the card stretches to fill what an absent neighbour leaves.
+ */
+.ovf .ovwave,
+.ovf-bars,
+.ovf-track {
+  flex: 0 1 99px;
+  min-width: 0;
+}
 .ovf .ovwave {
   height: 22px;
 }
 .ovf-bars {
-  flex: 1;
-  min-width: 0;
   height: 22px;
   display: flex;
   align-items: center;
@@ -609,12 +617,12 @@
   /* A layer each: a bar repainted in place left a sliver of its tall self behind when it sat on half a pixel. */
   will-change: transform;
 }
+.ovf-swell i {
+  opacity: 0.55;
+}
 .ovf-seven {
   justify-content: center;
   gap: 3px;
-}
-.ovf-seven i {
-  opacity: 0.55;
 }
 .ovf-meter i {
   height: 10px;
@@ -622,8 +630,6 @@
   opacity: 0.3;
 }
 .ovf-track {
-  flex: 1;
-  min-width: 0;
   height: 4px;
   border-radius: 4px;
   background: var(--ovtrack);
@@ -649,6 +655,7 @@
 }
 .ovf .tm {
   min-width: 28px;
+  margin-left: auto;
   font: 400 14px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
