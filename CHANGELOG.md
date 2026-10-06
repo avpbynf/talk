@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Features
+
+- (preferences) Meeting mode sits higher on the Dictation page
+
+The Meeting mode card was the last one on the Dictation page, out of sight until you scrolled to the
+bottom. It now comes third, under the shortcuts and the recording mode.
+
 ### Bug Fixes
 
 - (audio) Meeting mode follows the microphone you chose, and says when it is silent
