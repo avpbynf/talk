@@ -128,6 +128,29 @@ workflows run that same file.
   `SoundEngine` names the device it should be on before each sound and reopens when the
   name has moved, which is why the worker thread owns the stream instead of handing a
   handle out. The same trap waits for anything else that opens an audio device once.
+- **Meeting mode is a route, and the setting being on does not mean it runs.** The route
+  (`virtual_mic/`) opens the microphone a dictation opens, `input_device_name` through
+  `audio::find_input_device`, and plays it into VB-Cable. `route_meeting_mode` is the one
+  place that opens it: at start-up, from the switch, from a settings sync, and again when
+  the microphone setting changes. On the system default the router's thread asks Windows
+  every two seconds which microphone that is and reports `RouteEnd::DefaultMoved`, since
+  its streams stay on the endpoint they were opened on; a named microphone that is absent
+  falls back to the default and is not watched. `get_meeting_mode` answers a state
+  (`enabled` from the settings, `routing`, `microphone`, `failure`), not a boolean, and
+  `meeting-mode-changed` carries no payload: whoever hears it reads the state again.
+  `is_active()` is false for a route whose stream failed, so the press path does not mute
+  it. A route opened during a dictation has to start silent, or the meeting hears the
+  dictation: the phase is read under the `virtual_mic` lock, the lock the press path mutes
+  under, so nothing may take `virtual_mic` while holding the phase. A microphone named
+  "CABLE Output" is refused, being the cable's own recording side fed back into the cable.
+  On and silent is the state that matters, because a meeting listening to the cable then
+  hears nothing at all: the card says it, and so does a notice, which waits for the window
+  to have the focus since a notice goes on its own.
+- **`LoadGate` draws its content again once the first read is back.** While a read is
+  pending the content sits in a disabled fieldset, and afterwards it does not, so React
+  mounts it anew. A test that keeps the control it found before the read holds a node that
+  is no longer on the page, and every assertion on it fails as if the read never arrived.
+  Look the control up after it is enabled.
 - **`set_always_on_top(true)` does nothing on a window that already carries the flag.**
   tao keeps it in its own window state and `WindowFlags::apply_diff` returns early when
   nothing changed, so a window built with `always_on_top(true)` never emits a second
