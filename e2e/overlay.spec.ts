@@ -165,10 +165,21 @@ test.describe("the overlay page", () => {
 
       test("shows the dictations still transcribing behind a recording", async ({ app, page }) => {
         await open(app, page, { style });
-        await show(app, "rec");
         await app.emit("jobs-in-flight", 2);
+        await show(app, "rec");
+        await expect(page.locator(".qb")).toHaveText("2");
+        // The recording's own job, as it is let go: it is not one more waiting behind it.
+        await app.emit("jobs-in-flight", 3);
         await expect(page.locator(".qb")).toHaveText("2");
         await app.emit("jobs-in-flight", 0);
+        await expect(page.locator(".qb")).toHaveCount(0);
+      });
+
+      test("shows no count when the recording's own job is the only one", async ({ app, page }) => {
+        await open(app, page, { style });
+        await show(app, "rec");
+        await app.emit("jobs-in-flight", 1);
+        await expect(page.locator(".ovbox")).toHaveCount(1);
         await expect(page.locator(".qb")).toHaveCount(0);
       });
 

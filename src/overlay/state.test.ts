@@ -17,6 +17,19 @@ describe("the overlay's state", () => {
     expect(s.visible).toBe(false);
   });
 
+  it("counts behind a recording the dictations that were running before it, and never its own", () => {
+    let s = run([{ type: "recording-started" }, jobs(1)]);
+    expect(s.behind, "its own job joining is not one waiting behind it").toBe(0);
+    s = run([processing("transcribing"), { type: "recording-started" }], s);
+    expect(s.behind, "the first is still transcribing when the second starts").toBe(1);
+    s = run([jobs(2)], s);
+    expect(s.behind, "the second one's own job").toBe(1);
+    s = run([jobs(1)], s);
+    expect(s.behind).toBe(1);
+    s = run([jobs(0)], s);
+    expect(s.behind).toBe(0);
+  });
+
   it("starts the progress over when the overlay passes to the next dictation", () => {
     let s = run([jobs(2), processing("transcribing"), { type: "progress", value: 90 }]);
     s = run([jobs(1)], s);
