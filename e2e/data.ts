@@ -128,6 +128,7 @@ export function defaultState() {
         custom_colors: ["#ff7a59", "#ff4f8b", "#a259ff"],
         tone: "theme",
         opacity: 100,
+        shadow: 100,
         system_color: true,
         reaction: 100,
         entrance: "bounce",

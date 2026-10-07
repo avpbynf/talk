@@ -7,7 +7,7 @@ import { ColorSwatch } from "@/components/ui/color-swatch";
 import { Segmented } from "@/components/ui/segmented";
 import { Range } from "@/components/ui/range";
 import type { OverlayLook, OverlayTone, OverlaySettings } from "@/lib/overlay";
-import { NEUTRAL_ACCENT, overlayColors } from "@/lib/overlay";
+import { NEUTRAL_ACCENT, SHADOW_MAX, overlayColors } from "@/lib/overlay";
 import { THEME_IDS, type OverlayThemeId, getThemeColors, getThemeLabel } from "@/lib/overlay-themes";
 import type { Stop } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -144,6 +144,23 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
           <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{formatPercent(look.opacity / 100)}</span>
         </div>
       </SettingRow>
+
+      {/* The Windows style is a window of its own, whose shadow would be the system's to draw. */}
+      {!windows && (
+        <SettingRow label={t("appearance.overlay.colors.shadow")} hint={t("appearance.overlay.colors.shadowHint")}>
+          <div className="flex items-center gap-3">
+            <Range
+              label={t("appearance.overlay.colors.shadow")}
+              min={0}
+              max={SHADOW_MAX}
+              step={10}
+              value={look.shadow}
+              onChange={(shadow) => onLook({ shadow })}
+            />
+            <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{formatPercent(look.shadow / 100)}</span>
+          </div>
+        </SettingRow>
+      )}
     </SectionCard>
   );
 }

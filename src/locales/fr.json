@@ -555,6 +555,8 @@
         "theme": "Comme le thème",
         "dark": "Sombre",
         "light": "Clair",
+        "shadow": "Ombre",
+        "shadowHint": "À 0 %, le bandeau est posé à plat sur l'écran. Plus haut, il paraît surélevé.",
         "opacity": "Opacité du fond",
         "opacityHint": "À 100 %, le fond est plein. Plus bas, il laisse voir ce qu'il y a derrière le bandeau."
       },

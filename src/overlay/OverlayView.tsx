@@ -152,6 +152,7 @@ export default function OverlayView({ look, surface, phase, colors: palette, lev
     "--c2": colors[1],
     "--c3": colors[2],
     "--ovop": opacity / 100,
+    "--ovsh": look.shadow / 100,
   };
   const shared: StyleProps = { subscribe, phase, look, surface, jobs, progress, label, reduced, phaseRef, elapsed, server, colors, scale, accent };
 

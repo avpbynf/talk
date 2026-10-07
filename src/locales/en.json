@@ -555,6 +555,8 @@
         "theme": "Like the theme",
         "dark": "Dark",
         "light": "Light",
+        "shadow": "Shadow",
+        "shadowHint": "At 0 %, the overlay lies flat on the screen. Higher, it looks raised above it.",
         "opacity": "Background opacity",
         "opacityHint": "At 100 %, the background is solid. Lower, what is behind the overlay shows through."
       },
