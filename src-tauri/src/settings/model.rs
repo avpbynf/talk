@@ -787,9 +787,9 @@ mod tests {
         let saved = |background: &str| {
             parse(&format!(r#"{{"server_token": "sk-1", "overlay_look": {{"style": "capsule", "background": "{background}"}}}}"#))
         };
-        assert_eq!(saved("glass").overlay_look.surface(), (OverlayTone::Dark, true));
-        assert_eq!(saved("light").overlay_look.surface(), (OverlayTone::Light, false));
-        assert_eq!(saved("dark").overlay_look.surface(), (OverlayTone::Theme, false));
+        assert_eq!(saved("glass").overlay_look.surface(), (OverlayTone::Dark, 50));
+        assert_eq!(saved("light").overlay_look.surface(), (OverlayTone::Light, 100));
+        assert_eq!(saved("dark").overlay_look.surface(), (OverlayTone::Theme, 100));
         assert_eq!(saved("glass").server_token, "sk-1", "and the file around it is read");
 
         // Written back, 0.11.0 still finds the background it saved.
@@ -799,10 +799,10 @@ mod tests {
 
     #[test]
     fn a_tone_this_build_cannot_read_costs_the_tone_only() {
-        let s = parse(r#"{"server_token": "sk-1", "overlay_look": {"style": "orb", "tone": "sepia", "translucent": "yes"}}"#);
+        let s = parse(r#"{"server_token": "sk-1", "overlay_look": {"style": "orb", "tone": "sepia", "opacity": "full"}}"#);
         assert_eq!(s.server_token, "sk-1");
         assert_eq!(s.overlay_look.style, crate::overlay_settings::OverlayStyle::Orb);
-        assert_eq!(s.overlay_look.surface(), (crate::overlay_settings::OverlayTone::Theme, false));
+        assert_eq!(s.overlay_look.surface(), (crate::overlay_settings::OverlayTone::Theme, 100));
     }
 
     #[test]

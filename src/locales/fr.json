@@ -554,8 +554,8 @@
         "theme": "Comme le thème",
         "dark": "Sombre",
         "light": "Clair",
-        "translucent": "Translucide",
-        "translucentHint": "Le fond laisse voir ce qu'il y a derrière le bandeau"
+        "opacity": "Opacité du fond",
+        "opacityHint": "À 100 %, le fond est plein. Plus bas, il laisse voir ce qu'il y a derrière le bandeau."
       },
       "movement": {
         "title": "Mouvement",

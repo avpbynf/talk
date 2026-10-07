@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -186,7 +186,10 @@ function OverlayPage() {
   return (
     // No closed hand while it is pressed: the native move loop swallows the release, and the page
     // would go on believing the button is down until the pointer next moved.
-    <div className="ovveil h-screen w-screen select-none cursor-grab" data-veil={windowed ? surface.tone : undefined} onMouseDown={handleMouseDown}>
+    <div className="ovveil h-screen w-screen select-none cursor-grab" data-veil={windowed ? surface.tone : undefined}
+      style={{ "--ovop": surface.opacity / 100 } as CSSProperties}
+      onMouseDown={handleMouseDown}
+    >
       {(visible || present) && (
         <OverlayView
           leaving={!visible}

@@ -1,10 +1,11 @@
 import { Palette } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatPercent } from "@/i18n";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { ColorSwatch } from "@/components/ui/color-swatch";
 import { Segmented } from "@/components/ui/segmented";
-import { Switch } from "@/components/ui/switch";
+import { Range } from "@/components/ui/range";
 import type { OverlayLook, OverlayTone, OverlaySettings } from "@/lib/overlay";
 import { overlayColors } from "@/lib/overlay";
 import { THEME_IDS, type OverlayThemeId, getThemeColors, getThemeLabel } from "@/lib/overlay-themes";
@@ -117,11 +118,19 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
         />
       </SettingRow>
 
-      {look.style !== "flyout" && (
-        <SettingRow label={t("appearance.overlay.colors.translucent")} hint={t("appearance.overlay.colors.translucentHint")}>
-          <Switch checked={look.translucent} onCheckedChange={(translucent) => onLook({ translucent })} />
-        </SettingRow>
-      )}
+      <SettingRow label={t("appearance.overlay.colors.opacity")} hint={t("appearance.overlay.colors.opacityHint")}>
+        <div className="flex items-center gap-3">
+          <Range
+            label={t("appearance.overlay.colors.opacity")}
+            min={0}
+            max={100}
+            step={5}
+            value={look.opacity}
+            onChange={(opacity) => onLook({ opacity })}
+          />
+          <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{formatPercent(look.opacity / 100)}</span>
+        </div>
+      </SettingRow>
     </SectionCard>
   );
 }
