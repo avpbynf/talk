@@ -551,9 +551,11 @@
         "customColors": "Your three colours",
         "customColor": "Colour {{n}}",
         "background": "Background",
+        "theme": "Like the theme",
         "dark": "Dark",
-        "glass": "Glass",
-        "light": "Light"
+        "light": "Light",
+        "translucent": "Translucent",
+        "translucentHint": "The background lets what is behind the overlay show through"
       },
       "movement": {
         "title": "Movement",

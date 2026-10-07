@@ -159,20 +159,23 @@ test.describe("the overlay tab", () => {
       expect(await clock(), "the clock of the preview does not run while the window is hidden").toBe("0:00");
     });
 
-    test("follows the background, the timer and the microphone", async ({ app, page }) => {
+    test("follows the tone, the translucency, the timer and the microphone", async ({ app, page }) => {
       await openTab(app, page);
       await hold(page, "Recording");
       const pill = page.getByTestId("overlay-preview").locator(".ovw");
       await page.getByRole("radio", { name: "Light" }).click();
       await expect(pill).toHaveAttribute("data-bg", "light");
-      await page.getByRole("radio", { name: "Glass" }).click();
-      await expect(pill).toHaveAttribute("data-bg", "glass");
+      await expect(pill).toHaveAttribute("data-glass", "off");
+      await page.getByRole("switch", { name: "Translucent" }).click();
+      await expect(pill).toHaveAttribute("data-bg", "light");
+      await expect(pill).toHaveAttribute("data-glass", "on");
       await page.getByRole("switch", { name: "Timer" }).click();
       await expect(pill).toHaveAttribute("data-timer", "off");
       await page.getByRole("switch", { name: "Microphone icon" }).click();
       await expect(pill).toHaveAttribute("data-mic", "off");
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look).toMatchObject({
-        background: "glass",
+        tone: "light",
+        translucent: true,
         timer: false,
         mic: false,
       });
@@ -180,6 +183,37 @@ test.describe("the overlay tab", () => {
   });
 
   test.describe("the colours", () => {
+    test("the Windows style keeps the tone and is not offered the translucency", async ({ app, page }) => {
+      await openTab(app, page);
+      await expect(page.getByRole("switch", { name: "Translucent" })).toBeVisible();
+      await page.getByRole("button", { name: /^Windows/ }).click();
+      await expect(page.getByRole("button", { name: /^Windows/ })).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByRole("radio", { name: "Like the theme" })).toBeVisible();
+      await expect(page.getByRole("switch", { name: "Translucent" })).toHaveCount(0);
+    });
+
+    test("the Windows style is light under a light application theme, or when light is picked", async ({ app, page }) => {
+      await openTab(app, page, { state: { settings: { theme: { preset: "mist", custom: null }, overlay_look: { style: "flyout", translucent: true } } } });
+      await hold(page, "Recording");
+      const card = page.getByTestId("overlay-preview").locator(".ovw");
+      await expect(card).toHaveAttribute("data-bg", "light");
+      await expect(card).toHaveAttribute("data-glass", "off");
+      await page.getByRole("radio", { name: "Dark" }).click();
+      await expect(card).toHaveAttribute("data-bg", "dark");
+    });
+
+    test("the tone of the theme is light under a light application theme", async ({ app, page }) => {
+      await openTab(app, page, { state: { settings: { theme: { preset: "mist", custom: null } } } });
+      await hold(page, "Recording");
+      await expect(page.getByTestId("overlay-preview").locator(".ovw")).toHaveAttribute("data-bg", "light");
+    });
+
+    test("the tone of the theme is dark under a dark application theme", async ({ app, page }) => {
+      await openTab(app, page);
+      await hold(page, "Recording");
+      await expect(page.getByTestId("overlay-preview").locator(".ovw")).toHaveAttribute("data-bg", "dark");
+    });
+
     test("an old overlay theme is a palette, and picking it keeps it", async ({ app, page }) => {
       await openTab(app, page);
       await page.getByRole("button", { name: "Neon" }).click();
@@ -222,7 +256,7 @@ test.describe("the overlay tab", () => {
       await page.evaluate(() => {
         const mock = (window as unknown as { __nativeMock: { emit(e: string, p: unknown): void; state: { settings: Record<string, any> } } }).__nativeMock;
         mock.emit("overlay-settings-changed", {
-          look: { ...mock.state.settings.overlay_look, background: "light" },
+          look: { ...mock.state.settings.overlay_look, tone: "light" },
           theme: "frost",
           size: "small",
           placement: mock.state.settings.overlay_placement,

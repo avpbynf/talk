@@ -593,16 +593,20 @@ fn get_overlay_settings() -> overlay::OverlaySettingsView {
     settings::read(overlay::OverlaySettingsView::of)
 }
 
+/// The overlay's page draws on light or on dark, which is what the system backdrop of the
+/// flyout style has to match.
+#[tauri::command]
+fn set_overlay_backdrop(app: tauri::AppHandle, light: bool) {
+    overlay::draw_on(&app, light);
+}
+
 #[tauri::command]
 fn set_overlay_look(app: tauri::AppHandle, look: overlay_settings::OverlayLook) -> Result<(), String> {
     settings::update(|s| {
-        // What the frontend does not carry, keys a later build wrote, stays as it was.
-        let mut look = look.sanitized();
-        look.extra = s.overlay_look.extra.clone();
-        if look != s.overlay_look {
+        if let Some(look) = s.overlay_look.restated(look) {
             s.overlay_look_modified = chrono::Utc::now().timestamp_millis();
+            s.overlay_look = look;
         }
-        s.overlay_look = look;
     })?;
     overlay::announce(&app);
     Ok(())
@@ -1280,6 +1284,7 @@ pub fn run() {
             set_overlay_theme,
             get_overlay_settings,
             set_overlay_look,
+            set_overlay_backdrop,
             set_overlay_placement,
             set_saved_themes,
             restore_saved_theme,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contrast } from "@/lib/color";
-import { DEFAULT_LOOK, DEFAULT_SETTINGS, bandsOf, clock, coerceSettings, legibleColors, overlayColors, placeOnDesk, speech } from "@/lib/overlay";
+import { DEFAULT_LOOK, DEFAULT_SETTINGS, type OverlaySurface, bandsOf, clock, coerceSettings, legibleColors, overlayColors, placeOnDesk, speech, surfaceOf } from "@/lib/overlay";
 import { getThemeColors } from "@/lib/overlay-themes";
 
 describe("coerceSettings", () => {
@@ -27,6 +27,40 @@ describe("coerceSettings", () => {
   it("keeps the end text off unless it is asked for", () => {
     expect(coerceSettings({ look: {} }).look.end_text).toBe(false);
     expect(coerceSettings({ look: { end_text: "yes" } }).look.end_text).toBe(false);
+  });
+});
+
+describe("the tone and the translucency", () => {
+  it("default to the theme's tone, opaque", () => {
+    expect(coerceSettings({}).look).toMatchObject({ tone: "theme", translucent: false });
+    expect(coerceSettings({ look: { tone: "sepia", translucent: "yes" } }).look).toMatchObject({ tone: "theme", translucent: false });
+    expect(coerceSettings({ look: { tone: "light", translucent: true } }).look).toMatchObject({ tone: "light", translucent: true });
+  });
+
+  it("ignore the old background", () => {
+    expect(coerceSettings({ look: { background: "glass" } }).look).not.toHaveProperty("background");
+  });
+});
+
+describe("surfaceOf", () => {
+  it("resolves the theme's tone to the application's mode", () => {
+    const look = { ...DEFAULT_LOOK, tone: "theme" } as const;
+    expect(surfaceOf(look, "light")).toEqual({ tone: "light", translucent: false });
+    expect(surfaceOf(look, "dark")).toEqual({ tone: "dark", translucent: false });
+  });
+
+  it("keeps a tone that was picked, whatever the application's mode", () => {
+    for (const mode of ["light", "dark"] as const) {
+      expect(surfaceOf({ ...DEFAULT_LOOK, tone: "dark", translucent: true }, mode)).toEqual({ tone: "dark", translucent: true });
+      expect(surfaceOf({ ...DEFAULT_LOOK, tone: "light" }, mode)).toEqual({ tone: "light", translucent: false });
+    }
+  });
+
+  it("gives the Windows style the same tone, and never translucent", () => {
+    const look = { ...DEFAULT_LOOK, style: "flyout", translucent: true } as const;
+    expect(surfaceOf({ ...look, tone: "theme" }, "light")).toEqual({ tone: "light", translucent: false });
+    expect(surfaceOf({ ...look, tone: "theme" }, "dark")).toEqual({ tone: "dark", translucent: false });
+    expect(surfaceOf({ ...look, tone: "light" }, "dark")).toEqual({ tone: "light", translucent: false });
   });
 });
 
@@ -62,21 +96,28 @@ describe("overlayColors", () => {
 
 describe("legibleColors", () => {
   const frost = getThemeColors("frost");
+  const DARK: OverlaySurface = { tone: "dark", translucent: false };
+  const LIGHT: OverlaySurface = { tone: "light", translucent: false };
 
   it("darkens a pale palette until it can be seen on a light pill", () => {
-    for (const color of legibleColors(frost, "light")) expect(contrast(color, "#fafafd")).toBeGreaterThanOrEqual(3);
+    for (const color of legibleColors(frost, LIGHT)) expect(contrast(color, "#fafafd")).toBeGreaterThanOrEqual(3);
   });
 
   it("lightens a dark custom colour until it can be seen on a dark pill", () => {
-    for (const color of legibleColors(["#101018", "#202030", "#303050"], "dark")) {
+    for (const color of legibleColors(["#101018", "#202030", "#303050"], DARK)) {
       expect(contrast(color, "#0d0e14")).toBeGreaterThanOrEqual(3);
     }
   });
 
+  it("measures a translucent dark surface against its own pill", () => {
+    const glass: OverlaySurface = { tone: "dark", translucent: true };
+    for (const color of legibleColors(["#1c1e2a", "#202030", "#303050"], glass)) expect(contrast(color, "#1c1e2a")).toBeGreaterThanOrEqual(3);
+  });
+
   it("leaves colours that already read alone", () => {
-    expect(legibleColors(frost, "dark")).toEqual(frost);
+    expect(legibleColors(frost, DARK)).toEqual(frost);
     const strong = ["#b00020", "#004d99", "#006b3c"] as const;
-    expect(legibleColors(strong, "light")).toEqual(strong);
+    expect(legibleColors(strong, LIGHT)).toEqual(strong);
   });
 });
 

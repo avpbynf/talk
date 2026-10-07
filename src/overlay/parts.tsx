@@ -1,6 +1,6 @@
 import type { MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
-import type { OverlayLook, OverlayPhase, SystemAccent } from "@/lib/overlay";
+import type { OverlayLook, OverlayPhase, OverlaySurface, SystemAccent } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import type { Subscribe } from "./engine";
 
@@ -10,6 +10,8 @@ export interface StyleProps {
   subscribe: Subscribe;
   phase: OverlayPhase;
   look: OverlayLook;
+  /** What the overlay is drawn on. */
+  surface: OverlaySurface;
   /** Dictations still being transcribed behind a recording. */
   jobs: number;
   /** 0 to 100, and 0 while it is not known, as with a server. */

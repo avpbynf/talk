@@ -782,6 +782,30 @@ mod tests {
     }
 
     #[test]
+    fn a_look_saved_by_0_11_keeps_its_background_under_the_two_settings_that_replace_it() {
+        use crate::overlay_settings::OverlayTone;
+        let saved = |background: &str| {
+            parse(&format!(r#"{{"server_token": "sk-1", "overlay_look": {{"style": "capsule", "background": "{background}"}}}}"#))
+        };
+        assert_eq!(saved("glass").overlay_look.surface(), (OverlayTone::Dark, true));
+        assert_eq!(saved("light").overlay_look.surface(), (OverlayTone::Light, false));
+        assert_eq!(saved("dark").overlay_look.surface(), (OverlayTone::Theme, false));
+        assert_eq!(saved("glass").server_token, "sk-1", "and the file around it is read");
+
+        // Written back, 0.11.0 still finds the background it saved.
+        let written = serde_json::to_value(saved("glass")).expect("should serialise");
+        assert_eq!(written["overlay_look"]["background"], "glass");
+    }
+
+    #[test]
+    fn a_tone_this_build_cannot_read_costs_the_tone_only() {
+        let s = parse(r#"{"server_token": "sk-1", "overlay_look": {"style": "orb", "tone": "sepia", "translucent": "yes"}}"#);
+        assert_eq!(s.server_token, "sk-1");
+        assert_eq!(s.overlay_look.style, crate::overlay_settings::OverlayStyle::Orb);
+        assert_eq!(s.overlay_look.surface(), (crate::overlay_settings::OverlayTone::Theme, false));
+    }
+
+    #[test]
     fn a_wrong_typed_field_costs_that_field_and_nothing_else() {
         let s = parse(
             r#"{"server_url": "http://nas:4060", "server_token": "sk-1", "server_timeout": "soon",

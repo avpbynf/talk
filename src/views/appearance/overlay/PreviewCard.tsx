@@ -7,6 +7,7 @@ import { useReducedMotion } from "@/lib/motion";
 import {
   type FreePosition,
   type OverlaySettings,
+  type OverlaySurface,
   SIZE_FACTOR,
   STAGE_HEIGHT,
   STAGE_WIDTH,
@@ -29,6 +30,7 @@ const LABEL: Record<PreviewMode, string> = {
 const DRAG_FROM = 3;
 
 interface PreviewCardProps {
+  surface: OverlaySurface;
   settings: OverlaySettings;
   colors: Colors;
   email: string | null;
@@ -40,7 +42,7 @@ interface PreviewCardProps {
  * The overlay on a fake desktop, going through its states in a loop or held on one, and
  * movable: dragging it puts it in free position, wherever it is let go.
  */
-export default function PreviewCard({ settings, colors, email, onFree }: PreviewCardProps) {
+export default function PreviewCard({ settings, surface, colors, email, onFree }: PreviewCardProps) {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
   const [mode, setMode] = useState<PreviewMode>("loop");
@@ -164,6 +166,7 @@ export default function PreviewCard({ settings, colors, email, onFree }: Preview
             <SimulatedOverlay
               key={settings.look.style}
               look={settings.look}
+              surface={surface}
               accent={settings.accent}
               phase={phase}
               colors={colors}

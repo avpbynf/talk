@@ -32,7 +32,7 @@ test.describe("the overlay", () => {
       await app.open({
         path: "/overlay",
         bare: true,
-        state: { settings: { overlay_look: { style, background: "glass" } } } as never,
+        state: { settings: { overlay_look: { style, translucent: true } } } as never,
       });
       await page.waitForFunction(() => (window as unknown as { __nativeMock: { listenerCount(e: string): number } }).__nativeMock.listenerCount("recording-started") > 0);
       await app.emit("audio-spectrum", [0.4, 0.6, 0.8, 0.5, 0.7, 0.3, 0.9, 0.2]);
