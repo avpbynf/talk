@@ -45,8 +45,7 @@ and the mark at the end arrives with a small bounce.
 
 Slider is now the system's own slider, one bar that fills as far as your voice is loud, instead of
 a row of segments. Spectrum has a drawing of its own again: fine bars across the whole slider, the
-same on both sides of the middle. None of the four drawings stands taller than sixteen pixels, and
-with the timer or the microphone icon switched off your voice takes the room they leave.
+same on both sides of the middle. None of the four drawings stands taller than sixteen pixels.
 
 - (overlay) The overlay's background follows the theme, and has an opacity
 
@@ -71,6 +70,15 @@ as they will.
 Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recording overlay tab
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
+
+- (overlay) The Windows style has a width, and so has its middle
+
+The card of the Windows style was the system's 192 pixels and nothing else. Two settings in the
+Recording overlay tab now say how wide the card is, from 72 to 240 pixels, and how wide what
+draws your voice in its middle is. The spectrum keeps whole bars at any width. A card made too
+narrow to keep the icon and the timer beside its middle shows the middle alone, and their
+switches say there is no room. With the timer or the microphone icon switched off, the middle
+keeps its width and sits in the room they leave.
 
 - (overlay) The icon and the ring shown while it transcribes can be left out
 

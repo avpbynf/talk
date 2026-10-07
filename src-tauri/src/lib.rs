@@ -616,6 +616,10 @@ fn set_overlay_look(app: tauri::AppHandle, look: overlay_settings::OverlayLook) 
             s.overlay_look = look;
         }
     })?;
+    // The window of the flyout style is as wide as the look says.
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        overlay::place(&app, &overlay);
+    }
     overlay::announce(&app);
     Ok(())
 }

@@ -37,6 +37,10 @@ export interface OverlayLook {
   system_color: boolean;
   /** The icon and the ring shown while it transcribes, which the bar between them does without. */
   transcribing_marks: boolean;
+  /** Read by the Windows style alone: how wide its card is, in pixels. */
+  card_width: number;
+  /** Read by the Windows style alone: how wide what is drawn in the middle of the card is. */
+  middle_width: number;
 }
 
 export type Spot = "top_left" | "top_center" | "top_right" | "bottom_left" | "bottom_center" | "bottom_right" | "free";
@@ -91,8 +95,26 @@ export const SHADOW_MAX = 200;
 export const STAGE_WIDTH = 244;
 export const STAGE_HEIGHT = 92;
 /** The card of the flyout style, which is all its window holds: Windows blurs what is behind a window, not behind a part of one. */
-export const FLYOUT_WIDTH = 192;
 export const FLYOUT_HEIGHT = 47;
+/** How narrow and how wide that card may be made, and what is drawn in its middle. */
+export const FLYOUT_WIDTH_MIN = 72;
+export const FLYOUT_WIDTH_MAX = 240;
+export const FLYOUT_MIDDLE_MIN = 40;
+export const FLYOUT_MIDDLE_MAX = 214;
+/** What the card keeps round its middle when it shows nothing else: its two edges. */
+export const FLYOUT_EDGES = 26;
+/** What the icon on the left and the figure on the right take together, the edges included. */
+const FLYOUT_SIDES = 82;
+
+/**
+ * The card of the Windows style at the widths the look picks: how wide it is, how wide its middle
+ * can be in it, and whether the icon and the figure still have their places on either side.
+ */
+export function flyoutRoom(look: { card_width: number; middle_width: number }): { card: number; middle: number; sides: boolean } {
+  const card = look.card_width;
+  const middle = Math.min(look.middle_width, card - FLYOUT_EDGES);
+  return { card, middle, sides: card - middle >= FLYOUT_SIDES };
+}
 
 /** How long the overlay takes to leave. The native side hides the window a little after, see `LEAVE` in `overlay.rs`. */
 export const LEAVE_MS = 220;
@@ -115,6 +137,8 @@ export const DEFAULT_LOOK: OverlayLook = {
   voice: "wave",
   system_color: true,
   transcribing_marks: true,
+  card_width: 192,
+  middle_width: 110,
 };
 
 export const DEFAULT_PLACEMENT: OverlayPlacement = {
@@ -143,6 +167,10 @@ const SIZES: readonly OverlaySize[] = ["small", "medium", "large"];
 
 function oneOf<T extends string>(list: readonly T[], value: unknown, fallback: T): T {
   return list.includes(value as T) ? (value as T) : fallback;
+}
+
+function within(value: unknown, min: number, max: number, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : fallback;
 }
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -177,6 +205,8 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       voice: oneOf(VOICES, look.voice, DEFAULT_LOOK.voice),
       system_color: look.system_color !== false,
       transcribing_marks: look.transcribing_marks !== false,
+      card_width: within(look.card_width, FLYOUT_WIDTH_MIN, FLYOUT_WIDTH_MAX, DEFAULT_LOOK.card_width),
+      middle_width: within(look.middle_width, FLYOUT_MIDDLE_MIN, FLYOUT_MIDDLE_MAX, DEFAULT_LOOK.middle_width),
     },
     theme: oneOf(THEME_IDS, settings.theme, DEFAULT_SETTINGS.theme),
     size: oneOf(SIZES, settings.size, DEFAULT_SETTINGS.size),

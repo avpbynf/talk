@@ -2,7 +2,7 @@
 
 use crate::arrival::{self, Movement, Stage, Way};
 use crate::backdrop::{self, Backdrop, SystemAccent};
-use crate::overlay_settings::{OverlayLook, OverlayPlacement, OverlayStyle};
+use crate::overlay_settings::{OverlayLook, OverlayPlacement, OverlayStyle, CARD_WIDTH_MAX, CARD_WIDTH_MIN};
 use crate::placement::{self, Rect, Screen, Whereabouts};
 use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
 use parking_lot::Mutex;
@@ -145,9 +145,10 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) -> Option<Stage> {
     Some(Stage { window: own_window(overlay)?, rest: (x, y), scale: screen.scale, from_top })
 }
 
-/// The card of the flyout style, the size of the one Windows shows for the volume
-/// keys. The overlay page measures its window against the same two numbers.
-const FLYOUT_CARD: (f64, f64) = (192.0, 47.0);
+/// How tall the card of the flyout style is, as the one Windows shows for the volume keys.
+/// Its width is the look's, the system's unless another was picked, and the overlay page
+/// measures its window against the same two numbers.
+const FLYOUT_HEIGHT: f64 = 47.0;
 
 /// What the system's flyout keeps between itself and the taskbar, so that at the bottom
 /// centre the overlay sits exactly where the volume does.
@@ -158,7 +159,9 @@ const FLYOUT_MARGIN: f64 = 14.0;
 /// never behind a part of one, and it has the system's size whatever size was picked.
 fn window_size(settings: &AppSettings) -> (f64, f64) {
     match settings.overlay_look.style {
-        OverlayStyle::Flyout => FLYOUT_CARD,
+        OverlayStyle::Flyout => {
+            (f64::from(settings.overlay_look.card_width.clamp(CARD_WIDTH_MIN, CARD_WIDTH_MAX)), FLYOUT_HEIGHT)
+        }
         _ => settings.overlay_size.dimensions(),
     }
 }

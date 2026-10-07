@@ -533,7 +533,7 @@
   --ovline: rgb(255 255 255 / 0.09);
   --ovtrack: rgb(255 255 255 / 0.545);
   position: relative;
-  width: 192px;
+  width: var(--ovfw, 192px);
   height: 47px;
   border-radius: 8px;
   background: linear-gradient(var(--ovveil), var(--ovveil)), var(--ovtint);
@@ -670,18 +670,24 @@
 .ovf .ovwave,
 .ovf-bars,
 .ovf-track {
-  flex: 0 1 110px;
+  flex: 0 1 var(--ovfm, 110px);
   min-width: 0;
-  margin-bottom: 2px;
+  /* In the middle of whatever room a wider card, or an absent neighbour, leaves round it. */
+  margin: 0 auto 2px;
 }
 /* The canvas keeps a pixel above and below its tallest bar, which is sixteen like the others. */
 .ovf .ovwave {
   height: 18px;
 }
-/* With the timer or the microphone switched off, what is drawn takes the room they leave. */
-.ovw[data-timer="off"] .ovf .st-rec :is(.ovwave, .ovf-bars, .ovf-track),
-.ovw[data-mic="off"] .ovf .st-rec :is(.ovwave, .ovf-bars, .ovf-track) {
-  flex-grow: 1;
+/*
+ * A card made too narrow for them has neither the icon nor the figure: what is drawn in the
+ * middle is all it holds, between its two edges, and the end is its mark without the words.
+ */
+.ovw[data-sides="off"] .ovf .st {
+  padding: 0 13px;
+}
+.ovw[data-sides="off"] .ovf :is(.st-rec > .ovf-glyph, .st-rec > .tm, .st-trans > svg, .ovf-slot, .words, .qb) {
+  display: none;
 }
 .ovf-bars {
   height: 16px;
@@ -794,7 +800,7 @@
 .ovf .tm {
   flex: none;
   min-width: 26px;
-  margin: 0 0 2px auto;
+  margin: 0 0 2px;
   padding-left: 8px;
   /* A size under the flyout's fourteen: these figures are wider, and take the same room at thirteen. */
   font: 400 13px "Geist Variable", "Segoe UI", system-ui, sans-serif;

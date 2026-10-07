@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type MutableRefObject } from "react";
-import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type OverlaySurface, type SystemAccent, legibleColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, LEAVE_MS, flyoutRoom, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type OverlaySurface, type SystemAccent, legibleColors } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import Capsule from "./Capsule";
 import { useOverlayEngine } from "./engine";
@@ -156,7 +156,8 @@ export default function OverlayView({ look, surface, phase, colors: palette, lev
     if (phase === "refuse" && !reduced) shake((windowed ? pill.current?.querySelector(".ovf-end") : pill.current?.firstElementChild) ?? null);
   }, [phase, reduced, nudge, windowed]);
 
-  const frame = windowed ? { width: FLYOUT_WIDTH, height: FLYOUT_HEIGHT } : { width: STAGE_WIDTH, height: STAGE_HEIGHT };
+  const room = flyoutRoom(look);
+  const frame = windowed ? { width: room.card, height: FLYOUT_HEIGHT } : { width: STAGE_WIDTH, height: STAGE_HEIGHT };
   const style: CSSProperties & Record<string, string | number> = {
     width: frame.width * scale,
     height: frame.height * scale,
@@ -165,6 +166,8 @@ export default function OverlayView({ look, surface, phase, colors: palette, lev
     "--c3": colors[2],
     "--ovop": opacity / 100,
     "--ovsh": look.shadow / 100,
+    "--ovfw": `${room.card}px`,
+    "--ovfm": `${room.middle}px`,
   };
   const shared: StyleProps = { subscribe, phase, look, surface, jobs, progress, label, reduced, phaseRef, elapsed, server, colors, scale, accent };
 
@@ -181,6 +184,7 @@ export default function OverlayView({ look, surface, phase, colors: palette, lev
             data-timer={look.timer ? "on" : "off"}
             data-mic={look.mic ? "on" : "off"}
             data-marks={look.transcribing_marks ? "on" : "off"}
+            data-sides={room.sides ? "on" : "off"}
             data-words={look.end_text ? "on" : "off"}
             data-reduced={reduced}
             data-windowed={windowed}
