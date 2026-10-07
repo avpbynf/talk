@@ -164,9 +164,10 @@
   height: 60px;
   border-radius: 18px;
   background: var(--ovbg);
-  /* --ovsh is how much of the shadow the look asks for, 1 being the one it always had. */
+  /* --ovsh is how much of the shadow the look asks for, 1 being the one it always had. It ends
+     within the 16 pixels the stage leaves under the card: a longer one is cut by the window. */
   box-shadow:
-    0 10px 24px -10px rgb(0 0 0 / calc(0.55 * var(--ovsh, 1))),
+    0 6px 16px -6px rgb(0 0 0 / calc(0.6 * var(--ovsh, 1))),
     inset 0 0 0 1px var(--ovline);
 }
 .ovh-glow {

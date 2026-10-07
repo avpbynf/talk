@@ -247,7 +247,7 @@ test.describe("the overlay tab", () => {
       await expect.poll(shadow).toBe("0");
       await expect
         .poll(() => box.locator(".ovh").evaluate((el) => getComputedStyle(el).boxShadow))
-        .toContain("rgba(0, 0, 0, 0) 0px 10px 24px -10px");
+        .toContain("rgba(0, 0, 0, 0) 0px 6px 16px -6px");
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.shadow).toBe(0);
       await page.getByRole("button", { name: /^Windows.+/ }).click();
       await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(0);
