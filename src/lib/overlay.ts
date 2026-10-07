@@ -348,6 +348,12 @@ export function bandsOf(level: number, seconds: number, into: number[] = new Arr
   return into;
 }
 
+/** What puts the named values of a look back to their defaults, or nothing when they are there already. */
+export function lookReset(look: OverlayLook, onLook: (patch: Partial<OverlayLook>) => void, ...keys: (keyof OverlayLook)[]): (() => void) | undefined {
+  if (keys.every((key) => JSON.stringify(look[key]) === JSON.stringify(DEFAULT_LOOK[key]))) return undefined;
+  return () => onLook(Object.fromEntries(keys.map((key) => [key, DEFAULT_LOOK[key]])) as Partial<OverlayLook>);
+}
+
 export function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }

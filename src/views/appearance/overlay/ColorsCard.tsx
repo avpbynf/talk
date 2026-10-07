@@ -7,7 +7,7 @@ import { ColorSwatch } from "@/components/ui/color-swatch";
 import { Segmented } from "@/components/ui/segmented";
 import { Range } from "@/components/ui/range";
 import type { OverlayLook, OverlayTone, OverlaySettings } from "@/lib/overlay";
-import { NEUTRAL_ACCENT, SHADOW_MAX, overlayColors } from "@/lib/overlay";
+import { NEUTRAL_ACCENT, SHADOW_MAX, lookReset, overlayColors } from "@/lib/overlay";
 import { THEME_IDS, type OverlayThemeId, getThemeColors, getThemeLabel } from "@/lib/overlay-themes";
 import type { Stop } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -57,10 +57,12 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
   const system = windows && look.system_color;
   const fromPalette = windows ? { system_color: false } : {};
   const systemAccent = settings.accent ?? NEUTRAL_ACCENT;
+  const reset = (...keys: (keyof OverlayLook)[]) => lookReset(look, onLook, ...keys);
 
   return (
     <SectionCard icon={Palette} title={t("appearance.overlay.colors.title")}>
       <SettingRow
+        onReset={reset("palette", "system_color")}
         label={t(windows ? "appearance.overlay.colors.accentColor" : "appearance.overlay.colors.palette")}
         hint={t(windows ? "appearance.overlay.colors.accentColorHint" : "appearance.overlay.colors.paletteHint")}
         below={
@@ -108,7 +110,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
       </SettingRow>
 
       {look.palette === "custom" && !system && (
-        <SettingRow label={t(windows ? "appearance.overlay.colors.ownColor" : "appearance.overlay.colors.customColors")}>
+        <SettingRow onReset={reset("custom_colors")} label={t(windows ? "appearance.overlay.colors.ownColor" : "appearance.overlay.colors.customColors")}>
           <div className="flex items-center gap-3">
             {look.custom_colors.slice(0, windows ? 1 : 3).map((color, i) => (
               <ColorSwatch
@@ -127,7 +129,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
         </SettingRow>
       )}
 
-      <SettingRow label={t("appearance.overlay.colors.background")}>
+      <SettingRow onReset={reset("tone")} label={t("appearance.overlay.colors.background")}>
         <Segmented
           label={t("appearance.overlay.colors.background")}
           value={look.tone}
@@ -136,7 +138,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
         />
       </SettingRow>
 
-      <SettingRow label={t("appearance.overlay.colors.opacity")} hint={t("appearance.overlay.colors.opacityHint")}>
+      <SettingRow onReset={reset("opacity")} label={t("appearance.overlay.colors.opacity")} hint={t("appearance.overlay.colors.opacityHint")}>
         <div className="flex items-center gap-3">
           <Range
             label={t("appearance.overlay.colors.opacity")}
@@ -152,7 +154,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
 
       {/* The Windows style is a window of its own, whose shadow would be the system's to draw, and the orb casts none. */}
       {!windows && look.style !== "orb" && (
-        <SettingRow label={t("appearance.overlay.colors.shadow")} hint={t("appearance.overlay.colors.shadowHint")}>
+        <SettingRow onReset={reset("shadow")} label={t("appearance.overlay.colors.shadow")} hint={t("appearance.overlay.colors.shadowHint")}>
           <div className="flex items-center gap-3">
             <Range
               label={t("appearance.overlay.colors.shadow")}

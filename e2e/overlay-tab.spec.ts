@@ -345,6 +345,19 @@ test.describe("the overlay tab", () => {
       await expect.poll(async () => (await calls(app, "set_overlay_size")).at(-1)?.size).toBe("large");
     });
 
+    test("a setting that was changed shows the way back to its default, beside its label", async ({ app, page }) => {
+      await openTab(app, page);
+      const back = page.locator('xpath=//label[normalize-space()="Reaction to your voice"]/following-sibling::button');
+      await expect(back).toHaveCount(0);
+      await page.getByRole("slider", { name: "Reaction to your voice" }).fill("140");
+      await expect(back).toHaveText("Default");
+      await expect(back).toHaveAccessibleDescription("Reaction to your voice");
+      await back.click();
+      await expect(page.getByRole("slider", { name: "Reaction to your voice" })).toHaveValue("100");
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.reaction).toBe(100);
+      await expect(back).toHaveCount(0);
+    });
+
     test("the icon and the ring shown while it transcribes can be left out", async ({ app, page }) => {
       await openTab(app, page);
       await page.getByRole("button", { name: /^Windows.+/ }).click();
