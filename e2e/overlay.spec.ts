@@ -28,7 +28,7 @@ async function open(
           palette: "preset",
           custom_colors: ["#ff7a59", "#ff4f8b", "#a259ff"],
           tone: "theme",
-          translucent: false,
+          opacity: 100,
           reaction: 100,
           entrance: "bounce",
           timer: true,
@@ -215,6 +215,13 @@ test.describe("the overlay page", () => {
     await expect(page.locator(".ovbox")).toHaveCount(0);
     expect(await laid(), "once the card is gone").toBe("rgba(0, 0, 0, 0.5)");
     expect(await page.locator(".ovw").count()).toBe(0);
+  });
+
+  test("the opacity of the Windows style is how much of its veil is laid", async ({ app, page }) => {
+    await open(app, page, { style: "flyout", tone: "dark", opacity: 40 }, { viewport: { width: 192, height: 47 } });
+    const veil = page.locator(".ovveil");
+    await expect(veil).toHaveAttribute("data-veil", "dark");
+    expect(await veil.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0.2)");
   });
 
   test("the other styles lay no veil on the window", async ({ app, page }) => {

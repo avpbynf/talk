@@ -554,8 +554,8 @@
         "theme": "Like the theme",
         "dark": "Dark",
         "light": "Light",
-        "translucent": "Translucent",
-        "translucentHint": "The background lets what is behind the overlay show through"
+        "opacity": "Background opacity",
+        "opacityHint": "At 100 %, the background is solid. Lower, what is behind the overlay shows through."
       },
       "movement": {
         "title": "Movement",

@@ -1293,18 +1293,18 @@ mod tests {
         let mut settings = AppSettings::default();
         plan.merged.apply_to_settings(&mut settings);
         assert_eq!(settings.overlay_look.style, crate::overlay_settings::OverlayStyle::Capsule);
-        assert_eq!(settings.overlay_look.surface(), (OverlayTone::Light, false));
+        assert_eq!(settings.overlay_look.surface(), (OverlayTone::Light, 100));
         assert!(settings.overlay_look.end_text);
     }
 
     #[test]
-    fn a_glass_look_from_0_11_arrives_dark_and_translucent() {
+    fn a_glass_look_from_0_11_arrives_dark_at_half_opacity() {
         let local = SyncedSettings::default();
         let theirs = r#"{"overlay_look": {"style": "orb", "background": "glass"}, "overlay_look_modified": 40}"#;
         let remote = SettingsFile::parse(&account_copy(theirs), &local).expect("parse");
         assert!(remote.foreign.is_empty(), "read in full");
         let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100);
-        assert_eq!(plan.merged.overlay_look.surface(), (OverlayTone::Dark, true));
+        assert_eq!(plan.merged.overlay_look.surface(), (OverlayTone::Dark, 50));
         assert_eq!(plan.merged.overlay_look_modified, 40);
     }
 
@@ -1318,35 +1318,35 @@ mod tests {
     #[test]
     fn a_look_chosen_here_goes_up_in_a_shape_0_11_reads_in_full() {
         let shown_there = [
-            (OverlayTone::Theme, false, "dark"),
-            (OverlayTone::Theme, true, "glass"),
-            (OverlayTone::Dark, false, "dark"),
-            (OverlayTone::Dark, true, "glass"),
-            (OverlayTone::Light, false, "light"),
-            (OverlayTone::Light, true, "light"),
+            (OverlayTone::Theme, 100, "dark"),
+            (OverlayTone::Theme, 50, "glass"),
+            (OverlayTone::Dark, 100, "dark"),
+            (OverlayTone::Dark, 50, "glass"),
+            (OverlayTone::Light, 100, "light"),
+            (OverlayTone::Light, 50, "light"),
         ];
-        for (tone, translucent, there) in shown_there {
+        for (tone, opacity, there) in shown_there {
             let mut local = SyncedSettings::default();
-            local.overlay_look = OverlayLook { tone, translucent, ..Default::default() }.as_chosen();
+            local.overlay_look = OverlayLook { tone, opacity, ..Default::default() }.as_chosen();
             local.overlay_look_modified = 90;
             let out = uploaded(plan(&local, 90, true, &VocabLedger::default(), None, 100), 100);
             let look = &out["settings"]["overlay_look"];
-            assert_eq!(as_0_11_reads(look), there, "{tone:?} {translucent}");
+            assert_eq!(as_0_11_reads(look), there, "{tone:?} {opacity}");
         }
     }
 
     #[test]
     fn a_look_0_11_edited_and_sent_back_is_followed_and_not_set_aside() {
-        // Light and translucent went up from here; a 0.11.0 picked Glass and kept our two keys.
+        // Light at half went up from here; a 0.11.0 picked Glass and kept our two keys.
         let mut local = SyncedSettings::default();
-        local.overlay_look = OverlayLook { tone: OverlayTone::Light, translucent: true, ..Default::default() }.as_chosen();
+        local.overlay_look = OverlayLook { tone: OverlayTone::Light, opacity: 50, ..Default::default() }.as_chosen();
         local.overlay_look_modified = 90;
-        let theirs = r#"{"overlay_look": {"style": "halo", "background": "glass", "tone": "light", "translucent": true}, "overlay_look_modified": 200}"#;
+        let theirs = r#"{"overlay_look": {"style": "halo", "background": "glass", "tone": "light", "opacity": 50}, "overlay_look_modified": 200}"#;
         let remote = SettingsFile::parse(&account_copy(theirs), &local).expect("parse");
         assert!(remote.foreign.is_empty(), "read in full, or the two machines stop sharing a look");
 
         let plan = plan(&local, 90, true, &VocabLedger::default(), Some(&remote), 300);
-        assert_eq!(plan.merged.overlay_look.surface(), (OverlayTone::Dark, true), "what the other machine shows");
+        assert_eq!(plan.merged.overlay_look.surface(), (OverlayTone::Dark, 50), "what the other machine shows");
         assert_eq!(plan.merged.overlay_look_modified, 200);
         let out = uploaded(plan, 300);
         assert_eq!(as_0_11_reads(&out["settings"]["overlay_look"]), "glass", "and it is not written over");
@@ -1373,13 +1373,13 @@ mod tests {
         assert_eq!(restamp(&upgraded, &stored, 777, 5_000), (upgraded.fingerprint(), 777));
 
         let mut edited = upgraded.clone();
-        edited.overlay_look = OverlayLook { translucent: false, tone: OverlayTone::Light, ..edited.overlay_look }.as_chosen();
+        edited.overlay_look = OverlayLook { opacity: 100, tone: OverlayTone::Light, ..edited.overlay_look }.as_chosen();
         assert!(edited.changed_since(&stored), "a tone picked since is one");
 
         // A 0.11.0 that took the two keys from the account carried them after its own.
         let mut carried = SyncedSettings::default();
-        carried.overlay_look = OverlayLook { tone: OverlayTone::Light, translucent: true, ..Default::default() }.as_chosen();
-        let stored = stored_by_0_11(&carried, &format!(r#"{head}"background":"light",{tail},"tone":"light","translucent":true}}"#));
+        carried.overlay_look = OverlayLook { tone: OverlayTone::Light, opacity: 50, ..Default::default() }.as_chosen();
+        let stored = stored_by_0_11(&carried, &format!(r#"{head}"background":"light",{tail},"opacity":50,"tone":"light"}}"#));
         assert!(!carried.changed_since(&stored));
     }
 

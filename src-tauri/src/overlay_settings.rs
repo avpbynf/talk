@@ -37,7 +37,7 @@ pub enum OverlayPalette {
     Custom,
 }
 
-/// What 0.11.0 calls the overlay's background, kept beside `tone` and `translucent` so
+/// What 0.11.0 calls the overlay's background, kept beside `tone` and `opacity` so
 /// that it still reads the look: see `OverlayLook::surface`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -50,8 +50,8 @@ pub enum OverlayBackground {
 
 impl OverlayBackground {
     /// The nearest thing 0.11.0 draws: it follows no theme and has no light glass.
-    fn nearest(tone: OverlayTone, translucent: bool) -> Self {
-        match (tone, translucent) {
+    fn nearest(tone: OverlayTone, opacity: u8) -> Self {
+        match (tone, opacity < OPACITY_FULL) {
             (OverlayTone::Light, _) => Self::Light,
             (_, true) => Self::Glass,
             (_, false) => Self::Dark,
@@ -100,6 +100,11 @@ pub const REACTION_MIN: u8 = 20;
 pub const REACTION_MAX: u8 = 250;
 const REACTION_DEFAULT: u8 = 100;
 
+/// The background at its full strength, as a percentage.
+pub const OPACITY_FULL: u8 = 100;
+/// What the glass of 0.11.0 comes to: its fill was about half of the plain one's.
+const OPACITY_GLASS: u8 = 50;
+
 /// How long the overlay may stay up to say the text was pasted, in milliseconds.
 pub const PASTED_HOLD_MAX_MS: u16 = 3000;
 /// Long enough to be seen.
@@ -115,6 +120,10 @@ fn is_hex(color: &str) -> bool {
 
 fn reaction<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
     lenient_or(d, |value| value.as_u64().and_then(|n| u8::try_from(n).ok()), REACTION_DEFAULT)
+}
+
+fn opacity<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
+    lenient_or(d, |value| value.as_u64().and_then(|n| u8::try_from(n).ok()), OPACITY_FULL)
 }
 
 fn pasted_hold<'de, D: Deserializer<'de>>(d: D) -> Result<u16, D::Error> {
@@ -149,8 +158,10 @@ pub struct OverlayLook {
     pub background: OverlayBackground,
     #[serde(deserialize_with = "lenient")]
     pub tone: OverlayTone,
-    #[serde(deserialize_with = "off")]
-    pub translucent: bool,
+    /// How much of the background is there, as a percentage: under a hundred, what is
+    /// behind the overlay shows through it.
+    #[serde(deserialize_with = "opacity")]
+    pub opacity: u8,
     /// How strongly it moves with the voice, as a percentage.
     #[serde(deserialize_with = "reaction")]
     pub reaction: u8,
@@ -181,7 +192,7 @@ impl Default for OverlayLook {
             custom_colors: default_custom_colors(),
             background: OverlayBackground::default(),
             tone: OverlayTone::default(),
-            translucent: false,
+            opacity: OPACITY_FULL,
             reaction: REACTION_DEFAULT,
             entrance: OverlayEntrance::default(),
             timer: true,
@@ -199,6 +210,7 @@ impl OverlayLook {
     pub fn sanitized(mut self) -> Self {
         self.reaction = self.reaction.clamp(REACTION_MIN, REACTION_MAX);
         self.pasted_hold_ms = self.pasted_hold_ms.min(PASTED_HOLD_MAX_MS);
+        self.opacity = self.opacity.min(OPACITY_FULL);
         let defaults = default_custom_colors();
         for (color, fallback) in self.custom_colors.iter_mut().zip(defaults) {
             if !is_hex(color) {
@@ -208,26 +220,26 @@ impl OverlayLook {
         self
     }
 
-    /// What the overlay is drawn on: its tone, and whether it lets through what is behind.
+    /// What the overlay is drawn on: its tone, and how much of its background is there.
     ///
-    /// `tone` and `translucent` say it for as long as `background` is what this build wrote
+    /// `tone` and `opacity` say it for as long as `background` is what this build wrote
     /// beside them. 0.11.0 carries the two keys without reading them and rewrites
     /// `background` alone, so a `background` that no longer agrees is a choice made there
-    /// since, and it is the one to follow, as that build draws it: dark, dark and translucent
-    /// for its glass, or light. A look 0.11.0 wrote on its own has neither key and reads the
+    /// since, and it is the one to follow, as that build draws it: dark, dark at half for its
+    /// glass, or light. A look 0.11.0 wrote on its own has neither key and reads the
     /// same way, except that its dark, which is also what a look nobody touched says, agrees
     /// with the two defaults and so follows the theme.
     ///
     /// What cannot be told is a `background` changed there and changed back: the keys agree
     /// again, and say what they said before.
-    pub fn surface(&self) -> (OverlayTone, bool) {
-        if self.background == OverlayBackground::nearest(self.tone, self.translucent) {
-            return (self.tone, self.translucent);
+    pub fn surface(&self) -> (OverlayTone, u8) {
+        if self.background == OverlayBackground::nearest(self.tone, self.opacity) {
+            return (self.tone, self.opacity);
         }
         match self.background {
-            OverlayBackground::Dark => (OverlayTone::Dark, false),
-            OverlayBackground::Glass => (OverlayTone::Dark, true),
-            OverlayBackground::Light => (OverlayTone::Light, false),
+            OverlayBackground::Dark => (OverlayTone::Dark, OPACITY_FULL),
+            OverlayBackground::Glass => (OverlayTone::Dark, OPACITY_GLASS),
+            OverlayBackground::Light => (OverlayTone::Light, OPACITY_FULL),
         }
     }
 
@@ -243,27 +255,27 @@ impl OverlayLook {
 
     /// The look as the windows are shown it: the three fields say what `surface` reads.
     pub fn as_read(self) -> Self {
-        let (tone, translucent) = self.surface();
-        Self { tone, translucent, ..self }.as_chosen()
+        let (tone, opacity) = self.surface();
+        Self { tone, opacity, ..self }.as_chosen()
     }
 
-    /// The look as the settings page states it, which is by `tone` and `translucent`
+    /// The look as the settings page states it, which is by `tone` and `opacity`
     /// alone: `background` is made to follow, for 0.11.0 to read.
     pub fn as_chosen(mut self) -> Self {
-        self.background = OverlayBackground::nearest(self.tone, self.translucent);
+        self.background = OverlayBackground::nearest(self.tone, self.opacity);
         self
     }
 
     /// The look as 0.11.0 wrote it, which is what the hash it left on disk was taken over.
-    /// It had no `tone` and no `translucent`: either it never met them, which only a look
+    /// It had no `tone` and no `opacity`: either it never met them, which only a look
     /// still at their defaults can come from, or an account handed them to it and it
     /// `carried` them among the keys it does not know.
     pub fn json_before_tone(&self, carried: bool) -> Option<String> {
         let mut extra = self.extra.clone();
         if carried {
             extra.insert("tone".to_string(), serde_json::to_value(self.tone).ok()?);
-            extra.insert("translucent".to_string(), Value::Bool(self.translucent));
-        } else if self.tone != OverlayTone::default() || self.translucent {
+            extra.insert("opacity".to_string(), Value::from(self.opacity));
+        } else if self.tone != OverlayTone::default() || self.opacity != OPACITY_FULL {
             return None;
         }
         serde_json::to_string(&LookBeforeTone {
@@ -494,74 +506,83 @@ mod tests {
         assert!(look_readable(&json!({ "style": "orb", "a_key_from_the_future": [1, 2] })));
         assert!(!look_readable(&json!({ "style": "ribbon" })));
         assert!(!look_readable(&json!({ "reaction": 251 })));
+        assert!(look_readable(&json!({ "opacity": 0 })));
+        assert!(!look_readable(&json!({ "opacity": 101 })));
+        assert!(!look_readable(&json!({ "opacity": 42.5 })));
+        assert!(!look_readable(&json!({ "opacity": -1 })));
         assert!(!look_readable(&json!({ "custom_colors": ["#fff", "#000", "#123456"] })));
         assert!(!look_readable(&json!("orb")));
     }
 
-    fn surface_of(raw: Value) -> (OverlayTone, bool) {
+    fn surface_of(raw: Value) -> (OverlayTone, u8) {
         serde_json::from_value::<OverlayLook>(raw).expect("should parse").surface()
     }
 
     #[test]
     fn a_look_written_by_0_11_reads_by_its_background() {
-        assert_eq!(surface_of(json!({ "background": "dark" })), (OverlayTone::Theme, false));
-        assert_eq!(surface_of(json!({ "background": "glass" })), (OverlayTone::Dark, true));
-        assert_eq!(surface_of(json!({ "background": "light" })), (OverlayTone::Light, false));
-        assert_eq!(surface_of(json!({})), (OverlayTone::Theme, false));
+        assert_eq!(surface_of(json!({ "background": "dark" })), (OverlayTone::Theme, 100));
+        assert_eq!(surface_of(json!({ "background": "glass" })), (OverlayTone::Dark, 50));
+        assert_eq!(surface_of(json!({ "background": "light" })), (OverlayTone::Light, 100));
+        assert_eq!(surface_of(json!({})), (OverlayTone::Theme, 100));
     }
 
     #[test]
     fn every_surface_is_written_so_that_0_11_reads_it_in_full_and_reads_back_whole() {
         for tone in [OverlayTone::Theme, OverlayTone::Dark, OverlayTone::Light] {
-            for translucent in [false, true] {
-                let look = OverlayLook { tone, translucent, ..Default::default() }.as_chosen();
+            for opacity in [100, 50, 0] {
+                let look = OverlayLook { tone, opacity, ..Default::default() }.as_chosen();
                 let written = serde_json::to_value(&look).expect("should serialise");
                 assert!(before_tone::reads_in_full(&written).is_some(), "{written}");
                 assert!(look_readable(&written));
-                assert_eq!(surface_of(written), (tone, translucent));
+                assert_eq!(surface_of(written), (tone, opacity));
             }
         }
-        let glass = OverlayLook { tone: OverlayTone::Theme, translucent: true, ..Default::default() }.as_chosen();
+        let glass = OverlayLook { tone: OverlayTone::Theme, opacity: 50, ..Default::default() }.as_chosen();
         assert_eq!(glass.background, OverlayBackground::Glass, "0.11.0 shows the nearest it has");
-        let light = OverlayLook { tone: OverlayTone::Light, translucent: true, ..Default::default() }.as_chosen();
+        let light = OverlayLook { tone: OverlayTone::Light, opacity: 50, ..Default::default() }.as_chosen();
         assert_eq!(light.background, OverlayBackground::Light);
     }
 
     #[test]
     fn a_background_0_11_changed_since_wins_over_the_keys_it_carried() {
-        // Light and translucent here, then each of the three picked on a 0.11.0.
-        let carried = |background: &str| json!({ "background": background, "tone": "light", "translucent": true });
-        assert_eq!(surface_of(carried("light")), (OverlayTone::Light, true), "untouched there");
-        assert_eq!(surface_of(carried("dark")), (OverlayTone::Dark, false));
-        assert_eq!(surface_of(carried("glass")), (OverlayTone::Dark, true));
-        // Following the theme and translucent here, which 0.11.0 shows as glass.
-        let carried = |background: &str| json!({ "background": background, "tone": "theme", "translucent": true });
-        assert_eq!(surface_of(carried("glass")), (OverlayTone::Theme, true), "untouched there");
-        assert_eq!(surface_of(carried("dark")), (OverlayTone::Dark, false), "dark was picked there, and is what it shows");
-        assert_eq!(surface_of(carried("light")), (OverlayTone::Light, false));
+        // Light at half here, then each of the three picked on a 0.11.0.
+        let carried = |background: &str| json!({ "background": background, "tone": "light", "opacity": 50 });
+        assert_eq!(surface_of(carried("light")), (OverlayTone::Light, 50), "untouched there");
+        assert_eq!(surface_of(carried("dark")), (OverlayTone::Dark, 100));
+        assert_eq!(surface_of(carried("glass")), (OverlayTone::Dark, 50));
+        // Whatever the opacity was here, its glass is the half that build draws.
+        for opacity in [0, 95] {
+            let light = json!({ "background": "glass", "tone": "light", "opacity": opacity });
+            assert_eq!(surface_of(light), (OverlayTone::Dark, 50));
+        }
+        // Following the theme at half here, which 0.11.0 shows as glass.
+        let carried = |background: &str| json!({ "background": background, "tone": "theme", "opacity": 50 });
+        assert_eq!(surface_of(carried("glass")), (OverlayTone::Theme, 50), "untouched there");
+        assert_eq!(surface_of(carried("dark")), (OverlayTone::Dark, 100), "dark was picked there, and is what it shows");
+        assert_eq!(surface_of(carried("light")), (OverlayTone::Light, 100));
         // Dark here, and glass picked there.
         assert_eq!(
-            surface_of(json!({ "background": "glass", "tone": "dark", "translucent": false })),
-            (OverlayTone::Dark, true)
+            surface_of(json!({ "background": "glass", "tone": "dark", "opacity": 100 })),
+            (OverlayTone::Dark, 50)
         );
     }
 
     #[test]
     fn a_look_0_11_edited_is_read_in_full_and_shown_as_it_reads() {
-        let raw = json!({ "style": "orb", "background": "dark", "tone": "light", "translucent": true });
+        let raw = json!({ "style": "orb", "background": "dark", "tone": "light", "opacity": 50 });
         assert!(look_readable(&raw), "or the account's look would stop following");
         let shown = serde_json::from_value::<OverlayLook>(raw).expect("should parse").as_read();
-        assert_eq!((shown.background, shown.tone, shown.translucent), (OverlayBackground::Dark, OverlayTone::Dark, false));
+        assert_eq!((shown.background, shown.tone, shown.opacity), (OverlayBackground::Dark, OverlayTone::Dark, 100));
         assert_eq!(shown.style, OverlayStyle::Orb);
     }
 
     #[test]
     fn restating_the_look_as_it_was_shown_is_not_an_edit() {
-        // Saved by 0.11.0: the page is shown dark and translucent, and sends that back.
+        // Saved by 0.11.0: the page is shown dark at half, and sends that back.
         let stored: OverlayLook =
             serde_json::from_value(json!({ "background": "glass", "end_text": true, "sparkle": 7 })).expect("should parse");
         let shown = stored.clone().as_read();
-        assert_eq!((shown.tone, shown.translucent), (OverlayTone::Dark, true));
+        assert_eq!((shown.tone, shown.opacity), (OverlayTone::Dark, 50));
         let from_the_page = |look: &OverlayLook| {
             let mut sent = serde_json::to_value(look).expect("should serialise");
             let fields = sent.as_object_mut().expect("an object");
@@ -572,9 +593,9 @@ mod tests {
         assert_eq!(stored.restated(from_the_page(&shown)), None, "the stored look stays as 0.11.0 wrote it");
 
         let mut edited = shown.clone();
-        edited.translucent = false;
+        edited.opacity = 100;
         let kept = stored.restated(from_the_page(&edited)).expect("an edit");
-        assert_eq!(kept.surface(), (OverlayTone::Dark, false));
+        assert_eq!(kept.surface(), (OverlayTone::Dark, 100));
         assert_eq!(kept.background, OverlayBackground::Dark);
         assert_eq!(kept.extra.get("sparkle"), Some(&json!(7)), "keys from a later build stay");
         assert!(kept.end_text);
@@ -583,10 +604,10 @@ mod tests {
     #[test]
     fn what_the_page_states_decides_the_background() {
         // The page sends no background, so it arrives as the default.
-        let stated: OverlayLook = serde_json::from_value(json!({ "tone": "light", "translucent": true })).expect("should parse");
+        let stated: OverlayLook = serde_json::from_value(json!({ "tone": "light", "opacity": 50 })).expect("should parse");
         let kept = stated.as_chosen();
         assert_eq!(kept.background, OverlayBackground::Light);
-        assert_eq!(kept.surface(), (OverlayTone::Light, true));
+        assert_eq!(kept.surface(), (OverlayTone::Light, 50));
     }
 
     #[test]
@@ -602,7 +623,7 @@ mod tests {
         look.extra.insert("sparkle".to_string(), json!(3));
         assert_eq!(look.json_before_tone(false), None, "0.11.0 alone could not have had it");
         let carried = look.json_before_tone(true).expect("json");
-        assert!(carried.ends_with(r#""voice":"wave","sparkle":3,"tone":"light","translucent":false}"#), "{carried}");
+        assert!(carried.ends_with(r#""voice":"wave","opacity":100,"sparkle":3,"tone":"light"}"#), "{carried}");
     }
 
     #[test]
@@ -617,9 +638,11 @@ mod tests {
     fn sanitizing_brings_values_back_into_range() {
         let mut look = OverlayLook::default();
         look.reaction = 255;
+        look.opacity = 180;
         look.custom_colors = ["red".into(), "#00ff00".into(), "#12".into()];
         let look = look.sanitized();
         assert_eq!(look.reaction, REACTION_MAX);
+        assert_eq!(look.opacity, OPACITY_FULL);
         assert_eq!(look.custom_colors, ["#ff7a59".to_string(), "#00ff00".to_string(), "#a259ff".to_string()]);
     }
 

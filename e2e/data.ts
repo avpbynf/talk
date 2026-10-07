@@ -127,7 +127,7 @@ export function defaultState() {
         palette: "preset",
         custom_colors: ["#ff7a59", "#ff4f8b", "#a259ff"],
         tone: "theme",
-        translucent: false,
+        opacity: 100,
         reaction: 100,
         entrance: "bounce",
         timer: true,

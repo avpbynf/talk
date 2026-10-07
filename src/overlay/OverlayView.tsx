@@ -115,8 +115,9 @@ function shake(el: Element | null) {
 export default function OverlayView({ look, surface, phase, colors: palette, levels, elapsed, progress, server, jobs, label, email, scale, fromTop, reduced: asked, still = false, nudge = 0, desktopPointer = false, windowed = false, accent = null, leaving = false }: OverlayViewProps) {
   // A picture has no movement to leave in: the stylesheet's own animations stop with it.
   const reduced = asked || still;
-  const { tone, translucent } = surface;
-  const colors = useMemo(() => legibleColors(palette, { tone, translucent }), [palette, tone, translucent]);
+  const { tone, opacity } = surface;
+  const colors = useMemo(() => legibleColors(palette, { tone }), [palette, tone]);
+
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const subscribe = useOverlayEngine({ levels, reaction: look.reaction, listening: phase === "rec", still });
@@ -150,6 +151,7 @@ export default function OverlayView({ look, surface, phase, colors: palette, lev
     "--c1": colors[0],
     "--c2": colors[1],
     "--c3": colors[2],
+    "--ovop": opacity / 100,
   };
   const shared: StyleProps = { subscribe, phase, look, surface, jobs, progress, label, reduced, phaseRef, elapsed, server, colors, scale, accent };
 

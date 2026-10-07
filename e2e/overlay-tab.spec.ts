@@ -159,23 +159,26 @@ test.describe("the overlay tab", () => {
       expect(await clock(), "the clock of the preview does not run while the window is hidden").toBe("0:00");
     });
 
-    test("follows the tone, the translucency, the timer and the microphone", async ({ app, page }) => {
+    test("follows the tone, the opacity, the timer and the microphone", async ({ app, page }) => {
       await openTab(app, page);
       await hold(page, "Recording");
       const pill = page.getByTestId("overlay-preview").locator(".ovw");
       await page.getByRole("radio", { name: "Light" }).click();
       await expect(pill).toHaveAttribute("data-bg", "light");
       await expect(pill).toHaveAttribute("data-glass", "off");
-      await page.getByRole("switch", { name: "Translucent" }).click();
+      const filled = () => pill.evaluate((el) => getComputedStyle(el).getPropertyValue("--ovop").trim());
+      expect(await filled()).toBe("1");
+      await page.getByRole("slider", { name: "Background opacity" }).fill("40");
       await expect(pill).toHaveAttribute("data-bg", "light");
       await expect(pill).toHaveAttribute("data-glass", "on");
+      expect(await filled()).toBe("0.4");
       await page.getByRole("switch", { name: "Timer" }).click();
       await expect(pill).toHaveAttribute("data-timer", "off");
       await page.getByRole("switch", { name: "Microphone icon" }).click();
       await expect(pill).toHaveAttribute("data-mic", "off");
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look).toMatchObject({
         tone: "light",
-        translucent: true,
+        opacity: 40,
         timer: false,
         mic: false,
       });
@@ -183,17 +186,16 @@ test.describe("the overlay tab", () => {
   });
 
   test.describe("the colours", () => {
-    test("the Windows style keeps the tone and is not offered the translucency", async ({ app, page }) => {
+    test("the Windows style keeps the tone and the opacity", async ({ app, page }) => {
       await openTab(app, page);
-      await expect(page.getByRole("switch", { name: "Translucent" })).toBeVisible();
       await page.getByRole("button", { name: /^Windows/ }).click();
       await expect(page.getByRole("button", { name: /^Windows/ })).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByRole("radio", { name: "Like the theme" })).toBeVisible();
-      await expect(page.getByRole("switch", { name: "Translucent" })).toHaveCount(0);
+      await expect(page.getByRole("slider", { name: "Background opacity" })).toBeVisible();
     });
 
     test("the Windows style is light under a light application theme, or when light is picked", async ({ app, page }) => {
-      await openTab(app, page, { state: { settings: { theme: { preset: "mist", custom: null }, overlay_look: { style: "flyout", translucent: true } } } });
+      await openTab(app, page, { state: { settings: { theme: { preset: "mist", custom: null }, overlay_look: { style: "flyout", opacity: 40 } } } });
       await hold(page, "Recording");
       const card = page.getByTestId("overlay-preview").locator(".ovw");
       await expect(card).toHaveAttribute("data-bg", "light");

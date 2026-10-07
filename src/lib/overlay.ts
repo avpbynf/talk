@@ -18,8 +18,8 @@ export interface OverlayLook {
   palette: OverlayPalette;
   custom_colors: [string, string, string];
   tone: OverlayTone;
-  /** The background lets what is behind the overlay show through. */
-  translucent: boolean;
+  /** Percent of the background that is there: under a hundred, what is behind the overlay shows through. */
+  opacity: number;
   /** Percent, how strongly the overlay moves with the voice. */
   reaction: number;
   entrance: OverlayEntrance;
@@ -94,7 +94,7 @@ export const DEFAULT_LOOK: OverlayLook = {
   palette: "preset",
   custom_colors: ["#ff7a59", "#ff4f8b", "#a259ff"],
   tone: "theme",
-  translucent: false,
+  opacity: 100,
   reaction: 100,
   entrance: "bounce",
   timer: true,
@@ -143,6 +143,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
   const free = placement.free as Record<string, unknown> | null | undefined;
   const reaction = typeof look.reaction === "number" ? look.reaction : DEFAULT_LOOK.reaction;
   const accent = (settings as { accent?: Record<string, unknown> | null }).accent;
+  const opacity = typeof look.opacity === "number" ? look.opacity : DEFAULT_LOOK.opacity;
   const hold = typeof look.pasted_hold_ms === "number" ? look.pasted_hold_ms : DEFAULT_LOOK.pasted_hold_ms;
   return {
     accent: accent && HEX.test(String(accent.light)) && HEX.test(String(accent.dark)) ? { light: String(accent.light), dark: String(accent.dark) } : null,
@@ -151,7 +152,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       palette: oneOf(PALETTES, look.palette, DEFAULT_LOOK.palette),
       custom_colors: [0, 1, 2].map((i) => (HEX.test(String(colors[i])) ? String(colors[i]) : DEFAULT_LOOK.custom_colors[i])) as OverlayLook["custom_colors"],
       tone: oneOf(TONES, look.tone, DEFAULT_LOOK.tone),
-      translucent: look.translucent === true,
+      opacity: Math.min(100, Math.max(0, Math.round(opacity))),
       reaction: Math.min(REACTION_MAX, Math.max(REACTION_MIN, reaction)),
       entrance: oneOf(ENTRANCES, look.entrance, DEFAULT_LOOK.entrance),
       timer: look.timer !== false,
@@ -198,20 +199,22 @@ export function overlayColors(look: OverlayLook, theme: OverlayThemeId, accent: 
 /** What the overlay is drawn on once the tone is settled: light or dark, and whether it shows through. */
 export interface OverlaySurface {
   tone: "dark" | "light";
+  /** Percent of the background that is there. */
+  opacity: number;
+  /** Whether the fill lets the desk through, which dimmed text has to make up for. */
   translucent: boolean;
 }
 
 /** The surface a look is drawn on: the tone picked, or the one of the application's theme. */
 export function surfaceOf(look: OverlayLook, themeMode: "light" | "dark"): OverlaySurface {
   const tone = look.tone === "theme" ? themeMode : look.tone;
-  // The Windows style is the system's acrylic, which is what it is: nothing to see through further.
-  return { tone, translucent: look.style !== "flyout" && look.translucent };
+  // On the Windows style the opacity is the veil's over the system's blur, and its marks stay as they are.
+  return { tone, opacity: look.opacity, translucent: look.style !== "flyout" && look.opacity < 100 };
 }
 
 /** The pill's own colour on a surface, which is what the three colours are drawn on. */
-function pillOf(surface: OverlaySurface): string {
-  if (surface.tone === "light") return "#fafafd";
-  return surface.translucent ? "#1c1e2a" : "#0d0e14";
+function pillOf(surface: Pick<OverlaySurface, "tone">): string {
+  return surface.tone === "light" ? "#fafafd" : "#0d0e14";
 }
 /** The least contrast a mark needs against the pill to be seen, the one WCAG asks of graphics. */
 const MARK_CONTRAST = 3;
@@ -222,7 +225,7 @@ const MARK_CONTRAST = 3;
  * background, or a dark custom colour on a dark one, would otherwise leave the mic, the bars
  * and the badge invisible.
  */
-export function legibleColors(colors: Colors, surface: OverlaySurface): Colors {
+export function legibleColors(colors: Colors, surface: Pick<OverlaySurface, "tone">): Colors {
   const pill = pillOf(surface);
   const toward = surface.tone === "light" ? "#000000" : "#ffffff";
   return colors.map((color) => {

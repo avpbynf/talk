@@ -30,11 +30,17 @@ describe("coerceSettings", () => {
   });
 });
 
-describe("the tone and the translucency", () => {
-  it("default to the theme's tone, opaque", () => {
-    expect(coerceSettings({}).look).toMatchObject({ tone: "theme", translucent: false });
-    expect(coerceSettings({ look: { tone: "sepia", translucent: "yes" } }).look).toMatchObject({ tone: "theme", translucent: false });
-    expect(coerceSettings({ look: { tone: "light", translucent: true } }).look).toMatchObject({ tone: "light", translucent: true });
+describe("the tone and the opacity", () => {
+  it("default to the theme's tone, at full opacity", () => {
+    expect(coerceSettings({}).look).toMatchObject({ tone: "theme", opacity: 100 });
+    expect(coerceSettings({ look: { tone: "sepia", opacity: "half" } }).look).toMatchObject({ tone: "theme", opacity: 100 });
+    expect(coerceSettings({ look: { tone: "light", opacity: 35 } }).look).toMatchObject({ tone: "light", opacity: 35 });
+  });
+
+  it("keep the opacity between nothing and all of it", () => {
+    expect(coerceSettings({ look: { opacity: 140 } }).look.opacity).toBe(100);
+    expect(coerceSettings({ look: { opacity: -5 } }).look.opacity).toBe(0);
+    expect(coerceSettings({ look: { opacity: 42.4 } }).look.opacity).toBe(42);
   });
 
   it("ignore the old background", () => {
@@ -45,22 +51,22 @@ describe("the tone and the translucency", () => {
 describe("surfaceOf", () => {
   it("resolves the theme's tone to the application's mode", () => {
     const look = { ...DEFAULT_LOOK, tone: "theme" } as const;
-    expect(surfaceOf(look, "light")).toEqual({ tone: "light", translucent: false });
-    expect(surfaceOf(look, "dark")).toEqual({ tone: "dark", translucent: false });
+    expect(surfaceOf(look, "light")).toEqual({ tone: "light", opacity: 100, translucent: false });
+    expect(surfaceOf(look, "dark")).toEqual({ tone: "dark", opacity: 100, translucent: false });
   });
 
   it("keeps a tone that was picked, whatever the application's mode", () => {
     for (const mode of ["light", "dark"] as const) {
-      expect(surfaceOf({ ...DEFAULT_LOOK, tone: "dark", translucent: true }, mode)).toEqual({ tone: "dark", translucent: true });
-      expect(surfaceOf({ ...DEFAULT_LOOK, tone: "light" }, mode)).toEqual({ tone: "light", translucent: false });
+      expect(surfaceOf({ ...DEFAULT_LOOK, tone: "dark", opacity: 40 }, mode)).toEqual({ tone: "dark", opacity: 40, translucent: true });
+      expect(surfaceOf({ ...DEFAULT_LOOK, tone: "light" }, mode)).toEqual({ tone: "light", opacity: 100, translucent: false });
     }
   });
 
-  it("gives the Windows style the same tone, and never translucent", () => {
-    const look = { ...DEFAULT_LOOK, style: "flyout", translucent: true } as const;
-    expect(surfaceOf({ ...look, tone: "theme" }, "light")).toEqual({ tone: "light", translucent: false });
-    expect(surfaceOf({ ...look, tone: "theme" }, "dark")).toEqual({ tone: "dark", translucent: false });
-    expect(surfaceOf({ ...look, tone: "light" }, "dark")).toEqual({ tone: "light", translucent: false });
+  it("gives the Windows style the same tone and opacity, its marks staying those of a plain card", () => {
+    const look = { ...DEFAULT_LOOK, style: "flyout", opacity: 40 } as const;
+    expect(surfaceOf({ ...look, tone: "theme" }, "light")).toEqual({ tone: "light", opacity: 40, translucent: false });
+    expect(surfaceOf({ ...look, tone: "theme" }, "dark")).toEqual({ tone: "dark", opacity: 40, translucent: false });
+    expect(surfaceOf({ ...look, tone: "light" }, "dark")).toEqual({ tone: "light", opacity: 40, translucent: false });
   });
 });
 
@@ -96,8 +102,8 @@ describe("overlayColors", () => {
 
 describe("legibleColors", () => {
   const frost = getThemeColors("frost");
-  const DARK: OverlaySurface = { tone: "dark", translucent: false };
-  const LIGHT: OverlaySurface = { tone: "light", translucent: false };
+  const DARK: OverlaySurface = { tone: "dark", opacity: 100, translucent: false };
+  const LIGHT: OverlaySurface = { tone: "light", opacity: 100, translucent: false };
 
   it("darkens a pale palette until it can be seen on a light pill", () => {
     for (const color of legibleColors(frost, LIGHT)) expect(contrast(color, "#fafafd")).toBeGreaterThanOrEqual(3);
@@ -107,11 +113,6 @@ describe("legibleColors", () => {
     for (const color of legibleColors(["#101018", "#202030", "#303050"], DARK)) {
       expect(contrast(color, "#0d0e14")).toBeGreaterThanOrEqual(3);
     }
-  });
-
-  it("measures a translucent dark surface against its own pill", () => {
-    const glass: OverlaySurface = { tone: "dark", translucent: true };
-    for (const color of legibleColors(["#1c1e2a", "#202030", "#303050"], glass)) expect(contrast(color, "#1c1e2a")).toBeGreaterThanOrEqual(3);
   });
 
   it("leaves colours that already read alone", () => {
