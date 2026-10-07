@@ -1,5 +1,6 @@
 {
   "common": {
+    "backToDefault": "Par défaut",
     "cancel": "Annuler",
     "confirm": "Confirmer",
     "loading": "Chargement...",

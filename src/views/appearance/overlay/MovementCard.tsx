@@ -7,7 +7,7 @@ import { SettingRow } from "@/components/SettingRow";
 import { Range } from "@/components/ui/range";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
-import { type OverlayEntrance, type OverlayLook, type OverlayVoice, PASTED_HOLD_MAX_MS, REACTION_MAX, REACTION_MIN, VOICES, FLYOUT_EDGES, FLYOUT_MIDDLE_MIN, FLYOUT_WIDTH_MAX, FLYOUT_WIDTH_MIN, flyoutRoom } from "@/lib/overlay";
+import { type OverlayEntrance, type OverlayLook, type OverlayVoice, PASTED_HOLD_MAX_MS, REACTION_MAX, REACTION_MIN, VOICES, FLYOUT_EDGES, lookReset, FLYOUT_MIDDLE_MIN, FLYOUT_WIDTH_MAX, FLYOUT_WIDTH_MIN, flyoutRoom } from "@/lib/overlay";
 
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
 const SIZES: readonly OverlaySize[] = ["small", "medium", "large"];
@@ -24,6 +24,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
   const { t } = useTranslation();
   // The Windows style is the system's flyout: it has its size.
   const system = look.style === "flyout";
+  const reset = (...keys: (keyof OverlayLook)[]) => lookReset(look, onLook, ...keys);
   // A card made too narrow keeps only its middle: the icon, the timer and the ring have no place left.
   const room = flyoutRoom(look);
   const crowded = system && !room.sides;
@@ -31,7 +32,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
 
   return (
     <SectionCard icon={Volume2} title={t("appearance.overlay.movement.title")}>
-      <SettingRow label={t("appearance.overlay.movement.reaction")} hint={t("appearance.overlay.movement.reactionHint")}>
+      <SettingRow onReset={reset("reaction")} label={t("appearance.overlay.movement.reaction")} hint={t("appearance.overlay.movement.reactionHint")}>
         <div className="flex items-center gap-3">
           <Range
             label={t("appearance.overlay.movement.reaction")}
@@ -46,7 +47,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
       </SettingRow>
 
       {system && (
-        <SettingRow label={t("appearance.overlay.movement.voice")} hint={t("appearance.overlay.movement.voiceHint")}>
+        <SettingRow onReset={reset("voice")} label={t("appearance.overlay.movement.voice")} hint={t("appearance.overlay.movement.voiceHint")}>
           <Segmented
             label={t("appearance.overlay.movement.voice")}
             value={look.voice}
@@ -57,7 +58,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
       )}
 
       {system && (
-        <SettingRow label={t("appearance.overlay.movement.cardWidth")} hint={t("appearance.overlay.movement.cardWidthHint")}>
+        <SettingRow onReset={reset("card_width")} label={t("appearance.overlay.movement.cardWidth")} hint={t("appearance.overlay.movement.cardWidthHint")}>
           <div className="flex items-center gap-3">
             <Range
               label={t("appearance.overlay.movement.cardWidth")}
@@ -73,7 +74,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
       )}
 
       {system && (
-        <SettingRow label={t("appearance.overlay.movement.middleWidth")} hint={t("appearance.overlay.movement.middleWidthHint")}>
+        <SettingRow onReset={reset("middle_width")} label={t("appearance.overlay.movement.middleWidth")} hint={t("appearance.overlay.movement.middleWidthHint")}>
           <div className="flex items-center gap-3">
             <Range
               label={t("appearance.overlay.movement.middleWidth")}
@@ -88,7 +89,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         </SettingRow>
       )}
 
-      <SettingRow label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
+      <SettingRow onReset={reset("entrance")} label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
         <Segmented
           label={t("appearance.overlay.movement.entrance")}
           value={look.entrance}
@@ -98,7 +99,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
       </SettingRow>
 
       {!system && (
-        <SettingRow label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
+        <SettingRow onReset={size === "medium" ? undefined : () => onSize("medium")} label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
           <Segmented
             label={t("appearance.overlay.movement.size")}
             value={size}
@@ -108,7 +109,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         </SettingRow>
       )}
 
-      <SettingRow label={t("appearance.overlay.movement.pastedHold")} hint={t("appearance.overlay.movement.pastedHoldHint")}>
+      <SettingRow onReset={reset("pasted_hold_ms")} label={t("appearance.overlay.movement.pastedHold")} hint={t("appearance.overlay.movement.pastedHoldHint")}>
         <div className="flex items-center gap-3">
           <Range
             label={t("appearance.overlay.movement.pastedHold")}
@@ -124,19 +125,19 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         </div>
       </SettingRow>
 
-      <SettingRow label={t("appearance.overlay.movement.timer")} hint={noRoom} disabled={crowded}>
+      <SettingRow onReset={reset("timer")} label={t("appearance.overlay.movement.timer")} hint={noRoom} disabled={crowded}>
         <Switch checked={look.timer && !crowded} disabled={crowded} onCheckedChange={(timer) => onLook({ timer })} />
       </SettingRow>
 
-      <SettingRow label={t("appearance.overlay.movement.endText")} hint={t("appearance.overlay.movement.endTextHint")}>
+      <SettingRow onReset={reset("end_text")} label={t("appearance.overlay.movement.endText")} hint={t("appearance.overlay.movement.endTextHint")}>
         <Switch checked={look.end_text} onCheckedChange={(end_text) => onLook({ end_text })} />
       </SettingRow>
 
-      <SettingRow label={t("appearance.overlay.movement.mic")} hint={noRoom ?? t("appearance.overlay.movement.micHint")} disabled={crowded}>
+      <SettingRow onReset={reset("mic")} label={t("appearance.overlay.movement.mic")} hint={noRoom ?? t("appearance.overlay.movement.micHint")} disabled={crowded}>
         <Switch checked={look.mic && !crowded} disabled={crowded} onCheckedChange={(mic) => onLook({ mic })} />
       </SettingRow>
 
-      <SettingRow label={t("appearance.overlay.movement.marks")} hint={noRoom ?? t("appearance.overlay.movement.marksHint")} disabled={crowded}>
+      <SettingRow onReset={reset("transcribing_marks")} label={t("appearance.overlay.movement.marks")} hint={noRoom ?? t("appearance.overlay.movement.marksHint")} disabled={crowded}>
         <Switch checked={look.transcribing_marks && !crowded} disabled={crowded} onCheckedChange={(transcribing_marks) => onLook({ transcribing_marks })} />
       </SettingRow>
     </SectionCard>

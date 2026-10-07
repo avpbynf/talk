@@ -71,6 +71,11 @@ Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recor
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
 
+- (overlay) A changed setting of the overlay shows the way back to its default
+
+In the Recording overlay tab, a setting that is no longer at its default shows a small Default
+beside its label, which puts it back. Nothing shows beside a setting nobody touched.
+
 - (overlay) The Windows style has a width, and so has its middle
 
 The card of the Windows style was the system's 192 pixels and nothing else. Two settings in the
