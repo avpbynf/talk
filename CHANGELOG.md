@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixes
 
+- (overlay) The Windows style no longer leaves a paler, empty card behind
+
+When the Windows style arrived, and again once the text was pasted, the card showed for a moment
+with nothing on it and in a lighter grey than its own, then went. It now keeps its shade from the
+first moment to the last.
+
 - (overlay) The Windows style has the volume flyout's own proportions
 
 The card was the system's size, and what it held was not where the system puts it. The icon now

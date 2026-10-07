@@ -204,6 +204,25 @@ test.describe("the overlay page", () => {
     });
   }
 
+  test("the Windows style keeps its veil on the window before the card arrives and after it is gone", async ({ app, page }) => {
+    await open(app, page, { style: "flyout", tone: "dark" }, { viewport: { width: 192, height: 47 } });
+    const veil = page.locator(".ovveil");
+    const laid = () => veil.evaluate((el) => getComputedStyle(el).backgroundColor);
+    await expect(veil).toHaveAttribute("data-veil", "dark");
+    expect(await laid(), "before anything is shown").toBe("rgba(0, 0, 0, 0.5)");
+    await show(app, "rec");
+    await app.emit("processing-state", "idle");
+    await expect(page.locator(".ovbox")).toHaveCount(0);
+    expect(await laid(), "once the card is gone").toBe("rgba(0, 0, 0, 0.5)");
+    expect(await page.locator(".ovw").count()).toBe(0);
+  });
+
+  test("the other styles lay no veil on the window", async ({ app, page }) => {
+    await open(app, page, { style: "capsule" });
+    await expect(page.locator(".ovveil")).not.toHaveAttribute("data-veil");
+    expect(await page.locator(".ovveil").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+  });
+
   test("the halo's arcs turn with the voice", async ({ app, page }) => {
     await open(app, page, { style: "halo" });
     await show(app, "rec");
