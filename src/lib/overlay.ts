@@ -31,6 +31,8 @@ export interface OverlayLook {
   pasted_hold_ms: number;
   /** Read by the Windows style alone. */
   voice: OverlayVoice;
+  /** Read by the Windows style alone: it draws in the system's accent colour, and in the palette when this is off. */
+  system_color: boolean;
 }
 
 export type Spot = "top_left" | "top_center" | "top_right" | "bottom_left" | "bottom_center" | "bottom_right" | "free";
@@ -54,6 +56,9 @@ export interface SystemAccent {
   light: string;
   dark: string;
 }
+
+/** What stands for the system's accent colour where it cannot be read. */
+export const NEUTRAL_ACCENT: SystemAccent = { light: "#adbbc5", dark: "#586579" };
 
 /** What the backend answers in one go, and announces whenever any of it changes. */
 export interface OverlaySettings {
@@ -102,6 +107,7 @@ export const DEFAULT_LOOK: OverlayLook = {
   end_text: false,
   pasted_hold_ms: 1500,
   voice: "wave",
+  system_color: true,
 };
 
 export const DEFAULT_PLACEMENT: OverlayPlacement = {
@@ -160,6 +166,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       end_text: look.end_text === true,
       pasted_hold_ms: Math.min(PASTED_HOLD_MAX_MS, Math.max(0, Math.round(hold))),
       voice: oneOf(VOICES, look.voice, DEFAULT_LOOK.voice),
+      system_color: look.system_color !== false,
     },
     theme: oneOf(THEME_IDS, settings.theme, DEFAULT_SETTINGS.theme),
     size: oneOf(SIZES, settings.size, DEFAULT_SETTINGS.size),

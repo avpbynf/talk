@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { Brain, Server } from "lucide-react";
-import { clock } from "@/lib/overlay";
+import { NEUTRAL_ACCENT, clock } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import type { Subscribe } from "./engine";
 import { QueueBadge, type StyleProps } from "./parts";
 import Wave from "./Wave";
 
-/** What the slider is filled with where the system's accent colour cannot be read, on a dark card and on a light one. */
-const FILL = { light: "#adbbc5", dark: "#586579" } as const;
 
 /** The system's own icons, by their place in Segoe Fluent Icons, which Segoe MDL2 Assets shares. */
 const GLYPH = { mic: "\uE720", check: "\uE73E", cancel: "\uE711" } as const;
@@ -97,9 +95,10 @@ function Meter({ subscribe, phaseRef }: VoiceProps) {
  * What runs per frame is the voice, a canvas or a row of bars moved by
  * transform and opacity. Everything else changes once per phase.
  */
-export default function Flyout({ subscribe, phase, look, surface, jobs, progress, label, scale, phaseRef, elapsed, server, accent }: StyleProps) {
+export default function Flyout({ subscribe, phase, look, surface, jobs, progress, label, scale, phaseRef, elapsed, server, accent, colors }: StyleProps) {
   // The system fills its sliders with the accent colour, in the shade that reads on the surface.
-  const fill = (accent ?? FILL)[surface.tone === "light" ? "dark" : "light"];
+  // With a palette picked instead, the card is drawn in its first colour.
+  const fill = look.system_color ? (accent ?? NEUTRAL_ACCENT)[surface.tone === "light" ? "dark" : "light"] : colors[0];
   const flat = useMemo<Colors>(() => [fill, fill, fill], [fill]);
   const words = phase === "refuse" || look.end_text;
 

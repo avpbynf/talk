@@ -60,8 +60,8 @@ test.describe("the overlay tab", () => {
     ] as const) {
       test(`${name} can be picked, and is saved`, async ({ app, page }) => {
         await openTab(app, page, { state: { settings: { overlay_look: { style: style === "orb" ? "halo" : "orb" } } } });
-        await page.getByRole("button", { name: new RegExp(`^${name}`) }).click();
-        await expect(page.getByRole("button", { name: new RegExp(`^${name}`) })).toHaveAttribute("aria-pressed", "true");
+        await page.getByRole("button", { name: new RegExp(`^${name}.+`) }).click();
+        await expect(page.getByRole("button", { name: new RegExp(`^${name}.+`) })).toHaveAttribute("aria-pressed", "true");
         await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.style).toBe(style);
         // The preview draws the style that was picked.
         await hold(page, "Recording");
@@ -188,8 +188,8 @@ test.describe("the overlay tab", () => {
   test.describe("the colours", () => {
     test("the Windows style keeps the tone and the opacity", async ({ app, page }) => {
       await openTab(app, page);
-      await page.getByRole("button", { name: /^Windows/ }).click();
-      await expect(page.getByRole("button", { name: /^Windows/ })).toHaveAttribute("aria-pressed", "true");
+      await page.getByRole("button", { name: /^Windows.+/ }).click();
+      await expect(page.getByRole("button", { name: /^Windows.+/ })).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByRole("radio", { name: "Like the theme" })).toBeVisible();
       await expect(page.getByRole("slider", { name: "Background opacity" })).toBeVisible();
     });
@@ -214,6 +214,33 @@ test.describe("the overlay tab", () => {
       await openTab(app, page);
       await hold(page, "Recording");
       await expect(page.getByTestId("overlay-preview").locator(".ovw")).toHaveAttribute("data-bg", "dark");
+    });
+
+    test("the Windows style draws in the system's colour until a palette is picked", async ({ app, page }) => {
+      await openTab(app, page, { state: { settings: { overlay_look: { style: "flyout" } } } });
+      await hold(page, "Recording");
+      const card = page.getByTestId("overlay-preview").locator(".ovf");
+      const fill = () => card.evaluate((el) => getComputedStyle(el).getPropertyValue("--ovfill").trim());
+      const system = page.getByRole("button", { name: "Windows", exact: true });
+      await expect(system).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByRole("button", { name: "Frost" })).toHaveAttribute("aria-pressed", "false");
+      const systems = await fill();
+
+      await page.getByRole("button", { name: "Neon" }).click();
+      await expect(system).toHaveAttribute("aria-pressed", "false");
+      await expect(page.getByRole("button", { name: "Neon" })).toHaveAttribute("aria-pressed", "true");
+      await expect.poll(fill).not.toBe(systems);
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look).toMatchObject({ palette: "preset", system_color: false });
+
+      await system.click();
+      await expect.poll(fill).toBe(systems);
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.system_color).toBe(true);
+    });
+
+    test("the system's colour is offered to the Windows style alone", async ({ app, page }) => {
+      await openTab(app, page);
+      await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Frost" })).toHaveAttribute("aria-pressed", "true");
     });
 
     test("an old overlay theme is a palette, and picking it keeps it", async ({ app, page }) => {

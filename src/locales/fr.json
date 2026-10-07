@@ -547,6 +547,7 @@
         "palette": "Palette",
         "paletteHint": "Celle de l'application, une des six que le bandeau avait déjà, ou trois des vôtres",
         "accent": "Application",
+        "system": "Windows",
         "custom": "À vous",
         "customColors": "Vos trois couleurs",
         "customColor": "Couleur {{n}}",
