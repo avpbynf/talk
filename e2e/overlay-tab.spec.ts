@@ -343,6 +343,35 @@ test.describe("the overlay tab", () => {
       await expect(preview.locator(".ovf-prog")).toBeVisible();
     });
 
+    test("the Windows card can be made narrower, down to its middle alone", async ({ app, page }) => {
+      await openTab(app, page);
+      await page.getByRole("button", { name: /^Windows.+/ }).click();
+      await hold(page, "Recording");
+      const card = page.getByTestId("overlay-preview").locator(".ovf");
+      const middle = card.locator(".st-rec > :nth-child(2)");
+      const width = async (of: typeof card) => Math.round((await of.evaluate((el) => (el as HTMLElement).offsetWidth)) as number);
+      expect(await width(card)).toBe(192);
+      await expect(page.getByRole("switch", { name: "Timer" })).toBeEnabled();
+
+      await page.getByRole("slider", { name: "Middle width" }).fill("80");
+      await expect.poll(() => width(middle)).toBe(80);
+      await expect(card.locator(".st-rec > .ovf-glyph")).toBeVisible();
+
+      // No room left on either side: the icon and the figure go, and their switches say why.
+      await page.getByRole("slider", { name: "Card width" }).fill("120");
+      await expect.poll(() => width(card)).toBe(120);
+      await expect(card.locator(".st-rec > .ovf-glyph")).toBeHidden();
+      await expect(card.locator(".st-rec > .tm")).toBeHidden();
+      await expect(page.getByRole("switch", { name: "Timer" })).toBeDisabled();
+      await expect(page.getByRole("switch", { name: "Microphone icon" })).toBeDisabled();
+      await expect(page.getByText("No room for it at these widths").first()).toBeVisible();
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.card_width).toBe(120);
+
+      // A card narrower than its middle keeps what fits between its edges.
+      await page.getByRole("slider", { name: "Card width" }).fill("80");
+      await expect.poll(() => width(middle)).toBe(54);
+    });
+
     test("the Windows style arrives the way that is picked, and has the system's size", async ({ app, page }) => {
       await openTab(app, page);
       await page.getByRole("button", { name: /^Windows.+/ }).click();

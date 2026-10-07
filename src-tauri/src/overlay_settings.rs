@@ -105,6 +105,14 @@ pub const OPACITY_FULL: u8 = 100;
 /// The shadow as it was before it could be set, as a percentage, and the most it can be.
 pub const SHADOW_DEFAULT: u8 = 100;
 pub const SHADOW_MAX: u8 = 200;
+/// The card of the flyout style: the system's width, and how narrow and how wide it may be made.
+pub const CARD_WIDTH_DEFAULT: u16 = 192;
+pub const CARD_WIDTH_MIN: u16 = 72;
+pub const CARD_WIDTH_MAX: u16 = 240;
+/// What is drawn in the middle of that card: the system's slider, and its limits.
+const MIDDLE_WIDTH_DEFAULT: u16 = 110;
+const MIDDLE_WIDTH_MIN: u16 = 40;
+const MIDDLE_WIDTH_MAX: u16 = 214;
 /// What the glass of 0.11.0 comes to: its fill was about half of the plain one's.
 const OPACITY_GLASS: u8 = 50;
 
@@ -135,6 +143,14 @@ fn shadow<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
 
 fn pasted_hold<'de, D: Deserializer<'de>>(d: D) -> Result<u16, D::Error> {
     lenient_or(d, |value| value.as_u64().and_then(|n| u16::try_from(n).ok()), PASTED_HOLD_DEFAULT_MS)
+}
+
+fn card_width<'de, D: Deserializer<'de>>(d: D) -> Result<u16, D::Error> {
+    lenient_or(d, |value| value.as_u64().and_then(|n| u16::try_from(n).ok()), CARD_WIDTH_DEFAULT)
+}
+
+fn middle_width<'de, D: Deserializer<'de>>(d: D) -> Result<u16, D::Error> {
+    lenient_or(d, |value| value.as_u64().and_then(|n| u16::try_from(n).ok()), MIDDLE_WIDTH_DEFAULT)
 }
 
 fn colors<'de, D: Deserializer<'de>>(d: D) -> Result<[String; 3], D::Error> {
@@ -199,6 +215,12 @@ pub struct OverlayLook {
     /// them does not, so they can be left out.
     #[serde(deserialize_with = "on")]
     pub transcribing_marks: bool,
+    /// Read by the flyout style alone: how wide its card is, in logical pixels.
+    #[serde(deserialize_with = "card_width")]
+    pub card_width: u16,
+    /// Read by the flyout style alone: how wide what is drawn in the middle of the card is.
+    #[serde(deserialize_with = "middle_width")]
+    pub middle_width: u16,
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -222,6 +244,8 @@ impl Default for OverlayLook {
             voice: OverlayVoice::default(),
             system_color: true,
             transcribing_marks: true,
+            card_width: CARD_WIDTH_DEFAULT,
+            middle_width: MIDDLE_WIDTH_DEFAULT,
             extra: Extra::new(),
         }
     }
@@ -234,6 +258,8 @@ impl OverlayLook {
         self.pasted_hold_ms = self.pasted_hold_ms.min(PASTED_HOLD_MAX_MS);
         self.opacity = self.opacity.min(OPACITY_FULL);
         self.shadow = self.shadow.min(SHADOW_MAX);
+        self.card_width = self.card_width.clamp(CARD_WIDTH_MIN, CARD_WIDTH_MAX);
+        self.middle_width = self.middle_width.clamp(MIDDLE_WIDTH_MIN, MIDDLE_WIDTH_MAX);
         let defaults = default_custom_colors();
         for (color, fallback) in self.custom_colors.iter_mut().zip(defaults) {
             if !is_hex(color) {
@@ -290,7 +316,8 @@ impl OverlayLook {
     }
 
     /// The look as 0.11.0 wrote it, which is what the hash it left on disk was taken over.
-    /// It had none of `tone`, `opacity`, `shadow`, `system_color` and `transcribing_marks`: either it never met them, which
+    /// It had none of `tone`, `opacity`, `shadow`, `system_color`, `transcribing_marks` and the two
+    /// widths of the flyout's card: either it never met them, which
     /// only a look still at their defaults can come from, or an account handed them to it
     /// and it `carried` them among the keys it does not know.
     pub fn json_before_tone(&self, carried: bool) -> Option<String> {
@@ -301,11 +328,15 @@ impl OverlayLook {
             extra.insert("shadow".to_string(), Value::from(self.shadow));
             extra.insert("system_color".to_string(), Value::Bool(self.system_color));
             extra.insert("transcribing_marks".to_string(), Value::Bool(self.transcribing_marks));
+            extra.insert("card_width".to_string(), Value::from(self.card_width));
+            extra.insert("middle_width".to_string(), Value::from(self.middle_width));
         } else if self.tone != OverlayTone::default()
             || self.opacity != OPACITY_FULL
             || self.shadow != SHADOW_DEFAULT
             || !self.system_color
             || !self.transcribing_marks
+            || self.card_width != CARD_WIDTH_DEFAULT
+            || self.middle_width != MIDDLE_WIDTH_DEFAULT
         {
             return None;
         }
@@ -658,7 +689,7 @@ mod tests {
         look.extra.insert("sparkle".to_string(), json!(3));
         assert_eq!(look.json_before_tone(false), None, "0.11.0 alone could not have had it");
         let carried = look.json_before_tone(true).expect("json");
-        assert!(carried.ends_with(r#""voice":"wave","opacity":100,"shadow":100,"sparkle":3,"system_color":true,"tone":"light","transcribing_marks":true}"#), "{carried}");
+        assert!(carried.ends_with(r#""voice":"wave","card_width":192,"middle_width":110,"opacity":100,"shadow":100,"sparkle":3,"system_color":true,"tone":"light","transcribing_marks":true}"#), "{carried}");
     }
 
     #[test]
@@ -675,11 +706,15 @@ mod tests {
         look.reaction = 255;
         look.opacity = 180;
         look.shadow = 240;
+        look.card_width = 900;
+        look.middle_width = 3;
         look.custom_colors = ["red".into(), "#00ff00".into(), "#12".into()];
         let look = look.sanitized();
         assert_eq!(look.reaction, REACTION_MAX);
         assert_eq!(look.opacity, OPACITY_FULL);
         assert_eq!(look.shadow, SHADOW_MAX);
+        assert_eq!(look.card_width, CARD_WIDTH_MAX);
+        assert_eq!(look.middle_width, MIDDLE_WIDTH_MIN);
         assert_eq!(look.custom_colors, ["#ff7a59".to_string(), "#00ff00".to_string(), "#a259ff".to_string()]);
     }
 

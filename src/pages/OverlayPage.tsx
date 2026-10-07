@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
-import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, overlayColors, surfaceOf } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, flyoutRoom, overlayColors, surfaceOf } from "@/lib/overlay";
 import { useGoogleAccount } from "@/lib/use-google-account";
 import { useOverlaySettings } from "@/lib/use-overlay-settings";
 import { useReducedMotion } from "@/lib/motion";
@@ -76,8 +76,9 @@ function OverlayPage() {
   // and the scale is right before the setting has been read back. The flyout's
   // window is its card alone, which is what the native side sizes it to.
   const windowed = settings.look.style === "flyout";
+  const card = flyoutRoom(settings.look).card;
   useEffect(() => {
-    const [width, height] = windowed ? [FLYOUT_WIDTH, FLYOUT_HEIGHT] : [STAGE_WIDTH, STAGE_HEIGHT];
+    const [width, height] = windowed ? [card, FLYOUT_HEIGHT] : [STAGE_WIDTH, STAGE_HEIGHT];
     const measure = () => setScale(Math.min(window.innerWidth / width, window.innerHeight / height));
 
     measure();
@@ -89,7 +90,7 @@ function OverlayPage() {
       window.removeEventListener("resize", measure);
       unlistenResize.then((f) => f());
     };
-  }, [windowed]);
+  }, [windowed, card]);
 
   // Timer for recording elapsed time. Nothing ticks unless it is to be shown.
   const counting = visible && phase === "rec" && settings.look.timer;

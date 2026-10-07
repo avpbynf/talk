@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { Brain, Server } from "lucide-react";
-import { NEUTRAL_ACCENT, clock } from "@/lib/overlay";
+import { NEUTRAL_ACCENT, clock, flyoutRoom } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import type { Subscribe } from "./engine";
 import { QueueBadge, type StyleProps } from "./parts";
@@ -10,7 +10,7 @@ import Wave from "./Wave";
 /** The system's own icons, by their place in Segoe Fluent Icons, which Segoe MDL2 Assets shares. */
 const GLYPH = { mic: "\uE720", check: "\uE73E", cancel: "\uE711" } as const;
 
-/** How many fine bars the spectrum is made of: two pixels wide, three apart, across the slider. */
+/** How many fine bars the spectrum is made of across the system's slider of 110 pixels: two pixels wide, three apart. */
 const SPECTRUM_BARS = 20;
 /** The tallest anything stands where the slider is, to stay within the thin line the system draws there. */
 const TALLEST = 16;
@@ -35,15 +35,15 @@ function useBars(subscribe: Subscribe, phaseRef: VoiceProps["phaseRef"], draw: (
 }
 
 const seven = Array.from({ length: 7 }, (_, i) => <i key={i} />);
-const fine = Array.from({ length: SPECTRUM_BARS }, (_, i) => <i key={i} />);
 
 /**
  * The spectrum: fine bars across the whole slider, the same on both sides of the middle. The
  * low bands sit in the middle and the high ones at the edges, where they also stand shorter.
  */
-function Spectrum({ subscribe, phaseRef }: VoiceProps) {
+function Spectrum({ subscribe, phaseRef, bars }: VoiceProps & { bars: number }) {
+  const fine = useMemo(() => Array.from({ length: bars }, (_, i) => <i key={i} />), [bars]);
   const row = useBars(subscribe, phaseRef, (bar, at, frame) => {
-    const middle = (SPECTRUM_BARS - 1) / 2;
+    const middle = (bars - 1) / 2;
     const away = Math.abs(at - middle) / middle;
     const band = frame.bands[Math.min(7, Math.floor(away * 8))] ?? 0;
     const tall = Math.max(2, Math.min(1, band * (1 - away * 0.35)) * TALLEST);
@@ -101,13 +101,15 @@ export default function Flyout({ subscribe, phase, look, surface, jobs, progress
   const fill = look.system_color ? (accent ?? NEUTRAL_ACCENT)[surface.tone === "light" ? "dark" : "light"] : colors[0];
   const flat = useMemo<Colors>(() => [fill, fill, fill], [fill]);
   const words = phase === "refuse" || look.end_text;
+  // As many bars as the middle holds at the spacing they have in the system's width: a narrower one has fewer, whole.
+  const bars = Math.max(6, Math.round((flyoutRoom(look).middle * SPECTRUM_BARS) / 110));
 
   return (
     <div className="ovf" style={{ "--ovfill": fill } as CSSProperties}>
       <div className="st st-rec">
         <span className="ovf-glyph mic">{GLYPH.mic}</span>
         {look.voice === "wave" && <Wave subscribe={subscribe} phase={phase} phaseRef={phaseRef} colors={flat} scale={scale} />}
-        {look.voice === "bars" && <Spectrum subscribe={subscribe} phaseRef={phaseRef} />}
+        {look.voice === "bars" && <Spectrum subscribe={subscribe} phaseRef={phaseRef} bars={bars} />}
         {look.voice === "meter" && <Meter subscribe={subscribe} phaseRef={phaseRef} />}
         {look.voice === "halo" && <Seven subscribe={subscribe} phaseRef={phaseRef} />}
         <span className="tm">{clock(phase === "rec" ? elapsed : 0)}</span>

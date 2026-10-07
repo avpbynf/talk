@@ -131,6 +131,8 @@ export function defaultState() {
         shadow: 100,
         system_color: true,
         transcribing_marks: true,
+        card_width: 192,
+        middle_width: 110,
         reaction: 100,
         entrance: "bounce",
         timer: true,
