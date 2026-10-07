@@ -85,8 +85,9 @@ pub fn apply(_overlay: &WebviewWindow, _backdrop: Backdrop) {}
 mod native {
     use super::Backdrop;
     use std::ffi::c_void;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use windows::core::{s, w};
-    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, WPARAM};
     use windows::Win32::Graphics::Dwm::{
         DwmExtendFrameIntoClientArea, DwmSetWindowAttribute, DWMSBT_NONE, DWMSBT_TRANSIENTWINDOW, DWMWA_BORDER_COLOR,
         DWMWA_COLOR_DEFAULT, DWMWA_COLOR_NONE,
@@ -97,12 +98,16 @@ mod native {
     use windows::Win32::UI::Controls::MARGINS;
     use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetWindowLongPtrW, SendMessageW, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED, SWP_NOACTIVATE,
-        SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, STYLESTRUCT, WM_NCACTIVATE, WM_STYLECHANGING, WS_SYSMENU,
+        GetWindowLongPtrW, SendMessageW, SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPos, GWL_EXSTYLE,
+        GWL_STYLE, LWA_ALPHA, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, STYLESTRUCT,
+        WM_NCACTIVATE, WM_STYLECHANGING, WS_EX_LAYERED, WS_SYSMENU,
     };
 
     /// Names the subclass below among any other the window may carry.
     const SUBCLASS: usize = 0x5441_4c4b;
+
+    /// Whether the window was made layered here, and is therefore to be given back as it was.
+    static LAYERED: AtomicBool = AtomicBool::new(false);
 
     /// What the window has to be told for as long as it wears the backdrop.
     ///
@@ -115,6 +120,9 @@ mod native {
     /// buttons into a frame that reaches the client area unless the system menu, which
     /// is what they belong to, is off. tao writes its styles back each time the window
     /// is shown or hidden, so the menu is taken out of every style on its way in.
+    ///
+    /// The window is layered as well, which is what lets `arrival` fade it whole, and that
+    /// is kept in every extended style on its way in for the same reason.
     unsafe extern "system" fn dress(
         window: HWND,
         message: u32,
@@ -123,9 +131,14 @@ mod native {
         _id: usize,
         _data: usize,
     ) -> LRESULT {
-        if message == WM_STYLECHANGING && wparam.0 as i32 == GWL_STYLE.0 {
+        if message == WM_STYLECHANGING {
             let change = lparam.0 as *mut STYLESTRUCT;
-            (*change).styleNew &= !WS_SYSMENU.0;
+            if wparam.0 as i32 == GWL_STYLE.0 {
+                (*change).styleNew &= !WS_SYSMENU.0;
+            }
+            if wparam.0 as i32 == GWL_EXSTYLE.0 && LAYERED.load(Ordering::SeqCst) {
+                (*change).styleNew |= WS_EX_LAYERED.0;
+            }
         }
         let wparam = if message == WM_NCACTIVATE { WPARAM(1) } else { wparam };
         DefSubclassProc(window, message, wparam, lparam)
@@ -151,6 +164,18 @@ mod native {
         let style = GetWindowLongPtrW(window, GWL_STYLE);
         let menu = WS_SYSMENU.0 as isize;
         SetWindowLongPtrW(window, GWL_STYLE, if on { style & !menu } else { style | menu });
+
+        // Layered, so that the window can be faded whole. One just made layered shows nothing
+        // until it is told how much of itself to show.
+        let extended = GetWindowLongPtrW(window, GWL_EXSTYLE);
+        let layered = WS_EX_LAYERED.0 as isize;
+        if on && extended & layered == 0 {
+            LAYERED.store(true, Ordering::SeqCst);
+            SetWindowLongPtrW(window, GWL_EXSTYLE, extended | layered);
+            let _ = SetLayeredWindowAttributes(window, COLORREF(0), 255, LWA_ALPHA);
+        } else if !on && LAYERED.swap(false, Ordering::SeqCst) {
+            SetWindowLongPtrW(window, GWL_EXSTYLE, extended & !layered);
+        }
         let _ = SetWindowPos(
             window,
             None,

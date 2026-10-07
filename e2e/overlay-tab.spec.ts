@@ -324,6 +324,15 @@ test.describe("the overlay tab", () => {
       });
       await expect.poll(async () => (await calls(app, "set_overlay_size")).at(-1)?.size).toBe("large");
     });
+
+    test("the Windows style arrives the way that is picked, and has the system's size", async ({ app, page }) => {
+      await openTab(app, page);
+      await page.getByRole("button", { name: /^Windows.+/ }).click();
+      await expect(page.getByRole("button", { name: /^Windows.+/ })).toHaveAttribute("aria-pressed", "true");
+      await page.getByRole("radiogroup", { name: "Appearance" }).getByRole("radio", { name: "Fade" }).click();
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.entrance).toBe("fade");
+      await expect(page.getByRole("radiogroup", { name: "Size" })).toHaveCount(0);
+    });
   });
 
   test.describe("the position", () => {

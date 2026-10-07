@@ -65,6 +65,13 @@ Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recor
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
 
+- (overlay) The Windows style arrives like the others
+
+The Windows style could only appear at once and fade what it holds, whatever Appearance was set
+to. Its card now arrives and leaves whole, the blurred material with it: Slide brings it in from
+the edge it sits by, Bounce lets it go a little past its place and come back, Fade leaves it
+where it is. The Appearance setting is offered to it like to the three other styles.
+
 - (overlay) The Windows style can be drawn in a palette
 
 The Windows style drew in the accent colour of Windows and nothing else. That colour is now one

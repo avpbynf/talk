@@ -1,6 +1,7 @@
 mod atomic_file;
 mod audio;
 mod audio_encoder;
+mod arrival;
 mod backdrop;
 mod clipboard;
 mod database;
@@ -598,6 +599,13 @@ fn get_overlay_settings() -> overlay::OverlaySettingsView {
 #[tauri::command]
 fn set_overlay_backdrop(app: tauri::AppHandle, light: bool) {
     overlay::draw_on(&app, light);
+}
+
+/// The overlay's page was asked to move less, or no longer is, which the window of the flyout
+/// style follows when it arrives and leaves.
+#[tauri::command]
+fn set_overlay_motion(reduced: bool) {
+    overlay::move_less(reduced);
 }
 
 #[tauri::command]
@@ -1285,6 +1293,7 @@ pub fn run() {
             get_overlay_settings,
             set_overlay_look,
             set_overlay_backdrop,
+            set_overlay_motion,
             set_overlay_placement,
             set_saved_themes,
             restore_saved_theme,

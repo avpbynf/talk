@@ -1,5 +1,6 @@
 //! The overlay window, and the one thing Windows will not keep on its own.
 
+use crate::arrival::{self, Movement, Stage, Way};
 use crate::backdrop::{self, Backdrop, SystemAccent};
 use crate::overlay_settings::{OverlayLook, OverlayPlacement, OverlayStyle};
 use crate::placement::{self, Rect, Screen, Whereabouts};
@@ -7,7 +8,7 @@ use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
 use parking_lot::Mutex;
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 /// Everything the overlay and its settings tab read, in one answer.
@@ -35,6 +36,11 @@ impl OverlaySettingsView {
 
 /// Tell every window what the overlay settings are now.
 pub fn announce(app: &AppHandle) {
+    // The style may be what changed: the window is dressed for it now, and not at the first
+    // recording, where it would be made layered while it is already arriving.
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        dress(&overlay);
+    }
     let _ = app.emit("overlay-settings-changed", settings::read(OverlaySettingsView::of));
 }
 
@@ -95,12 +101,12 @@ pub fn screens(app: &AppHandle) -> Vec<Screen> {
 /// Size the overlay for the screen it is going to and put it where the
 /// placement says, before it is shown. A position an earlier build saved is
 /// turned into a placement here, the first time it can be, because only here
-/// are the screens known.
-pub fn place(app: &AppHandle, overlay: &WebviewWindow) {
+/// are the screens known. Answers where it was put, for a window that arrives by moving.
+pub fn place(app: &AppHandle, overlay: &WebviewWindow) -> Option<Stage> {
     let mut settings = settings::get();
     let screens = screens(app);
     if screens.is_empty() {
-        return;
+        return None;
     }
     let logical = window_size(&settings);
     if settings.overlay_position.is_some() {
@@ -123,7 +129,7 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) {
     let Some((screen, (x, y))) =
         placement::target(&settings.overlay_placement, &screens, whereabouts, logical, margin)
     else {
-        return;
+        return None;
     };
     let (width, height) = placement::window_pixels(logical, screen.scale);
 
@@ -134,6 +140,9 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) {
     let _ = overlay.set_position(PhysicalPosition::new(x, y));
     let _ = overlay.set_size(PhysicalSize::new(width as u32, height as u32));
     let _ = overlay.set_position(PhysicalPosition::new(x, y));
+
+    let from_top = y + height as i32 / 2 < screen.work.y + screen.work.h / 2;
+    Some(Stage { window: own_window(overlay)?, rest: (x, y), scale: screen.scale, from_top })
 }
 
 /// The card of the flyout style, the size of the one Windows shows for the volume
@@ -167,6 +176,11 @@ fn own_window(_overlay: &WebviewWindow) -> Option<isize> {
 /// The user dragged the overlay and dropped it at this corner: it stays there, on none of
 /// the six spots.
 pub fn dragged_to(app: &AppHandle, corner: (i32, i32)) -> Result<(), String> {
+    // A window on its way out reports every step of it, and a press on it then is no drag. A
+    // drop made just before it left is still taken: it is reported from where it left.
+    if LEFT_FROM.lock().is_some_and(|from| from != corner) {
+        return Ok(());
+    }
     let overlay = app.get_webview_window("overlay").ok_or("No overlay window")?;
     let size = overlay.outer_size().map_err(|e| e.to_string())?;
     let screens = screens(app);
@@ -209,14 +223,45 @@ pub fn dragged_to(app: &AppHandle, corner: (i32, i32)) -> Result<(), String> {
 /// window, so a dictation drew it behind whatever was on screen. Nothing in the
 /// application put it back, which is why restarting was the repair: that builds
 /// the window again.
+///
+/// The flyout style's window is its card, so its arrival is the window's own: it is put
+/// where the movement starts before it shows, and the movement is played from a thread.
 pub fn show(app: &AppHandle) {
     SHOWS.fetch_add(1, Ordering::SeqCst);
+    *LEFT_FROM.lock() = None;
+    // Taken whatever the style: a departure still playing stops here.
+    let turn = arrival::turn();
     if let Some(overlay) = app.get_webview_window("overlay") {
-        place(app, &overlay);
+        let (style, entrance) = settings::read(|s| (s.overlay_look.style, s.overlay_look.entrance));
+        let stage = place(app, &overlay).filter(|_| style == OverlayStyle::Flyout);
         dress(&overlay);
+        let arriving = Movement::of(entrance, Way::In, MOVES_LESS.load(Ordering::SeqCst));
+        if let Some(stage) = &stage {
+            arrival::prepare(stage, arriving);
+        }
+        *STAGE.lock() = stage;
         let _ = overlay.show();
         raise(&overlay);
+        if let Some(stage) = stage {
+            std::thread::spawn(move || arrival::play(&stage, arriving, turn));
+        }
     }
+}
+
+/// What the flyout style's window was last shown on, which is what its departure is played
+/// on. Nothing for the other styles, whose window stays still.
+static STAGE: Mutex<Option<Stage>> = Mutex::new(None);
+
+/// The corner the overlay was at when it was told to leave, until it is shown again.
+static LEFT_FROM: Mutex<Option<(i32, i32)>> = Mutex::new(None);
+
+/// Whether the user asked for less movement. Only the overlay's page knows: the setting is
+/// the theme's and the system's, and both are read on its side.
+static MOVES_LESS: AtomicBool = AtomicBool::new(false);
+
+/// The overlay's page says whether it was asked to move less.
+pub fn move_less(reduced: bool) {
+    MOVES_LESS.store(reduced, Ordering::SeqCst);
 }
 
 /// Whether the flyout style is drawn on light. Only the overlay's page knows: the tone may
@@ -243,18 +288,45 @@ static SHOWS: AtomicU64 = AtomicU64::new(0);
 /// page's own animation is a little shorter, see `LEAVE_MS` in `src/lib/overlay.ts`.
 const LEAVE: Duration = Duration::from_millis(260);
 
-/// Hide the overlay once its page has played its departure. The page is told it is over by
-/// whoever calls this; a show that arrives in the meantime keeps the window.
+/// Hide the overlay once its departure has been played, by its page or, for the flyout
+/// style, by the window itself. The page is told it is over by whoever calls this; a show
+/// that arrives in the meantime keeps the window.
 pub fn hide(app: &AppHandle) {
     let shown = SHOWS.load(Ordering::SeqCst);
+    let at = app
+        .get_webview_window("overlay")
+        .and_then(|overlay| overlay.outer_position().ok())
+        .map(|corner| (corner.x, corner.y));
+    let mut left_from = LEFT_FROM.lock();
+    if left_from.is_none() {
+        *left_from = at;
+    }
+    drop(left_from);
+
+    // The window leaves from where it is: the user may have dragged it since it arrived, and
+    // the settings may have moved it.
+    let mut stage = *STAGE.lock();
+    if let (Some(stage), Some(at), true) = (stage.as_mut(), at, arrival::arrived()) {
+        stage.rest = at;
+    }
+    let turn = arrival::turn();
     let app = app.clone();
     std::thread::spawn(move || {
-        std::thread::sleep(LEAVE);
+        let asked = Instant::now();
+        if let Some(stage) = stage {
+            let entrance = settings::read(|s| s.overlay_look.entrance);
+            let leaving = Movement::of(entrance, Way::Out, MOVES_LESS.load(Ordering::SeqCst));
+            if !arrival::play(&stage, leaving, turn) {
+                return;
+            }
+        }
+        std::thread::sleep(LEAVE.saturating_sub(asked.elapsed()));
         if SHOWS.load(Ordering::SeqCst) != shown {
             return;
         }
         if let Some(overlay) = app.get_webview_window("overlay") {
             let _ = overlay.hide();
+            arrival::forget();
         }
     });
 }

@@ -326,6 +326,7 @@ export function installNativeMock(init: MockInit): void {
     set_overlay_theme: (a) => announced("overlay_theme", a.theme),
     set_overlay_size: (a) => announced("overlay_size", a.size),
     set_overlay_backdrop: () => null,
+    set_overlay_motion: () => null,
     set_overlay_look: (a) => announced("overlay_look", a.look),
     set_overlay_placement: (a) => announced("overlay_placement", a.placement),
     // The real overlay dragged: it leaves the six spots, at a share of the screen.

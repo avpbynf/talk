@@ -170,11 +170,17 @@ function OverlayPage() {
   useEffect(() => {
     void invoke("set_overlay_backdrop", { light: surface.tone === "light" });
   }, [surface.tone]);
+  // So is the arrival of that style, whose window is its card: it has to know what was asked of the motion.
+  useEffect(() => {
+    void invoke("set_overlay_motion", { reduced });
+  }, [reduced]);
 
   const handleMouseDown = async (event: MouseEvent) => {
     // A press is the start of a drag and nothing else: it neither focuses the page nor starts a
     // selection, which is what put a text caret among the overlay's words.
     event.preventDefault();
+    // On its way out the window may be moving on its own, and a press then is not a drag.
+    if (!visible) return;
     armed.current = true;
     try {
       await getCurrentWindow().startDragging();
