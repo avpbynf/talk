@@ -59,6 +59,12 @@ of the blurred material it has on the desktop. The preview and the style's tile 
 behind the card and lay the same shade over it, so the tone and the opacity you pick look there
 as they will.
 
+- (overlay) The Windows style can be drawn in a palette
+
+The Windows style drew in the accent colour of Windows and nothing else. That colour is now one
+palette among the others, named Windows and worn by default: pick the application's, one of the
+six or three colours of your own, and the slider, the voice and the ring take it.
+
 - (overlay) The Windows style writes in the application's typeface
 
 The timer and the words of the Windows style are set in Geist, like the rest of Talk, in the room

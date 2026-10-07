@@ -548,6 +548,7 @@
         "paletteHint": "The application's own, one of the six the overlay already had, or three of yours",
         "accent": "Application",
         "custom": "Your own",
+        "system": "Windows",
         "customColors": "Your three colours",
         "customColor": "Colour {{n}}",
         "background": "Background",

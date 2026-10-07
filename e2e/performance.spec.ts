@@ -52,7 +52,7 @@ test.describe("the overlay", () => {
     await page.getByRole("radio", { name: "Recording overlay" }).click();
     await expect(page.locator(".ovbox").first()).toBeVisible();
     expect(await filtered(page)).toEqual(["div.ovf: none blur(20px)"]);
-    await page.getByRole("button", { name: /^Windows/ }).click();
+    await page.getByRole("button", { name: /^Windows.+/ }).click();
     await expect(page.getByTestId("overlay-preview").locator(".ovf")).toBeVisible();
     expect(await filtered(page)).toEqual(["div.ovf: none blur(20px)", "div.ovf: none blur(20px)"]);
   });
