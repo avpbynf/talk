@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixes
 
+- (overlay) No count flashes on the overlay at the end of a single dictation
+
+As a recording was let go, the overlay showed a small "1" with its ring for a moment, as if
+another dictation were waiting behind it, when it was that very dictation starting to be
+transcribed. The count now only shows the dictations that were already running when the
+recording started.
+
 - (overlay) The Windows style no longer leaves a paler, empty card behind
 
 When the Windows style arrived, and again once the text was pasted, the card showed for a moment

@@ -17,6 +17,12 @@ export interface OverlayState {
   progress: number;
   /** Dictations still being transcribed, the one pasting included. */
   jobs: number;
+  /**
+   * Of those, the ones that were already running when the recording on screen started, which is
+   * what a recording shows a count of. The recording's own job joins `jobs` a moment before the
+   * overlay is told it transcribes, and is not one waiting behind it.
+   */
+  behind: number;
   /** Counts the refusals, so a second one during the hold shakes again. */
   nudge: number;
 }
@@ -29,6 +35,7 @@ export const INITIAL: OverlayState = {
   pasted: 0,
   progress: 0,
   jobs: 0,
+  behind: 0,
   nudge: 0,
 };
 
@@ -58,14 +65,19 @@ const transcribing = (s: OverlayState, server: boolean): OverlayState =>
 export function reduce(s: OverlayState, event: OverlayEvent): OverlayState {
   switch (event.type) {
     case "recording-started":
-      return { ...s, visible: true, phase: "rec", progress: 0 };
+      return { ...s, visible: true, phase: "rec", progress: 0, behind: s.jobs };
 
     case "recording-cancelled":
       return s.jobs > 0 ? transcribing({ ...s, phase: s.phase === "rec" ? "trans" : s.phase }, false) : { ...s, visible: false };
 
     case "jobs":
       // The overlay passes to the next dictation when one lets go: its progress starts over.
-      return { ...s, jobs: event.count, progress: s.phase === "trans" && event.count < s.jobs ? 0 : s.progress };
+      return {
+        ...s,
+        jobs: event.count,
+        behind: Math.min(s.behind, event.count),
+        progress: s.phase === "trans" && event.count < s.jobs ? 0 : s.progress,
+      };
 
     case "progress":
       return holdsOverlay(s, "trans") ? { ...s, progress: event.value } : s;
@@ -78,7 +90,7 @@ export function reduce(s: OverlayState, event: OverlayEvent): OverlayState {
     case "processing-state": {
       const state = event.state;
       if (state === "idle") return { ...s, visible: false, progress: 0 };
-      if (state === "recording") return { ...s, visible: true, phase: "rec", progress: 0 };
+      if (state === "recording") return { ...s, visible: true, phase: "rec", progress: 0, behind: holdsOverlay(s, "rec") ? s.behind : s.jobs };
       if (state === "transcribing" || state === "streaming" || state === "server_transcribing") {
         return transcribing(s, state !== "transcribing");
       }

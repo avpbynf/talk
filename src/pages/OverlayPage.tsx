@@ -53,7 +53,7 @@ function OverlayPage() {
   const { theme, version } = useApplicationTheme();
 
   const [state, dispatch] = useReducer(reduce, INITIAL);
-  const { visible, phase, server, reason, pasted, progress, jobs, nudge } = state;
+  const { visible, phase, server, reason, pasted, progress, behind, nudge } = state;
   const [elapsed, setElapsed] = useState(0);
   const [scale, setScale] = useState(1);
   // Written at every spectrum event and read by the animation a frame at a time.
@@ -207,7 +207,7 @@ function OverlayPage() {
           elapsed={elapsed}
           progress={progress}
           server={server}
-          jobs={jobs}
+          jobs={behind}
           label={label}
           email={status?.available && status.email ? status.email : null}
           scale={scale}
