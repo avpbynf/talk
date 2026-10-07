@@ -145,8 +145,8 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
         </div>
       </SettingRow>
 
-      {/* The Windows style is a window of its own, whose shadow would be the system's to draw. */}
-      {!windows && (
+      {/* The Windows style is a window of its own, whose shadow would be the system's to draw, and the orb casts none. */}
+      {!windows && look.style !== "orb" && (
         <SettingRow label={t("appearance.overlay.colors.shadow")} hint={t("appearance.overlay.colors.shadowHint")}>
           <div className="flex items-center gap-3">
             <Range

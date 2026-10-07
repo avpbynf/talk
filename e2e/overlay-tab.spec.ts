@@ -251,6 +251,10 @@ test.describe("the overlay tab", () => {
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.shadow).toBe(0);
       await page.getByRole("button", { name: /^Windows.+/ }).click();
       await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(0);
+      // Nor for the orb, which casts none.
+      await page.getByRole("button", { name: /^Orb.+/ }).click();
+      await expect(page.getByRole("button", { name: /^Orb.+/ })).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(0);
     });
 
     test("the system's colour is offered to the Windows style alone", async ({ app, page }) => {
