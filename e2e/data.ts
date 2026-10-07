@@ -130,6 +130,7 @@ export function defaultState() {
         opacity: 100,
         shadow: 100,
         system_color: true,
+        transcribing_marks: true,
         reaction: 100,
         entrance: "bounce",
         timer: true,

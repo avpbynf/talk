@@ -195,6 +195,10 @@ pub struct OverlayLook {
     /// of the system do, and in the palette when this is off.
     #[serde(deserialize_with = "on")]
     pub system_color: bool,
+    /// The icon and the ring shown while it transcribes. They say nothing the bar between
+    /// them does not, so they can be left out.
+    #[serde(deserialize_with = "on")]
+    pub transcribing_marks: bool,
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -217,6 +221,7 @@ impl Default for OverlayLook {
             pasted_hold_ms: PASTED_HOLD_DEFAULT_MS,
             voice: OverlayVoice::default(),
             system_color: true,
+            transcribing_marks: true,
             extra: Extra::new(),
         }
     }
@@ -285,7 +290,7 @@ impl OverlayLook {
     }
 
     /// The look as 0.11.0 wrote it, which is what the hash it left on disk was taken over.
-    /// It had none of `tone`, `opacity`, `shadow` and `system_color`: either it never met them, which
+    /// It had none of `tone`, `opacity`, `shadow`, `system_color` and `transcribing_marks`: either it never met them, which
     /// only a look still at their defaults can come from, or an account handed them to it
     /// and it `carried` them among the keys it does not know.
     pub fn json_before_tone(&self, carried: bool) -> Option<String> {
@@ -295,10 +300,12 @@ impl OverlayLook {
             extra.insert("opacity".to_string(), Value::from(self.opacity));
             extra.insert("shadow".to_string(), Value::from(self.shadow));
             extra.insert("system_color".to_string(), Value::Bool(self.system_color));
+            extra.insert("transcribing_marks".to_string(), Value::Bool(self.transcribing_marks));
         } else if self.tone != OverlayTone::default()
             || self.opacity != OPACITY_FULL
             || self.shadow != SHADOW_DEFAULT
             || !self.system_color
+            || !self.transcribing_marks
         {
             return None;
         }
@@ -506,6 +513,7 @@ mod tests {
         assert!(!look.end_text);
         assert!(look.timer && look.mic);
         assert!(look.system_color);
+        assert!(look.transcribing_marks);
     }
 
     #[test]
@@ -650,7 +658,7 @@ mod tests {
         look.extra.insert("sparkle".to_string(), json!(3));
         assert_eq!(look.json_before_tone(false), None, "0.11.0 alone could not have had it");
         let carried = look.json_before_tone(true).expect("json");
-        assert!(carried.ends_with(r#""voice":"wave","opacity":100,"shadow":100,"sparkle":3,"system_color":true,"tone":"light"}"#), "{carried}");
+        assert!(carried.ends_with(r#""voice":"wave","opacity":100,"shadow":100,"sparkle":3,"system_color":true,"tone":"light","transcribing_marks":true}"#), "{carried}");
     }
 
     #[test]

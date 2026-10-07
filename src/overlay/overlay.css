@@ -72,8 +72,13 @@
   color: var(--ovdim);
 }
 .ovw[data-timer="off"] .tm:not(.pct),
-.ovw[data-mic="off"] .mic {
+.ovw[data-mic="off"] .mic,
+.ovw[data-marks="off"] .brain {
   display: none;
+}
+/* The Windows style keeps its three zones: what is left out leaves its place empty, and the bar stays where the voice was. */
+.ovw[data-marks="off"] .ovf .st-trans > :is(svg, .ovf-slot) {
+  visibility: hidden;
 }
 
 /* One layer per state, the one in use faded and scaled in over the others. */

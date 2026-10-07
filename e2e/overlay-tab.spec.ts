@@ -329,6 +329,20 @@ test.describe("the overlay tab", () => {
       await expect.poll(async () => (await calls(app, "set_overlay_size")).at(-1)?.size).toBe("large");
     });
 
+    test("the icon and the ring shown while it transcribes can be left out", async ({ app, page }) => {
+      await openTab(app, page);
+      await page.getByRole("button", { name: /^Windows.+/ }).click();
+      await hold(page, "Transcribing");
+      const preview = page.getByTestId("overlay-preview");
+      await expect(preview.locator(".st-trans > svg")).toBeVisible();
+      await page.getByRole("switch", { name: "Transcription icon" }).click();
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.transcribing_marks).toBe(false);
+      await expect(preview.locator(".st-trans > svg")).toBeHidden();
+      await expect(preview.locator(".ovf-slot")).toBeHidden();
+      // The bar stays where it was: the two places are left empty, not taken.
+      await expect(preview.locator(".ovf-prog")).toBeVisible();
+    });
+
     test("the Windows style arrives the way that is picked, and has the system's size", async ({ app, page }) => {
       await openTab(app, page);
       await page.getByRole("button", { name: /^Windows.+/ }).click();

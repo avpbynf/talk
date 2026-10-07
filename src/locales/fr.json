@@ -574,6 +574,8 @@
         "timer": "Minuteur",
         "mic": "Icône du micro",
         "micHint": "Halo et Capsule",
+        "marks": "Icône de transcription",
+        "marksHint": "Le cerveau et l'anneau affichés pendant la transcription. Halo et Windows",
         "endText": "Texte à la fin",
         "endTextHint": "Affiche \"Collé, 14 mots\" une fois le texte en place. Désactivé, le bandeau confirme par une coche, sans mot. Une dictée refusée dit toujours pourquoi, en quelques mots.",
         "pastedHold": "Durée de la confirmation",
