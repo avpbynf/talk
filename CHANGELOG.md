@@ -59,6 +59,13 @@ of the blurred material it has on the desktop. The preview and the style's tile 
 behind the card and lay the same shade over it, so the tone and the opacity you pick look there
 as they will.
 
+- (overlay) The Windows style writes in the application's typeface
+
+The timer and the words of the Windows style are set in Geist, like the rest of Talk, in the room
+the system's figures took. Its icons, its ring and its figures now share one weight of line, the
+thin one of the system's own icons, where the icon shown while it transcribes was drawn thicker
+than the microphone.
+
 ## [0.11.0] - 2026-10-06
 
 ### Features
