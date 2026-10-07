@@ -7,7 +7,7 @@ export type OverlayStyle = "halo" | "capsule" | "orb" | "flyout";
 export type OverlayPalette = "accent" | "preset" | "custom";
 export type OverlayBackground = "dark" | "glass" | "light";
 export type OverlayEntrance = "bounce" | "slide" | "fade";
-/** How the Windows style draws the voice: bars scrolling by, the spectrum, a slider cut into segments, or the halo's seven bars. */
+/** How the Windows style draws the voice: bars scrolling by, the spectrum, the slider filling with the level, or the halo's seven bars. */
 export type OverlayVoice = "wave" | "bars" | "meter" | "halo";
 /** What the overlay is showing: listening, thinking, text pasted, dictation turned away. */
 export type OverlayPhase = "rec" | "trans" | "done" | "refuse";

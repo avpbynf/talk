@@ -555,12 +555,54 @@
   --ovline: rgb(0 0 0 / 0.08);
   --ovtrack: rgb(0 0 0 / 0.28);
 }
+/*
+ * Three zones: one of 28 pixels on each side, what it holds in its middle, and the slider's zone
+ * between them. The system puts its icon nearer the edge than its figure; the card read as
+ * lopsided once the right-hand zone held a ring as small as the icon.
+ */
 .ovf .st {
   justify-content: flex-start;
-  gap: 13px;
-  padding: 0 10px 0 13px;
+  gap: 8px;
+  padding: 0 10px;
   transform: none;
-  transition: opacity 0.2s;
+  transition: opacity 0.16s ease-in;
+}
+/*
+ * Between two phases each zone moves in its own place: the icon swells, then what stands where
+ * the slider is opens out from a line. What is on the right only fades in, a timer or a ring
+ * sliding into place read as odd. The phase that leaves only fades, and faster than the next one
+ * arrives, so the two are never read together.
+ */
+.ovw[data-st="rec"] .ovf .st-rec,
+.ovw[data-st="trans"] .ovf .st-trans,
+.ovw[data-st="done"] .ovf .st-done,
+.ovw[data-st="refuse"] .ovf .st-done {
+  transition: opacity 0.26s ease-out 0.06s;
+}
+.ovf .st-rec > *,
+.ovf .st-trans > * {
+  transition: transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.ovf .st-rec > :nth-child(1),
+.ovf .st-trans > :nth-child(1) {
+  transform: scale(0.55);
+}
+.ovf .st-rec > :nth-child(2),
+.ovf .st-trans > :nth-child(2) {
+  transform: scaleY(0.25);
+  transition-delay: 0.05s;
+}
+.ovw[data-st="rec"] .ovf .st-rec > *,
+.ovw[data-st="trans"] .ovf .st-trans > * {
+  transform: none;
+}
+.ovf .st-trans > svg {
+  flex: none;
+  margin: 0 6px;
+}
+.ovf .st-rec > .ovf-glyph {
+  width: 28px;
+  text-align: center;
 }
 .ovf .st svg {
   width: 16px;
@@ -588,6 +630,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  transform: scale(0.7);
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s;
+}
+.ovw[data-st="done"] .ovf-end,
+.ovw[data-st="refuse"] .ovf-end {
+  transform: none;
 }
 /*
  * Whatever stands where the system's slider is keeps the slider's width, with or without a figure
@@ -596,38 +644,49 @@
 .ovf .ovwave,
 .ovf-bars,
 .ovf-track {
-  flex: 0 1 99px;
+  flex: 0 1 100px;
   min-width: 0;
 }
+/* The canvas keeps a pixel above and below its tallest bar, which is sixteen like the others. */
 .ovf .ovwave {
-  height: 22px;
+  height: 18px;
+}
+/* With the timer or the microphone switched off, what is drawn takes the room they leave. */
+.ovw[data-timer="off"] .ovf .st-rec :is(.ovwave, .ovf-bars, .ovf-track),
+.ovw[data-mic="off"] .ovf .st-rec :is(.ovwave, .ovf-bars, .ovf-track) {
+  flex-grow: 1;
 }
 .ovf-bars {
-  height: 22px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .ovf-bars i {
   width: 3px;
-  height: 22px;
+  height: 16px;
   border-radius: 3px;
   background: var(--ovfill);
-  transform: scaleY(0.14);
+  transform: scaleY(0.19);
   /* A layer each: a bar repainted in place left a sliver of its tall self behind when it sat on half a pixel. */
   will-change: transform;
-}
-.ovf-swell i {
-  opacity: 0.55;
 }
 .ovf-seven {
   justify-content: center;
   gap: 3px;
 }
-.ovf-meter i {
-  height: 10px;
-  transform: none;
-  opacity: 0.3;
+.ovf-seven i {
+  opacity: 0.55;
+}
+.ovf-fine {
+  justify-content: center;
+  gap: 3px;
+}
+.ovf-fine i {
+  width: 2px;
+  height: 16px;
+  border-radius: 2px;
+  transform: scaleY(0.125);
 }
 .ovf-track {
   height: 4px;
@@ -645,13 +704,60 @@
   transform: scaleX(0);
   will-change: transform;
 }
-.ovf-prog i {
-  transition: transform 0.2s ease-out;
+/*
+ * Where the figure would be while it transcribes: a ring that turns from the first moment to the
+ * last, whatever the bar beside it is doing. It stands in the middle of the zone the timer has,
+ * so the bar keeps the width and the place the voice had. It is held where it is, not sent back
+ * to the top, when the phase ends: a ring that jumps while it fades is seen.
+ */
+.ovf-slot {
+  flex: none;
+  width: 28px;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
 }
-.ovf-prog[data-wait="true"] i {
+.ovf-busy {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ovtrack);
+  border-top-color: var(--ovfill);
+  border-radius: 50%;
+  animation: ovrot 0.8s linear infinite paused;
+  will-change: transform;
+}
+.ovw[data-st="trans"] .ovf-busy {
+  animation-play-state: running;
+}
+.ovw[data-reduced="true"] .ovf-busy {
+  animation: none;
+}
+/*
+ * The bar holds two things: a segment that sweeps while nothing is known, and the fill. The first
+ * fades as the second grows, so the loader turns into the progress instead of being swapped for it.
+ */
+.ovf-prog {
+  position: relative;
+}
+.ovf-prog i {
+  position: absolute;
+  inset: 0;
+}
+.ovf-prog .ovf-fill {
+  transition: transform 0.3s ease-out;
+}
+.ovf-prog .ovf-sweep {
   width: 40%;
   transform: none;
-  animation: ovsweep 1.1s ease-in-out infinite;
+  opacity: 0;
+  transition: opacity 0.25s;
+  animation: ovsweep 1.1s ease-in-out infinite paused;
+}
+.ovw[data-st="trans"] .ovf-prog .ovf-sweep {
+  animation-play-state: running;
+}
+.ovf-prog[data-wait="true"] .ovf-sweep {
+  opacity: 1;
 }
 .ovf .tm {
   min-width: 28px;
@@ -659,7 +765,7 @@
   font: 400 14px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
-  text-align: right;
+  text-align: center;
   color: var(--ovfg);
 }
 .ovf .words {
@@ -693,14 +799,19 @@
 }
 .ovw[data-reduced="true"] .rdot::after,
 .ovw[data-reduced="true"] .prog[data-wait="true"] i,
-.ovw[data-reduced="true"] .ovf-prog[data-wait="true"] i,
+.ovw[data-reduced="true"] .ovf-prog .ovf-sweep,
 .ovw[data-reduced="true"] .qb[data-wait="true"] svg {
   animation: none;
 }
 .ovw[data-reduced="true"] .prog[data-wait="true"] i,
-.ovw[data-reduced="true"] .ovf-prog[data-wait="true"] i {
+.ovw[data-reduced="true"] .ovf-prog[data-wait="true"] .ovf-sweep {
   width: 100%;
   opacity: 0.6;
+}
+.ovw[data-reduced="true"] .ovf .st > *,
+.ovw[data-reduced="true"] .ovf-end {
+  transform: none;
+  transition: none;
 }
 .ovw[data-reduced="true"] .ovo .spin {
   animation: none;

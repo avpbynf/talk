@@ -63,9 +63,9 @@ pub enum OverlayVoice {
     /// Small bars scrolling by, the newest on the right.
     #[default]
     Wave,
-    /// The spectrum, each bar standing for a band of the voice.
+    /// The spectrum, fine bars across the slider, the same on both sides of the middle.
     Bars,
-    /// The slider cut into segments that light up with the level.
+    /// The system's own slider, filled as far as the voice is loud.
     Meter,
     /// The seven bars the halo style draws, gathered in the middle.
     Halo,

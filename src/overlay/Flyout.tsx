@@ -12,8 +12,10 @@ const FILL = { light: "#adbbc5", dark: "#586579" } as const;
 /** The system's own icons, by their place in Segoe Fluent Icons, which Segoe MDL2 Assets shares. */
 const GLYPH = { mic: "\uE720", check: "\uE73E", cancel: "\uE711" } as const;
 
-/** How many bars the spectrum and the cut slider are made of. */
-const BARS = 16;
+/** How many fine bars the spectrum is made of: two pixels wide, three apart, across the slider. */
+const SPECTRUM_BARS = 20;
+/** The tallest anything stands where the slider is, to stay within the thin line the system draws there. */
+const TALLEST = 16;
 
 type VoiceProps = Pick<StyleProps, "subscribe" | "phaseRef">;
 
@@ -34,52 +36,50 @@ function useBars(subscribe: Subscribe, phaseRef: VoiceProps["phaseRef"], draw: (
   return row;
 }
 
-const bars = Array.from({ length: BARS }, (_, i) => <i key={i} />);
-const seven = bars.slice(0, 7);
+const seven = Array.from({ length: 7 }, (_, i) => <i key={i} />);
+const fine = Array.from({ length: SPECTRUM_BARS }, (_, i) => <i key={i} />);
 
-/** How many of the voice's bands the halo's drawing reads, the first ones. */
-const HALO_BANDS = 7;
-
-/** The halo's movement: a bar grows from a dot and brightens with its band. */
-function swell(bar: HTMLElement, band: number) {
-  bar.style.transform = `scaleY(${((3 + band * 19) / 22).toFixed(3)})`;
-  bar.style.opacity = (0.55 + band * 0.45).toFixed(2);
-}
-
-/** The spectrum: the halo's bands spread over the whole slider, each bar between the two bands it sits between. */
+/**
+ * The spectrum: fine bars across the whole slider, the same on both sides of the middle. The
+ * low bands sit in the middle and the high ones at the edges, where they also stand shorter.
+ */
 function Spectrum({ subscribe, phaseRef }: VoiceProps) {
   const row = useBars(subscribe, phaseRef, (bar, at, frame) => {
-    const place = (at / (BARS - 1)) * (HALO_BANDS - 1);
-    const low = Math.floor(place);
-    const from = frame.bands[low] ?? 0;
-    const to = frame.bands[Math.min(HALO_BANDS - 1, low + 1)] ?? 0;
-    swell(bar, Math.min(1, from + (to - from) * (place - low)));
+    const middle = (SPECTRUM_BARS - 1) / 2;
+    const away = Math.abs(at - middle) / middle;
+    const band = frame.bands[Math.min(7, Math.floor(away * 8))] ?? 0;
+    const tall = Math.max(2, Math.min(1, band * (1 - away * 0.35)) * TALLEST);
+    bar.style.transform = `scaleY(${(tall / TALLEST).toFixed(3)})`;
   });
   return (
-    <span ref={row} className="ovf-bars ovf-swell">
-      {bars}
+    <span ref={row} className="ovf-bars ovf-fine">
+      {fine}
     </span>
   );
 }
 
 /** The halo style's own drawing: seven bars in the middle, one for each of the first bands, taller and brighter with it. */
 function Seven({ subscribe, phaseRef }: VoiceProps) {
-  const row = useBars(subscribe, phaseRef, (bar, at, frame) => swell(bar, Math.min(1, frame.bands[at] ?? 0)));
+  const row = useBars(subscribe, phaseRef, (bar, at, frame) => {
+    const band = Math.min(1, frame.bands[at] ?? 0);
+    bar.style.transform = `scaleY(${((3 + band * (TALLEST - 3)) / TALLEST).toFixed(3)})`;
+    bar.style.opacity = (0.55 + band * 0.45).toFixed(2);
+  });
   return (
-    <span ref={row} className="ovf-bars ovf-swell ovf-seven">
+    <span ref={row} className="ovf-bars ovf-seven">
       {seven}
     </span>
   );
 }
 
-/** The system's slider cut into segments, as many of them lit as the voice is loud. */
+/** The system's own slider, filled as far as the voice is loud. */
 function Meter({ subscribe, phaseRef }: VoiceProps) {
-  const row = useBars(subscribe, phaseRef, (bar, at, frame) => {
-    bar.style.opacity = at / BARS < Math.min(1, frame.level) ? "1" : "0.3";
+  const track = useBars(subscribe, phaseRef, (fill, _at, frame) => {
+    fill.style.transform = `scaleX(${Math.max(0.04, Math.min(1, frame.level)).toFixed(3)})`;
   });
   return (
-    <span ref={row} className="ovf-bars ovf-meter">
-      {bars}
+    <span ref={track} className="ovf-track">
+      <i />
     </span>
   );
 }
@@ -87,8 +87,10 @@ function Meter({ subscribe, phaseRef }: VoiceProps) {
 /**
  * The flyout Windows shows for the volume keys: a small flat card with an icon,
  * a thin slider and a figure. The voice is drawn where the slider would be
- * while it records, as the look asks, the slider fills with the progress while it
- * transcribes, and the figure is the timer. Both are drawn in the system's
+ * while it records, as the look asks, and the figure is the timer. While it transcribes
+ * the slider sweeps until the progress is known and then fills with it, and a ring turns
+ * where the figure was from the first moment to the last: the progress goes from nothing to
+ * all in a moment, and a number there only flickered. Both are drawn in the system's
  * own colour rather than the overlay's three, and the end is a mark in the
  * middle of the card, with a few words when the look asks for them.
  *
@@ -115,9 +117,12 @@ export default function Flyout({ subscribe, phase, look, jobs, progress, label, 
       <div className="st st-trans">
         {server ? <Server /> : <Brain />}
         <span className="ovf-track ovf-prog" data-wait={progress === 0}>
-          <i style={{ transform: progress === 0 ? undefined : `scaleX(${progress / 100})` }} />
+          <i className="ovf-sweep" />
+          <i className="ovf-fill" style={{ transform: `scaleX(${progress / 100})` }} />
         </span>
-        {progress > 0 && <span className="tm pct">{progress}</span>}
+        <span className="ovf-slot">
+          <span className="ovf-busy" />
+        </span>
       </div>
       <div className="st st-done">
         <span className="ovf-end">
