@@ -263,6 +263,22 @@ test.describe("the overlay tab", () => {
       await expect(page.getByRole("button", { name: "Frost" })).toHaveAttribute("aria-pressed", "true");
     });
 
+    test("the Windows style picks one accent colour, where the others pick three", async ({ app, page }) => {
+      await openTab(app, page);
+      await expect(page.getByRole("group", { name: "Palette" })).toBeVisible();
+      await page.getByRole("button", { name: /^Windows.+/ }).click();
+      const accents = page.getByRole("group", { name: "Accent colour" });
+      await expect(accents).toBeVisible();
+      await expect(page.getByRole("group", { name: "Palette" })).toHaveCount(0);
+      // A chip is that one colour, not a wheel of three.
+      const drawn = await accents.getByRole("button", { name: "Neon" }).locator("i").evaluate((el) => getComputedStyle(el).backgroundImage);
+      expect(drawn).toBe("none");
+      await accents.getByRole("button", { name: "Your own" }).click();
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.palette).toBe("custom");
+      await expect(page.getByLabel("Your colour").first()).toBeVisible();
+      await expect(page.getByLabel("Colour 2")).toHaveCount(0);
+    });
+
     test("an old overlay theme is a palette, and picking it keeps it", async ({ app, page }) => {
       await openTab(app, page);
       await page.getByRole("button", { name: "Neon" }).click();

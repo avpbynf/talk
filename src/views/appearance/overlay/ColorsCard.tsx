@@ -21,8 +21,8 @@ interface ColorsCardProps {
   onTheme: (theme: OverlayThemeId) => void;
 }
 
-/** One round chip: three colours in a wheel, and a name under it. */
-function Chip({ colors, label, active, onClick }: { colors: readonly string[]; label: string; active: boolean; onClick: () => void }) {
+/** One round chip and a name under it: three colours in a wheel, or the first of them alone for a style that draws in one. */
+function Chip({ colors, label, active, single, onClick }: { colors: readonly string[]; label: string; active: boolean; single: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -39,7 +39,7 @@ function Chip({ colors, label, active, onClick }: { colors: readonly string[]; l
           "h-[34px] w-[34px] rounded-full transition-[transform,box-shadow] duration-300 group-hover:scale-110",
           active && "shadow-[0_0_0_2px_var(--bg),0_0_0_4px_var(--s1)]",
         )}
-        style={{ background: `conic-gradient(${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[0]})` }}
+        style={{ background: single ? colors[0] : `conic-gradient(${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[0]})` }}
       />
       {label}
     </button>
@@ -51,7 +51,8 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
   const { t } = useTranslation();
   const { look, theme } = settings;
   const accentColors = overlayColors({ ...look, palette: "accent" }, theme, accent);
-  // The Windows style has one palette more, the system's own colour, and wears it until another is picked.
+  // The Windows style draws in one colour, the first of a palette, so what it picks is an accent colour and
+  // not a palette. It has one more to pick from, the system's own, and wears it until another is picked.
   const windows = look.style === "flyout";
   const system = windows && look.system_color;
   const fromPalette = windows ? { system_color: false } : {};
@@ -60,19 +61,21 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
   return (
     <SectionCard icon={Palette} title={t("appearance.overlay.colors.title")}>
       <SettingRow
-        label={t("appearance.overlay.colors.palette")}
-        hint={t("appearance.overlay.colors.paletteHint")}
+        label={t(windows ? "appearance.overlay.colors.accentColor" : "appearance.overlay.colors.palette")}
+        hint={t(windows ? "appearance.overlay.colors.accentColorHint" : "appearance.overlay.colors.paletteHint")}
         below={
-          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("appearance.overlay.colors.palette")}>
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t(windows ? "appearance.overlay.colors.accentColor" : "appearance.overlay.colors.palette")}>
             {windows && (
               <Chip
-                colors={[systemAccent.light, systemAccent.dark, systemAccent.light]}
+                single
+                colors={[systemAccent.light]}
                 label={t("appearance.overlay.colors.system")}
                 active={system}
                 onClick={() => onLook({ system_color: true })}
               />
             )}
             <Chip
+              single={windows}
               colors={accentColors}
               label={t("appearance.overlay.colors.accent")}
               active={!system && look.palette === "accent"}
@@ -81,6 +84,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
             {THEME_IDS.map((id) => (
               <Chip
                 key={id}
+                single={windows}
                 colors={getThemeColors(id)}
                 label={getThemeLabel(id)}
                 active={!system && look.palette === "preset" && theme === id}
@@ -91,6 +95,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
               />
             ))}
             <Chip
+              single={windows}
               colors={look.custom_colors}
               label={t("appearance.overlay.colors.custom")}
               active={!system && look.palette === "custom"}
@@ -103,14 +108,14 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
       </SettingRow>
 
       {look.palette === "custom" && !system && (
-        <SettingRow label={t("appearance.overlay.colors.customColors")}>
+        <SettingRow label={t(windows ? "appearance.overlay.colors.ownColor" : "appearance.overlay.colors.customColors")}>
           <div className="flex items-center gap-3">
-            {look.custom_colors.map((color, i) => (
+            {look.custom_colors.slice(0, windows ? 1 : 3).map((color, i) => (
               <ColorSwatch
                 key={i}
                 showCode={false}
                 value={color}
-                label={t("appearance.overlay.colors.customColor", { n: i + 1 })}
+                label={windows ? t("appearance.overlay.colors.ownColor") : t("appearance.overlay.colors.customColor", { n: i + 1 })}
                 onChange={(value) => {
                   const next = [...look.custom_colors] as OverlayLook["custom_colors"];
                   next[i] = value;

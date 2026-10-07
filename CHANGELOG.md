@@ -102,7 +102,9 @@ where it is. The Appearance setting is offered to it like to the three other sty
 
 The Windows style drew in the accent colour of Windows and nothing else. That colour is now one
 palette among the others, named Windows and worn by default: pick the application's, one of the
-six or three colours of your own, and the slider, the voice and the ring take it.
+six or a colour of your own, and the slider, the voice and the ring take it. That style draws in
+one colour, so for it the setting is an Accent colour: each chip shows the one colour it gives,
+and a colour of your own is one swatch and not three.
 
 - (overlay) The Windows style writes in the application's typeface
 
