@@ -534,14 +534,20 @@
  * the card is. That acrylic is greyer than the one the volume flyout wears in either mode, measured
  * over flat colours: black comes out at 54 and white at 146 in dark, 135 and 227 in light. The card
  * pulls it towards the flyout's own, darker in dark and whiter in light.
+ *
+ * The veil that does it lies on the page and not on what arrives and leaves: the window is there
+ * before its content has faded in and after it has faded out and gone, and a veil fading with the
+ * content left the bare acrylic showing for that while, a lighter card with nothing on it.
  */
+.ovveil[data-veil="dark"] {
+  background: rgb(0 0 0 / 0.5);
+}
+.ovveil[data-veil="light"] {
+  background: rgb(255 255 255 / 0.66);
+}
 .ovw[data-windowed="true"] {
   width: 100%;
   height: 100%;
-  background: rgb(0 0 0 / 0.5);
-}
-.ovw[data-windowed="true"][data-bg="light"] {
-  background: rgb(255 255 255 / 0.66);
 }
 .ovw[data-windowed="true"] .ovf {
   --ovbg: transparent;

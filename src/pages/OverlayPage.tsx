@@ -186,7 +186,7 @@ function OverlayPage() {
   return (
     // No closed hand while it is pressed: the native move loop swallows the release, and the page
     // would go on believing the button is down until the pointer next moved.
-    <div className="h-screen w-screen select-none cursor-grab" onMouseDown={handleMouseDown}>
+    <div className="ovveil h-screen w-screen select-none cursor-grab" data-veil={windowed ? surface.tone : undefined} onMouseDown={handleMouseDown}>
       {(visible || present) && (
         <OverlayView
           leaving={!visible}
