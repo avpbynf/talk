@@ -59,6 +59,12 @@ of the blurred material it has on the desktop. The preview and the style's tile 
 behind the card and lay the same shade over it, so the tone and the opacity you pick look there
 as they will.
 
+- (overlay) The shadow under the overlay can be set
+
+Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recording overlay tab
+takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
+looks raised above it.
+
 - (overlay) The Windows style can be drawn in a palette
 
 The Windows style drew in the accent colour of Windows and nothing else. That colour is now one

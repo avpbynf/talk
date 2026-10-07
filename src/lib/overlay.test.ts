@@ -37,6 +37,13 @@ describe("the tone and the opacity", () => {
     expect(coerceSettings({ look: { tone: "light", opacity: 35 } }).look).toMatchObject({ tone: "light", opacity: 35 });
   });
 
+  it("keep the shadow between none and twice the usual", () => {
+    expect(coerceSettings({}).look.shadow).toBe(100);
+    expect(coerceSettings({ look: { shadow: 900 } }).look.shadow).toBe(200);
+    expect(coerceSettings({ look: { shadow: -3 } }).look.shadow).toBe(0);
+    expect(coerceSettings({ look: { shadow: "deep" } }).look.shadow).toBe(100);
+  });
+
   it("keep the opacity between nothing and all of it", () => {
     expect(coerceSettings({ look: { opacity: 140 } }).look.opacity).toBe(100);
     expect(coerceSettings({ look: { opacity: -5 } }).look.opacity).toBe(0);

@@ -20,6 +20,8 @@ export interface OverlayLook {
   tone: OverlayTone;
   /** Percent of the background that is there: under a hundred, what is behind the overlay shows through. */
   opacity: number;
+  /** Percent of the shadow under the overlay: none, and it lies flat on the screen. */
+  shadow: number;
   /** Percent, how strongly the overlay moves with the voice. */
   reaction: number;
   entrance: OverlayEntrance;
@@ -81,6 +83,7 @@ export const SPOTS = ["top_left", "top_center", "top_right", "bottom_left", "bot
 export const REACTION_MIN = 20;
 export const REACTION_MAX = 250;
 export const PASTED_HOLD_MAX_MS = 3000;
+export const SHADOW_MAX = 200;
 
 /** The stage every style is drawn on at the medium size, which is what the window is made of. */
 export const STAGE_WIDTH = 244;
@@ -100,6 +103,7 @@ export const DEFAULT_LOOK: OverlayLook = {
   custom_colors: ["#ff7a59", "#ff4f8b", "#a259ff"],
   tone: "theme",
   opacity: 100,
+  shadow: 100,
   reaction: 100,
   entrance: "bounce",
   timer: true,
@@ -150,6 +154,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
   const reaction = typeof look.reaction === "number" ? look.reaction : DEFAULT_LOOK.reaction;
   const accent = (settings as { accent?: Record<string, unknown> | null }).accent;
   const opacity = typeof look.opacity === "number" ? look.opacity : DEFAULT_LOOK.opacity;
+  const shadow = typeof look.shadow === "number" ? look.shadow : DEFAULT_LOOK.shadow;
   const hold = typeof look.pasted_hold_ms === "number" ? look.pasted_hold_ms : DEFAULT_LOOK.pasted_hold_ms;
   return {
     accent: accent && HEX.test(String(accent.light)) && HEX.test(String(accent.dark)) ? { light: String(accent.light), dark: String(accent.dark) } : null,
@@ -159,6 +164,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       custom_colors: [0, 1, 2].map((i) => (HEX.test(String(colors[i])) ? String(colors[i]) : DEFAULT_LOOK.custom_colors[i])) as OverlayLook["custom_colors"],
       tone: oneOf(TONES, look.tone, DEFAULT_LOOK.tone),
       opacity: Math.min(100, Math.max(0, Math.round(opacity))),
+      shadow: Math.min(SHADOW_MAX, Math.max(0, Math.round(shadow))),
       reaction: Math.min(REACTION_MAX, Math.max(REACTION_MIN, reaction)),
       entrance: oneOf(ENTRANCES, look.entrance, DEFAULT_LOOK.entrance),
       timer: look.timer !== false,

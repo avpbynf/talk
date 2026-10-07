@@ -102,6 +102,9 @@ const REACTION_DEFAULT: u8 = 100;
 
 /// The background at its full strength, as a percentage.
 pub const OPACITY_FULL: u8 = 100;
+/// The shadow as it was before it could be set, as a percentage, and the most it can be.
+pub const SHADOW_DEFAULT: u8 = 100;
+pub const SHADOW_MAX: u8 = 200;
 /// What the glass of 0.11.0 comes to: its fill was about half of the plain one's.
 const OPACITY_GLASS: u8 = 50;
 
@@ -124,6 +127,10 @@ fn reaction<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
 
 fn opacity<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
     lenient_or(d, |value| value.as_u64().and_then(|n| u8::try_from(n).ok()), OPACITY_FULL)
+}
+
+fn shadow<'de, D: Deserializer<'de>>(d: D) -> Result<u8, D::Error> {
+    lenient_or(d, |value| value.as_u64().and_then(|n| u8::try_from(n).ok()), SHADOW_DEFAULT)
 }
 
 fn pasted_hold<'de, D: Deserializer<'de>>(d: D) -> Result<u16, D::Error> {
@@ -162,6 +169,10 @@ pub struct OverlayLook {
     /// behind the overlay shows through it.
     #[serde(deserialize_with = "opacity")]
     pub opacity: u8,
+    /// How strong the shadow under the overlay is, as a percentage: none, and it lies flat
+    /// on the screen.
+    #[serde(deserialize_with = "shadow")]
+    pub shadow: u8,
     /// How strongly it moves with the voice, as a percentage.
     #[serde(deserialize_with = "reaction")]
     pub reaction: u8,
@@ -197,6 +208,7 @@ impl Default for OverlayLook {
             background: OverlayBackground::default(),
             tone: OverlayTone::default(),
             opacity: OPACITY_FULL,
+            shadow: SHADOW_DEFAULT,
             reaction: REACTION_DEFAULT,
             entrance: OverlayEntrance::default(),
             timer: true,
@@ -216,6 +228,7 @@ impl OverlayLook {
         self.reaction = self.reaction.clamp(REACTION_MIN, REACTION_MAX);
         self.pasted_hold_ms = self.pasted_hold_ms.min(PASTED_HOLD_MAX_MS);
         self.opacity = self.opacity.min(OPACITY_FULL);
+        self.shadow = self.shadow.min(SHADOW_MAX);
         let defaults = default_custom_colors();
         for (color, fallback) in self.custom_colors.iter_mut().zip(defaults) {
             if !is_hex(color) {
@@ -272,7 +285,7 @@ impl OverlayLook {
     }
 
     /// The look as 0.11.0 wrote it, which is what the hash it left on disk was taken over.
-    /// It had none of `tone`, `opacity` and `system_color`: either it never met them, which
+    /// It had none of `tone`, `opacity`, `shadow` and `system_color`: either it never met them, which
     /// only a look still at their defaults can come from, or an account handed them to it
     /// and it `carried` them among the keys it does not know.
     pub fn json_before_tone(&self, carried: bool) -> Option<String> {
@@ -280,8 +293,13 @@ impl OverlayLook {
         if carried {
             extra.insert("tone".to_string(), serde_json::to_value(self.tone).ok()?);
             extra.insert("opacity".to_string(), Value::from(self.opacity));
+            extra.insert("shadow".to_string(), Value::from(self.shadow));
             extra.insert("system_color".to_string(), Value::Bool(self.system_color));
-        } else if self.tone != OverlayTone::default() || self.opacity != OPACITY_FULL || !self.system_color {
+        } else if self.tone != OverlayTone::default()
+            || self.opacity != OPACITY_FULL
+            || self.shadow != SHADOW_DEFAULT
+            || !self.system_color
+        {
             return None;
         }
         serde_json::to_string(&LookBeforeTone {
@@ -517,6 +535,8 @@ mod tests {
         assert!(!look_readable(&json!({ "opacity": 101 })));
         assert!(!look_readable(&json!({ "opacity": 42.5 })));
         assert!(!look_readable(&json!({ "opacity": -1 })));
+        assert!(look_readable(&json!({ "shadow": 200 })));
+        assert!(!look_readable(&json!({ "shadow": 201 })));
         assert!(!look_readable(&json!({ "custom_colors": ["#fff", "#000", "#123456"] })));
         assert!(!look_readable(&json!("orb")));
     }
@@ -630,7 +650,7 @@ mod tests {
         look.extra.insert("sparkle".to_string(), json!(3));
         assert_eq!(look.json_before_tone(false), None, "0.11.0 alone could not have had it");
         let carried = look.json_before_tone(true).expect("json");
-        assert!(carried.ends_with(r#""voice":"wave","opacity":100,"sparkle":3,"system_color":true,"tone":"light"}"#), "{carried}");
+        assert!(carried.ends_with(r#""voice":"wave","opacity":100,"shadow":100,"sparkle":3,"system_color":true,"tone":"light"}"#), "{carried}");
     }
 
     #[test]
@@ -646,10 +666,12 @@ mod tests {
         let mut look = OverlayLook::default();
         look.reaction = 255;
         look.opacity = 180;
+        look.shadow = 240;
         look.custom_colors = ["red".into(), "#00ff00".into(), "#12".into()];
         let look = look.sanitized();
         assert_eq!(look.reaction, REACTION_MAX);
         assert_eq!(look.opacity, OPACITY_FULL);
+        assert_eq!(look.shadow, SHADOW_MAX);
         assert_eq!(look.custom_colors, ["#ff7a59".to_string(), "#00ff00".to_string(), "#a259ff".to_string()]);
     }
 

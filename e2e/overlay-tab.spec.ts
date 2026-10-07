@@ -237,6 +237,22 @@ test.describe("the overlay tab", () => {
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.system_color).toBe(true);
     });
 
+    test("the shadow is set for the styles the page draws, and not for the Windows one", async ({ app, page }) => {
+      await openTab(app, page);
+      await hold(page, "Recording");
+      const box = page.getByTestId("overlay-preview").locator(".ovbox");
+      const shadow = () => box.evaluate((el) => getComputedStyle(el).getPropertyValue("--ovsh").trim());
+      expect(await shadow()).toBe("1");
+      await page.getByRole("slider", { name: "Shadow" }).fill("0");
+      await expect.poll(shadow).toBe("0");
+      await expect
+        .poll(() => box.locator(".ovh").evaluate((el) => getComputedStyle(el).boxShadow))
+        .toContain("rgba(0, 0, 0, 0) 0px 10px 24px -10px");
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.shadow).toBe(0);
+      await page.getByRole("button", { name: /^Windows.+/ }).click();
+      await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(0);
+    });
+
     test("the system's colour is offered to the Windows style alone", async ({ app, page }) => {
       await openTab(app, page);
       await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveCount(0);
