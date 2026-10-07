@@ -22,7 +22,7 @@ interface MovementCardProps {
 /** How the overlay moves with the voice and arrives, how large it is, and what it shows. */
 export default function MovementCard({ look, size, onLook, onSize }: MovementCardProps) {
   const { t } = useTranslation();
-  // The Windows style is the system's flyout: it has its size and it fades in, as that one does.
+  // The Windows style is the system's flyout: it has its size.
   const system = look.style === "flyout";
 
   return (
@@ -52,16 +52,14 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
         </SettingRow>
       )}
 
-      {!system && (
-        <SettingRow label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
-          <Segmented
-            label={t("appearance.overlay.movement.entrance")}
-            value={look.entrance}
-            onChange={(entrance: OverlayEntrance) => onLook({ entrance })}
-            options={ENTRANCES.map((value) => ({ value, label: t(`appearance.overlay.movement.${value}`) }))}
-          />
-        </SettingRow>
-      )}
+      <SettingRow label={t("appearance.overlay.movement.entrance")} hint={t("appearance.overlay.movement.entranceHint")}>
+        <Segmented
+          label={t("appearance.overlay.movement.entrance")}
+          value={look.entrance}
+          onChange={(entrance: OverlayEntrance) => onLook({ entrance })}
+          options={ENTRANCES.map((value) => ({ value, label: t(`appearance.overlay.movement.${value}`) }))}
+        />
+      </SettingRow>
 
       {!system && (
         <SettingRow label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>

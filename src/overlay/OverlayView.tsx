@@ -51,15 +51,26 @@ const ENTER = "cubic-bezier(.16,1,.3,1)";
 
 /** How the overlay arrives: this runs once, when it is first drawn. */
 function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: boolean, windowed: boolean) {
-  if (typeof el.animate !== "function") return;
-  // A window that is the card cannot travel inside itself.
-  if (reduced || windowed || look.entrance === "fade") {
+  // A window that is the card cannot travel inside itself: the native side moves and fades the window.
+  if (windowed || typeof el.animate !== "function") return;
+  if (reduced || look.entrance === "fade") {
     el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reduced ? 200 : 420, easing: ENTER });
   } else if (look.entrance === "slide") {
     const from = fromTop ? -30 : 30;
     el.animate(
       [
         { opacity: 0, transform: `translateY(${from}px)` },
+        { opacity: 1, transform: "none" },
+      ],
+      { duration: 560, easing: ENTER },
+    );
+  } else if (look.style === "flyout") {
+    // Shown as a picture of its window, which cannot swell: it goes a little past its place and comes back.
+    const from = fromTop ? -22 : 22;
+    el.animate(
+      [
+        { opacity: 0, transform: `translateY(${from}px)` },
+        { opacity: 1, transform: `translateY(${-from * 0.1}px)`, offset: 0.55 },
         { opacity: 1, transform: "none" },
       ],
       { duration: 560, easing: ENTER },
@@ -78,10 +89,11 @@ function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: bo
 
 /** How the overlay leaves: the way it came, in less time, and it stays gone until the animation is cancelled. */
 function leave(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: boolean, windowed: boolean): Animation | null {
-  if (typeof el.animate !== "function") return null;
+  if (windowed || typeof el.animate !== "function") return null;
   const timing = { duration: LEAVE_MS, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" as const };
-  if (reduced || windowed || look.entrance === "fade") return el.animate([{ opacity: 1 }, { opacity: 0 }], timing);
-  const to = look.entrance === "slide" ? `translateY(${fromTop ? -18 : 18}px)` : "scale(.86)";
+  if (reduced || look.entrance === "fade") return el.animate([{ opacity: 1 }, { opacity: 0 }], timing);
+  const side = fromTop ? -1 : 1;
+  const to = look.entrance === "slide" ? `translateY(${side * 18}px)` : look.style === "flyout" ? `translateY(${side * 10}px)` : "scale(.86)";
   return el.animate(
     [
       { opacity: 1, transform: "none" },
