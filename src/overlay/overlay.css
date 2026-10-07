@@ -534,7 +534,8 @@
   box-shadow:
     0 8px 16px rgb(0 0 0 / 0.26),
     inset 0 0 0 1px var(--ovline);
-  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  /* The application's face and not the system's: the card is Talk's, in the flyout's shape. */
+  font-family: "Geist Variable", "Segoe UI", system-ui, sans-serif;
 }
 /*
  * In a window of its own, Windows draws its acrylic behind and rounds the corners, dark or light as
@@ -617,10 +618,15 @@
   margin-right: 13px;
   text-align: center;
 }
+/*
+ * One weight of line across the card, the system's: its icons are drawn with lines a pixel wide,
+ * which is a stroke of 1.5 on a drawing of 24 shown at 16.
+ */
 .ovf .st svg {
   width: 16px;
   height: 16px;
   color: var(--ovfg);
+  stroke-width: 1.5;
 }
 .ovf-glyph {
   flex: none;
@@ -735,7 +741,7 @@
 .ovf-busy {
   width: 14px;
   height: 14px;
-  border: 2px solid var(--ovtrack);
+  border: 1.5px solid var(--ovtrack);
   border-top-color: var(--ovfill);
   border-radius: 50%;
   animation: ovrot 0.8s linear infinite paused;
@@ -783,7 +789,8 @@
   min-width: 26px;
   margin: 0 0 2px auto;
   padding-left: 8px;
-  font: 400 14px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  /* A size under the flyout's fourteen: these figures are wider, and take the same room at thirteen. */
+  font: 400 13px "Geist Variable", "Segoe UI", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   text-align: right;
