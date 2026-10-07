@@ -217,6 +217,16 @@ test.describe("the overlay page", () => {
     expect(await page.locator(".ovw").count()).toBe(0);
   });
 
+  test("a look being edited in the other window is drawn at each step, before it is saved", async ({ app, page }) => {
+    await open(app, page, { style: "halo" });
+    await show(app, "rec");
+    const box = page.locator(".ovbox");
+    const shadow = () => box.evaluate((el) => getComputedStyle(el).getPropertyValue("--ovsh").trim());
+    await expect.poll(shadow).toBe("1");
+    await app.emit("overlay-look-being-edited", { style: "halo", shadow: 40 });
+    await expect.poll(shadow).toBe("0.4");
+  });
+
   test("the opacity of the Windows style is how much of its veil is laid", async ({ app, page }) => {
     await open(app, page, { style: "flyout", tone: "dark", opacity: 40 }, { viewport: { width: 192, height: 47 } });
     const veil = page.locator(".ovveil");

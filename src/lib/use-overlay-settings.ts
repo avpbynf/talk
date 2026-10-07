@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import type { OverlaySize } from "@/App";
 import { type OverlayLook, type OverlayPlacement, type OverlaySettings, DEFAULT_SETTINGS, coerceSettings } from "@/lib/overlay";
 import type { OverlayThemeId } from "@/lib/overlay-themes";
@@ -10,6 +10,9 @@ import { reportFailure, reportSuccess } from "@/lib/save-setting";
 
 const SAVE_DELAY_MS = 250;
 
+/** The event a window sends at each step of a look it is editing. */
+const LOOK_BEING_EDITED = "overlay-look-being-edited";
+
 type Pending = { look?: OverlayLook; placement?: OverlayPlacement };
 
 /**
@@ -18,6 +21,8 @@ type Pending = { look?: OverlayLook; placement?: OverlayPlacement };
  * as they are edited. The look and the placement are saved a moment after the
  * last edit, so a slider or a drag does not write the file at every step, and
  * whatever is still waiting is written when the window lets go of the hook.
+ * Meanwhile each step of a look being edited is told to the other window, so
+ * that an overlay on screen is redrawn as a slider moves and not once it stops.
  */
 export function useOverlaySettings() {
   const [settings, setSettings] = useState<OverlaySettings>(DEFAULT_SETTINGS);
@@ -86,9 +91,16 @@ export function useOverlaySettings() {
       if (editing.current > 0 || timers.current.look || timers.current.placement) missed.current = true;
       else setSettings(coerceSettings(event.payload));
     });
+    // The look as the other window is editing it, which nothing has written yet. The window that
+    // edits hears itself too, and has nothing to learn from it.
+    const edited = listen<unknown>(LOOK_BEING_EDITED, (event) => {
+      if (editing.current > 0 || timers.current.look) return;
+      setSettings((current) => coerceSettings({ ...current, look: event.payload }));
+    });
     return () => {
       alive.current = false;
       changed.then((unlisten) => unlisten());
+      edited.then((unlisten) => unlisten());
       // Leaving the tab must not lose the last edit.
       const waiting = timers.current;
       if (waiting.look) {
@@ -108,6 +120,7 @@ export function useOverlaySettings() {
       latest.current = { ...latest.current, look };
       setSettings((current) => ({ ...current, look }));
       pending.current.look = look;
+      void emit(LOOK_BEING_EDITED, look);
       window.clearTimeout(timers.current.look);
       timers.current.look = window.setTimeout(() => {
         timers.current.look = undefined;

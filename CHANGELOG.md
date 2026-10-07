@@ -65,6 +65,11 @@ Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recor
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
 
+- (overlay) The overlay on screen follows a setting as it is moved
+
+With a recording running, the overlay on screen took a change made in the Recording overlay tab
+only once the slider was let go. It is now redrawn at each step, like the preview beside it.
+
 - (overlay) The Windows style arrives like the others
 
 The Windows style could only appear at once and fade what it holds, whatever Appearance was set
