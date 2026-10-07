@@ -514,18 +514,23 @@
 
 /*
  * Its colours are the system's own flyout rather than the overlay's: flat, with no light behind it.
- * Where it is shown off without the system's blur behind it, a low opacity still leaves most of the
- * card, as the blur does.
+ *
+ * Outside its own window the card is only ever shown off, in the settings, and there it has to look
+ * like what the window will: a blur of what is behind, the grey the system's backdrop lays on it
+ * (measured, see the veil below) and the veil at the opacity picked. This is the one backdrop
+ * blur in the application, over a desk that holds still; the overlay's window has the system's.
  */
 .ovf {
-  --ovbg: rgb(44 44 44 / calc(0.6 + 0.4 * var(--ovop, 1)));
+  --ovtint: rgb(85 85 85 / 0.64);
+  --ovveil: rgb(0 0 0 / calc(0.5 * var(--ovop, 1)));
   --ovline: rgb(255 255 255 / 0.09);
   --ovtrack: rgb(255 255 255 / 0.545);
   position: relative;
   width: 192px;
   height: 47px;
   border-radius: 8px;
-  background: var(--ovbg);
+  background: linear-gradient(var(--ovveil), var(--ovveil)), var(--ovtint);
+  backdrop-filter: blur(20px);
   box-shadow:
     0 8px 16px rgb(0 0 0 / 0.26),
     inset 0 0 0 1px var(--ovline);
@@ -552,14 +557,16 @@
   height: 100%;
 }
 .ovw[data-windowed="true"] .ovf {
-  --ovbg: transparent;
+  background: none;
+  backdrop-filter: none;
   width: 100%;
   height: 100%;
   border-radius: 0;
   box-shadow: none;
 }
 .ovw[data-bg="light"] .ovf {
-  --ovbg: rgb(243 243 243 / calc(0.6 + 0.4 * var(--ovop, 1)));
+  --ovtint: rgb(211 211 211 / 0.64);
+  --ovveil: rgb(255 255 255 / calc(0.66 * var(--ovop, 1)));
   --ovline: rgb(0 0 0 / 0.08);
   --ovtrack: rgb(0 0 0 / 0.28);
 }
