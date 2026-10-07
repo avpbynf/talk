@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixes
+
+- (overlay) The Windows style has the volume flyout's own proportions
+
+The card was the system's size, and what it held was not where the system puts it. The icon now
+sits 13 pixels from the left, the slider is 110 pixels long and starts where the volume's does,
+and the timer ends 10 pixels from the right, both a pixel above the middle as on the flyout. A
+timer being wider than a volume, the slider gives it four pixels, and keeps that length while it
+transcribes.
+
 ### Features
 
 - (overlay) Give the Windows style three fixed zones and a movement between its phases

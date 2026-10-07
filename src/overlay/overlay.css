@@ -556,14 +556,14 @@
   --ovtrack: rgb(0 0 0 / 0.28);
 }
 /*
- * Three zones: one of 28 pixels on each side, what it holds in its middle, and the slider's zone
- * between them. The system puts its icon nearer the edge than its figure; the card read as
- * lopsided once the right-hand zone held a ring as small as the icon.
+ * The volume flyout's own places, measured on a capture of it: an icon of 16 at 13 from the left,
+ * a slider of 110 by 4 another 13 further, its figure ending 10 from the right. The slider and the
+ * figure both sit a pixel above the middle of the card, and the icon does not.
  */
 .ovf .st {
   justify-content: flex-start;
-  gap: 8px;
-  padding: 0 10px;
+  gap: 0;
+  padding: 0 10px 0 13px;
   transform: none;
   transition: opacity 0.16s ease-in;
 }
@@ -596,12 +596,10 @@
 .ovw[data-st="trans"] .ovf .st-trans > * {
   transform: none;
 }
-.ovf .st-trans > svg {
-  flex: none;
-  margin: 0 6px;
-}
+.ovf .st-trans > svg,
 .ovf .st-rec > .ovf-glyph {
-  width: 28px;
+  flex: none;
+  margin-right: 13px;
   text-align: center;
 }
 .ovf .st svg {
@@ -644,8 +642,9 @@
 .ovf .ovwave,
 .ovf-bars,
 .ovf-track {
-  flex: 0 1 100px;
+  flex: 0 1 110px;
   min-width: 0;
+  margin-bottom: 2px;
 }
 /* The canvas keeps a pixel above and below its tallest bar, which is sixteen like the others. */
 .ovf .ovwave {
@@ -706,14 +705,15 @@
 }
 /*
  * Where the figure would be while it transcribes: a ring that turns from the first moment to the
- * last, whatever the bar beside it is doing. It stands in the middle of the zone the timer has,
- * so the bar keeps the width and the place the voice had. It is held where it is, not sent back
+ * last, whatever the bar beside it is doing. It stands in the middle of the room three figures
+ * take, so the bar keeps the width and the place the voice had. It is held where it is, not sent back
  * to the top, when the phase ends: a ring that jumps while it fades is seen.
  */
 .ovf-slot {
   flex: none;
-  width: 28px;
-  margin-left: auto;
+  width: 20px;
+  /* The room the timer took, so the bar does not change length when the phase does. */
+  margin-left: 14px;
   display: grid;
   place-items: center;
 }
@@ -759,13 +759,19 @@
 .ovf-prog[data-wait="true"] .ovf-sweep {
   opacity: 1;
 }
+/*
+ * A timer of four characters is wider than a volume of three, and the slider gives way to it by
+ * four pixels to keep some air between them: past four characters it gives way further.
+ */
 .ovf .tm {
-  min-width: 28px;
-  margin-left: auto;
+  flex: none;
+  min-width: 26px;
+  margin: 0 0 2px auto;
+  padding-left: 8px;
   font: 400 14px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
-  text-align: center;
+  text-align: right;
   color: var(--ovfg);
 }
 .ovf .words {
