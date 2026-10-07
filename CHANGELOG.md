@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Features
+
+- (overlay) Give the Windows style three fixed zones and a movement between its phases
+
+The card keeps the same three places from start to end: the icon on the left, a zone the width of
+the slider in the middle, and a zone on the right for the timer. While it transcribes, the bar
+stands exactly where your voice was, and a small ring turns on the right in place of a percentage,
+which only flickered there. The bar sweeps, then turns into the progress instead of being swapped
+for it. Between two phases the icon swells, the middle opens out from a line, the right fades in,
+and the mark at the end arrives with a small bounce.
+
+- (overlay) Redraw the slider and the spectrum of the Windows style
+
+Slider is now the system's own slider, one bar that fills as far as your voice is loud, instead of
+a row of segments. Spectrum has a drawing of its own again: fine bars across the whole slider, the
+same on both sides of the middle. None of the four drawings stands taller than sixteen pixels, and
+with the timer or the microphone icon switched off your voice takes the room they leave.
+
 ## [0.11.0] - 2026-10-06
 
 ### Features
