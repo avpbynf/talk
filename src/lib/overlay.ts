@@ -35,6 +35,8 @@ export interface OverlayLook {
   voice: OverlayVoice;
   /** Read by the Windows style alone: it draws in the system's accent colour, and in the palette when this is off. */
   system_color: boolean;
+  /** The icon and the ring shown while it transcribes, which the bar between them does without. */
+  transcribing_marks: boolean;
 }
 
 export type Spot = "top_left" | "top_center" | "top_right" | "bottom_left" | "bottom_center" | "bottom_right" | "free";
@@ -112,6 +114,7 @@ export const DEFAULT_LOOK: OverlayLook = {
   pasted_hold_ms: 1500,
   voice: "wave",
   system_color: true,
+  transcribing_marks: true,
 };
 
 export const DEFAULT_PLACEMENT: OverlayPlacement = {
@@ -173,6 +176,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       pasted_hold_ms: Math.min(PASTED_HOLD_MAX_MS, Math.max(0, Math.round(hold))),
       voice: oneOf(VOICES, look.voice, DEFAULT_LOOK.voice),
       system_color: look.system_color !== false,
+      transcribing_marks: look.transcribing_marks !== false,
     },
     theme: oneOf(THEME_IDS, settings.theme, DEFAULT_SETTINGS.theme),
     size: oneOf(SIZES, settings.size, DEFAULT_SETTINGS.size),

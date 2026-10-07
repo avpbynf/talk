@@ -99,6 +99,10 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
       <SettingRow label={t("appearance.overlay.movement.mic")} hint={t("appearance.overlay.movement.micHint")}>
         <Switch checked={look.mic} onCheckedChange={(mic) => onLook({ mic })} />
       </SettingRow>
+
+      <SettingRow label={t("appearance.overlay.movement.marks")} hint={t("appearance.overlay.movement.marksHint")}>
+        <Switch checked={look.transcribing_marks} onCheckedChange={(transcribing_marks) => onLook({ transcribing_marks })} />
+      </SettingRow>
     </SectionCard>
   );
 }

@@ -72,6 +72,12 @@ Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recor
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
 
+- (overlay) The icon and the ring shown while it transcribes can be left out
+
+While it transcribes, Halo shows a small brain, and the Windows style a brain and a turning
+ring. Neither says anything the bar does not. A Transcription icon switch in the Recording
+overlay tab leaves them out, and the bar stays where it was.
+
 - (overlay) The overlay on screen follows a setting as it is moved
 
 With a recording running, the overlay on screen took a change made in the Recording overlay tab

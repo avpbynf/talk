@@ -180,6 +180,7 @@ export default function OverlayView({ look, surface, phase, colors: palette, lev
             data-glass={surface.translucent ? "on" : "off"}
             data-timer={look.timer ? "on" : "off"}
             data-mic={look.mic ? "on" : "off"}
+            data-marks={look.transcribing_marks ? "on" : "off"}
             data-words={look.end_text ? "on" : "off"}
             data-reduced={reduced}
             data-windowed={windowed}
