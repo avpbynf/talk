@@ -42,12 +42,19 @@ test.describe("the overlay", () => {
     });
   }
 
-  test("the settings tab previews every style with no filter or blur either", async ({ app, page }) => {
+  // The card of the Windows style is the exception: shown off in the settings it blurs the desk
+  // behind it, to look like the window it will be. Measured with every frame painted by the
+  // processor, the tab draws as many frames with that blur as without, the card being small and
+  // what is behind it holding still.
+  test("the settings tab previews every style with no filter, and no blur but the Windows card's", async ({ app, page }) => {
     await app.open();
     await page.getByRole("button", { name: "Appearance" }).click();
     await page.getByRole("radio", { name: "Recording overlay" }).click();
     await expect(page.locator(".ovbox").first()).toBeVisible();
-    expect(await filtered(page)).toEqual([]);
+    expect(await filtered(page)).toEqual(["div.ovf: none blur(20px)"]);
+    await page.getByRole("button", { name: /^Windows/ }).click();
+    await expect(page.getByTestId("overlay-preview").locator(".ovf")).toBeVisible();
+    expect(await filtered(page)).toEqual(["div.ovf: none blur(20px)", "div.ovf: none blur(20px)"]);
   });
 });
 

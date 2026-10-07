@@ -52,6 +52,13 @@ background set to Glass before is dark at 50 % now, one set to Light stays light
 Dark follows the theme. A PC still on 0.11.0 and signed in to the same account keeps reading the
 look: it shows the nearest background it has.
 
+- (overlay) The preview shows the Windows style as it will be
+
+In the Recording overlay tab, the Windows style was drawn as a flat grey card, which said nothing
+of the blurred material it has on the desktop. The preview and the style's tile now blur what is
+behind the card and lay the same shade over it, so the tone and the opacity you pick look there
+as they will.
+
 ## [0.11.0] - 2026-10-06
 
 ### Features
