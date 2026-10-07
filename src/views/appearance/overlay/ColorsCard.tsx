@@ -4,13 +4,14 @@ import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { ColorSwatch } from "@/components/ui/color-swatch";
 import { Segmented } from "@/components/ui/segmented";
-import type { OverlayBackground, OverlayLook, OverlaySettings } from "@/lib/overlay";
+import { Switch } from "@/components/ui/switch";
+import type { OverlayLook, OverlayTone, OverlaySettings } from "@/lib/overlay";
 import { overlayColors } from "@/lib/overlay";
 import { THEME_IDS, type OverlayThemeId, getThemeColors, getThemeLabel } from "@/lib/overlay-themes";
 import type { Stop } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-const BACKGROUNDS: readonly OverlayBackground[] = ["dark", "glass", "light"];
+const TONES: readonly OverlayTone[] = ["theme", "dark", "light"];
 
 interface ColorsCardProps {
   settings: OverlaySettings;
@@ -110,11 +111,17 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
       <SettingRow label={t("appearance.overlay.colors.background")}>
         <Segmented
           label={t("appearance.overlay.colors.background")}
-          value={look.background}
-          onChange={(background: OverlayBackground) => onLook({ background })}
-          options={BACKGROUNDS.map((value) => ({ value, label: t(`appearance.overlay.colors.${value}`) }))}
+          value={look.tone}
+          onChange={(tone: OverlayTone) => onLook({ tone })}
+          options={TONES.map((value) => ({ value, label: t(`appearance.overlay.colors.${value}`) }))}
         />
       </SettingRow>
+
+      {look.style !== "flyout" && (
+        <SettingRow label={t("appearance.overlay.colors.translucent")} hint={t("appearance.overlay.colors.translucentHint")}>
+          <Switch checked={look.translucent} onCheckedChange={(translucent) => onLook({ translucent })} />
+        </SettingRow>
+      )}
     </SectionCard>
   );
 }

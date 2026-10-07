@@ -3,11 +3,12 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTranslation } from "react-i18next";
-import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, overlayColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, overlayColors, surfaceOf } from "@/lib/overlay";
 import { useGoogleAccount } from "@/lib/use-google-account";
 import { useOverlaySettings } from "@/lib/use-overlay-settings";
 import { useReducedMotion } from "@/lib/motion";
 import { readCachedTheme } from "@/lib/theme-cache";
+import { modeOf } from "@/lib/theme-contrast";
 import { prefersReducedMotion, resolveTheme, themeStyle } from "@/lib/theme";
 import OverlayView from "@/overlay/OverlayView";
 import { INITIAL, reduce } from "@/overlay/state";
@@ -164,6 +165,12 @@ function OverlayPage() {
   const fromTop = spot.startsWith("top") || (spot === "free" && (free?.y ?? 1) < 0.5);
   const colors = useMemo(() => overlayColors(settings.look, settings.theme, theme.stops), [settings.look, settings.theme, theme.stops]);
 
+  const surface = useMemo(() => surfaceOf(settings.look, modeOf(theme.bg)), [settings.look, theme.bg]);
+  // The system backdrop of the Windows style is the native side's to put up, in the shade drawn on.
+  useEffect(() => {
+    void invoke("set_overlay_backdrop", { light: surface.tone === "light" });
+  }, [surface.tone]);
+
   const handleMouseDown = async (event: MouseEvent) => {
     // A press is the start of a drag and nothing else: it neither focuses the page nor starts a
     // selection, which is what put a text caret among the overlay's words.
@@ -184,6 +191,7 @@ function OverlayPage() {
         <OverlayView
           leaving={!visible}
           look={settings.look}
+          surface={surface}
           phase={phase}
           colors={colors}
           levels={levels}

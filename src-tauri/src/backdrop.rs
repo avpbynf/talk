@@ -1,7 +1,7 @@
 //! The system's own acrylic behind the overlay window, for the style that is a
 //! Windows flyout.
 
-use crate::overlay_settings::{OverlayBackground, OverlayLook, OverlayStyle};
+use crate::overlay_settings::OverlayStyle;
 use tauri::WebviewWindow;
 
 /// What Windows is asked to draw behind the overlay window.
@@ -14,11 +14,11 @@ pub enum Backdrop {
 }
 
 impl Backdrop {
-    /// Only the flyout style has one, in the shade its background asks for.
-    pub fn of(look: &OverlayLook) -> Self {
-        match (look.style, look.background) {
-            (OverlayStyle::Flyout, OverlayBackground::Light) => Self::Light,
-            (OverlayStyle::Flyout, _) => Self::Dark,
+    /// Only the flyout style has one, light or dark as its card is drawn.
+    pub fn of(style: OverlayStyle, light: bool) -> Self {
+        match (style, light) {
+            (OverlayStyle::Flyout, true) => Self::Light,
+            (OverlayStyle::Flyout, false) => Self::Dark,
             _ => Self::None,
         }
     }

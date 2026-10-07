@@ -25,6 +25,22 @@ a row of segments. Spectrum has a drawing of its own again: fine bars across the
 same on both sides of the middle. None of the four drawings stands taller than sixteen pixels, and
 with the timer or the microphone icon switched off your voice takes the room they leave.
 
+- (overlay) The overlay's background follows the theme, and can be translucent on light too
+
+The Background setting of the Recording overlay tab is now two. The first says what the overlay is
+drawn on: like the theme, which is light under a light theme of Talk and dark under a dark one,
+or always dark, or always light. The second is a Translucent switch, which works on both, so a
+light glass is possible where glass used to be dark only. A background set to Glass before is dark
+and translucent now, one set to Light stays light, and one left on Dark follows the theme. A PC
+still on 0.11.0 and signed in to the same account keeps reading the look: it shows the nearest
+background it has.
+
+- (overlay) The Windows style is light or dark like the others, and always on the system's blur
+
+The Windows style takes the same Background setting: like the theme, dark or light. It has no
+Translucent switch, being the system's blurred material in either case, and the Glass it could be
+set to before is gone for it.
+
 ## [0.11.0] - 2026-10-06
 
 ### Features

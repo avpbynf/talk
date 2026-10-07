@@ -6,7 +6,7 @@ use crate::placement::{self, Rect, Screen, Whereabouts};
 use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
 use parking_lot::Mutex;
 use serde::Serialize;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
@@ -24,7 +24,7 @@ pub struct OverlaySettingsView {
 impl OverlaySettingsView {
     pub fn of(settings: &AppSettings) -> Self {
         Self {
-            look: settings.overlay_look.clone(),
+            look: settings.overlay_look.clone().as_read(),
             theme: settings.overlay_theme,
             size: settings.overlay_size,
             placement: settings.overlay_placement.clone(),
@@ -213,10 +213,27 @@ pub fn show(app: &AppHandle) {
     SHOWS.fetch_add(1, Ordering::SeqCst);
     if let Some(overlay) = app.get_webview_window("overlay") {
         place(app, &overlay);
-        backdrop::apply(&overlay, settings::read(|s| Backdrop::of(&s.overlay_look)));
+        dress(&overlay);
         let _ = overlay.show();
         raise(&overlay);
     }
+}
+
+/// Whether the flyout style is drawn on light. Only the overlay's page knows: the tone may
+/// be the application theme's, and the themes live on its side.
+static ON_LIGHT: AtomicBool = AtomicBool::new(false);
+
+/// The overlay's page says which shade it draws on, and the backdrop behind it follows.
+pub fn draw_on(app: &AppHandle, light: bool) {
+    ON_LIGHT.store(light, Ordering::SeqCst);
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        dress(&overlay);
+    }
+}
+
+fn dress(overlay: &WebviewWindow) {
+    let backdrop = Backdrop::of(settings::read(|s| s.overlay_look.style), ON_LIGHT.load(Ordering::SeqCst));
+    backdrop::apply(overlay, backdrop);
 }
 
 /// How many times the overlay was shown, which is how a hide still waiting knows it is stale.

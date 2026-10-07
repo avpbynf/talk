@@ -3,19 +3,20 @@ import { Mic } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { useReducedMotion } from "@/lib/motion";
-import { STYLES, type OverlayLook, type OverlayStyle } from "@/lib/overlay";
+import { STYLES, type OverlayLook, type OverlayStyle, surfaceOf } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import SimulatedOverlay from "@/overlay/Simulated";
 
 interface StyleCardProps {
   look: OverlayLook;
+  themeMode: "light" | "dark";
   colors: Colors;
   email: string | null;
   onChange: (style: OverlayStyle) => void;
 }
 
 /** A tile for each style, two to a row, each showing its own overlay listening, in the colours and on the background picked. */
-export default function StyleCard({ look, colors, email, onChange }: StyleCardProps) {
+export default function StyleCard({ look, themeMode, colors, email, onChange }: StyleCardProps) {
   const { t } = useTranslation();
   const reduced = useReducedMotion();
   // A tile moves only under the pointer or the keyboard: a page of live overlays beside
@@ -50,6 +51,7 @@ export default function StyleCard({ look, colors, email, onChange }: StyleCardPr
               >
                 <SimulatedOverlay
                   look={{ ...look, style }}
+                  surface={surfaceOf({ ...look, style }, themeMode)}
                   phase="rec"
                   colors={colors}
                   scale={0.7}

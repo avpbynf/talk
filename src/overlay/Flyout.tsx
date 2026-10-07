@@ -97,9 +97,9 @@ function Meter({ subscribe, phaseRef }: VoiceProps) {
  * What runs per frame is the voice, a canvas or a row of bars moved by
  * transform and opacity. Everything else changes once per phase.
  */
-export default function Flyout({ subscribe, phase, look, jobs, progress, label, scale, phaseRef, elapsed, server, accent }: StyleProps) {
+export default function Flyout({ subscribe, phase, look, surface, jobs, progress, label, scale, phaseRef, elapsed, server, accent }: StyleProps) {
   // The system fills its sliders with the accent colour, in the shade that reads on the surface.
-  const fill = (accent ?? FILL)[look.background === "light" ? "dark" : "light"];
+  const fill = (accent ?? FILL)[surface.tone === "light" ? "dark" : "light"];
   const flat = useMemo<Colors>(() => [fill, fill, fill], [fill]);
   const words = phase === "refuse" || look.end_text;
 

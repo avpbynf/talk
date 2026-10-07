@@ -551,9 +551,11 @@
         "customColors": "Vos trois couleurs",
         "customColor": "Couleur {{n}}",
         "background": "Fond",
+        "theme": "Comme le thème",
         "dark": "Sombre",
-        "glass": "Verre",
-        "light": "Clair"
+        "light": "Clair",
+        "translucent": "Translucide",
+        "translucentHint": "Le fond laisse voir ce qu'il y a derrière le bandeau"
       },
       "movement": {
         "title": "Mouvement",

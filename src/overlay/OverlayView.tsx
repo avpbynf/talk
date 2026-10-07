@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type MutableRefObject } from "react";
-import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type SystemAccent, legibleColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, FLYOUT_WIDTH, LEAVE_MS, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type OverlaySurface, type SystemAccent, legibleColors } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import Capsule from "./Capsule";
 import { useOverlayEngine } from "./engine";
@@ -11,6 +11,7 @@ import "./overlay.css";
 
 export interface OverlayViewProps {
   look: OverlayLook;
+  surface: OverlaySurface;
   phase: OverlayPhase;
   colors: Colors;
   /** The latest audio spectrum. Read a frame at a time, so a new one never renders the overlay again. */
@@ -111,10 +112,11 @@ function shake(el: Element | null) {
  * given and keeps nothing of its own: the page that listens for the native side
  * and the preview that plays the states both render it the same way.
  */
-export default function OverlayView({ look, phase, colors: palette, levels, elapsed, progress, server, jobs, label, email, scale, fromTop, reduced: asked, still = false, nudge = 0, desktopPointer = false, windowed = false, accent = null, leaving = false }: OverlayViewProps) {
+export default function OverlayView({ look, surface, phase, colors: palette, levels, elapsed, progress, server, jobs, label, email, scale, fromTop, reduced: asked, still = false, nudge = 0, desktopPointer = false, windowed = false, accent = null, leaving = false }: OverlayViewProps) {
   // A picture has no movement to leave in: the stylesheet's own animations stop with it.
   const reduced = asked || still;
-  const colors = useMemo(() => legibleColors(palette, look.background), [palette, look.background]);
+  const { tone, translucent } = surface;
+  const colors = useMemo(() => legibleColors(palette, { tone, translucent }), [palette, tone, translucent]);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const subscribe = useOverlayEngine({ levels, reaction: look.reaction, listening: phase === "rec", still });
@@ -149,7 +151,7 @@ export default function OverlayView({ look, phase, colors: palette, levels, elap
     "--c2": colors[1],
     "--c3": colors[2],
   };
-  const shared: StyleProps = { subscribe, phase, look, jobs, progress, label, reduced, phaseRef, elapsed, server, colors, scale, accent };
+  const shared: StyleProps = { subscribe, phase, look, surface, jobs, progress, label, reduced, phaseRef, elapsed, server, colors, scale, accent };
 
   return (
     <div className="ovbox" style={style}>
@@ -159,7 +161,8 @@ export default function OverlayView({ look, phase, colors: palette, levels, elap
             ref={pill}
             className="ovw"
             data-st={phase}
-            data-bg={look.background}
+            data-bg={surface.tone}
+            data-glass={surface.translucent ? "on" : "off"}
             data-timer={look.timer ? "on" : "off"}
             data-mic={look.mic ? "on" : "off"}
             data-words={look.end_text ? "on" : "off"}

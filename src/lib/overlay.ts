@@ -5,7 +5,8 @@ import { sortedStops, type Stop } from "@/lib/theme";
 
 export type OverlayStyle = "halo" | "capsule" | "orb" | "flyout";
 export type OverlayPalette = "accent" | "preset" | "custom";
-export type OverlayBackground = "dark" | "glass" | "light";
+/** What the overlay is drawn on: "theme" is light when the application's own theme is, dark otherwise. */
+export type OverlayTone = "theme" | "dark" | "light";
 export type OverlayEntrance = "bounce" | "slide" | "fade";
 /** How the Windows style draws the voice: bars scrolling by, the spectrum, the slider filling with the level, or the halo's seven bars. */
 export type OverlayVoice = "wave" | "bars" | "meter" | "halo";
@@ -16,7 +17,9 @@ export interface OverlayLook {
   style: OverlayStyle;
   palette: OverlayPalette;
   custom_colors: [string, string, string];
-  background: OverlayBackground;
+  tone: OverlayTone;
+  /** The background lets what is behind the overlay show through. */
+  translucent: boolean;
   /** Percent, how strongly the overlay moves with the voice. */
   reaction: number;
   entrance: OverlayEntrance;
@@ -90,7 +93,8 @@ export const DEFAULT_LOOK: OverlayLook = {
   style: "halo",
   palette: "preset",
   custom_colors: ["#ff7a59", "#ff4f8b", "#a259ff"],
-  background: "dark",
+  tone: "theme",
+  translucent: false,
   reaction: 100,
   entrance: "bounce",
   timer: true,
@@ -117,7 +121,7 @@ export const DEFAULT_SETTINGS: OverlaySettings = {
 
 export const STYLES: readonly OverlayStyle[] = ["halo", "capsule", "orb", "flyout"];
 const PALETTES: readonly OverlayPalette[] = ["accent", "preset", "custom"];
-const BACKGROUNDS: readonly OverlayBackground[] = ["dark", "glass", "light"];
+const TONES: readonly OverlayTone[] = ["theme", "dark", "light"];
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
 export const VOICES: readonly OverlayVoice[] = ["wave", "bars", "meter", "halo"];
 const SPOT_VALUES: readonly Spot[] = [...SPOTS, "free"];
@@ -146,7 +150,8 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       style: oneOf(STYLES, look.style, DEFAULT_LOOK.style),
       palette: oneOf(PALETTES, look.palette, DEFAULT_LOOK.palette),
       custom_colors: [0, 1, 2].map((i) => (HEX.test(String(colors[i])) ? String(colors[i]) : DEFAULT_LOOK.custom_colors[i])) as OverlayLook["custom_colors"],
-      background: oneOf(BACKGROUNDS, look.background, DEFAULT_LOOK.background),
+      tone: oneOf(TONES, look.tone, DEFAULT_LOOK.tone),
+      translucent: look.translucent === true,
       reaction: Math.min(REACTION_MAX, Math.max(REACTION_MIN, reaction)),
       entrance: oneOf(ENTRANCES, look.entrance, DEFAULT_LOOK.entrance),
       timer: look.timer !== false,
@@ -190,8 +195,24 @@ export function overlayColors(look: OverlayLook, theme: OverlayThemeId, accent: 
   return getThemeColors(theme);
 }
 
-/** The pill's own colour under each background, which is what the three colours are drawn on. */
-const PILL: Record<OverlayBackground, string> = { dark: "#0d0e14", glass: "#1c1e2a", light: "#fafafd" };
+/** What the overlay is drawn on once the tone is settled: light or dark, and whether it shows through. */
+export interface OverlaySurface {
+  tone: "dark" | "light";
+  translucent: boolean;
+}
+
+/** The surface a look is drawn on: the tone picked, or the one of the application's theme. */
+export function surfaceOf(look: OverlayLook, themeMode: "light" | "dark"): OverlaySurface {
+  const tone = look.tone === "theme" ? themeMode : look.tone;
+  // The Windows style is the system's acrylic, which is what it is: nothing to see through further.
+  return { tone, translucent: look.style !== "flyout" && look.translucent };
+}
+
+/** The pill's own colour on a surface, which is what the three colours are drawn on. */
+function pillOf(surface: OverlaySurface): string {
+  if (surface.tone === "light") return "#fafafd";
+  return surface.translucent ? "#1c1e2a" : "#0d0e14";
+}
 /** The least contrast a mark needs against the pill to be seen, the one WCAG asks of graphics. */
 const MARK_CONTRAST = 3;
 
@@ -201,9 +222,9 @@ const MARK_CONTRAST = 3;
  * background, or a dark custom colour on a dark one, would otherwise leave the mic, the bars
  * and the badge invisible.
  */
-export function legibleColors(colors: Colors, background: OverlayBackground): Colors {
-  const pill = PILL[background];
-  const toward = background === "light" ? "#000000" : "#ffffff";
+export function legibleColors(colors: Colors, surface: OverlaySurface): Colors {
+  const pill = pillOf(surface);
+  const toward = surface.tone === "light" ? "#000000" : "#ffffff";
   return colors.map((color) => {
     let shown = color;
     for (let t = 0.05; contrast(shown, pill) < MARK_CONTRAST && t <= 1.0001; t += 0.05) shown = mixHex(color, toward, t);

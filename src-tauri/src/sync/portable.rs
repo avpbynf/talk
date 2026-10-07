@@ -185,6 +185,17 @@ impl SyncedSettings {
         self.fingerprint() != stored
             && self.legacy_fingerprint().as_deref() != Some(stored)
             && self.themed_fingerprint().as_deref() != Some(stored)
+            && ![false, true].iter().any(|carried| self.fingerprint_before_tone(*carried).as_deref() == Some(stored))
+    }
+
+    /// What 0.11.0 hashed these settings to: the same, with the look as that build wrote
+    /// it, see `OverlayLook::json_before_tone`. Nothing when it could not have held them.
+    fn fingerprint_before_tone(&self, carried: bool) -> Option<String> {
+        let json = serde_json::to_string(self).ok()?;
+        let look = json.find(",\"overlay_look\":")? + ",\"overlay_look\":".len();
+        let after = json.find(",\"overlay_look_modified\":")?;
+        let before_tone = self.overlay_look.json_before_tone(carried)?;
+        Some(format!("{:x}", Sha256::digest(format!("{}{before_tone}{}", &json[..look], &json[after..]).as_bytes())))
     }
 
     /// What a build that had themes but no overlay look hashed these settings to, or nothing
@@ -516,6 +527,7 @@ pub fn plan(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::overlay_settings::OverlayTone;
 
     fn saved(id: &str, modified: i64) -> SavedTheme {
         SavedTheme { id: id.to_string(), name: id.to_string(), values: Default::default(), modified, ..Default::default() }
@@ -1281,8 +1293,94 @@ mod tests {
         let mut settings = AppSettings::default();
         plan.merged.apply_to_settings(&mut settings);
         assert_eq!(settings.overlay_look.style, crate::overlay_settings::OverlayStyle::Capsule);
-        assert_eq!(settings.overlay_look.background, crate::overlay_settings::OverlayBackground::Light);
+        assert_eq!(settings.overlay_look.surface(), (OverlayTone::Light, false));
         assert!(settings.overlay_look.end_text);
+    }
+
+    #[test]
+    fn a_glass_look_from_0_11_arrives_dark_and_translucent() {
+        let local = SyncedSettings::default();
+        let theirs = r#"{"overlay_look": {"style": "orb", "background": "glass"}, "overlay_look_modified": 40}"#;
+        let remote = SettingsFile::parse(&account_copy(theirs), &local).expect("parse");
+        assert!(remote.foreign.is_empty(), "read in full");
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&remote), 100);
+        assert_eq!(plan.merged.overlay_look.surface(), (OverlayTone::Dark, true));
+        assert_eq!(plan.merged.overlay_look_modified, 40);
+    }
+
+    /// The background 0.11.0 draws for an account's look, which it has to read in full.
+    fn as_0_11_reads(look: &serde_json::Value) -> serde_json::Value {
+        let background = crate::overlay_settings::before_tone::reads_in_full(look)
+            .unwrap_or_else(|| panic!("0.11.0 would set the whole look aside: {look}"));
+        serde_json::to_value(background).expect("a name")
+    }
+
+    #[test]
+    fn a_look_chosen_here_goes_up_in_a_shape_0_11_reads_in_full() {
+        let shown_there = [
+            (OverlayTone::Theme, false, "dark"),
+            (OverlayTone::Theme, true, "glass"),
+            (OverlayTone::Dark, false, "dark"),
+            (OverlayTone::Dark, true, "glass"),
+            (OverlayTone::Light, false, "light"),
+            (OverlayTone::Light, true, "light"),
+        ];
+        for (tone, translucent, there) in shown_there {
+            let mut local = SyncedSettings::default();
+            local.overlay_look = OverlayLook { tone, translucent, ..Default::default() }.as_chosen();
+            local.overlay_look_modified = 90;
+            let out = uploaded(plan(&local, 90, true, &VocabLedger::default(), None, 100), 100);
+            let look = &out["settings"]["overlay_look"];
+            assert_eq!(as_0_11_reads(look), there, "{tone:?} {translucent}");
+        }
+    }
+
+    #[test]
+    fn a_look_0_11_edited_and_sent_back_is_followed_and_not_set_aside() {
+        // Light and translucent went up from here; a 0.11.0 picked Glass and kept our two keys.
+        let mut local = SyncedSettings::default();
+        local.overlay_look = OverlayLook { tone: OverlayTone::Light, translucent: true, ..Default::default() }.as_chosen();
+        local.overlay_look_modified = 90;
+        let theirs = r#"{"overlay_look": {"style": "halo", "background": "glass", "tone": "light", "translucent": true}, "overlay_look_modified": 200}"#;
+        let remote = SettingsFile::parse(&account_copy(theirs), &local).expect("parse");
+        assert!(remote.foreign.is_empty(), "read in full, or the two machines stop sharing a look");
+
+        let plan = plan(&local, 90, true, &VocabLedger::default(), Some(&remote), 300);
+        assert_eq!(plan.merged.overlay_look.surface(), (OverlayTone::Dark, true), "what the other machine shows");
+        assert_eq!(plan.merged.overlay_look_modified, 200);
+        let out = uploaded(plan, 300);
+        assert_eq!(as_0_11_reads(&out["settings"]["overlay_look"]), "glass", "and it is not written over");
+    }
+
+    #[test]
+    fn upgrading_from_0_11_is_not_an_edit_of_the_look() {
+        // What 0.11.0 hashed: the look without the two keys it did not have.
+        let stored_by_0_11 = |settings: &SyncedSettings, look: &str| {
+            let json = serde_json::to_string(settings).expect("json");
+            let from = json.find(",\"overlay_look\":").expect("the look") + ",\"overlay_look\":".len();
+            let to = json.find(",\"overlay_look_modified\":").expect("its time");
+            format!("{:x}", Sha256::digest(format!("{}{look}{}", &json[..from], &json[to..]).as_bytes()))
+        };
+        let tail = r#""reaction":100,"entrance":"bounce","timer":true,"mic":true,"end_text":false,"pasted_hold_ms":1500,"voice":"wave""#;
+        let head = r##"{"style":"halo","palette":"preset","custom_colors":["#ff7a59","#ff4f8b","#a259ff"],"##;
+
+        let mut upgraded = SyncedSettings::default();
+        upgraded.overlay_look.background = crate::overlay_settings::OverlayBackground::Glass;
+        upgraded.overlay_look_modified = 60;
+        let stored = stored_by_0_11(&upgraded, &format!(r#"{head}"background":"glass",{tail}}}"#));
+        assert_ne!(stored, upgraded.fingerprint());
+        assert!(!upgraded.changed_since(&stored), "upgrading alone is not an edit");
+        assert_eq!(restamp(&upgraded, &stored, 777, 5_000), (upgraded.fingerprint(), 777));
+
+        let mut edited = upgraded.clone();
+        edited.overlay_look = OverlayLook { translucent: false, tone: OverlayTone::Light, ..edited.overlay_look }.as_chosen();
+        assert!(edited.changed_since(&stored), "a tone picked since is one");
+
+        // A 0.11.0 that took the two keys from the account carried them after its own.
+        let mut carried = SyncedSettings::default();
+        carried.overlay_look = OverlayLook { tone: OverlayTone::Light, translucent: true, ..Default::default() }.as_chosen();
+        let stored = stored_by_0_11(&carried, &format!(r#"{head}"background":"light",{tail},"tone":"light","translucent":true}}"#));
+        assert!(!carried.changed_since(&stored));
     }
 
     #[test]
