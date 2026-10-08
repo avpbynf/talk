@@ -895,6 +895,7 @@ mod tests {
         let local = SyncedSettings::default();
         let body = serde_json::to_string(&file_with(&[], 50)).expect("should serialise");
         let parsed = SettingsFile::parse(&body, &local).expect("should parse");
+        assert!(!parsed.incomplete);
     }
 
     #[test]
