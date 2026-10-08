@@ -100,6 +100,15 @@ fn past_and_back(elapsed: f64) -> f64 {
     1.0 + (PAST + 1.0) * left.powi(3) + PAST * left.powi(2)
 }
 
+/// The side of the screen a window arrives from, and leaves towards.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
 /// What a movement is played on: the window, the corner it rests at, the scale of its screen
 /// and the side it comes from.
 #[derive(Debug, Clone, Copy)]
@@ -107,14 +116,20 @@ pub struct Stage {
     pub window: isize,
     pub rest: (i32, i32),
     pub scale: f64,
-    pub from_top: bool,
+    pub from: Side,
 }
 
 impl Stage {
     /// The corner of the window when it stands that far from its place.
     fn corner(&self, standing: Standing) -> (i32, i32) {
         let shift = (standing.away * self.scale).round() as i32;
-        (self.rest.0, if self.from_top { self.rest.1 - shift } else { self.rest.1 + shift })
+        let (x, y) = self.rest;
+        match self.from {
+            Side::Top => (x, y - shift),
+            Side::Bottom => (x, y + shift),
+            Side::Left => (x - shift, y),
+            Side::Right => (x + shift, y),
+        }
     }
 }
 
@@ -263,8 +278,10 @@ mod tests {
     #[test]
     fn the_window_comes_from_the_side_it_sits_on() {
         let standing = Standing { shown: 0.0, away: 30.0 };
-        let stage = Stage { window: 0, rest: (100, 500), scale: 1.5, from_top: false };
+        let stage = Stage { window: 0, rest: (100, 500), scale: 1.5, from: Side::Bottom };
         assert_eq!(stage.corner(standing), (100, 545));
-        assert_eq!(Stage { from_top: true, ..stage }.corner(standing), (100, 455));
+        assert_eq!(Stage { from: Side::Top, ..stage }.corner(standing), (100, 455));
+        assert_eq!(Stage { from: Side::Left, ..stage }.corner(standing), (55, 500));
+        assert_eq!(Stage { from: Side::Right, ..stage }.corner(standing), (145, 500));
     }
 }

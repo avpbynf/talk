@@ -81,6 +81,19 @@ pub enum OverlayEntrance {
     Fade,
 }
 
+/// The side the overlay arrives from, and leaves towards.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EntranceFrom {
+    /// The edge of the screen it sits by: the top in the upper half, the bottom in the lower.
+    #[default]
+    Auto,
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
 /// How the flyout style draws the voice while it records.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -221,6 +234,9 @@ pub struct OverlayLook {
     /// Read by the flyout style alone: how wide what is drawn in the middle of the card is.
     #[serde(deserialize_with = "middle_width")]
     pub middle_width: u16,
+    /// Where a bounce and a slide come from. A fade has no side.
+    #[serde(deserialize_with = "lenient")]
+    pub entrance_from: EntranceFrom,
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -246,6 +262,7 @@ impl Default for OverlayLook {
             transcribing_marks: true,
             card_width: CARD_WIDTH_DEFAULT,
             middle_width: MIDDLE_WIDTH_DEFAULT,
+            entrance_from: EntranceFrom::default(),
             extra: Extra::new(),
         }
     }
@@ -330,6 +347,7 @@ impl OverlayLook {
             extra.insert("transcribing_marks".to_string(), Value::Bool(self.transcribing_marks));
             extra.insert("card_width".to_string(), Value::from(self.card_width));
             extra.insert("middle_width".to_string(), Value::from(self.middle_width));
+            extra.insert("entrance_from".to_string(), serde_json::to_value(self.entrance_from).ok()?);
         } else if self.tone != OverlayTone::default()
             || self.opacity != OPACITY_FULL
             || self.shadow != SHADOW_DEFAULT
@@ -337,6 +355,7 @@ impl OverlayLook {
             || !self.transcribing_marks
             || self.card_width != CARD_WIDTH_DEFAULT
             || self.middle_width != MIDDLE_WIDTH_DEFAULT
+            || self.entrance_from != EntranceFrom::default()
         {
             return None;
         }
@@ -691,7 +710,7 @@ mod tests {
         look.extra.insert("sparkle".to_string(), json!(3));
         assert_eq!(look.json_before_tone(false), None, "0.11.0 alone could not have had it");
         let carried = look.json_before_tone(true).expect("json");
-        assert!(carried.ends_with(r#""voice":"wave","card_width":192,"middle_width":110,"opacity":100,"shadow":100,"sparkle":3,"system_color":true,"tone":"light","transcribing_marks":true}"#), "{carried}");
+        assert!(carried.ends_with(r#""voice":"wave","card_width":192,"entrance_from":"auto","middle_width":110,"opacity":100,"shadow":100,"sparkle":3,"system_color":true,"tone":"light","transcribing_marks":true}"#), "{carried}");
     }
 
     #[test]

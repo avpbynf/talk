@@ -1393,7 +1393,7 @@ mod tests {
         // A 0.11.0 that took the two keys from the account carried them after its own.
         let mut carried = SyncedSettings::default();
         carried.overlay_look = OverlayLook { tone: OverlayTone::Light, opacity: 50, ..Default::default() }.as_chosen();
-        let stored = stored_by_0_11(&carried, &format!(r#"{head}"background":"light",{tail},"card_width":192,"middle_width":110,"opacity":50,"shadow":100,"system_color":true,"tone":"light","transcribing_marks":true}}"#));
+        let stored = stored_by_0_11(&carried, &format!(r#"{head}"background":"light",{tail},"card_width":192,"entrance_from":"auto","middle_width":110,"opacity":50,"shadow":100,"system_color":true,"tone":"light","transcribing_marks":true}}"#));
         assert!(!carried.changed_since(&stored));
     }
 

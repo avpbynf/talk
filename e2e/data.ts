@@ -133,6 +133,7 @@ export function defaultState() {
         transcribing_marks: true,
         card_width: 192,
         middle_width: 110,
+        entrance_from: "auto",
         reaction: 100,
         entrance: "bounce",
         timer: true,

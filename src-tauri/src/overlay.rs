@@ -1,9 +1,9 @@
 //! The overlay window, and the one thing Windows will not keep on its own.
 
-use crate::arrival::{self, Movement, Stage, Way};
+use crate::arrival::{self, Movement, Side, Stage, Way};
 use crate::backdrop::{self, Backdrop, SystemAccent};
 use crate::overlay_settings::{
-    OverlayLook, OverlayPlacement, OverlayStyle, ScreenChoice, CARD_WIDTH_MAX, CARD_WIDTH_MIN,
+    EntranceFrom, OverlayLook, OverlayPlacement, OverlayStyle, ScreenChoice, CARD_WIDTH_MAX, CARD_WIDTH_MIN,
 };
 use crate::placement::{self, Rect, Screen, Whereabouts};
 use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
@@ -144,8 +144,14 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) -> Option<Stage> {
     let _ = overlay.set_size(PhysicalSize::new(width as u32, height as u32));
     let _ = overlay.set_position(PhysicalPosition::new(x, y));
 
-    let from_top = y + height as i32 / 2 < screen.work.y + screen.work.h / 2;
-    Some(Stage { window: own_window(overlay)?, rest: (x, y), scale: screen.scale, from_top })
+    let from = match settings.overlay_look.entrance_from {
+        EntranceFrom::Auto if y + height as i32 / 2 < screen.work.y + screen.work.h / 2 => Side::Top,
+        EntranceFrom::Auto | EntranceFrom::Bottom => Side::Bottom,
+        EntranceFrom::Top => Side::Top,
+        EntranceFrom::Left => Side::Left,
+        EntranceFrom::Right => Side::Right,
+    };
+    Some(Stage { window: own_window(overlay)?, rest: (x, y), scale: screen.scale, from })
 }
 
 /// How tall the card of the flyout style is, as the one Windows shows for the volume keys.

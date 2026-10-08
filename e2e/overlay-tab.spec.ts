@@ -345,6 +345,17 @@ test.describe("the overlay tab", () => {
       await expect.poll(async () => (await calls(app, "set_overlay_size")).at(-1)?.size).toBe("large");
     });
 
+    test("the arrival has a side, which a fade has not", async ({ app, page }) => {
+      await openTab(app, page);
+      const from = page.getByRole("radiogroup", { name: "From" });
+      await expect(from.getByRole("radio", { name: "Auto" })).toBeChecked();
+      await from.getByRole("radio", { name: "Left" }).click();
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.entrance_from).toBe("left");
+      await expect(page.getByText("The side it arrives from, and leaves towards")).toBeVisible();
+      await page.getByRole("radiogroup", { name: "Appearance" }).getByRole("radio", { name: "Fade" }).click();
+      await expect(page.getByText("A fade has no side")).toBeVisible();
+    });
+
     test("a setting that was changed shows the way back to its default, beside its label", async ({ app, page }) => {
       await openTab(app, page);
       const back = page.locator('xpath=//label[normalize-space()="Reaction to your voice"]/following-sibling::button');

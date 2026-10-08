@@ -8,6 +8,10 @@ export type OverlayPalette = "accent" | "preset" | "custom";
 /** What the overlay is drawn on: "theme" is light when the application's own theme is, dark otherwise. */
 export type OverlayTone = "theme" | "dark" | "light";
 export type OverlayEntrance = "bounce" | "slide" | "fade";
+/** A side of the screen an overlay arrives from, and leaves towards. */
+export type OverlaySide = "top" | "bottom" | "left" | "right";
+/** That side as the look picks it: `auto` is the edge the overlay sits by. */
+export type OverlayEntranceFrom = "auto" | OverlaySide;
 /** How the Windows style draws the voice: bars scrolling by, the spectrum, the slider filling with the level, or the halo's seven bars. */
 export type OverlayVoice = "wave" | "bars" | "meter" | "halo";
 /** What the overlay is showing: listening, thinking, text pasted, dictation turned away. */
@@ -41,6 +45,8 @@ export interface OverlayLook {
   card_width: number;
   /** Read by the Windows style alone: how wide what is drawn in the middle of the card is. */
   middle_width: number;
+  /** Where a bounce and a slide come from. A fade has no side. */
+  entrance_from: OverlayEntranceFrom;
 }
 
 export type Spot = "top_left" | "top_center" | "top_right" | "bottom_left" | "bottom_center" | "bottom_right" | "free";
@@ -139,6 +145,7 @@ export const DEFAULT_LOOK: OverlayLook = {
   transcribing_marks: true,
   card_width: 192,
   middle_width: 110,
+  entrance_from: "auto",
 };
 
 export const DEFAULT_PLACEMENT: OverlayPlacement = {
@@ -160,6 +167,7 @@ export const STYLES: readonly OverlayStyle[] = ["halo", "capsule", "orb", "flyou
 const PALETTES: readonly OverlayPalette[] = ["accent", "preset", "custom"];
 const TONES: readonly OverlayTone[] = ["theme", "dark", "light"];
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
+export const ENTRANCE_SIDES: readonly OverlayEntranceFrom[] = ["auto", "top", "bottom", "left", "right"];
 export const VOICES: readonly OverlayVoice[] = ["wave", "bars", "meter", "halo"];
 const SPOT_VALUES: readonly Spot[] = [...SPOTS, "free"];
 const SCREENS: readonly ScreenChoice[] = ["typing", "pointer", "follow", "primary", "chosen"];
@@ -207,6 +215,7 @@ export function coerceSettings(raw: unknown): OverlaySettings {
       transcribing_marks: look.transcribing_marks !== false,
       card_width: within(look.card_width, FLYOUT_WIDTH_MIN, FLYOUT_WIDTH_MAX, DEFAULT_LOOK.card_width),
       middle_width: within(look.middle_width, FLYOUT_MIDDLE_MIN, FLYOUT_MIDDLE_MAX, DEFAULT_LOOK.middle_width),
+      entrance_from: oneOf(ENTRANCE_SIDES, look.entrance_from, DEFAULT_LOOK.entrance_from),
     },
     theme: oneOf(THEME_IDS, settings.theme, DEFAULT_SETTINGS.theme),
     size: oneOf(SIZES, settings.size, DEFAULT_SETTINGS.size),
