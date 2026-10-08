@@ -259,7 +259,7 @@ test.describe("the overlay tab", () => {
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.shadow).toBe(0);
       await page.getByRole("button", { name: /^Windows.+/ }).click();
       await expect(page.getByRole("button", { name: /^Windows.+/ })).toHaveAttribute("aria-pressed", "true");
-      await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(1);
+      await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(0);
       // The orb casts none.
       await page.getByRole("button", { name: /^Orb.+/ }).click();
       await expect(page.getByRole("button", { name: /^Orb.+/ })).toHaveAttribute("aria-pressed", "true");
@@ -328,7 +328,7 @@ test.describe("the overlay tab", () => {
     type Row = keyof typeof ROWS;
 
     for (const [name, style, shown] of [
-      ["Windows", "flyout", ["Accent colour", "Voice", "Card width", "Microphone", "Transcription", "Shadow"]],
+      ["Windows", "flyout", ["Accent colour", "Voice", "Card width", "Microphone", "Transcription"]],
       ["Halo", "halo", ["Palette", "Size", "Shadow", "Microphone", "Transcription"]],
       ["Capsule", "capsule", ["Palette", "Size", "Shadow", "Microphone"]],
       ["Orb", "orb", ["Palette", "Size"]],

@@ -32,7 +32,7 @@ export default function StyleSettingsCard({ settings, accent, onLook, onTheme, o
           <CardWidthRow {...rows} />
           <MicRow {...rows} />
           <MarksRow {...rows} />
-          <ShadowRow {...rows} />
+          {/* No Shadow row: the window is the card, and the shadow under a rounded window is the system's, which has no strength. */}
           <Disclosure away={lookReset(look, onLook, "middle_width") ? 1 : 0}>
             <MiddleWidthRow {...rows} />
           </Disclosure>
