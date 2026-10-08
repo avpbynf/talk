@@ -3,6 +3,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Range } from "@/components/ui/range";
 import { Switch } from "@/components/ui/switch";
+import { SYSTEM_DEFAULTS, resetTo } from "@/lib/factory-defaults";
 import LanguageRow from "./LanguageRow";
 import { Monitor } from "lucide-react";
 
@@ -32,9 +33,20 @@ export default function SystemSection({
   onPreserveClipboardChange,
 }: SystemSectionProps) {
   const { t } = useTranslation();
+  // The row holds the switch and the level under it: both come back together.
+  const duckAway = duckAudioOnRecord !== SYSTEM_DEFAULTS.duck_audio_on_record;
+  const duckLevelAway = duckVolumePercent !== SYSTEM_DEFAULTS.duck_volume_percent;
+  const duckReset =
+    duckAway || duckLevelAway
+      ? () => {
+          if (duckAway) onDuckAudioOnRecordChange(SYSTEM_DEFAULTS.duck_audio_on_record);
+          if (duckLevelAway) onDuckVolumePercentChange(SYSTEM_DEFAULTS.duck_volume_percent);
+        }
+      : undefined;
   return (
     <SectionCard icon={Monitor} title={t("preferences.system.title")}>
       <SettingRow
+        onReset={resetTo(autostartEnabled, SYSTEM_DEFAULTS.autostart_enabled, onAutostartChange)}
         label={t("preferences.system.autostart.label")}
         hint={t("preferences.system.autostart.hint")}
       >
@@ -42,6 +54,7 @@ export default function SystemSection({
       </SettingRow>
 
       <SettingRow
+        onReset={resetTo(startMinimized, SYSTEM_DEFAULTS.start_minimized, onStartMinimizedChange)}
         label={t("preferences.system.minimized.label")}
         hint={t("preferences.system.minimized.hint")}
       >
@@ -50,6 +63,7 @@ export default function SystemSection({
 
       {/* Duck the machine while recording */}
       <SettingRow
+        onReset={duckReset}
         label={t("preferences.system.duck.label")}
         hint={t("preferences.system.duck.hint")}
         below={
@@ -78,6 +92,7 @@ export default function SystemSection({
       </SettingRow>
 
       <SettingRow
+        onReset={resetTo(preserveClipboard, SYSTEM_DEFAULTS.preserve_clipboard, onPreserveClipboardChange)}
         label={t("preferences.system.clipboard.label")}
         hint={t("preferences.system.clipboard.hint")}
       >

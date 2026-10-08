@@ -538,3 +538,52 @@ test.describe("meeting mode", () => {
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });
+
+/** The way back to the default, beside the label of a row. */
+const wayBack = (page: Page, label: string) =>
+  page.locator(`xpath=//label[normalize-space()="${label}"]/following-sibling::button`);
+
+test.describe("the way back to a default", () => {
+  test("shows on the engine page beside a changed setting and puts it back", async ({ app, page }) => {
+    await app.open({ state: { settings: { transcription_mode: "server" } } });
+    await app.go(engine);
+    const back = wayBack(page, "Local fallback");
+    const fallback = page.getByRole("switch", { name: "Local fallback" });
+    await expect(back).toHaveCount(0);
+    await fallback.click();
+    await expect(back).toHaveText("Default");
+    await back.click();
+    await expect(fallback).toBeChecked();
+    expect((await app.calls("set_server_fallback")).at(-1)?.args).toEqual({ enabled: true });
+    await expect(back).toHaveCount(0);
+  });
+
+  test("shows on the settings page beside a changed setting and puts it back", async ({ app, page }) => {
+    await app.open();
+    await app.go(PAGES.find((p) => p.id === "settings")!);
+    const back = wayBack(page, "Start minimised");
+    const minimised = page.getByRole("switch", { name: "Start minimised" });
+    await expect(back).toHaveCount(0);
+    await minimised.click();
+    await expect(back).toHaveText("Default");
+    await back.click();
+    await expect(minimised).not.toBeChecked();
+    expect((await app.calls("set_start_minimized")).at(-1)?.args).toEqual({ enabled: false });
+    await expect(back).toHaveCount(0);
+  });
+
+  test("shows on the dictation page beside a changed setting and puts it back", async ({ app, page }) => {
+    await app.open();
+    await app.go(PAGES.find((p) => p.id === "dictation")!);
+    const back = wayBack(page, "When it starts");
+    const sound = page.getByRole("combobox", { name: "When it starts" });
+    await expect(back).toHaveCount(0);
+    await sound.click();
+    await page.getByRole("option", { name: "Chime" }).click();
+    await expect(back).toHaveText("Default");
+    await back.click();
+    await expect(sound).toHaveText("Beep");
+    expect((await app.calls("set_start_sound")).at(-1)?.args).toEqual({ preset: "beep" });
+    await expect(back).toHaveCount(0);
+  });
+});

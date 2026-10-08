@@ -194,6 +194,18 @@ export function sameValues(a: ThemeValues, b: ThemeValues): boolean {
   return stable(a) === stable(b);
 }
 
+/** What puts the named values of a theme back to those of the theme it started from, or nothing when they are there already. */
+export function themeReset(
+  base: ThemeValues,
+  values: ThemeValues,
+  change: (patch: Partial<ThemeValues>) => void,
+  ...keys: (keyof ThemeValues)[]
+): (() => void) | undefined {
+  const away = keys.filter((key) => stable(values[key]) !== stable(base[key]));
+  if (away.length === 0) return undefined;
+  return () => change(Object.fromEntries(away.map((key) => [key, base[key]])) as Partial<ThemeValues>);
+}
+
 export function resolveTheme(setting: ThemeSetting, saved: readonly SavedTheme[]): Resolved {
   const base = findBase(setting.preset, saved);
   const values = setting.custom ?? base;

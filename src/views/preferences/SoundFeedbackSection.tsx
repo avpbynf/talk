@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Volume2 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { SOUND_DEFAULTS, resetTo } from "@/lib/factory-defaults";
 
 interface SoundFeedbackSectionProps {
   soundFeedback: boolean;
@@ -46,6 +47,7 @@ export default function SoundFeedbackSection({
         <>
           <SoundRow
             label={t("preferences.sound.whenStarts")}
+            factory={SOUND_DEFAULTS.start_sound}
             playLabel={t("preferences.sound.playStart")}
             value={startSound}
             onChange={(value) => {
@@ -56,6 +58,7 @@ export default function SoundFeedbackSection({
           />
           <SoundRow
             label={t("preferences.sound.whenStops")}
+            factory={SOUND_DEFAULTS.stop_sound}
             playLabel={t("preferences.sound.playStop")}
             value={stopSound}
             onChange={(value) => {
@@ -77,16 +80,17 @@ export default function SoundFeedbackSection({
 
 interface SoundRowProps {
   label: string;
+  factory: string;
   playLabel: string;
   value: string;
   onChange: (value: string) => void;
   onPlay: () => void;
 }
 
-function SoundRow({ label, playLabel, value, onChange, onPlay }: SoundRowProps) {
+function SoundRow({ label, factory, playLabel, value, onChange, onPlay }: SoundRowProps) {
   const { t } = useTranslation();
   return (
-    <SettingRow label={label}>
+    <SettingRow onReset={resetTo(value, factory, onChange)} label={label}>
       <span className="flex items-center gap-2">
         <Select value={value} onValueChange={onChange}>
           <SelectTrigger>

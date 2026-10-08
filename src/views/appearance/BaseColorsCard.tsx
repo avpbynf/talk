@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { ColorSwatch } from "@/components/ui/color-swatch";
-import { type ThemeValues, settleValues } from "@/lib/theme";
+import { type ThemeValues, settleValues, themeReset } from "@/lib/theme";
 import { modeOf } from "@/lib/theme-contrast";
 import type { AppThemeController } from "@/lib/use-app-theme";
 
@@ -18,12 +18,14 @@ export default function BaseColorsCard({ theme }: { theme: AppThemeController })
     theme.edit({ ...next, mode: modeOf(next.bg) }, live);
   };
   const settled = settleValues(values);
+  const reset = (key: (typeof COLORS)[number]) => themeReset(theme.resolved.base, values, change, key);
 
   return (
     <SectionCard icon={Palette} title={t("appearance.base.title")} description={t("appearance.base.description")}>
       {COLORS.map((key) => (
         <SettingRow
           key={key}
+          onReset={reset(key)}
           label={t(`appearance.base.${key}.label`)}
           hint={key === "border" ? undefined : t(`appearance.base.${key}.hint`)}
         >

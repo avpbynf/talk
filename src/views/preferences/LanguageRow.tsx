@@ -11,6 +11,7 @@ import {
 import { LoadGate } from "@/components/LoadGate";
 import { SettingRow } from "@/components/SettingRow";
 import { setLanguageSetting, type LanguageSetting } from "@/i18n";
+import { FOLLOWS_SYSTEM, resetTo } from "@/lib/factory-defaults";
 import { confirmSetting, saveSetting } from "@/lib/save-setting";
 import { useSettingRead } from "@/lib/use-setting-read";
 
@@ -46,6 +47,7 @@ export default function LanguageRow() {
   return (
     <LoadGate groups={["language"]} onRetry={reload} pending={pending} inline>
       <SettingRow
+        onReset={resetTo(setting, FOLLOWS_SYSTEM, (next) => change(next ?? FOLLOW_SYSTEM))}
         label={t("preferences.language.label")}
         hint={t("preferences.language.description")}
       >

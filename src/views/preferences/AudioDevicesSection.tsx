@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { LoadGate } from "@/components/LoadGate";
 import { useSettingRead } from "@/lib/use-setting-read";
 import { confirmSetting, saveSetting } from "@/lib/save-setting";
+import { FOLLOWS_SYSTEM, resetTo } from "@/lib/factory-defaults";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
@@ -153,7 +154,7 @@ function DeviceRow({
 }: DeviceRowProps) {
   const { t } = useTranslation();
   return (
-    <SettingRow label={label} hint={hint}>
+    <SettingRow onReset={resetTo(selected, FOLLOWS_SYSTEM, (name) => onChange(name ?? SYSTEM_DEFAULT))} label={label} hint={hint}>
       <span className="flex min-w-0 items-center gap-2">
         <Select
           value={selected ?? SYSTEM_DEFAULT}

@@ -6,7 +6,7 @@ import { ColorSwatch } from "@/components/ui/color-swatch";
 import { Range } from "@/components/ui/range";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
-import { MIN_GLASS, type ThemeValues, lightsOf } from "@/lib/theme";
+import { MIN_GLASS, type ThemeValues, lightsOf, themeReset } from "@/lib/theme";
 import type { AppThemeController } from "@/lib/use-app-theme";
 
 export default function AtmosphereCard({ theme }: { theme: AppThemeController }) {
@@ -14,10 +14,11 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
   const values = theme.resolved.values;
   const change = (patch: Partial<ThemeValues>, live = false) => theme.edit({ ...values, ...patch }, live);
   const lights = lightsOf(values);
+  const reset = (...keys: (keyof ThemeValues)[]) => themeReset(theme.resolved.base, values, change, ...keys);
 
   return (
     <SectionCard icon={Cloud} title={t("appearance.atmosphere.title")}>
-      <SettingRow label={t("appearance.atmosphere.lights.label")} hint={t("appearance.atmosphere.lights.hint")}>
+      <SettingRow onReset={reset("ambient")} label={t("appearance.atmosphere.lights.label")} hint={t("appearance.atmosphere.lights.hint")}>
         <span className="flex items-center gap-2">
           <Range
             value={values.ambient}
@@ -30,7 +31,7 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
         </span>
       </SettingRow>
 
-      <SettingRow label={t("appearance.atmosphere.glass.label")} hint={t("appearance.atmosphere.glass.hint")}>
+      <SettingRow onReset={reset("glass")} label={t("appearance.atmosphere.glass.label")} hint={t("appearance.atmosphere.glass.hint")}>
         <span className="flex items-center gap-2">
           <Range
             value={values.glass}
@@ -44,6 +45,7 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
       </SettingRow>
 
       <SettingRow
+        onReset={reset("lights")}
         label={t("appearance.atmosphere.source.label")}
         hint={t("appearance.atmosphere.source.hint")}
         below={
@@ -76,7 +78,7 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
         />
       </SettingRow>
 
-      <SettingRow label={t("appearance.atmosphere.drift.label")} hint={t("appearance.atmosphere.drift.hint")}>
+      <SettingRow onReset={reset("drift")} label={t("appearance.atmosphere.drift.label")} hint={t("appearance.atmosphere.drift.hint")}>
         <Switch
           checked={values.drift}
           onCheckedChange={(drift) => change({ drift })}
@@ -84,7 +86,7 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
         />
       </SettingRow>
 
-      <SettingRow label={t("appearance.atmosphere.grain.label")} hint={t("appearance.atmosphere.grain.hint")}>
+      <SettingRow onReset={reset("grain")} label={t("appearance.atmosphere.grain.label")} hint={t("appearance.atmosphere.grain.hint")}>
         <Switch
           checked={values.grain}
           onCheckedChange={(grain) => change({ grain })}
