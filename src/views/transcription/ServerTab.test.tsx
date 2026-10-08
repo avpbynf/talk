@@ -24,10 +24,8 @@ function renderTab(serverUrl = "") {
   render(
     <ServerTab
       serverUrl={serverUrl}
-      serverTimeout={30000}
       serverStatus="unknown"
       onServerUrlChange={onServerUrlChange}
-      onServerTimeoutChange={vi.fn()}
       checkServerHealth={checkServerHealth}
       serverToken=""
       onServerTokenChange={onServerTokenChange}
@@ -162,10 +160,8 @@ describe("ServerTab pairing", () => {
 describe("ServerTab drafts", () => {
   function tabWith(serverUrl: string, serverToken: string, serverModel: string) {
     const props = {
-      serverTimeout: 30000,
       serverStatus: "unknown" as const,
       onServerUrlChange: vi.fn(),
-      onServerTimeoutChange: vi.fn(),
       checkServerHealth: vi.fn(),
       onServerTokenChange: vi.fn(),
       onServerModelChange: vi.fn(),

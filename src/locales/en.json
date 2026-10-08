@@ -314,8 +314,6 @@
       "optional": "(optional)",
       "tokenPlaceholder": "sk-... or leave empty",
       "tokenHint": "A Talk server gives one when you pair with it, OpenAI on its dashboard.",
-      "timeout": "Timeout",
-      "timeoutHint": "How long to wait before giving up",
       "fallback": "Local fallback",
       "fallbackHint": "Fall back to the local model when the server does not answer",
       "pairWith": "Pair with this server",

@@ -140,6 +140,16 @@ the system's figures took. Its icons, its ring and its figures now share one wei
 thin one of the system's own icons, where the icon shown while it transcribes was drawn thicker
 than the microphone.
 
+### Refactoring
+
+- (server) The server timeout setting is gone
+
+The Engine page no longer offers a timeout for the server. It only ever covered the time given to a
+server to answer a connection, and one that has not answered in three seconds will not, so Talk now
+gives up after that, and the dictation goes to the local model when the fallback is on. The time a
+transcription may take once the server is reached is unchanged: it still follows the length of the
+recording.
+
 ## [0.11.0] - 2026-10-06
 
 ### Features

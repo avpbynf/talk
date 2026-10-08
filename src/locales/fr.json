@@ -314,8 +314,6 @@
       "optional": "(facultatif)",
       "tokenPlaceholder": "sk-... ou laisser vide",
       "tokenHint": "Un serveur Talk en fournit un à l'appairage, OpenAI sur son tableau de bord.",
-      "timeout": "Délai d'attente",
-      "timeoutHint": "Combien de temps attendre avant d'abandonner",
       "fallback": "Secours local",
       "fallbackHint": "Bascule sur le modèle local quand le serveur ne répond pas",
       "pairWith": "Appairer avec ce serveur",

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Clock, Cloud, RefreshCw } from "lucide-react";
+import { Cloud, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +16,8 @@ import type { ServerStatus } from "./TranscriptionView";
 
 interface ServerTabProps {
   serverUrl: string;
-  serverTimeout: number;
   serverStatus: ServerStatus;
   onServerUrlChange: (url: string) => void;
-  onServerTimeoutChange: (timeout: number) => void;
   checkServerHealth: (silent?: boolean) => void;
   serverToken: string;
   onServerTokenChange: (token: string) => void;
@@ -29,13 +26,6 @@ interface ServerTabProps {
   serverFallback: boolean;
   onServerFallbackChange: (value: boolean) => void;
 }
-
-const TIMEOUT_OPTIONS = [
-  { value: 10000, label: "10 s" },
-  { value: 30000, label: "30 s" },
-  { value: 60000, label: "1 min" },
-  { value: 120000, label: "2 min" },
-];
 
 const STATUS_TONE: Record<ServerStatus, string> = {
   checking: "text-server",
@@ -82,10 +72,8 @@ function useDraft(value: string): [string, (draft: string) => void, { onFocus: (
 
 export function ServerTab({
   serverUrl,
-  serverTimeout,
   serverStatus,
   onServerUrlChange,
-  onServerTimeoutChange,
   checkServerHealth,
   serverToken,
   onServerTokenChange,
@@ -286,21 +274,6 @@ export function ServerTab({
           />
           <p className="text-xs text-muted-foreground">{t("transcription.server.modelHint")}</p>
         </div>
-      </SectionCard>
-
-      {/* Timeout */}
-      <SectionCard
-        icon={Clock}
-        title={t("transcription.server.timeout")}
-        description={t("transcription.server.timeoutHint")}
-      >
-        <Segmented
-          wide
-          label={t("transcription.server.timeout")}
-          value={String(serverTimeout)}
-          onChange={(value) => onServerTimeoutChange(Number(value))}
-          options={TIMEOUT_OPTIONS.map((option) => ({ value: String(option.value), label: option.label }))}
-        />
 
         {/* Local fallback */}
         <SettingRow

@@ -149,9 +149,6 @@ pub struct AppSettings {
     /// Enable fallback to local Whisper if server unavailable
     #[serde(default = "default_true")]
     pub server_fallback: bool,
-    /// Server request timeout in milliseconds
-    #[serde(default = "default_server_timeout")]
-    pub server_timeout: u64,
     /// Whether the setup wizard has been completed
     #[serde(default)]
     pub setup_completed: bool,
@@ -243,10 +240,6 @@ fn default_server_url() -> String {
     String::new()
 }
 
-fn default_server_timeout() -> u64 {
-    30000 // 30 seconds
-}
-
 fn default_history_limit() -> usize {
     100
 }
@@ -290,7 +283,6 @@ impl Default for AppSettings {
             transcription_mode: TranscriptionMode::default(),
             server_url: default_server_url(),
             server_fallback: true,
-            server_timeout: default_server_timeout(),
             setup_completed: false,
             autostart_enabled: false,
             start_minimized: false,
@@ -389,7 +381,6 @@ mod tests {
         // the application starts on the defaults.
         assert_eq!(parse("{}").overlay_theme, AppSettings::default().overlay_theme);
         assert_eq!(parse("{}").start_sound, AppSettings::default().start_sound);
-        assert_eq!(parse("{}").server_timeout, 30000);
         assert_eq!(parse("{}").server_model, None);
     }
 
@@ -808,15 +799,30 @@ mod tests {
     #[test]
     fn a_wrong_typed_field_costs_that_field_and_nothing_else() {
         let s = parse(
-            r#"{"server_url": "http://nas:4060", "server_token": "sk-1", "server_timeout": "soon",
+            r#"{"server_url": "http://nas:4060", "server_token": "sk-1", "server_fallback": "soon",
                 "vocabulary": ["Tauri"], "setup_completed": true}"#,
         );
 
-        assert_eq!(s.server_timeout, 30000);
+        assert!(s.server_fallback);
         assert_eq!(s.server_url, "http://nas:4060");
         assert_eq!(s.server_token, "sk-1");
         assert_eq!(s.vocabulary, vec!["Tauri".to_string()]);
         assert!(s.setup_completed);
+    }
+
+    #[test]
+    fn a_file_still_carrying_the_removed_server_timeout_loads_whole() {
+        let (s, complete) = parse_settings(
+            r#"{"server_url": "http://nas:4060", "server_token": "sk-1", "server_timeout": 60000,
+                "server_fallback": false, "vocabulary": ["Tauri"]}"#,
+        )
+        .expect("should deserialise");
+
+        assert!(complete, "an unknown key is not a reason to set the file aside");
+        assert_eq!(s.server_url, "http://nas:4060");
+        assert_eq!(s.server_token, "sk-1");
+        assert!(!s.server_fallback);
+        assert_eq!(s.vocabulary, vec!["Tauri".to_string()]);
     }
 
     #[test]

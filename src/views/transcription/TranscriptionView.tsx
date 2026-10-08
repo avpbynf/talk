@@ -41,8 +41,6 @@ interface TranscriptionViewProps {
   onServerUrlChange: (url: string) => void;
   serverFallback: boolean;
   onServerFallbackChange: (enabled: boolean) => void;
-  serverTimeout: number;
-  onServerTimeoutChange: (timeout: number) => void;
   serverStatus: ServerStatus;
   checkServerHealth: (silent?: boolean) => void;
   serverToken: string;
@@ -75,8 +73,6 @@ export default function TranscriptionView({
   onServerUrlChange,
   serverFallback,
   onServerFallbackChange,
-  serverTimeout,
-  onServerTimeoutChange,
   serverStatus,
   checkServerHealth,
   serverToken,
@@ -129,10 +125,8 @@ export default function TranscriptionView({
         <>
           <ServerTab
             serverUrl={serverUrl}
-            serverTimeout={serverTimeout}
             serverStatus={serverStatus}
             onServerUrlChange={onServerUrlChange}
-            onServerTimeoutChange={onServerTimeoutChange}
             checkServerHealth={checkServerHealth}
             serverToken={serverToken}
             onServerTokenChange={onServerTokenChange}

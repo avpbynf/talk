@@ -62,12 +62,16 @@ pub fn classify_status(status: u16) -> ServerCheck {
     }
 }
 
+/// How long a server gets to accept a connection, and to answer the probe. One that
+/// has not answered in this long will not, and the dictation moves on.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
+
 /// Ask the server for its models with the token, which is the cheapest route
 /// that sits behind the same check the transcription goes through. `/health`
 /// needs no token and so says nothing about whether dictating will work.
-pub async fn check_server(base_url: &str, token: Option<&str>, timeout_ms: u64) -> ServerCheck {
+pub async fn check_server(base_url: &str, token: Option<&str>) -> ServerCheck {
     let client = match reqwest::Client::builder()
-        .timeout(Duration::from_millis(timeout_ms))
+        .timeout(CONNECT_TIMEOUT)
         .build()
     {
         Ok(client) => client,
@@ -311,7 +315,6 @@ fn build_form(
 pub async fn transcribe<F, S>(
     base_url: &str,
     wav_data: &[u8],
-    timeout_ms: u64,
     token: Option<&str>,
     model: Option<&str>,
     language: Option<&str>,
@@ -329,7 +332,6 @@ where
         match transcribe_stream(
             base_url,
             wav_data,
-            timeout_ms,
             token,
             model.as_deref(),
             language,
@@ -343,7 +345,7 @@ where
             other => return other,
         }
     }
-    transcribe_standard(base_url, wav_data, timeout_ms, token, model.as_deref(), language, prompt)
+    transcribe_standard(base_url, wav_data, token, model.as_deref(), language, prompt)
         .await
 }
 
@@ -362,7 +364,6 @@ pub fn standard_request_timeout(wav_bytes: usize) -> Duration {
 pub async fn transcribe_standard(
     base_url: &str,
     wav_data: &[u8],
-    timeout_ms: u64,
     token: Option<&str>,
     model: Option<&str>,
     language: Option<&str>,
@@ -371,7 +372,7 @@ pub async fn transcribe_standard(
     let url = format!("{}/v1/audio/transcriptions", normalize_base_url(base_url));
     let form = build_form(wav_data, language, prompt, model, Some("json"))?;
     let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_millis(timeout_ms))
+        .connect_timeout(CONNECT_TIMEOUT)
         .timeout(standard_request_timeout(wav_data.len()))
         .build()
         .map_err(|e| ServerError::ConnectionFailed(e.to_string()))?;
@@ -401,7 +402,6 @@ pub async fn transcribe_standard(
 /// # Arguments
 /// * `base_url` - Base URL of the server
 /// * `wav_data` - WAV audio data
-/// * `timeout_ms` - Timeout in milliseconds for the initial connection
 /// * `token` - Bearer token the server minted for this client, if any
 /// * `model` - Model name to send, if any
 /// * `language` - Optional language code (e.g., "fr", "en")
@@ -414,7 +414,6 @@ pub async fn transcribe_standard(
 pub async fn transcribe_stream<F, S>(
     base_url: &str,
     wav_data: &[u8],
-    timeout_ms: u64,
     token: Option<&str>,
     model: Option<&str>,
     language: Option<&str>,
@@ -435,7 +434,7 @@ where
 
     // Create client - no global timeout for streaming (we handle it per-chunk)
     let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_millis(timeout_ms))
+        .connect_timeout(CONNECT_TIMEOUT)
         .build()
         .map_err(|e| ServerError::ConnectionFailed(e.to_string()))?;
 

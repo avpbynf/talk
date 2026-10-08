@@ -18,7 +18,6 @@ export interface SavedSettings {
   transcription_mode: TranscriptionMode;
   server_url: string;
   server_fallback: boolean;
-  server_timeout: number;
   duck_audio_on_record: boolean;
   duck_volume_percent: number;
   preserve_clipboard: boolean;
@@ -71,7 +70,6 @@ export interface SettingsSetters {
   setTranscriptionMode: (value: TranscriptionMode) => void;
   setServerUrl: (value: string) => void;
   setServerFallback: (value: boolean) => void;
-  setServerTimeout: (value: number) => void;
   setDuckAudioOnRecord: (value: boolean) => void;
   setDuckVolumePercent: (value: number) => void;
   setPreserveClipboard: (value: boolean) => void;
@@ -119,7 +117,6 @@ function savedValues(saved: SavedSettings) {
     transcription_mode: saved.transcription_mode || "local",
     server_url: saved.server_url || "",
     server_fallback: saved.server_fallback !== false,
-    server_timeout: saved.server_timeout || 30000,
     duck_audio_on_record: saved.duck_audio_on_record || false,
     duck_volume_percent: saved.duck_volume_percent ?? 20,
     preserve_clipboard: saved.preserve_clipboard || false,
@@ -158,7 +155,6 @@ export async function loadSettings(set: SettingsSetters): Promise<LoadedSettings
       bind("transcription_mode", set.setTranscriptionMode);
       bind("server_url", set.setServerUrl);
       bind("server_fallback", set.setServerFallback);
-      bind("server_timeout", set.setServerTimeout);
       bind("duck_audio_on_record", set.setDuckAudioOnRecord);
       bind("duck_volume_percent", set.setDuckVolumePercent);
       bind("preserve_clipboard", set.setPreserveClipboard);

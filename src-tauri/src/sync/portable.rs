@@ -580,7 +580,7 @@ mod tests {
         "transcription_mode",
     ];
 
-    const SERVER_FIELDS: [&str; 4] = ["server_url", "server_model", "server_timeout", "server_fallback"];
+    const SERVER_FIELDS: [&str; 3] = ["server_url", "server_model", "server_fallback"];
 
     #[test]
     fn the_file_carries_exactly_the_portable_fields() {
@@ -1252,6 +1252,20 @@ mod tests {
         local.overlay_look.style = crate::overlay_settings::OverlayStyle::Orb;
         local.overlay_look.end_text = true;
         local
+    }
+
+    #[test]
+    fn a_copy_written_while_the_server_timeout_existed_is_read_like_any_other() {
+        // The key was never synced (it is a server field, kept on the machine), so a copy that
+        // carries it is read like any other: the key is ignored and costs nothing.
+        let local = SyncedSettings::default();
+        let remote = SettingsFile::parse(
+            &account_copy(r#"{"start_sound": "ding", "server_timeout": 60000}"#),
+            &local,
+        )
+        .expect("parse");
+        assert_eq!(remote.settings.start_sound, "ding");
+        assert!(remote.foreign.is_empty());
     }
 
     #[test]
