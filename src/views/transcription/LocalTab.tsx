@@ -54,24 +54,42 @@ export function LocalTab({
   onGpuDeviceChange,
 }: LocalTabProps) {
   const { t } = useTranslation();
-  // Either change reloads the loaded model on the new device, which keeps
-  // dictation out of reach for as long as the model takes to load. With nothing
-  // loaded there is nothing to reload, so the change goes straight through.
+  // Either change moves the model to another device, so both ask first. The text
+  // follows what the native side does: with a model loaded it is unloaded and built
+  // again at once, with none the choice is only stored.
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null);
+  // Kept while the dialog fades out, so its text does not blank on the way.
+  const [shownSwitch, setShownSwitch] = useState<PendingSwitch | null>(null);
 
   function requestSwitch(change: PendingSwitch) {
-    const sameVendor = "vendor" in change && change.vendor === currentGpuVendor;
-    if (currentModel && !sameVendor) {
-      setPendingSwitch(change);
-    } else {
-      applySwitch(change);
-    }
+    const same = "vendor" in change ? change.vendor === currentGpuVendor : change.device === currentGpuDevice;
+    if (same) return;
+    setShownSwitch(change);
+    setPendingSwitch(change);
   }
 
   function applySwitch(change: PendingSwitch) {
     if ("vendor" in change) onGpuVendorChange(change.vendor);
     else onGpuDeviceChange(change.device);
   }
+
+  function switchTexts(change: PendingSwitch | null) {
+    if (!change) return { title: "", description: "" };
+    let choice: string;
+    let cost: string;
+    if ("vendor" in change) {
+      choice = change.vendor === "cpu" ? "CPU" : "Vulkan";
+      cost = t(change.vendor === "cpu" ? "transcription.gpu.switchCost.cpu" : "transcription.gpu.switchCost.vulkan");
+    } else {
+      choice = gpuDevices.find((d) => d.index === change.device)?.name ?? "";
+      cost = t("transcription.gpu.switchCost.card");
+    }
+    const effect = currentModel
+      ? t("transcription.gpu.switchReload", { model: currentModel, choice })
+      : t("transcription.gpu.switchIdle", { choice });
+    return { title: t("transcription.gpu.switchTitle", { choice }), description: effect + " " + cost };
+  }
+  const switchText = switchTexts(shownSwitch);
   const [modelFamily, setModelFamily] = useState<ModelFamily>("quantized");
   // A model is around a gigabyte and comes back over the network, so this asks
   // the same way the history and the statistics ask before they throw anything
@@ -134,8 +152,8 @@ export function LocalTab({
       <ConfirmDialog
         open={pendingSwitch !== null}
         tone="neutral"
-        title={t("transcription.gpu.switchTitle")}
-        description={t("transcription.gpu.switchDescription", { model: currentModel ?? "" })}
+        title={switchText.title}
+        description={switchText.description}
         confirmLabel={t("transcription.gpu.switch")}
         onCancel={() => setPendingSwitch(null)}
         onConfirm={() => {
