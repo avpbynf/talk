@@ -799,16 +799,6 @@ fn set_server_fallback(enabled: bool) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_server_timeout() -> u64 {
-    settings::read(|s| s.server_timeout)
-}
-
-#[tauri::command]
-fn set_server_timeout(timeout: u64) -> Result<(), String> {
-    settings::update(|s| s.server_timeout = timeout).map(drop)
-}
-
-#[tauri::command]
 fn list_discovered_servers(
     discovery: tauri::State<'_, discovery::Discovery>,
 ) -> Vec<discovery::DiscoveredServer> {
@@ -857,8 +847,8 @@ async fn pair_confirm(
 
 #[tauri::command]
 async fn test_server_connection() -> Result<server_transcription::ServerCheck, String> {
-    let (url, timeout, token) = settings::read(|s| (s.server_url.clone(), s.server_timeout, s.server_token.clone()));
-    Ok(server_transcription::check_server(&url, Some(&token), timeout).await)
+    let (url, token) = settings::read(|s| (s.server_url.clone(), s.server_token.clone()));
+    Ok(server_transcription::check_server(&url, Some(&token)).await)
 }
 
 
@@ -1316,8 +1306,6 @@ pub fn run() {
             set_server_url,
             get_server_fallback,
             set_server_fallback,
-            get_server_timeout,
-            set_server_timeout,
             test_server_connection,
             list_discovered_servers,
             pair_request,

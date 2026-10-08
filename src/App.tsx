@@ -134,7 +134,6 @@ function App() {
   const [transcriptionMode, setTranscriptionMode] = useState<TranscriptionMode>("local");
   const [serverUrl, setServerUrl] = useState("");
   const [serverFallback, setServerFallback] = useState(true);
-  const [serverTimeout, setServerTimeout] = useState(30000);
   const [serverToken, setServerToken] = useState("");
   const [serverModel, setServerModel] = useState("");
   const [autostartEnabled, setAutostartEnabled] = useState(false);
@@ -176,7 +175,7 @@ function App() {
 
   const settingSetters = {
     setRecordingMode, setShortcut, setCancelShortcut, setPasteShortcut, setVocabulary, setTranscriptionMode,
-    setServerUrl, setServerFallback, setServerTimeout, setDuckAudioOnRecord, setDuckVolumePercent,
+    setServerUrl, setServerFallback, setDuckAudioOnRecord, setDuckVolumePercent,
     setPreserveClipboard, setAutostartEnabled, setStartMinimized, setServerToken,
     setServerModel, setSoundFeedback, setStartSound, setStopSound, setCompanionShortcuts, setHistoryLimit,
     loadTheme: appTheme.load,
@@ -461,7 +460,6 @@ function App() {
     transcriptionMode: setting("transcription_mode", setTranscriptionMode, "set_transcription_mode", "mode"),
     serverUrl: setting("server_url", setServerUrl, "set_server_url", "url"),
     serverFallback: setting("server_fallback", setServerFallback, "set_server_fallback", "enabled"),
-    serverTimeout: setting("server_timeout", setServerTimeout, "set_server_timeout", "timeout"),
     serverToken: setting("server_token", setServerToken, "set_server_token", "token"),
     serverModel: setting("server_model", setServerModel, "set_server_model", "model"),
     recordingMode: setting("recording_mode", setRecordingMode, "set_recording_mode", "mode"),
@@ -739,8 +737,6 @@ function App() {
             onServerUrlChange={save.serverUrl}
             serverFallback={serverFallback}
             onServerFallbackChange={save.serverFallback}
-            serverTimeout={serverTimeout}
-            onServerTimeoutChange={save.serverTimeout}
             serverStatus={serverStatus}
             checkServerHealth={checkServerHealth}
             serverToken={serverToken}

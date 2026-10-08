@@ -146,7 +146,6 @@ export function defaultState() {
       transcription_mode: "local",
       server_url: "http://192.168.1.40:8000",
       server_fallback: true,
-      server_timeout: 30000,
       duck_audio_on_record: false,
       duck_volume_percent: 20,
       preserve_clipboard: false,

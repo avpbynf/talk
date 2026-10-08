@@ -123,7 +123,7 @@ mod tests {
         let store = open(&path);
 
         assert!(!store.suspends_sync());
-        assert_eq!(store.read(|s| s.server_timeout), 30000);
+        assert_eq!(store.read(|s| s.history_limit), 100);
         assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
     }
 
@@ -180,7 +180,7 @@ mod tests {
         assert_eq!(RESETS.load(Ordering::SeqCst), 1);
         assert_eq!(std::fs::read_to_string(aside_of(&path)).unwrap(), damaged);
         // Rewritten at once: the file on disk parses, and holds the defaults.
-        assert_eq!(on_disk(&path)["server_timeout"], 30000);
+        assert_eq!(on_disk(&path)["history_limit"], 100);
         // The next launch is case two.
         let next = open(&path);
         assert!(!next.suspends_sync());
@@ -326,7 +326,7 @@ mod tests {
         let (copy, live) = SEEN.lock().clone().expect("the reset never ran");
         assert_eq!(copy, damaged, "the copy comes first");
         assert_eq!(live, damaged, "the file is rewritten after the reset");
-        assert_eq!(on_disk(&path)["server_timeout"], 30000);
+        assert_eq!(on_disk(&path)["history_limit"], 100);
     }
 
     #[test]
@@ -457,9 +457,9 @@ mod tests {
                             .update(|s| {
                                 // Read, wait, write: the shape of every lost update. Without the
                                 // writer lock the threads read the same value in this pause.
-                                let seen = s.server_timeout;
+                                let seen = s.history_limit;
                                 std::thread::sleep(Duration::from_millis(1));
-                                s.server_timeout = seen + 1;
+                                s.history_limit = seen + 1;
                             })
                             .unwrap();
                     }
@@ -470,8 +470,8 @@ mod tests {
             thread.join().unwrap();
         }
 
-        assert_eq!(store.read(|s| s.server_timeout), 30000 + 40);
-        assert_eq!(on_disk(&path)["server_timeout"], 30000 + 40);
+        assert_eq!(store.read(|s| s.history_limit), 100 + 40);
+        assert_eq!(on_disk(&path)["history_limit"], 100 + 40);
     }
 
     #[test]

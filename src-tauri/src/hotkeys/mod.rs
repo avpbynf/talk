@@ -964,7 +964,6 @@ async fn transcribe(
     let transcription_mode = settings.transcription_mode;
     let server_url = settings.server_url.clone();
     let server_fallback = settings.server_fallback;
-    let server_timeout = settings.server_timeout;
 
     // Build vocabulary prompt from custom words only (comma-separated, no prefix)
     let vocabulary_prompt = if settings.vocabulary.is_empty() {
@@ -999,7 +998,6 @@ async fn transcribe(
             let request = server_transcription::transcribe(
                 &server_url,
                 &wav_data,
-                server_timeout,
                 Some(&settings.server_token),
                 settings.server_model.as_deref(),
                 None,

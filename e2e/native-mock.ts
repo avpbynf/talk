@@ -179,7 +179,6 @@ export function installNativeMock(init: MockInit): void {
     set_transcription_mode: field("transcription_mode", "mode"),
     set_server_url: field("server_url", "url"),
     set_server_fallback: field("server_fallback", "enabled"),
-    set_server_timeout: field("server_timeout", "timeout"),
     set_server_token: (a) => {
       s.token = a.token;
       return null;

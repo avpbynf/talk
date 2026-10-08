@@ -8,7 +8,6 @@ const GROUP: Record<string, ReadGroup> = {
   transcription_mode: "settings",
   server_url: "settings",
   server_fallback: "settings",
-  server_timeout: "settings",
   server_token: "token",
   server_model: "serverModel",
   autostart_enabled: "settings",
