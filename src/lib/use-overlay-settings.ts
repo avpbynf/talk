@@ -41,7 +41,11 @@ export function useOverlaySettings() {
   const reread = useCallback(() => {
     invoke<unknown>("get_overlay_settings")
       .then((raw) => {
-        if (alive.current && editing.current === 0) setSettings(coerceSettings(raw));
+        if (!alive.current || editing.current !== 0) return;
+        const stored = coerceSettings(raw);
+        setSettings(stored);
+        // The other window may still draw a step of an edit that was never stored.
+        void emit(LOOK_BEING_EDITED, stored.look);
       })
       .catch((error) => console.error("Failed to read the overlay settings:", error));
   }, []);
