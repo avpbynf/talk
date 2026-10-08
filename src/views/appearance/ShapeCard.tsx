@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Segmented } from "@/components/ui/segmented";
-import type { MotionStep, RadiusStep, TextStep, ThemeValues } from "@/lib/theme";
+import { type MotionStep, type RadiusStep, type TextStep, type ThemeValues, themeReset } from "@/lib/theme";
 import type { AppThemeController } from "@/lib/use-app-theme";
 
 interface ShapeCardProps {
@@ -14,10 +14,11 @@ export default function ShapeCard({ theme }: ShapeCardProps) {
   const { t } = useTranslation();
   const values = theme.resolved.values;
   const change = (patch: Partial<ThemeValues>) => theme.edit({ ...values, ...patch });
+  const reset = (key: keyof ThemeValues) => themeReset(theme.resolved.base, values, change, key);
 
   return (
     <SectionCard icon={LayoutDashboard} title={t("appearance.shape.title")}>
-      <SettingRow label={t("appearance.shape.radius.label")}>
+      <SettingRow onReset={reset("radius")} label={t("appearance.shape.radius.label")}>
         <Segmented
           label={t("appearance.shape.radius.label")}
           value={values.radius}
@@ -28,7 +29,7 @@ export default function ShapeCard({ theme }: ShapeCardProps) {
           }))}
         />
       </SettingRow>
-      <SettingRow label={t("appearance.shape.text.label")}>
+      <SettingRow onReset={reset("text_size")} label={t("appearance.shape.text.label")}>
         <Segmented
           label={t("appearance.shape.text.label")}
           value={values.text_size}
@@ -39,7 +40,7 @@ export default function ShapeCard({ theme }: ShapeCardProps) {
           }))}
         />
       </SettingRow>
-      <SettingRow label={t("appearance.shape.motion.label")} hint={t("appearance.shape.motion.hint")}>
+      <SettingRow onReset={reset("motion")} label={t("appearance.shape.motion.label")} hint={t("appearance.shape.motion.hint")}>
         <Segmented
           label={t("appearance.shape.motion.label")}
           value={values.motion}

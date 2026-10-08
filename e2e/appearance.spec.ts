@@ -231,3 +231,18 @@ test.describe("the window buttons", () => {
     expect(await insideSidebar(app)).toEqual([0, 0, 0]);
   });
 });
+
+test.describe("the way back on the Appearance page", () => {
+  test("a value edited on a preset shows the way back to what the preset gives", async ({ app, page }) => {
+    await app.open();
+    await app.go(APPEARANCE);
+    const back = page.locator('xpath=//label[normalize-space()="Corners"]/following-sibling::button');
+    const corners = page.getByRole("radiogroup", { name: "Corners" });
+    await expect(back).toHaveCount(0);
+    await corners.getByRole("radio", { name: "Round" }).click();
+    await expect(back).toHaveText("Default");
+    await back.click();
+    await expect(corners.getByRole("radio", { name: "Soft" })).toBeChecked();
+    await expect(back).toHaveCount(0);
+  });
+});

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { LoadGate } from "@/components/LoadGate";
 import { useSettingRead } from "@/lib/use-setting-read";
 import { confirmSetting, currentSetting, saveSetting } from "@/lib/save-setting";
+import { resetTo } from "@/lib/factory-defaults";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,6 +65,7 @@ export default function ChainedDictationsSection() {
           { value: "each", label: t("preferences.chained.pasting.each") },
           { value: "paragraph", label: t("preferences.chained.pasting.paragraph") },
         ]}
+        factory={DEFAULTS.delivery}
         value={settings.delivery}
         onChange={(value) => change("delivery", value)}
       />
@@ -75,6 +77,7 @@ export default function ChainedDictationsSection() {
           { value: "last", label: t("preferences.chained.pasteShortcut.last") },
           { value: "batch", label: t("preferences.chained.pasteShortcut.batch") },
         ]}
+        factory={DEFAULTS.paste_target}
         value={settings.paste_target}
         onChange={(value) => change("paste_target", value)}
       />
@@ -86,6 +89,7 @@ export default function ChainedDictationsSection() {
           { value: "all", label: t("preferences.chained.cancelShortcut.all") },
           { value: "current", label: t("preferences.chained.cancelShortcut.current") },
         ]}
+        factory={DEFAULTS.cancel_scope}
         value={settings.cancel_scope}
         onChange={(value) => change("cancel_scope", value)}
       />
@@ -99,12 +103,13 @@ interface ChoiceRowProps<T extends string> {
   hint: string;
   choices: Choice<T>[];
   value: T;
+  factory: T;
   onChange: (value: T) => void;
 }
 
-function ChoiceRow<T extends string>({ label, hint, choices, value, onChange }: ChoiceRowProps<T>) {
+function ChoiceRow<T extends string>({ label, hint, choices, value, factory, onChange }: ChoiceRowProps<T>) {
   return (
-    <SettingRow label={label} hint={hint}>
+    <SettingRow onReset={resetTo(value, factory, onChange)} label={label} hint={hint}>
       <Select value={value} onValueChange={(next) => onChange(next as T)}>
         <SelectTrigger className="max-w-full">
           <SelectValue />

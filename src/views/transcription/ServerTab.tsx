@@ -7,6 +7,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SERVER_DEFAULTS, resetTo } from "@/lib/factory-defaults";
 import { SettingRow } from "@/components/SettingRow";
 import { SectionCard } from "@/components/SectionCard";
 import { useDiscoveredServers } from "@/lib/use-discovered-servers";
@@ -303,6 +304,7 @@ export function ServerTab({
 
         {/* Local fallback */}
         <SettingRow
+          onReset={resetTo(serverFallback, SERVER_DEFAULTS.server_fallback, onServerFallbackChange)}
           label={t("transcription.server.fallback")}
           hint={t("transcription.server.fallbackHint")}
         >
