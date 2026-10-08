@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type MutableRefObject } from "react";
-import { FLYOUT_HEIGHT, LEAVE_MS, flyoutRoom, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type OverlaySurface, type SystemAccent, legibleColors } from "@/lib/overlay";
+import { FLYOUT_HEIGHT, LEAVE_MS, flyoutRoom, STAGE_HEIGHT, STAGE_WIDTH, type OverlayLook, type OverlayPhase, type OverlaySide, type OverlaySurface, type SystemAccent, legibleColors } from "@/lib/overlay";
 import type { Colors } from "@/lib/overlay-themes";
 import Capsule from "./Capsule";
 import { useOverlayEngine } from "./engine";
@@ -49,6 +49,17 @@ export interface OverlayViewProps {
 
 const ENTER = "cubic-bezier(.16,1,.3,1)";
 
+/** The side the overlay arrives from: the one the look picks, or the edge it sits by. */
+function sideOf(look: OverlayLook, fromTop: boolean): OverlaySide {
+  return look.entrance_from === "auto" ? (fromTop ? "top" : "bottom") : look.entrance_from;
+}
+
+/** A move of so many pixels towards that side. */
+function towards(side: OverlaySide, pixels: number): string {
+  if (side === "left" || side === "right") return `translateX(${side === "left" ? -pixels : pixels}px)`;
+  return `translateY(${side === "top" ? -pixels : pixels}px)`;
+}
+
 /** How the overlay arrives: this runs once, when it is first drawn. */
 function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: boolean, windowed: boolean) {
   // A window that is the card cannot travel inside itself: the native side moves and fades the window.
@@ -56,21 +67,20 @@ function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: bo
   if (reduced || look.entrance === "fade") {
     el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reduced ? 200 : 420, easing: ENTER });
   } else if (look.entrance === "slide") {
-    const from = fromTop ? -30 : 30;
     el.animate(
       [
-        { opacity: 0, transform: `translateY(${from}px)` },
+        { opacity: 0, transform: towards(sideOf(look, fromTop), 30) },
         { opacity: 1, transform: "none" },
       ],
       { duration: 560, easing: ENTER },
     );
   } else if (look.style === "flyout") {
     // Shown as a picture of its window, which cannot swell: it goes a little past its place and comes back.
-    const from = fromTop ? -22 : 22;
+    const side = sideOf(look, fromTop);
     el.animate(
       [
-        { opacity: 0, transform: `translateY(${from}px)` },
-        { opacity: 1, transform: `translateY(${-from * 0.1}px)`, offset: 0.55 },
+        { opacity: 0, transform: towards(side, 22) },
+        { opacity: 1, transform: towards(side, -2.2), offset: 0.55 },
         { opacity: 1, transform: "none" },
       ],
       { duration: 560, easing: ENTER },
@@ -78,7 +88,7 @@ function enter(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: bo
   } else {
     el.animate(
       [
-        { opacity: 0, transform: "scale(.5)" },
+        { opacity: 0, transform: `${towards(sideOf(look, fromTop), 14)} scale(.5)` },
         { opacity: 1, transform: "scale(1.08)", offset: 0.6 },
         { opacity: 1, transform: "none" },
       ],
@@ -92,8 +102,8 @@ function leave(el: HTMLElement, look: OverlayLook, fromTop: boolean, reduced: bo
   if (windowed || typeof el.animate !== "function") return null;
   const timing = { duration: LEAVE_MS, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" as const };
   if (reduced || look.entrance === "fade") return el.animate([{ opacity: 1 }, { opacity: 0 }], timing);
-  const side = fromTop ? -1 : 1;
-  const to = look.entrance === "slide" ? `translateY(${side * 18}px)` : look.style === "flyout" ? `translateY(${side * 10}px)` : "scale(.86)";
+  const side = sideOf(look, fromTop);
+  const to = look.entrance === "slide" ? towards(side, 18) : look.style === "flyout" ? towards(side, 10) : `${towards(side, 8)} scale(.86)`;
   return el.animate(
     [
       { opacity: 1, transform: "none" },

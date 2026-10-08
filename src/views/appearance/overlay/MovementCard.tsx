@@ -7,7 +7,7 @@ import { SettingRow } from "@/components/SettingRow";
 import { Range } from "@/components/ui/range";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
-import { type OverlayEntrance, type OverlayLook, type OverlayVoice, PASTED_HOLD_MAX_MS, REACTION_MAX, REACTION_MIN, VOICES, FLYOUT_EDGES, lookReset, FLYOUT_MIDDLE_MIN, FLYOUT_WIDTH_MAX, FLYOUT_WIDTH_MIN, flyoutRoom } from "@/lib/overlay";
+import { type OverlayEntrance, type OverlayLook, type OverlayVoice, PASTED_HOLD_MAX_MS, REACTION_MAX, REACTION_MIN, VOICES, ENTRANCE_SIDES, type OverlayEntranceFrom, FLYOUT_EDGES, lookReset, FLYOUT_MIDDLE_MIN, FLYOUT_WIDTH_MAX, FLYOUT_WIDTH_MIN, flyoutRoom } from "@/lib/overlay";
 
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
 const SIZES: readonly OverlaySize[] = ["small", "medium", "large"];
@@ -97,6 +97,20 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
           value={look.entrance}
           onChange={(entrance: OverlayEntrance) => onLook({ entrance })}
           options={ENTRANCES.map((value) => ({ value, label: t(`appearance.overlay.movement.${value}`) }))}
+        />
+      </SettingRow>
+
+      <SettingRow
+        onReset={reset("entrance_from")}
+        label={t("appearance.overlay.movement.entranceFrom")}
+        hint={t(look.entrance === "fade" ? "appearance.overlay.movement.entranceFromNone" : "appearance.overlay.movement.entranceFromHint")}
+        disabled={look.entrance === "fade"}
+      >
+        <Segmented
+          label={t("appearance.overlay.movement.entranceFrom")}
+          value={look.entrance_from}
+          onChange={(entrance_from: OverlayEntranceFrom) => onLook({ entrance_from })}
+          options={ENTRANCE_SIDES.map((value) => ({ value, label: t(`appearance.overlay.movement.sides.${value}`) }))}
         />
       </SettingRow>
 

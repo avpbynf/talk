@@ -78,6 +78,13 @@ Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recor
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
 
+- (overlay) The arrival of the overlay has a side
+
+A bounce and a slide came from the edge of the screen the overlay sits by, and left towards it.
+A From setting beside Appearance now picks the side: the top, the bottom, the left or the right,
+or Auto, which is what it did. It holds for the four styles and for an overlay following the
+mouse to another screen. A fade has no side.
+
 - (dashboard) The dashboard names what a person averages, and a measured speed can go back to it
 
 The Your typing card showed your speed at the keyboard and by voice, and nothing to hold them
