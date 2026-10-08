@@ -46,7 +46,8 @@ export function SectionCard({
           {...(fold && { onClick: fold.onToggle, "aria-expanded": fold.open })}
           className={cn(
             "flex min-w-0 items-center gap-2.5 text-start text-sm font-semibold",
-            fold && "group outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
+            // The toggle is the whole header, so its chevron sits at the far end of it.
+            fold && "group flex-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-active)]",
           )}
         >
           <span
@@ -71,7 +72,7 @@ export function SectionCard({
             <ChevronRight
               size={14}
               className={cn(
-                "text-muted-foreground/60 transition-transform duration-200 group-hover:text-foreground",
+                "ml-auto shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover:text-foreground",
                 fold.open && "rotate-90",
               )}
             />
