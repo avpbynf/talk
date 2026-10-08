@@ -122,6 +122,11 @@ export function flyoutRoom(look: { card_width: number; middle_width: number }): 
   return { card, middle, sides: card - middle >= FLYOUT_SIDES };
 }
 
+/** Whether a Windows card made this narrow keeps only its middle, so the icons and the timer have no place left. */
+export function isCrowded(look: OverlayLook): boolean {
+  return look.style === "flyout" && !flyoutRoom(look).sides;
+}
+
 /** How long the overlay takes to leave. The native side hides the window a little after, see `LEAVE` in `overlay.rs`. */
 export const LEAVE_MS = 220;
 /** What each size scales the stage by. Mirrors OverlaySize::dimensions() on the Rust side. */

@@ -1,20 +1,13 @@
-import { Palette } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { formatPercent } from "@/i18n";
-import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { ColorSwatch } from "@/components/ui/color-swatch";
-import { Segmented } from "@/components/ui/segmented";
-import { Range } from "@/components/ui/range";
-import type { OverlayLook, OverlayTone, OverlaySettings } from "@/lib/overlay";
-import { NEUTRAL_ACCENT, SHADOW_MAX, lookReset, overlayColors } from "@/lib/overlay";
+import type { OverlayLook, OverlaySettings } from "@/lib/overlay";
+import { NEUTRAL_ACCENT, lookReset, overlayColors } from "@/lib/overlay";
 import { THEME_IDS, type OverlayThemeId, getThemeColors, getThemeLabel } from "@/lib/overlay-themes";
 import type { Stop } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-const TONES: readonly OverlayTone[] = ["theme", "dark", "light"];
-
-interface ColorsCardProps {
+interface PaletteRowsProps {
   settings: OverlaySettings;
   accent: readonly Stop[];
   onLook: (patch: Partial<OverlayLook>) => void;
@@ -46,8 +39,8 @@ function Chip({ colors, label, active, single, onClick }: { colors: readonly str
   );
 }
 
-/** Where the overlay's three colours come from, and what it is drawn on. */
-export default function ColorsCard({ settings, accent, onLook, onTheme }: ColorsCardProps) {
+/** Where the overlay's colours come from: the palette row, and the row of one's own colours when they are picked. */
+export default function PaletteRows({ settings, accent, onLook, onTheme }: PaletteRowsProps) {
   const { t } = useTranslation();
   const { look, theme } = settings;
   const accentColors = overlayColors({ ...look, palette: "accent" }, theme, accent);
@@ -60,7 +53,7 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
   const reset = (...keys: (keyof OverlayLook)[]) => lookReset(look, onLook, ...keys);
 
   return (
-    <SectionCard icon={Palette} title={t("appearance.overlay.colors.title")}>
+    <>
       <SettingRow
         onReset={reset("palette", "system_color")}
         label={t(windows ? "appearance.overlay.colors.accentColor" : "appearance.overlay.colors.palette")}
@@ -128,46 +121,6 @@ export default function ColorsCard({ settings, accent, onLook, onTheme }: Colors
           </div>
         </SettingRow>
       )}
-
-      <SettingRow onReset={reset("tone")} label={t("appearance.overlay.colors.background")}>
-        <Segmented
-          label={t("appearance.overlay.colors.background")}
-          value={look.tone}
-          onChange={(tone: OverlayTone) => onLook({ tone })}
-          options={TONES.map((value) => ({ value, label: t(`appearance.overlay.colors.${value}`) }))}
-        />
-      </SettingRow>
-
-      <SettingRow onReset={reset("opacity")} label={t("appearance.overlay.colors.opacity")} hint={t("appearance.overlay.colors.opacityHint")}>
-        <div className="flex items-center gap-3">
-          <Range
-            label={t("appearance.overlay.colors.opacity")}
-            min={0}
-            max={100}
-            step={5}
-            value={look.opacity}
-            onChange={(opacity) => onLook({ opacity })}
-          />
-          <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{formatPercent(look.opacity / 100)}</span>
-        </div>
-      </SettingRow>
-
-      {/* The Windows style is a window of its own, whose shadow would be the system's to draw, and the orb casts none. */}
-      {!windows && look.style !== "orb" && (
-        <SettingRow onReset={reset("shadow")} label={t("appearance.overlay.colors.shadow")} hint={t("appearance.overlay.colors.shadowHint")}>
-          <div className="flex items-center gap-3">
-            <Range
-              label={t("appearance.overlay.colors.shadow")}
-              min={0}
-              max={SHADOW_MAX}
-              step={10}
-              value={look.shadow}
-              onChange={(shadow) => onLook({ shadow })}
-            />
-            <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">{formatPercent(look.shadow / 100)}</span>
-          </div>
-        </SettingRow>
-      )}
-    </SectionCard>
+    </>
   );
 }

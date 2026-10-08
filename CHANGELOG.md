@@ -32,6 +32,20 @@ transcribes.
 
 ### Features
 
+- (window) Sort the recording overlay settings by what they apply to
+
+The tab now has a Common card for what the four styles share (background, arrival, reaction to the
+voice, timer, text at the end), a card named after the style you picked with only the settings
+that style has, and then Position. The less used ones, how long the confirmation stays and the
+width of the Windows card's middle, sit under a closed Advanced row that shows how many of them
+are not at their defaults. The Windows style now has a Shadow setting too.
+
+- (window) Put the theme actions in the Themes card header and fold the base colours
+
+Going back to the theme, resetting the appearance and saving the theme are three icon buttons in
+the header of the Themes card, each with its name on hover. The Base colours card is closed until
+you click it, and shows how many of its colours differ from the theme's.
+
 - (transcription) Say what a change of backend or graphics card costs before it is applied
 
 Picking CPU, Vulkan or another graphics card now opens a question that names the choice. It says

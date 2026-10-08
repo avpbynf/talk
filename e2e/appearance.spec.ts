@@ -3,7 +3,7 @@ import { test, expect, PAGES } from "./harness";
 import { CONTRAST, serious } from "./axe";
 import { findLayoutProblems } from "./layout-checks";
 import { DEFAULT_SIZE, SIZES } from "./sizes";
-import { themeSettled, tile } from "./theme-helpers";
+import { openBaseColours, themeSettled, tile } from "./theme-helpers";
 
 const [DASHBOARD, , , , , APPEARANCE] = PAGES;
 
@@ -111,6 +111,7 @@ test.describe("editing the look", () => {
     const notice = page.getByText("The text colour was too close to the surfaces");
     await expect(notice).toHaveCount(0);
 
+    await openBaseColours(page);
     await page.getByLabel("Text", { exact: true }).fill("#0e0f1c");
     await expect(notice).toBeVisible();
     await expect.poll(() => serious(page, { only: [CONTRAST] })).toEqual([]);
@@ -122,6 +123,7 @@ test.describe("editing the look", () => {
   test("a light background left with light text is corrected the same way", async ({ app, page }) => {
     await app.open();
     await app.go(APPEARANCE);
+    await openBaseColours(page);
     await page.getByLabel("Background", { exact: true }).fill("#f4f4f8");
     await page.getByLabel("Surface", { exact: true }).fill("#ffffff");
     await themeSettled(page);
@@ -244,5 +246,75 @@ test.describe("the way back on the Appearance page", () => {
     await back.click();
     await expect(corners.getByRole("radio", { name: "Soft" })).toBeChecked();
     await expect(back).toHaveCount(0);
+  });
+});
+
+test.describe("the Base colours card", () => {
+  test.use({ viewport: { width: DEFAULT_SIZE.width, height: DEFAULT_SIZE.height } });
+
+  test("is shut on arrival and opens on a click", async ({ app, page }) => {
+    await app.open();
+    await app.go(APPEARANCE);
+    const header = page.getByRole("button", { name: /^Base colours/ });
+    await expect(header).toContainText("Only touch them if you know why");
+    await expect(header).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByLabel("Surface", { exact: true })).toHaveCount(0);
+
+    await header.click();
+    await expect(header).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByLabel("Surface", { exact: true })).toBeVisible();
+    await expect(page.getByText("Light or dark follows the background")).toBeVisible();
+
+    await header.click();
+    await expect(page.getByLabel("Surface", { exact: true })).toHaveCount(0);
+  });
+
+  test("counts the colours away from the theme's while it is shut", async ({ app, page }) => {
+    await app.open();
+    await app.go(APPEARANCE);
+    const header = page.getByRole("button", { name: /^Base colours/ });
+    await expect(header).not.toContainText("changed");
+
+    await openBaseColours(page);
+    await page.getByLabel("Surface", { exact: true }).fill("#223344");
+    await header.click();
+    await expect(header).toContainText("1 setting changed");
+
+    await header.click();
+    await page.getByRole("button", { name: "Default" }).click();
+    await header.click();
+    await expect(header).not.toContainText("changed");
+  });
+});
+
+test.describe("the actions of the Themes card", () => {
+  test.use({ viewport: { width: DEFAULT_SIZE.width, height: DEFAULT_SIZE.height } });
+
+  test("are icon buttons reachable by their names, and do what they did", async ({ app, page }) => {
+    await app.open();
+    await app.go(APPEARANCE);
+    const revert = page.getByRole("button", { name: "Back to the theme" });
+    const save = page.getByRole("button", { name: "Save", exact: true });
+    const reset = page.getByRole("button", { name: "Reset appearance" });
+    await expect(revert).toHaveCount(0);
+    await expect(save).toBeDisabled();
+    await expect(save).toHaveAttribute("title", /Change something first/);
+    await expect(reset).toHaveAttribute("title", "Reset appearance");
+    await expect(reset).toHaveText("");
+
+    await page.getByRole("radio", { name: "Round" }).click();
+    await expect(save).toBeEnabled();
+    await expect(save).toHaveAttribute("title", "Save");
+    await expect(revert).toHaveAttribute("title", "Back to the theme");
+
+    await revert.click();
+    await expect(page.getByRole("radio", { name: "Round" })).toHaveAttribute("aria-checked", "false");
+    await expect(revert).toHaveCount(0);
+    await expect(save).toBeDisabled();
+
+    await page.getByRole("radio", { name: "Round" }).click();
+    await reset.click();
+    await expect(page.getByRole("radio", { name: "Round" })).toHaveAttribute("aria-checked", "false");
+    await expect(tile(page, "Aurora")).toHaveAttribute("aria-pressed", "true");
   });
 });

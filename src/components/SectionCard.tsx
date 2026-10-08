@@ -7,6 +7,8 @@ interface SectionCardProps {
   title: ReactNode;
   /** A figure that sits beside the title, in the muted style. */
   count?: ReactNode;
+  /** A muted line under the title, in the header. */
+  subtitle?: ReactNode;
   /** Makes the whole title, icon included, fold the card body shut and open. */
   fold?: { open: boolean; onToggle: () => void };
   /** The first section under the header, in the muted body size. */
@@ -21,6 +23,7 @@ interface SectionCardProps {
 export function SectionCard({
   icon: Icon,
   title,
+  subtitle,
   count,
   fold,
   description,
@@ -53,7 +56,14 @@ export function SectionCard({
           >
             <Icon className="h-[15px] w-[15px]" />
           </span>
-          {title}
+          {subtitle ? (
+            <span className="flex min-w-0 flex-col gap-0.5">
+              {title}
+              <small className="text-xs font-normal leading-[1.4] text-muted-foreground">{subtitle}</small>
+            </span>
+          ) : (
+            title
+          )}
           {count !== undefined && (
             <span className="text-[13px] font-medium tabular-nums text-muted-foreground">{count}</span>
           )}

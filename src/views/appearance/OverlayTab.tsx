@@ -5,13 +5,13 @@ import { modeOf } from "@/lib/theme-contrast";
 import { useGoogleAccount } from "@/lib/use-google-account";
 import { useOverlaySettings } from "@/lib/use-overlay-settings";
 import type { AppThemeController } from "@/lib/use-app-theme";
-import ColorsCard from "./overlay/ColorsCard";
-import MovementCard from "./overlay/MovementCard";
+import CommonCard from "./overlay/CommonCard";
 import PositionCard from "./overlay/PositionCard";
 import PreviewCard from "./overlay/PreviewCard";
 import StyleCard from "./overlay/StyleCard";
+import StyleSettingsCard from "./overlay/StyleSettingsCard";
 
-/** The recording overlay: its style, a preview of it, its colours, how it moves and where it appears. */
+/** The recording overlay: its style, a preview of it, what the four styles share, what is proper to the one picked, and where it appears. */
 export default function OverlayTab({ appTheme }: { appTheme: AppThemeController }) {
   const { settings, ready, reload, setLook, setPlacement, setTheme, setSize } = useOverlaySettings();
   const { status } = useGoogleAccount();
@@ -34,8 +34,8 @@ export default function OverlayTab({ appTheme }: { appTheme: AppThemeController 
         email={email}
         onFree={(free) => setPlacement({ spot: "free", free }, true)}
       />
-      <ColorsCard settings={settings} accent={stops} onLook={setLook} onTheme={setTheme} />
-      <MovementCard look={settings.look} size={settings.size} onLook={setLook} onSize={setSize} />
+      <CommonCard look={settings.look} onLook={setLook} />
+      <StyleSettingsCard settings={settings} accent={stops} onLook={setLook} onTheme={setTheme} onSize={setSize} />
       <PositionCard placement={settings.placement} onPlacement={setPlacement} />
     </>
   );
