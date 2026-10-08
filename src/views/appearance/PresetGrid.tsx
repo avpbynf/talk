@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Palette, Plus, RotateCcw, X } from "lucide-react";
+import { Palette, Plus, RotateCcw, Undo2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -86,15 +86,17 @@ function Tile({
 const GROUPS: PresetGroup[] = ["gradients", "classics"];
 
 /**
- * A button drawn in colours of its own, whatever the theme: it is how a look that went wrong
+ * An icon button drawn in colours of its own, whatever the theme: it is how a look that went wrong
  * is undone, so nothing about the look may reach it.
  */
-function FixedButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+function FixedButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
+      aria-label={label}
+      title={label}
       onClick={onClick}
-      className="inline-flex h-[30px] items-center gap-2 whitespace-nowrap rounded-[6px] border border-[#9ca3af] bg-[#1f2937] px-3 text-xs font-medium text-white hover:bg-[#374151] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f59e0b] [&_svg]:size-3.5"
+      className="inline-grid h-[30px] w-[30px] place-items-center rounded-[6px] border border-[#9ca3af] bg-[#1f2937] text-white hover:bg-[#374151] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f59e0b] [&_svg]:size-3.5"
     >
       {children}
     </button>
@@ -137,22 +139,24 @@ export default function PresetGrid({ theme }: { theme: AppThemeController }) {
               <span className="rounded-full bg-[image:var(--grad-fill)] px-2.5 py-0.5 text-[11px] font-medium text-on-accent">
                 {t("appearance.theme.edited")}
               </span>
-              <FixedButton onClick={theme.revert}>
-                <RotateCcw />
-                {t("appearance.theme.revert")}
+              <FixedButton label={t("appearance.theme.revert")} onClick={theme.revert}>
+                <Undo2 />
               </FixedButton>
             </>
           )}
-          <FixedButton onClick={theme.reset}>{t("appearance.theme.reset")}</FixedButton>
+          <FixedButton label={t("appearance.theme.reset")} onClick={theme.reset}>
+            <RotateCcw />
+          </FixedButton>
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
+            className="h-[30px] w-[30px] enabled:bg-[var(--tint-2)] enabled:text-[var(--color-active)]"
+            aria-label={t("appearance.theme.save")}
             disabled={!resolved.edited}
-            title={resolved.edited ? undefined : t("appearance.theme.saveUnchanged")}
+            title={resolved.edited ? t("appearance.theme.save") : t("appearance.theme.saveUnchanged")}
             onClick={() => theme.save((n) => t("appearance.theme.savedName", { n }))}
           >
             <Plus />
-            {t("appearance.theme.save")}
           </Button>
         </div>
       }

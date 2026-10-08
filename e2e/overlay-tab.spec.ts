@@ -20,6 +20,14 @@ async function openTab(app: App, page: Page, options: Parameters<App["open"]>[0]
   await app.settle();
 }
 
+/** The "Advanced" row of the common card, or of the card of the style picked, and what it reveals once it is opened. */
+async function openAdvanced(page: Page, card: "common" | "style") {
+  const row = page.getByRole("button", { name: /^Advanced/ }).nth(card === "common" ? 0 : 1);
+  await row.click();
+  await expect(row).toHaveAttribute("aria-expanded", "true");
+  return row;
+}
+
 const hold = (page: Page, state: "Recording" | "Transcribing" | "Pasted" | "Refused" | "Loop") =>
   page.getByRole("radiogroup", { name: "State shown" }).getByRole("radio", { name: state }).click();
 
@@ -237,7 +245,7 @@ test.describe("the overlay tab", () => {
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.system_color).toBe(true);
     });
 
-    test("the shadow is set for the styles the page draws, and not for the Windows one", async ({ app, page }) => {
+    test("the shadow is set for the styles that cast one, and not for the orb", async ({ app, page }) => {
       await openTab(app, page);
       await hold(page, "Recording");
       const box = page.getByTestId("overlay-preview").locator(".ovbox");
@@ -250,8 +258,9 @@ test.describe("the overlay tab", () => {
         .toContain("rgba(0, 0, 0, 0) 0px 6px 16px -6px");
       await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.shadow).toBe(0);
       await page.getByRole("button", { name: /^Windows.+/ }).click();
-      await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(0);
-      // Nor for the orb, which casts none.
+      await expect(page.getByRole("button", { name: /^Windows.+/ })).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(1);
+      // The orb casts none.
       await page.getByRole("button", { name: /^Orb.+/ }).click();
       await expect(page.getByRole("button", { name: /^Orb.+/ })).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByRole("slider", { name: "Shadow" })).toHaveCount(0);
@@ -302,6 +311,86 @@ test.describe("the overlay tab", () => {
       await expect
         .poll(() => page.getByTestId("overlay-preview").locator(".ovbox").evaluate((el) => getComputedStyle(el).getPropertyValue("--c2").trim()))
         .toBe("#00ff88");
+    });
+  });
+
+  test.describe("the cards under the preview", () => {
+    const ROWS = {
+      Palette: (page: Page) => page.getByRole("group", { name: "Palette", exact: true }),
+      "Accent colour": (page: Page) => page.getByRole("group", { name: "Accent colour", exact: true }),
+      Voice: (page: Page) => page.getByRole("radiogroup", { name: "Your voice", exact: true }),
+      "Card width": (page: Page) => page.getByRole("slider", { name: "Card width", exact: true }),
+      Size: (page: Page) => page.getByRole("radiogroup", { name: "Size", exact: true }),
+      Shadow: (page: Page) => page.getByRole("slider", { name: "Shadow", exact: true }),
+      Microphone: (page: Page) => page.getByRole("switch", { name: "Microphone icon", exact: true }),
+      Transcription: (page: Page) => page.getByRole("switch", { name: "Transcription icon", exact: true }),
+    };
+    type Row = keyof typeof ROWS;
+
+    for (const [name, style, shown] of [
+      ["Windows", "flyout", ["Accent colour", "Voice", "Card width", "Microphone", "Transcription", "Shadow"]],
+      ["Halo", "halo", ["Palette", "Size", "Shadow", "Microphone", "Transcription"]],
+      ["Capsule", "capsule", ["Palette", "Size", "Shadow", "Microphone"]],
+      ["Orb", "orb", ["Palette", "Size"]],
+    ] as const satisfies readonly (readonly [string, string, readonly Row[]])[]) {
+      test(`the card of ${name} shows its own rows and not another style's`, async ({ app, page }) => {
+        await openTab(app, page, { state: { settings: { overlay_look: { style } } } });
+        const title = page.getByText("Proper to this style").locator("xpath=..");
+        await expect(title).toContainText(name);
+        for (const row of Object.keys(ROWS) as Row[]) {
+          await expect(ROWS[row](page), row).toHaveCount((shown as readonly Row[]).includes(row) ? 1 : 0);
+        }
+        // What the four styles share is on the card above, whatever is picked.
+        await expect(page.getByText("For the four styles")).toBeVisible();
+        for (const common of ["Timer", "Text at the end"]) await expect(page.getByRole("switch", { name: common })).toBeVisible();
+        await expect(page.getByRole("slider", { name: "Reaction to your voice" })).toBeVisible();
+      });
+    }
+
+    test("the card follows the style as it is picked", async ({ app, page }) => {
+      await openTab(app, page);
+      await expect(ROWS.Size(page)).toHaveCount(1);
+      await page.getByRole("button", { name: /^Windows.+/ }).click();
+      await expect(ROWS.Size(page)).toHaveCount(0);
+      await expect(ROWS["Card width"](page)).toBeVisible();
+      await expect(page.getByText("Proper to this style").locator("xpath=..")).toContainText("Windows");
+    });
+
+    test("Advanced is shut, opens and shuts in place, and counts what was changed inside", async ({ app, page }) => {
+      await openTab(app, page, { state: { settings: { overlay_look: { pasted_hold_ms: 500 } } } });
+      const hold = page.getByRole("slider", { name: "How long it confirms" });
+      const row = page.getByRole("button", { name: /^Advanced/ });
+      await expect(row).toHaveAttribute("aria-expanded", "false");
+      await expect(row).toContainText("1 setting changed");
+      await expect(hold).toHaveCount(0);
+
+      // Measured from the row itself, since opening it may scroll the page.
+      const gap = async () => (await page.getByRole("button", { name: "Bottom centre" }).boundingBox())!.y - (await row.boundingBox())!.y;
+      const before = await gap();
+      await row.click();
+      await expect(row).toHaveAttribute("aria-expanded", "true");
+      await expect(hold).toHaveValue("500");
+      expect(await gap(), "the cards below it make room").toBeGreaterThan(before);
+
+      await page.getByRole("button", { name: "Default" }).click();
+      await expect(hold).toHaveValue("1500");
+      await expect.poll(async () => (await calls(app, "set_overlay_look")).at(-1)?.look.pasted_hold_ms).toBe(1500);
+
+      await row.click();
+      await expect(row).toHaveAttribute("aria-expanded", "false");
+      await expect(hold).toHaveCount(0);
+      await expect(row).not.toContainText("changed");
+    });
+
+    test("the Advanced row of the Windows card holds the middle width and counts it too", async ({ app, page }) => {
+      await openTab(app, page, { state: { settings: { overlay_look: { style: "flyout", middle_width: 90 } } } });
+      const rows = page.getByRole("button", { name: /^Advanced/ });
+      await expect(rows).toHaveCount(2);
+      await expect(rows.nth(0)).not.toContainText("changed");
+      await expect(rows.nth(1)).toContainText("1 setting changed");
+      await expect(page.getByRole("slider", { name: "Middle width" })).toHaveCount(0);
+      await openAdvanced(page, "style");
+      await expect(page.getByRole("slider", { name: "Middle width" })).toHaveValue("90");
     });
   });
 
@@ -393,6 +482,7 @@ test.describe("the overlay tab", () => {
       expect(await width(card)).toBe(192);
       await expect(page.getByRole("switch", { name: "Timer" })).toBeEnabled();
 
+      await openAdvanced(page, "style");
       await page.getByRole("slider", { name: "Middle width" }).fill("80");
       await expect.poll(() => width(middle)).toBe(80);
       await expect(card.locator(".st-rec > .ovf-glyph")).toBeVisible();

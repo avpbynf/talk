@@ -1,5 +1,8 @@
 {
   "common": {
+    "advanced": "Avancé",
+    "awayCount_one": "{{count}} réglage modifié",
+    "awayCount_other": "{{count}} réglages modifiés",
     "backToDefault": "Par défaut",
     "cancel": "Annuler",
     "confirm": "Confirmer",
@@ -552,8 +555,9 @@
         "earlier": "À reprendre demain matin :",
         "later": "Vérifier que le vocabulaire survit à un changement de PC, puis essayer le modèle turbo sur la carte Intel avant la sortie."
       },
+      "common": { "title": "Commun", "subtitle": "Pour les quatre styles" },
+      "own": { "subtitle": "Propre à ce style" },
       "colors": {
-        "title": "Couleurs du bandeau",
         "palette": "Palette",
         "paletteHint": "Celle de l'application, une des six que le bandeau avait déjà, ou trois des vôtres",
         "accent": "Application",
@@ -574,7 +578,6 @@
         "opacityHint": "À 100 %, le fond est plein. Plus bas, il laisse voir ce qu'il y a derrière le bandeau."
       },
       "movement": {
-        "title": "Mouvement",
         "reaction": "Réaction à la voix",
         "reactionHint": "À quel point le bandeau bouge quand vous parlez",
         "entrance": "Apparition",
@@ -729,6 +732,7 @@
     },
     "base": {
       "title": "Couleurs de base",
+      "summary": "Fond, cartes, texte et bordures. À ne toucher que si vous savez pourquoi.",
       "bg": {
         "label": "Fond",
         "hint": "Derrière les cartes et la barre latérale"

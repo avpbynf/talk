@@ -13,3 +13,11 @@ export async function themeSettled(page: Page): Promise<void> {
 export function tile(page: Page, name: string) {
   return page.getByRole("button", { name: new RegExp(`^${name}( light)?$`) });
 }
+
+/** The Base colours card is shut on arrival: its header is a button that opens it. */
+export async function openBaseColours(page: Page): Promise<void> {
+  const header = page.getByRole("button", { name: /^Base colours/ });
+  await expect(header).toHaveAttribute("aria-expanded", "false");
+  await header.click();
+  await expect(header).toHaveAttribute("aria-expanded", "true");
+}

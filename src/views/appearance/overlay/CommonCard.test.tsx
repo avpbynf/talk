@@ -2,17 +2,17 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import i18n from "@/i18n";
 import { DEFAULT_LOOK } from "@/lib/overlay";
-import MovementCard from "./MovementCard";
+import CommonCard from "./CommonCard";
 
 afterEach(async () => {
   await i18n.changeLanguage("en");
 });
 
 function renderCard() {
-  render(<MovementCard look={{ ...DEFAULT_LOOK, reaction: 80 }} size="medium" onLook={vi.fn()} onSize={vi.fn()} />);
+  render(<CommonCard look={{ ...DEFAULT_LOOK, reaction: 80 }} onLook={vi.fn()} />);
 }
 
-describe("MovementCard", () => {
+describe("CommonCard", () => {
   it("writes the reaction as a percent the way English does", async () => {
     renderCard();
 

@@ -1,5 +1,8 @@
 {
   "common": {
+    "advanced": "Advanced",
+    "awayCount_one": "{{count}} setting changed",
+    "awayCount_other": "{{count}} settings changed",
     "backToDefault": "Default",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -552,8 +555,9 @@
         "earlier": "To pick up tomorrow morning:",
         "later": "Check that the vocabulary survives a change of PC, then try the turbo model on the Intel card before the release."
       },
+      "common": { "title": "Common", "subtitle": "For the four styles" },
+      "own": { "subtitle": "Proper to this style" },
       "colors": {
-        "title": "Overlay colours",
         "palette": "Palette",
         "paletteHint": "The application's own, one of the six the overlay already had, or three of yours",
         "accent": "Application",
@@ -574,7 +578,6 @@
         "opacityHint": "At 100 %, the background is solid. Lower, what is behind the overlay shows through."
       },
       "movement": {
-        "title": "Movement",
         "reaction": "Reaction to your voice",
         "reactionHint": "How much the overlay moves when you speak",
         "entrance": "Appearance",
@@ -729,6 +732,7 @@
     },
     "base": {
       "title": "Base colours",
+      "summary": "Background, cards, text and borders. Only touch them if you know why.",
       "bg": {
         "label": "Background",
         "hint": "Behind the cards and the sidebar"
