@@ -134,7 +134,6 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) -> Option<Stage> {
         return None;
     };
     let (width, height) = placement::window_pixels(logical, screen.scale);
-    *ON_SCREEN.lock() = Some(screen.id.clone());
 
     *PLACED.lock() = Some((x, y));
     // The position first, so the window is on the screen whose scale the size is
@@ -269,9 +268,6 @@ pub fn show(app: &AppHandle) {
 /// pointer for one showing learns that it is over.
 static WATCHES: AtomicU64 = AtomicU64::new(0);
 
-/// The screen the overlay was last placed on.
-static ON_SCREEN: Mutex<Option<String>> = Mutex::new(None);
-
 /// How often the pointer's screen is looked at while the overlay follows it.
 const FOLLOW_EVERY: Duration = Duration::from_millis(150);
 
@@ -280,11 +276,21 @@ fn follow_pointer(app: &AppHandle, watch: u64) {
     let lasts = || WATCHES.load(Ordering::SeqCst) == watch;
     while lasts() {
         std::thread::sleep(FOLLOW_EVERY);
+        // A button held may be the user carrying the overlay to another screen: it is theirs.
+        let Some(overlay) = app.get_webview_window("overlay").filter(|_| !pointer_held()) else {
+            continue;
+        };
         let screens = screens(app);
+        let screen_at = |point| placement::pick_screen(&screens, ScreenChoice::Pointer, None, Whereabouts { typing: None, pointer: point });
         let pointer = app.cursor_position().ok().map(|at| (at.x.round() as i32, at.y.round() as i32));
-        let under = placement::pick_screen(&screens, ScreenChoice::Pointer, None, Whereabouts { typing: None, pointer });
-        let elsewhere = match (under, ON_SCREEN.lock().as_deref()) {
-            (Some(under), Some(on)) => under.id != on,
+        // Where the window is, not where it was last placed: it may have been dragged since.
+        let middle = overlay
+            .outer_position()
+            .ok()
+            .zip(overlay.outer_size().ok())
+            .map(|(at, size)| (at.x + size.width as i32 / 2, at.y + size.height as i32 / 2));
+        let elsewhere = match (pointer.and_then(|_| screen_at(pointer)), middle.and_then(|_| screen_at(middle))) {
+            (Some(under), Some(on)) => under.id != on.id,
             _ => false,
         };
         if elsewhere && lasts() {
@@ -293,9 +299,22 @@ fn follow_pointer(app: &AppHandle, watch: u64) {
     }
 }
 
+/// Whether the main button of the pointer is down.
+#[cfg(windows)]
+fn pointer_held() -> bool {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
+    unsafe { GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16 & 0x8000 != 0 }
+}
+
+#[cfg(not(windows))]
+fn pointer_held() -> bool {
+    false
+}
+
 /// Take the overlay off the screen it is on and bring it in on the pointer's, the way the look
 /// says it leaves and arrives. The page plays both for the styles it draws, and is told when;
-/// the flyout's window plays its own.
+/// the flyout's window plays its own. A move a show or a hide takes over is dropped, and the
+/// page is told that too: it would otherwise go on believing the overlay is away.
 fn hop(app: &AppHandle, lasts: &impl Fn() -> bool) {
     let Some(overlay) = app.get_webview_window("overlay") else {
         return;
@@ -304,22 +323,23 @@ fn hop(app: &AppHandle, lasts: &impl Fn() -> bool) {
     let reduced = MOVES_LESS.load(Ordering::SeqCst);
     let _ = app.emit_to(EventTarget::webview_window("overlay"), "overlay-hops", ());
     let stage = *STAGE.lock();
-    match stage {
-        Some(stage) => {
-            if !arrival::play(&stage, Movement::of(entrance, Way::Out, reduced), arrival::turn()) {
-                return;
-            }
+    let left = match stage {
+        Some(stage) => arrival::play(&stage, Movement::of(entrance, Way::Out, reduced), arrival::turn()),
+        None => {
+            std::thread::sleep(LEAVE);
+            true
         }
-        None => std::thread::sleep(LEAVE),
-    }
-    if !lasts() {
+    };
+    if !left || !lasts() {
+        let _ = app.emit_to(EventTarget::webview_window("overlay"), "overlay-hop-dropped", ());
         return;
     }
     let stage = place(app, &overlay).filter(|_| style == OverlayStyle::Flyout);
     *STAGE.lock() = stage;
     raise(&overlay);
     let _ = app.emit_to(EventTarget::webview_window("overlay"), "overlay-hopped", ());
-    if let Some(stage) = stage {
+    // A hide that landed meanwhile has the window: it is not brought in under it.
+    if let Some(stage) = stage.filter(|_| lasts()) {
         let arriving = Movement::of(entrance, Way::In, reduced);
         arrival::prepare(&stage, arriving);
         arrival::play(&stage, arriving, arrival::turn());

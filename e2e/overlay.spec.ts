@@ -242,6 +242,18 @@ test.describe("the overlay page", () => {
     await expect(page.locator(".ovbox[data-first]"), "a new view, which is what arrives again").toHaveCount(0);
   });
 
+  test("a move to another screen that is dropped leaves the overlay where it was, and shown", async ({ app, page }) => {
+    await open(app, page, { style: "halo" });
+    await show(app, "rec");
+    const box = page.locator(".ovbox");
+    await box.evaluate((el) => el.setAttribute("data-first", ""));
+    await app.emit("overlay-hops", null);
+    await app.emit("overlay-hop-dropped", null);
+    // The same view, not one drawn afresh, and no longer on its way out.
+    await expect(page.locator(".ovbox[data-first]")).toHaveCount(1);
+    await expect.poll(() => box.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+  });
+
   test("a look being edited in the other window is drawn at each step, before it is saved", async ({ app, page }) => {
     await open(app, page, { style: "halo" });
     await show(app, "rec");
