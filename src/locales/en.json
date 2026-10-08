@@ -617,6 +617,7 @@
         "screenHint": "With several screens, only one shows it",
         "typing": "Where you are typing",
         "pointer": "Where the mouse is",
+        "follow": "Where the mouse is, following it",
         "primary": "The primary screen",
         "chosen": "Always {{name}}",
         "named": "Screen {{n}} ({{width}} x {{height}})",

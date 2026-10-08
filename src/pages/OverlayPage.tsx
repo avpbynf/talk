@@ -137,6 +137,16 @@ function OverlayPage() {
 
   // The view outlives the state by the time it takes to leave.
   const [present, setPresent] = useState(visible);
+  // The overlay following the pointer to another screen leaves this one and arrives on the other: away while
+  // the window is moved, and drawn afresh once it is there, which is what plays the arrival again.
+  const [hop, setHop] = useState({ away: false, count: 0 });
+  useEffect(() => {
+    const unlisten = [
+      listen("overlay-hops", () => setHop((now) => ({ ...now, away: true }))),
+      listen("overlay-hopped", () => setHop((now) => ({ away: false, count: now.count + 1 }))),
+    ];
+    return () => unlisten.forEach((pending) => pending.then((f) => f()));
+  }, []);
   useEffect(() => {
     if (visible) {
       setPresent(true);
@@ -199,7 +209,8 @@ function OverlayPage() {
     >
       {(visible || present) && (
         <OverlayView
-          leaving={!visible}
+          key={hop.count}
+          leaving={!visible || hop.away}
           look={settings.look}
           surface={surface}
           phase={phase}

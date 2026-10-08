@@ -95,6 +95,7 @@ export default function PositionCard({ placement, onPlacement }: PositionCardPro
             <SelectContent>
               <SelectItem value="typing">{t("appearance.overlay.position.typing")}</SelectItem>
               <SelectItem value="pointer">{t("appearance.overlay.position.pointer")}</SelectItem>
+              <SelectItem value="follow">{t("appearance.overlay.position.follow")}</SelectItem>
               <SelectItem value="primary">{t("appearance.overlay.position.primary")}</SelectItem>
               {screens.map((screen, index) => (
                 <SelectItem key={screen.id} value={`${CHOSEN}${screen.id}`}>
