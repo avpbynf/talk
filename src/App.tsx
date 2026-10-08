@@ -554,7 +554,6 @@ function App() {
           <i />
         </div>
       )}
-      {appTheme.resolved.values.grain && <div className="grain" aria-hidden="true" />}
       <Sidebar
         top={navItemsTop}
         bottom={navItemsBottom}

@@ -278,7 +278,6 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         <i />
         <i />
       </div>
-      <div className="grain" aria-hidden="true" />
       {/* The window has no frame of its own: the strip carries its buttons and drags it */}
       <CaptionStrip bare className="absolute inset-x-0 top-0 z-20" />
 

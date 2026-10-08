@@ -724,10 +724,6 @@
       "drift": {
         "label": "Drift",
         "hint": "The lights move slowly"
-      },
-      "grain": {
-        "label": "Grain",
-        "hint": "A fine texture, like photographic paper"
       }
     },
     "base": {

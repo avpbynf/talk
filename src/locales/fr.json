@@ -724,10 +724,6 @@
       "drift": {
         "label": "Dérive",
         "hint": "Les lumières bougent lentement"
-      },
-      "grain": {
-        "label": "Grain",
-        "hint": "Une texture fine, comme du papier photo"
       }
     },
     "base": {

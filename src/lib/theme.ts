@@ -44,7 +44,6 @@ export interface ThemeValues {
   lights: string[] | null;
   drift: boolean;
   glass: number;
-  grain: boolean;
   radius: RadiusStep;
   text_size: TextStep;
   motion: MotionStep;
@@ -95,7 +94,6 @@ const AURORA_VALUES: ThemeValues = {
   lights: null,
   drift: true,
   glass: 72,
-  grain: false,
   radius: "soft",
   text_size: "normal",
   motion: "gentle",
@@ -246,7 +244,6 @@ export function isValidValues(raw: unknown): raw is ThemeValues {
     inRange(v.glass, MIN_GLASS, 100) &&
     (v.lights === null || (Array.isArray(v.lights) && v.lights.length === 3 && v.lights.every(isHex))) &&
     typeof v.drift === "boolean" &&
-    typeof v.grain === "boolean" &&
     oneOf(v.mode, ["light", "dark"]) &&
     oneOf(v.kind, ["linear", "radial", "conic"]) &&
     oneOf(v.radius, ["sharp", "soft", "round"]) &&
@@ -340,7 +337,6 @@ export interface ThemeStyle {
   cleared: string[];
   attributes: Record<string, string>;
   still: boolean;
-  grained: boolean;
 }
 
 /** What the text, the glass and the lights come to once the contrast has been looked after. */
@@ -421,7 +417,6 @@ export function themeStyle(values: ThemeValues, reducedMotion = false): ThemeSty
     cleared,
     attributes: { mode, gt: values.kind, text: values.text_size, motion },
     still: !values.drift || motion === "reduced",
-    grained: values.grain,
   };
 }
 
@@ -445,7 +440,6 @@ export function applyTheme(values: ThemeValues, { instant = false, root = docume
   for (const name of style.cleared) root.style.removeProperty(name);
   for (const [name, value] of Object.entries(style.attributes)) root.dataset[name] = value;
   root.classList.toggle("still", style.still);
-  root.classList.toggle("grained", style.grained);
   if (instant) {
     void root.offsetWidth;
     root.classList.remove("theme-live");

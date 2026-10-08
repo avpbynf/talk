@@ -85,14 +85,6 @@ export default function AtmosphereCard({ theme }: { theme: AppThemeController })
           aria-label={t("appearance.atmosphere.drift.label")}
         />
       </SettingRow>
-
-      <SettingRow onReset={reset("grain")} label={t("appearance.atmosphere.grain.label")} hint={t("appearance.atmosphere.grain.hint")}>
-        <Switch
-          checked={values.grain}
-          onCheckedChange={(grain) => change({ grain })}
-          aria-label={t("appearance.atmosphere.grain.label")}
-        />
-      </SettingRow>
     </SectionCard>
   );
 }

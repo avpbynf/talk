@@ -111,11 +111,10 @@ describe("themeStyle", () => {
 describe("applyTheme", () => {
   it("puts the values on the element and clears the instant flag", () => {
     const root = document.createElement("div");
-    applyTheme({ ...aurora, bg: "#fafafa", fg: "#111111", grain: true, kind: "conic" }, { instant: true, root });
+    applyTheme({ ...aurora, bg: "#fafafa", fg: "#111111", kind: "conic" }, { instant: true, root });
     expect(root.style.getPropertyValue("--s2")).toBe("#4f8bff");
     expect(root.dataset.mode).toBe("light");
     expect(root.dataset.gt).toBe("conic");
-    expect(root.classList.contains("grained")).toBe(true);
     expect(root.classList.contains("theme-live")).toBe(false);
   });
 });
