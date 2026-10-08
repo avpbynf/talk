@@ -188,8 +188,9 @@ function stable(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/** Whether two looks agree on every value this build reads. A key only carried for another build says nothing here. */
 export function sameValues(a: ThemeValues, b: ThemeValues): boolean {
-  return stable(a) === stable(b);
+  return (Object.keys(AURORA_VALUES) as (keyof ThemeValues)[]).every((key) => stable(a[key]) === stable(b[key]));
 }
 
 /** What puts the named values of a theme back to those of the theme it started from, or nothing when they are there already. */
