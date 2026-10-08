@@ -163,6 +163,12 @@ than the microphone.
 
 ### Refactoring
 
+- (window) The grain switch is gone from the Appearance page
+
+The Atmosphere card no longer offers a grain. At the strength it had, the fine texture it laid over
+the window could hardly be seen. A theme that had it on simply shows without it, and its other
+values are kept as they were.
+
 - (server) The server timeout setting is gone
 
 The Engine page no longer offers a timeout for the server. It only ever covered the time given to a

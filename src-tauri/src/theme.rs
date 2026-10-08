@@ -102,7 +102,6 @@ pub struct ThemeValues {
     pub drift: bool,
     /// How opaque the surfaces are, 35 to 100.
     pub glass: u8,
-    pub grain: bool,
     pub radius: Radius,
     pub text_size: TextSize,
     pub motion: Motion,
@@ -130,7 +129,6 @@ impl Default for ThemeValues {
             lights: None,
             drift: true,
             glass: 72,
-            grain: false,
             radius: Radius::Soft,
             text_size: TextSize::Normal,
             motion: Motion::Gentle,
@@ -608,6 +606,21 @@ mod tests {
         assert!(!saved_readable(&json(r#"{}"#)));
         assert!(!saved_readable(&json(r#"[{"id": "a", "name": "A", "values": {"radius": "huge"}}]"#)));
         assert!(!saved_readable(&json(r#"[{"id": 4}]"#)));
+    }
+
+    #[test]
+    fn a_theme_still_carrying_the_grain_is_read_in_full_and_keeps_the_key() {
+        let json = |s: &str| serde_json::from_str::<Value>(s).expect("json");
+        let values = r##"{"bg": "#101010", "glass": 80, "grain": true}"##;
+        assert!(theme_readable(&json(&format!(r#"{{"preset": "x", "custom": {values}}}"#))));
+        assert!(saved_readable(&json(&format!(r#"[{{"id": "a", "name": "A", "values": {values}}}]"#))));
+
+        take_refusals();
+        let theme = read(&format!(r#"{{"preset": "x", "custom": {values}}}"#));
+        assert_eq!(take_refusals(), 0, "nothing was refused");
+        let custom = theme.custom.expect("values");
+        assert_eq!((custom.bg.as_str(), custom.glass), ("#101010", 80));
+        assert_eq!(serde_json::to_value(&custom).expect("json")["grain"], true);
     }
 
     #[test]

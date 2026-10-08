@@ -29,6 +29,17 @@ describe("the cached theme", () => {
     expect(localStorage.getItem(KEY)).toBeNull();
   });
 
+  it("is kept and drawn when it still carries the grain switch of an earlier build", () => {
+    const grained = { ...aurora, bg: "#101010", grain: true };
+    localStorage.setItem(KEY, JSON.stringify({ setting: { preset: "aurora", custom: grained }, saved: [{ id: "a", name: "A", values: grained }] }));
+    const read = readCachedTheme();
+    expect(read.setting.custom?.bg).toBe("#101010");
+    expect(read.saved).toHaveLength(1);
+    expect(localStorage.getItem(KEY)).not.toBeNull();
+    expect(() => applyCachedTheme()).not.toThrow();
+    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#101010");
+  });
+
   it("never lets the first paint throw, and leaves a window in the default theme", () => {
     localStorage.setItem(KEY, JSON.stringify({ setting: { preset: "aurora", custom: { ...aurora, bg: null } }, saved: [] }));
     expect(() => applyCachedTheme()).not.toThrow();

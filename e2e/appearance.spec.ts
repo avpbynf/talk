@@ -87,6 +87,26 @@ test.describe("the theme", () => {
     await expect(page.locator("html")).toHaveCSS("--bg", "rgb(40, 40, 40)");
   });
 
+  test("boots to a visible window with a cached theme that still carries the grain switch", async ({ app, page }) => {
+    const stored = JSON.stringify({
+      setting: {
+        preset: "aurora",
+        custom: {
+          mode: "dark", bg: "#101010", card: "#1a1a1a", fg: "#f0f0f0", border: "#333333",
+          stops: [{ color: "#7c5cff", pos: 0 }, { color: "#22d3ee", pos: 100 }],
+          angle: 135, kind: "linear", ambient: 50, lights: null, drift: true, glass: 72, grain: true,
+          radius: "soft", text_size: "normal", motion: "gentle",
+        },
+      },
+      saved: [],
+    });
+    await page.addInitScript((value) => localStorage.setItem("talk.theme", value), stored);
+    await app.open();
+    await expect(app.sidebar).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset stats" })).toBeVisible();
+    expect(await serious(page, { only: [CONTRAST] })).toEqual([]);
+  });
+
   for (const [what, stored] of [
     ["a colour that is null", JSON.stringify({ setting: { preset: "aurora", custom: { bg: null } }, saved: [] })],
     ["stops stored as plain strings", JSON.stringify({ setting: { preset: "aurora", custom: { stops: ["#ff0000", "#00ff00"] } }, saved: [] })],

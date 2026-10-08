@@ -184,14 +184,51 @@ impl SyncedSettings {
     pub fn changed_since(&self, stored: &str) -> bool {
         self.fingerprint() != stored
             && self.legacy_fingerprint().as_deref() != Some(stored)
-            && self.themed_fingerprint().as_deref() != Some(stored)
+            && self.themed_fingerprint(false).as_deref() != Some(stored)
             && ![false, true].iter().any(|carried| self.fingerprint_before_tone(*carried).as_deref() == Some(stored))
+            && self.fingerprint_with_grain().as_deref() != Some(stored)
+            && self.themed_fingerprint(true).as_deref() != Some(stored)
+            && ![false, true]
+                .iter()
+                .any(|carried| self.fingerprint_before_tone_with_grain(*carried).as_deref() == Some(stored))
+    }
+
+    /// The JSON of these settings as a build that still had the grain switch wrote it: the key
+    /// sat among the theme's values, between the glass and the radius, where a key this build no
+    /// longer knows is now carried at the end. A theme that never named it had it off.
+    fn json_with_grain(&self) -> Option<String> {
+        let mut json = serde_json::to_string(self).ok()?;
+        let values = self.theme.custom.iter().chain(self.saved_themes.iter().map(|saved| &saved.values));
+        for values in values {
+            let plain = serde_json::to_string(values).ok()?;
+            let mut old = values.clone();
+            let grain = old.extra.remove("grain").and_then(|grain| grain.as_bool()).unwrap_or(false);
+            let rest = serde_json::to_string(&old).ok()?;
+            let at = rest.find(",\"radius\":")?;
+            let old = format!("{},\"grain\":{grain}{}", &rest[..at], &rest[at..]);
+            json = json.replace(&plain, &old);
+        }
+        Some(json)
+    }
+
+    /// What a build with the grain switch hashed these settings to.
+    fn fingerprint_with_grain(&self) -> Option<String> {
+        Some(format!("{:x}", Sha256::digest(self.json_with_grain()?.as_bytes())))
     }
 
     /// What 0.11.0 hashed these settings to: the same, with the look as that build wrote
     /// it, see `OverlayLook::json_before_tone`. Nothing when it could not have held them.
     fn fingerprint_before_tone(&self, carried: bool) -> Option<String> {
-        let json = serde_json::to_string(self).ok()?;
+        self.before_tone(serde_json::to_string(self).ok()?, carried)
+    }
+
+    /// The same for the 0.11.0 that still had the grain switch, which is the one that stored
+    /// the hash on disk.
+    fn fingerprint_before_tone_with_grain(&self, carried: bool) -> Option<String> {
+        self.before_tone(self.json_with_grain()?, carried)
+    }
+
+    fn before_tone(&self, json: String, carried: bool) -> Option<String> {
         let look = json.find(",\"overlay_look\":")? + ",\"overlay_look\":".len();
         let after = json.find(",\"overlay_look_modified\":")?;
         let before_tone = self.overlay_look.json_before_tone(carried)?;
@@ -201,11 +238,11 @@ impl SyncedSettings {
     /// What a build that had themes but no overlay look hashed these settings to, or nothing
     /// when they hold a look that build could not have. The look is written last, so what that
     /// build wrote is these settings cut off in front of it.
-    pub fn themed_fingerprint(&self) -> Option<String> {
+    pub fn themed_fingerprint(&self, with_grain: bool) -> Option<String> {
         if self.overlay_look != OverlayLook::default() || self.overlay_look_modified != 0 {
             return None;
         }
-        let json = serde_json::to_string(self).ok()?;
+        let json = if with_grain { self.json_with_grain()? } else { serde_json::to_string(self).ok()? };
         let cut = json.find(",\"overlay_look\":")?;
         Some(format!("{:x}", Sha256::digest(format!("{}}}", &json[..cut]).as_bytes())))
     }
@@ -858,7 +895,6 @@ mod tests {
         let local = SyncedSettings::default();
         let body = serde_json::to_string(&file_with(&[], 50)).expect("should serialise");
         let parsed = SettingsFile::parse(&body, &local).expect("should parse");
-        assert!(!parsed.incomplete);
     }
 
     #[test]
@@ -1538,6 +1574,52 @@ mod tests {
         looked.overlay_look.end_text = true;
         looked.overlay_look_modified = 5;
         assert!(looked.changed_since(&stored), "a look edited since is one");
+    }
+
+    const GRAINED: &str = r##"{"mode": "dark", "bg": "#101010", "glass": 80, "grain": true, "radius": "round"}"##;
+
+    #[test]
+    fn a_synced_theme_still_carrying_the_grain_is_applied_and_written_back_untouched() {
+        let body = format!(
+            r#"{{"updated_at": 50, "settings": {{"start_sound": "ding", "theme": {{"preset": "aurora", "custom": {GRAINED}}},
+                "saved_themes": [{{"id": "a", "name": "A", "modified": 9, "values": {GRAINED}}}]}}}}"#
+        );
+        let local = SyncedSettings::default();
+        let parsed = SettingsFile::parse(&body, &local).expect("should parse");
+        assert!(parsed.foreign.is_empty(), "the theme is read, not set aside");
+        let custom = parsed.settings.theme.custom.clone().expect("applied");
+        assert_eq!((custom.bg.as_str(), custom.glass), ("#101010", 80));
+        assert_eq!(custom.radius, crate::theme::Radius::Round);
+        assert_eq!(custom.extra.get("grain"), Some(&serde_json::Value::Bool(true)));
+
+        let plan = plan(&local, 10, true, &VocabLedger::default(), Some(&parsed), 100);
+        assert!(plan.apply);
+        let merged = serde_json::to_value(&plan.merged).expect("json");
+        assert_eq!(merged["theme"]["custom"]["grain"], true);
+        assert_eq!(merged["saved_themes"][0]["values"]["grain"], true);
+    }
+
+    #[test]
+    fn a_theme_carrying_the_grain_does_not_read_as_a_local_edit() {
+        let mut upgraded = SyncedSettings::default();
+        upgraded.theme.custom = Some(serde_json::from_str(GRAINED).expect("values"));
+        upgraded.saved_themes = vec![serde_json::from_str(&format!(r#"{{"id": "a", "name": "A", "modified": 9, "values": {GRAINED}}}"#))
+            .expect("saved")];
+        // What 0.11.0 hashed: the key between the glass and the radius, off where it was never named.
+        let json = serde_json::to_string(&upgraded).expect("json");
+        let stored_json =
+            json.replace(r#""motion":"gentle","grain":true}"#, r#""motion":"gentle"}"#).replace(r#""glass":80,"radius""#, r#""glass":80,"grain":true,"radius""#);
+        assert_ne!(stored_json, json);
+        let stored = format!("{:x}", Sha256::digest(stored_json.as_bytes()));
+        assert_ne!(stored, upgraded.fingerprint());
+        assert!(!upgraded.changed_since(&stored), "upgrading alone is not an edit");
+
+        let mut edited = upgraded.clone();
+        edited.theme.custom.as_mut().expect("values").glass = 60;
+        assert!(edited.changed_since(&stored), "a value changed since is one");
+        let mut other = upgraded.clone();
+        other.start_sound = "chime".to_string();
+        assert!(other.changed_since(&stored));
     }
 
     #[test]

@@ -492,6 +492,27 @@ mod tests {
     }
 
     #[test]
+    fn a_file_whose_themes_still_carry_the_grain_loads_whole() {
+        // The grain switch is gone, and the file of a build that had it must not be set aside:
+        // that would take the server address and the shortcuts with it.
+        let json = r##"{"server_url": "http://localhost:4060", "server_token": "sk-test", "start_sound": "chime",
+            "theme": {"preset": "aurora", "custom": {"bg": "#101010", "grain": true, "radius": "round"}},
+            "saved_themes": [{"id": "a", "name": "A", "modified": 4, "values": {"bg": "#202020", "grain": false}}]}"##;
+        let (s, complete) = parse_settings(json).expect("should deserialise");
+        assert!(complete, "nothing was refused");
+        assert_eq!(s.server_url, "http://localhost:4060");
+        assert_eq!(s.server_token, "sk-test");
+        assert_eq!(s.start_sound, "chime");
+        let custom = s.theme.custom.as_ref().expect("the theme");
+        assert_eq!(custom.bg, "#101010");
+        assert_eq!(custom.radius, crate::theme::Radius::Round);
+        assert_eq!(s.saved_themes[0].values.bg, "#202020");
+        let back = serde_json::to_value(&s).expect("should serialise");
+        assert_eq!(back["theme"]["custom"]["grain"], true);
+        assert_eq!(back["saved_themes"][0]["values"]["grain"], false);
+    }
+
+    #[test]
     fn an_old_theme_name_nobody_knows_still_loads_the_file() {
         let s = parse(r#"{"app_theme": "from-the-future", "server_url": "http://localhost:4060"}"#);
         assert_eq!(s.theme, ThemeSettings::default());
