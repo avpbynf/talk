@@ -55,7 +55,7 @@ export default function PaletteRows({ settings, accent, onLook, onTheme }: Palet
   return (
     <>
       <SettingRow
-        onReset={reset("palette", "system_color")}
+        onReset={windows ? reset("palette", "system_color") : reset("palette")}
         label={t(windows ? "appearance.overlay.colors.accentColor" : "appearance.overlay.colors.palette")}
         hint={t(windows ? "appearance.overlay.colors.accentColorHint" : "appearance.overlay.colors.paletteHint")}
         below={
