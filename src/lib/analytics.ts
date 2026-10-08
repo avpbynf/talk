@@ -234,6 +234,14 @@ export function isPlausibleWpm(wpm: number): boolean {
   return Number.isFinite(wpm) && wpm >= 1 && wpm < MAX_TYPING_WPM;
 }
 
+/**
+ * What a person types and speaks on average, in words a minute: the figures commonly given for
+ * an adult at a keyboard and in conversation. The first stands in for a typing speed nobody
+ * measured, and the two are shown beside the user's own.
+ */
+export const HUMAN_TYPING_WPM = 40;
+export const HUMAN_SPEAKING_WPM = 150;
+
 const WPM_STORAGE_KEY = "talk-user-wpm";
 const WPM_DATE_STORAGE_KEY = "talk-user-wpm-date";
 
@@ -247,13 +255,33 @@ export function loadUserWpm(): number {
   } catch {
     /* ignore */
   }
-  return 40;
+  return HUMAN_TYPING_WPM;
 }
 
 export function saveUserWpm(wpm: number): void {
   try {
     localStorage.setItem(WPM_STORAGE_KEY, String(wpm));
     localStorage.setItem(WPM_DATE_STORAGE_KEY, new Date().toISOString());
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Whether a typing speed was measured here, as opposed to the average standing in for it. */
+export function isUserWpmMeasured(): boolean {
+  try {
+    const stored = localStorage.getItem(WPM_STORAGE_KEY);
+    return stored !== null && isPlausibleWpm(parseInt(stored, 10));
+  } catch {
+    return false;
+  }
+}
+
+/** Forget the measured typing speed: the average takes its place again. */
+export function forgetUserWpm(): void {
+  try {
+    localStorage.removeItem(WPM_STORAGE_KEY);
+    localStorage.removeItem(WPM_DATE_STORAGE_KEY);
   } catch {
     /* ignore */
   }

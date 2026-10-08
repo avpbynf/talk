@@ -1,9 +1,9 @@
-import { Keyboard, RotateCw } from "lucide-react";
+import { Keyboard, RotateCcw, RotateCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/SectionCard";
 import { formatDay, formatNumber } from "@/i18n";
-import { speakingRate } from "@/lib/analytics";
+import { HUMAN_SPEAKING_WPM, HUMAN_TYPING_WPM, speakingRate } from "@/lib/analytics";
 import type { AnalyticsSummary } from "@/lib/analytics";
 
 interface TypingCardProps {
@@ -12,13 +12,27 @@ interface TypingCardProps {
   /** When the typing speed was measured, if that is known. */
   measuredOn: Date | null;
   onRecalibrate: () => void;
+  /** Forgets the measured typing speed, so the average stands in again. Given only while one is measured. */
+  onForget?: () => void;
 }
 
-function Line({ label, detail, value }: { label: string; detail?: string; value: string }) {
+function Line({ label, detail, value, back }: { label: string; detail?: string; value: string; back?: { label: string; run: () => void } }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
       <div className="flex min-w-0 flex-col gap-[3px]">
-        <b className="text-[13px] font-medium">{label}</b>
+        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
+          <b className="text-[13px] font-medium">{label}</b>
+          {back && (
+            <button
+              type="button"
+              onClick={back.run}
+              className="inline-flex cursor-pointer items-center gap-1 rounded text-[11px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <RotateCcw aria-hidden="true" className="h-3 w-3" />
+              {back.label}
+            </button>
+          )}
+        </span>
         {detail && <small className="text-[11px] leading-[1.45] text-muted-foreground">{detail}</small>}
       </div>
       <span className="whitespace-nowrap text-[13px] tabular-nums">{value}</span>
@@ -27,7 +41,7 @@ function Line({ label, detail, value }: { label: string; detail?: string; value:
 }
 
 /** The figure the time won is measured against, and the way to measure it again. */
-export function TypingCard({ summary, userWpm, measuredOn, onRecalibrate }: TypingCardProps) {
+export function TypingCard({ summary, userWpm, measuredOn, onRecalibrate, onForget }: TypingCardProps) {
   const { t } = useTranslation();
   const rate = speakingRate(summary);
 
@@ -55,9 +69,12 @@ export function TypingCard({ summary, userWpm, measuredOn, onRecalibrate }: Typi
           detail={
             measuredOn
               ? t("dashboard.typing.measuredOn", { date: formatDay(measuredOn) })
-              : undefined
+              : onForget
+                ? undefined
+                : t("dashboard.typing.assumed")
           }
           value={t("dashboard.wpm", { wpm: userWpm })}
+          back={onForget && { label: t("dashboard.typing.backToAverage"), run: onForget }}
         />
         <Line
           label={t("dashboard.typing.voice")}
@@ -70,6 +87,11 @@ export function TypingCard({ summary, userWpm, measuredOn, onRecalibrate }: Typi
                 })
           }
           value={rate === null ? "--" : t("dashboard.wpm", { wpm: Math.round(rate) })}
+        />
+        <Line
+          label={t("dashboard.typing.human")}
+          detail={t("dashboard.typing.humanDetail")}
+          value={t("dashboard.typing.humanValue", { typing: HUMAN_TYPING_WPM, speaking: HUMAN_SPEAKING_WPM })}
         />
       </div>
     </SectionCard>

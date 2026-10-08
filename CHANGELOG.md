@@ -71,6 +71,13 @@ Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recor
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
 
+- (dashboard) The dashboard names what a person averages, and a measured speed can go back to it
+
+The Your typing card showed your speed at the keyboard and by voice, and nothing to hold them
+against. It now also says what a person averages, 40 words a minute at a keyboard and 150 by
+voice. A typing speed nobody measured is said to be that average, and one you measured can be
+put back to it.
+
 - (overlay) The overlay can follow the mouse from screen to screen
 
 The Screen setting has a rule more: "Where the mouse is, following it". The overlay still

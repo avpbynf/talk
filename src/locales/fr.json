@@ -181,6 +181,11 @@
       "retest": "Refaire",
       "retestTitle": "Refaire le test de frappe",
       "measuredOn": "mesuré le {{date}}",
+      "assumed": "pas encore mesuré : la moyenne d'une personne",
+      "backToAverage": "Revenir à la moyenne",
+      "human": "Une personne en moyenne",
+      "humanDetail": "au clavier, puis à la voix",
+      "humanValue": "{{typing}} et {{speaking}} mots/min",
       "overDictations_one": "sur {{number}} dictée",
       "overDictations_other": "sur {{number}} dictées"
     }

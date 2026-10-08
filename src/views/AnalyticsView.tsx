@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageShell } from "@/components/PageShell";
-import { loadUserWpm, loadUserWpmDate, PERIOD_DAYS } from "@/lib/analytics";
+import { forgetUserWpm, isUserWpmMeasured, loadUserWpm, loadUserWpmDate, PERIOD_DAYS } from "@/lib/analytics";
 import type { AnalyticsSummary, Period, YearlyDayActivity } from "@/lib/analytics";
 import { PeriodFilter } from "@/views/analytics/PeriodFilter";
 import { DeviceScopeFilter } from "@/views/analytics/DeviceScopeFilter";
@@ -23,6 +23,7 @@ export default function AnalyticsView() {
   const { t } = useTranslation();
   const [userWpm, setUserWpm] = useState<number>(() => loadUserWpm());
   const [wpmDate, setWpmDate] = useState<Date | null>(() => loadUserWpmDate());
+  const [wpmMeasured, setWpmMeasured] = useState(() => isUserWpmMeasured());
   const [testOpen, setTestOpen] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
   // Not persisted: every start opens on all devices.
@@ -105,6 +106,7 @@ export default function AnalyticsView() {
             onWpmMeasured={(wpm) => {
               setUserWpm(wpm);
               setWpmDate(loadUserWpmDate());
+              setWpmMeasured(true);
               setTestOpen(false);
             }}
           />
@@ -140,7 +142,22 @@ export default function AnalyticsView() {
           <div className="grid grid-cols-3 gap-3 @max-[700px]:grid-cols-1">
             <CostComparison summary={summary} />
             <SubscriptionComparison summary={summary} />
-            <TypingCard summary={summary} userWpm={userWpm} measuredOn={wpmDate} onRecalibrate={() => setTestOpen(true)} />
+            <TypingCard
+              summary={summary}
+              userWpm={userWpm}
+              measuredOn={wpmDate}
+              onRecalibrate={() => setTestOpen(true)}
+              onForget={
+                wpmMeasured
+                  ? () => {
+                      forgetUserWpm();
+                      setUserWpm(loadUserWpm());
+                      setWpmDate(null);
+                      setWpmMeasured(false);
+                    }
+                  : undefined
+              }
+            />
           </div>
         </>
       ) : (

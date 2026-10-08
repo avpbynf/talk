@@ -181,6 +181,11 @@
       "retest": "Retest",
       "retestTitle": "Redo the typing test",
       "measuredOn": "measured on {{date}}",
+      "assumed": "not measured yet: what a person averages",
+      "backToAverage": "Back to the average",
+      "human": "A person on average",
+      "humanDetail": "at the keyboard, then by voice",
+      "humanValue": "{{typing}} and {{speaking}} wpm",
       "overDictations_one": "over {{number}} dictation",
       "overDictations_other": "over {{number}} dictations"
     }
