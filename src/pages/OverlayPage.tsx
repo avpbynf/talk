@@ -144,6 +144,8 @@ function OverlayPage() {
     const unlisten = [
       listen("overlay-hops", () => setHop((now) => ({ ...now, away: true }))),
       listen("overlay-hopped", () => setHop((now) => ({ away: false, count: now.count + 1 }))),
+      // A move a show or a hide took over: the overlay never left, and is not drawn afresh.
+      listen("overlay-hop-dropped", () => setHop((now) => ({ ...now, away: false }))),
     ];
     return () => unlisten.forEach((pending) => pending.then((f) => f()));
   }, []);
