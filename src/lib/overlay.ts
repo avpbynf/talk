@@ -44,7 +44,7 @@ export interface OverlayLook {
 }
 
 export type Spot = "top_left" | "top_center" | "top_right" | "bottom_left" | "bottom_center" | "bottom_right" | "free";
-export type ScreenChoice = "typing" | "pointer" | "primary" | "chosen";
+export type ScreenChoice = "typing" | "pointer" | "follow" | "primary" | "chosen";
 
 /** A share of the room the overlay has to move in, 0 against the left or top edge, 1 against the other. */
 export interface FreePosition {
@@ -162,7 +162,7 @@ const TONES: readonly OverlayTone[] = ["theme", "dark", "light"];
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
 export const VOICES: readonly OverlayVoice[] = ["wave", "bars", "meter", "halo"];
 const SPOT_VALUES: readonly Spot[] = [...SPOTS, "free"];
-const SCREENS: readonly ScreenChoice[] = ["typing", "pointer", "primary", "chosen"];
+const SCREENS: readonly ScreenChoice[] = ["typing", "pointer", "follow", "primary", "chosen"];
 const SIZES: readonly OverlaySize[] = ["small", "medium", "large"];
 
 function oneOf<T extends string>(list: readonly T[], value: unknown, fallback: T): T {

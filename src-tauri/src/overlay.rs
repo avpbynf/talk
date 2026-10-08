@@ -2,14 +2,16 @@
 
 use crate::arrival::{self, Movement, Stage, Way};
 use crate::backdrop::{self, Backdrop, SystemAccent};
-use crate::overlay_settings::{OverlayLook, OverlayPlacement, OverlayStyle, CARD_WIDTH_MAX, CARD_WIDTH_MIN};
+use crate::overlay_settings::{
+    OverlayLook, OverlayPlacement, OverlayStyle, ScreenChoice, CARD_WIDTH_MAX, CARD_WIDTH_MIN,
+};
 use crate::placement::{self, Rect, Screen, Whereabouts};
 use crate::settings::{self, AppSettings, OverlaySize, OverlayTheme};
 use parking_lot::Mutex;
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
+use tauri::{AppHandle, Emitter, EventTarget, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 /// Everything the overlay and its settings tab read, in one answer.
 #[derive(Debug, Clone, Serialize)]
@@ -132,6 +134,7 @@ pub fn place(app: &AppHandle, overlay: &WebviewWindow) -> Option<Stage> {
         return None;
     };
     let (width, height) = placement::window_pixels(logical, screen.scale);
+    *ON_SCREEN.lock() = Some(screen.id.clone());
 
     *PLACED.lock() = Some((x, y));
     // The position first, so the window is on the screen whose scale the size is
@@ -249,6 +252,72 @@ pub fn show(app: &AppHandle) {
             std::thread::spawn(move || arrival::play(&stage, arriving, turn));
         }
     }
+    let watch = WATCHES.fetch_add(1, Ordering::SeqCst) + 1;
+    if settings::read(|s| s.overlay_placement.screen) == ScreenChoice::Follow {
+        let app = app.clone();
+        std::thread::spawn(move || follow_pointer(&app, watch));
+    }
+}
+
+/// How many times the overlay was shown or told to leave, which is how whoever follows the
+/// pointer for one showing learns that it is over.
+static WATCHES: AtomicU64 = AtomicU64::new(0);
+
+/// The screen the overlay was last placed on.
+static ON_SCREEN: Mutex<Option<String>> = Mutex::new(None);
+
+/// How often the pointer's screen is looked at while the overlay follows it.
+const FOLLOW_EVERY: Duration = Duration::from_millis(150);
+
+/// For as long as this showing lasts, take the overlay to whichever screen the pointer goes to.
+fn follow_pointer(app: &AppHandle, watch: u64) {
+    let lasts = || WATCHES.load(Ordering::SeqCst) == watch;
+    while lasts() {
+        std::thread::sleep(FOLLOW_EVERY);
+        let screens = screens(app);
+        let pointer = app.cursor_position().ok().map(|at| (at.x.round() as i32, at.y.round() as i32));
+        let under = placement::pick_screen(&screens, ScreenChoice::Pointer, None, Whereabouts { typing: None, pointer });
+        let elsewhere = match (under, ON_SCREEN.lock().as_deref()) {
+            (Some(under), Some(on)) => under.id != on,
+            _ => false,
+        };
+        if elsewhere && lasts() {
+            hop(app, &lasts);
+        }
+    }
+}
+
+/// Take the overlay off the screen it is on and bring it in on the pointer's, the way the look
+/// says it leaves and arrives. The page plays both for the styles it draws, and is told when;
+/// the flyout's window plays its own.
+fn hop(app: &AppHandle, lasts: &impl Fn() -> bool) {
+    let Some(overlay) = app.get_webview_window("overlay") else {
+        return;
+    };
+    let (style, entrance) = settings::read(|s| (s.overlay_look.style, s.overlay_look.entrance));
+    let reduced = MOVES_LESS.load(Ordering::SeqCst);
+    let _ = app.emit_to(EventTarget::webview_window("overlay"), "overlay-hops", ());
+    let stage = *STAGE.lock();
+    match stage {
+        Some(stage) => {
+            if !arrival::play(&stage, Movement::of(entrance, Way::Out, reduced), arrival::turn()) {
+                return;
+            }
+        }
+        None => std::thread::sleep(LEAVE),
+    }
+    if !lasts() {
+        return;
+    }
+    let stage = place(app, &overlay).filter(|_| style == OverlayStyle::Flyout);
+    *STAGE.lock() = stage;
+    raise(&overlay);
+    let _ = app.emit_to(EventTarget::webview_window("overlay"), "overlay-hopped", ());
+    if let Some(stage) = stage {
+        let arriving = Movement::of(entrance, Way::In, reduced);
+        arrival::prepare(&stage, arriving);
+        arrival::play(&stage, arriving, arrival::turn());
+    }
 }
 
 /// What the flyout style's window was last shown on, which is what its departure is played
@@ -295,6 +364,7 @@ const LEAVE: Duration = Duration::from_millis(260);
 /// style, by the window itself. The page is told it is over by whoever calls this; a show
 /// that arrives in the meantime keeps the window.
 pub fn hide(app: &AppHandle) {
+    WATCHES.fetch_add(1, Ordering::SeqCst);
     let shown = SHOWS.load(Ordering::SeqCst);
     let at = app
         .get_webview_window("overlay")
@@ -319,7 +389,9 @@ pub fn hide(app: &AppHandle) {
         if let Some(stage) = stage {
             let entrance = settings::read(|s| s.overlay_look.entrance);
             let leaving = Movement::of(entrance, Way::Out, MOVES_LESS.load(Ordering::SeqCst));
-            if !arrival::play(&stage, leaving, turn) {
+            // Taken over by a show, the window is that show's. Taken over by anything else, a
+            // hop to another screen among them, it still has to go.
+            if !arrival::play(&stage, leaving, turn) && SHOWS.load(Ordering::SeqCst) != shown {
                 return;
             }
         }

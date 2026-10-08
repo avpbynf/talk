@@ -410,6 +410,8 @@ pub enum ScreenChoice {
     Typing,
     /// The one holding the mouse pointer.
     Pointer,
+    /// The one holding the mouse pointer, and whichever it goes to while the overlay is shown.
+    Follow,
     /// The primary screen.
     Primary,
     /// Always the one in `chosen_screen`.

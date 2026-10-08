@@ -71,6 +71,12 @@ Halo and Capsule always cast the same soft shadow. A Shadow setting in the Recor
 takes it from none, where the overlay lies flat on the screen, to twice what it was, where it
 looks raised above it.
 
+- (overlay) The overlay can follow the mouse from screen to screen
+
+The Screen setting has a rule more: "Where the mouse is, following it". The overlay still
+appears on the screen holding the pointer, and when the pointer goes to another screen while it
+is shown, it leaves the one and arrives on the other, the way its Appearance setting says.
+
 - (window) A changed setting shows the way back to its default
 
 On every settings page, a setting that is no longer at its default shows a small Default beside

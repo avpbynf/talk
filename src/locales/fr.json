@@ -617,6 +617,7 @@
         "screenHint": "Avec plusieurs écrans, un seul l'affiche",
         "typing": "Celui où vous écrivez",
         "pointer": "Celui de la souris",
+        "follow": "Celui de la souris, en la suivant",
         "primary": "L'écran principal",
         "chosen": "Toujours {{name}}",
         "named": "Écran {{n}} ({{width}} x {{height}})",

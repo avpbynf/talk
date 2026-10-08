@@ -491,8 +491,8 @@ test.describe("the overlay tab", () => {
       await expect(choice).toContainText("Where you are typing");
 
       await choice.click();
-      for (const name of ["Where you are typing", "Where the mouse is", "The primary screen", /Always Screen 1/, /Always Screen 2/]) {
-        await expect(page.getByRole("option", { name })).toBeVisible();
+      for (const name of ["Where you are typing", "Where the mouse is", "Where the mouse is, following it", "The primary screen", /Always Screen 1/, /Always Screen 2/]) {
+        await expect(page.getByRole("option", { name, exact: true })).toBeVisible();
       }
       await expect(page.getByRole("option", { name: /All screens/ })).toHaveCount(0);
       await page.getByRole("option", { name: /Always Screen 2 \(2560 x 1440\)/ }).click();
@@ -502,10 +502,17 @@ test.describe("the overlay tab", () => {
         .toMatchObject({ screen: "chosen", chosen_screen: "\\\\.\\DISPLAY2" });
 
       await choice.click();
-      await page.getByRole("option", { name: "Where the mouse is" }).click();
+      await page.getByRole("option", { name: "Where the mouse is", exact: true }).click();
       await expect
         .poll(async () => (await calls(app, "set_overlay_placement")).at(-1)?.placement)
         .toMatchObject({ screen: "pointer", chosen_screen: null });
+
+      await choice.click();
+      await page.getByRole("option", { name: "Where the mouse is, following it" }).click();
+      await expect(choice).toContainText("following it");
+      await expect
+        .poll(async () => (await calls(app, "set_overlay_placement")).at(-1)?.placement)
+        .toMatchObject({ screen: "follow", chosen_screen: null });
     });
 
     test("still offers the three rules when the screens cannot be listed", async ({ app, page }) => {

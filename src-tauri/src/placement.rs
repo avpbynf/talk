@@ -78,7 +78,7 @@ pub fn pick_screen<'a>(
     let typing = || screen_at(screens, whereabouts.typing).or_else(|| screen_at(screens, whereabouts.pointer)).or_else(primary);
     match choice {
         ScreenChoice::Typing => typing(),
-        ScreenChoice::Pointer => screen_at(screens, whereabouts.pointer).or_else(primary),
+        ScreenChoice::Pointer | ScreenChoice::Follow => screen_at(screens, whereabouts.pointer).or_else(primary),
         ScreenChoice::Primary => primary(),
         ScreenChoice::Chosen => chosen
             .and_then(|id| screens.iter().find(|screen| screen.id == id))
