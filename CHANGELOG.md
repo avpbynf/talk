@@ -32,6 +32,13 @@ transcribes.
 
 ### Features
 
+- (transcription) Say what a change of backend or graphics card costs before it is applied
+
+Picking CPU, Vulkan or another graphics card now opens a question that names the choice. It says
+that the model is unloaded and loaded again, that dictation is not available meanwhile, and that
+the CPU is noticeably slower or that a card's memory will be used. With no model loaded it says
+the choice only takes effect at the next load. Cancel, or Escape, leaves everything as it was.
+
 - (overlay) Give the Windows style three fixed zones and a movement between its phases
 
 The card keeps the same three places from start to end: the icon on the left, a zone the width of

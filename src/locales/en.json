@@ -283,14 +283,20 @@
       "gigabytes": "{{size}} GB",
       "megabytes": "{{size}} MB",
       "runningOn": "Running on {{name}} ({{details}})",
-      "switchTitle": "Reload the model on the new device?",
-      "switchDescription": "{{model}} will be reloaded on the new device. With a large model this can take a minute or more, and dictation is unavailable until it is done.",
+      "switchTitle": "Run the model on {{choice}}?",
+      "switchReload": "{{model}} is unloaded and loaded again on {{choice}}. Dictation is not available until it is done, which can take a minute or more with a large model.",
+      "switchIdle": "No model is loaded, so nothing is reloaded now. {{choice}} will be used the next time a model is loaded.",
+      "switchCost": {
+        "cpu": "Transcription will be noticeably slower and will use the processor.",
+        "vulkan": "It will use the memory of your graphics card.",
+        "card": "It will use the memory of that card."
+      },
       "switch": "Switch",
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
         "cpu": "Anywhere, slower"
       },
-      "note": "Switching engine or card always asks for confirmation while a model is loaded."
+      "note": "Switching engine or card always asks for confirmation."
     },
     "server": {
       "status": {

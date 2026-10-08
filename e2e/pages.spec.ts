@@ -258,6 +258,43 @@ test.describe("engine page", () => {
     expect((await app.calls("set_transcription_mode")).at(-1)?.args).toEqual({ mode: "local" });
   });
 
+  test("asks before moving the model to another backend or card, and applies nothing on Cancel", async ({
+    app,
+    page,
+  }) => {
+    await app.open();
+    await app.go(engine);
+    const dialog = page.getByRole("dialog");
+    const cpu = page.getByRole("button", { name: /^CPU/ });
+    // The tiles and the card list are drawn again once the first read is back
+    await expect(cpu).toBeEnabled();
+
+    await page.getByRole("button", { name: /^Vulkan/ }).click();
+    await expect(dialog).toHaveCount(0);
+
+    await cpu.click();
+    await expect(dialog).toContainText("Run the model on CPU?");
+    await expect(dialog).toContainText("noticeably slower");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Vulkan/ })).toHaveAttribute("aria-pressed", "true");
+    expect(await app.calls("set_gpu_vendor")).toHaveLength(0);
+
+    const card = page.getByRole("combobox", { name: "Graphics card" });
+    await card.click();
+    await page.getByRole("option", { name: /AMD Radeon/ }).click();
+    await expect(dialog).toContainText("Run the model on AMD Radeon(TM) Graphics?");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(card).toContainText("NVIDIA GeForce RTX 4070");
+    expect(await app.calls("set_gpu_device")).toHaveLength(0);
+
+    await card.click();
+    await page.getByRole("option", { name: /AMD Radeon/ }).click();
+    await dialog.getByRole("button", { name: "Switch" }).click();
+    await expect.poll(async () => (await app.calls("set_gpu_device")).at(-1)?.args).toEqual({ index: 1 });
+  });
+
   test("says so when the server does not answer", async ({ app, page }) => {
     await app.open({ state: { serverCheck: "unreachable", settings: { transcription_mode: "server" } } });
     await app.go(engine);

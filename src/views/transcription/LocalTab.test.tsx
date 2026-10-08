@@ -79,13 +79,71 @@ describe("LocalTab engine switch", () => {
     expect(props.onGpuDeviceChange).toHaveBeenCalledWith(1);
   });
 
-  it("does not ask with no model loaded", async () => {
+  it("asks with no model loaded too, and says nothing is reloaded", async () => {
     const { props, user } = renderTab({ currentModel: null });
 
     await user.click(screen.getByRole("button", { name: /Vulkan/ }));
 
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("No model is loaded");
+    expect(dialog).not.toHaveTextContent("unloaded");
+    expect(props.onGpuVendorChange).not.toHaveBeenCalled();
+  });
+
+  it("says what a switch to the CPU costs and names the model", async () => {
+    const { user } = renderTab({ currentGpuVendor: "vulkan" });
+
+    await user.click(screen.getByRole("button", { name: /CPU/ }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Run the model on CPU?");
+    expect(dialog).toHaveTextContent("ggml-large-v3 is unloaded and loaded again on CPU");
+    expect(dialog).toHaveTextContent("noticeably slower");
+  });
+
+  it("names the card and its memory when the card changes", async () => {
+    const { user } = renderTab({
+      currentGpuVendor: "vulkan",
+      gpuDevices: [
+        { index: 0, name: "Card A", vram_mb: 8192, integrated: false },
+        { index: 1, name: "Card B", vram_mb: 4096, integrated: false },
+      ],
+    });
+
+    await user.click(screen.getByRole("combobox", { name: "Graphics card" }));
+    await user.click(await screen.findByRole("option", { name: "Card B" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Run the model on Card B?");
+    expect(dialog).toHaveTextContent("memory of that card");
+  });
+
+  it("opens nothing for the value already active", async () => {
+    const { props, user } = renderTab({
+      currentGpuVendor: "vulkan",
+      gpuDevices: [
+        { index: 0, name: "Card A", vram_mb: 8192, integrated: false },
+        { index: 1, name: "Card B", vram_mb: 4096, integrated: false },
+      ],
+    });
+
+    await user.click(screen.getByRole("button", { name: /Vulkan/ }));
+    await user.click(screen.getByRole("combobox", { name: "Graphics card" }));
+    await user.click(await screen.findByRole("option", { name: "Card A" }));
+
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(props.onGpuVendorChange).toHaveBeenCalledWith("vulkan");
+    expect(props.onGpuVendorChange).not.toHaveBeenCalled();
+    expect(props.onGpuDeviceChange).not.toHaveBeenCalled();
+  });
+
+  it("cancels on Escape without applying anything", async () => {
+    const { props, user } = renderTab();
+
+    await user.click(screen.getByRole("button", { name: /Vulkan/ }));
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(props.onGpuVendorChange).not.toHaveBeenCalled();
   });
 
   it("asks every time and offers no way to stop asking", async () => {

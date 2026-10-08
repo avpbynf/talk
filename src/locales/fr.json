@@ -283,14 +283,20 @@
       "gigabytes": "{{size}} Go",
       "megabytes": "{{size}} Mo",
       "runningOn": "Exécution sur {{name}} ({{details}})",
-      "switchTitle": "Recharger le modèle sur le nouveau périphérique ?",
-      "switchDescription": "{{model}} va être rechargé sur le nouveau périphérique. Avec un gros modèle, cela peut prendre une minute ou plus, et la dictée est indisponible jusqu'à la fin.",
+      "switchTitle": "Faire tourner le modèle sur {{choice}} ?",
+      "switchReload": "{{model}} est déchargé puis chargé de nouveau sur {{choice}}. La dictée est indisponible jusqu'à la fin, ce qui peut prendre une minute ou plus avec un gros modèle.",
+      "switchIdle": "Aucun modèle n'est chargé, donc rien n'est rechargé maintenant. {{choice}} sera utilisé au prochain chargement d'un modèle.",
+      "switchCost": {
+        "cpu": "La transcription sera nettement plus lente et sollicitera le processeur.",
+        "vulkan": "Il utilisera la mémoire de votre carte graphique.",
+        "card": "Il utilisera la mémoire de cette carte."
+      },
       "switch": "Changer",
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
         "cpu": "Partout, plus lent"
       },
-      "note": "Changer de moteur ou de carte demande toujours confirmation tant qu'un modèle est chargé."
+      "note": "Changer de moteur ou de carte demande toujours confirmation."
     },
     "server": {
       "status": {
