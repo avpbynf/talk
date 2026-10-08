@@ -71,7 +71,7 @@ export function MicRow(props: LookRowProps) {
     <SettingRow
       onReset={lookReset(look, onLook, "mic")}
       label={t("appearance.overlay.movement.mic")}
-      hint={crowded ? t("appearance.overlay.movement.noRoom") : t("appearance.overlay.movement.micHint")}
+      hint={crowded ? t("appearance.overlay.movement.noRoom") : undefined}
       disabled={crowded}
     >
       <Switch checked={look.mic && !crowded} disabled={crowded} onCheckedChange={(mic) => onLook({ mic })} />
@@ -87,7 +87,13 @@ export function MarksRow(props: LookRowProps) {
     <SettingRow
       onReset={lookReset(look, onLook, "transcribing_marks")}
       label={t("appearance.overlay.movement.marks")}
-      hint={crowded ? t("appearance.overlay.movement.noRoom") : t("appearance.overlay.movement.marksHint")}
+      hint={
+        crowded
+          ? t("appearance.overlay.movement.noRoom")
+          : look.style === "flyout"
+            ? t("appearance.overlay.movement.marksHintFlyout")
+            : t("appearance.overlay.movement.marksHint")
+      }
       disabled={crowded}
     >
       <Switch checked={look.transcribing_marks && !crowded} disabled={crowded} onCheckedChange={(transcribing_marks) => onLook({ transcribing_marks })} />
