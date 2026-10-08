@@ -11,6 +11,8 @@ import { type OverlayEntrance, type OverlayLook, type OverlayVoice, PASTED_HOLD_
 
 const ENTRANCES: readonly OverlayEntrance[] = ["bounce", "slide", "fade"];
 const SIZES: readonly OverlaySize[] = ["small", "medium", "large"];
+/** The size the overlay starts with, as `OverlaySize::default()` has it on the Rust side. */
+const DEFAULT_SIZE: OverlaySize = "small";
 
 interface MovementCardProps {
   look: OverlayLook;
@@ -99,7 +101,7 @@ export default function MovementCard({ look, size, onLook, onSize }: MovementCar
       </SettingRow>
 
       {!system && (
-        <SettingRow onReset={size === "medium" ? undefined : () => onSize("medium")} label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
+        <SettingRow onReset={size === DEFAULT_SIZE ? undefined : () => onSize(DEFAULT_SIZE)} label={t("appearance.overlay.movement.size")} hint={t("appearance.overlay.movement.sizeHint")}>
           <Segmented
             label={t("appearance.overlay.movement.size")}
             value={size}
