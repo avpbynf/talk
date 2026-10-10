@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (repo) Talk runs on Linux, with Vulkan
+
+Talk now runs on Debian and Ubuntu under X11 and can use Vulkan GPUs for local transcription. A
+Debian package can be built locally; global shortcuts and text entry require an X11 session.
+
 - (share) Share this PC relays to this PC's server in Server mode
 
 A machine paired with this PC used to get the model loaded here whatever the mode. When this PC
