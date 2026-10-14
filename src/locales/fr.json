@@ -973,6 +973,7 @@
       "downloading": "Version {{version}}. Téléchargement, {{progress}} %.",
       "ready": "Version {{version}}. Installation en cours, la fenêtre se ferme puis revient.",
       "failed": "Version {{version}}. La vérification a échoué.",
+      "unpublished": "Version {{version}}. Aucune version n'est encore publiée pour ce système.",
       "schedule": "Version {{version}}. Vérifiée à chaque lancement, puis toutes les heures.",
       "upToDate": "Version {{version}}. À jour, vérifiée à {{time}}.",
       "error": "Version {{version}}. {{error}}"
