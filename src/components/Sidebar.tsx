@@ -6,6 +6,7 @@ import { UserRound } from "lucide-react";
 import { Blobatar } from "@blobatar/react";
 import "blobatar/motion.css";
 import { cn } from "@/lib/utils";
+import { isMac } from "@/lib/platform";
 import { useGoogleAccount, type GoogleStatus } from "@/lib/use-google-account";
 
 export interface NavItem<Id extends string = string> {
@@ -186,7 +187,9 @@ export function Sidebar<Id extends string>({
     >
       <div
         data-tauri-drag-region
-        className="mx-2.5 mb-3 h-8 shrink-0 flex items-center pl-3 select-none"
+        // On a Mac the window's own buttons sit at the top left, over this row: the name
+        // starts after them.
+        className={cn("mx-2.5 mb-3 h-8 shrink-0 flex items-center select-none", isMac ? "pl-[66px]" : "pl-3")}
       >
         <span data-tauri-drag-region className={cn("text-[15px] font-semibold tracking-tight", WORDMARK)}>
           Talk
