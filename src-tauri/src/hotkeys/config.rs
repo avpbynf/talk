@@ -148,7 +148,7 @@ mod tests {
         let store = open(&dir.path().join(FILE_NAME));
 
         assert!(!store.suspends_sync());
-        assert_eq!(store.get().shortcut, "Ctrl+Space");
+        assert_eq!(store.get().shortcut, default_shortcut());
         assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
     }
 
@@ -202,7 +202,7 @@ mod tests {
 
         assert!(store.suspends_sync());
         assert_eq!(std::fs::read_to_string(aside_of(&path)).unwrap(), damaged);
-        assert_eq!(on_disk(&path)["shortcut"], "Ctrl+Space");
+        assert_eq!(on_disk(&path)["shortcut"], default_shortcut().as_str());
         assert!(!open(&path).suspends_sync());
         assert!(dir.path().join("hotkeys.unreadable.json.untold").exists());
     }
@@ -281,7 +281,7 @@ mod tests {
             thread.join().unwrap();
         }
 
-        let expected = format!("Ctrl+Space{}", "x".repeat(30));
+        let expected = format!("{}{}", default_shortcut(), "x".repeat(30));
         assert_eq!(store.get().shortcut, expected);
         assert_eq!(on_disk(&path)["shortcut"], expected.as_str());
     }
@@ -304,7 +304,7 @@ mod tests {
 
         assert!(store.update(|c| c.shortcut = "Ctrl+F6".to_string()).is_err());
 
-        assert_eq!(store.get().shortcut, "Ctrl+Space");
+        assert_eq!(store.get().shortcut, default_shortcut());
         assert_eq!(HOOKS.load(std::sync::atomic::Ordering::SeqCst), 0);
     }
 }
