@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+pub mod blackhole;
 mod controller;
 mod detector;
 mod router;

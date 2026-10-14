@@ -1052,6 +1052,22 @@ fn get_vbcable_status() -> virtual_mic::VBCableStatus {
     virtual_mic::detect_vbcable()
 }
 
+/// Install BlackHole on a Mac, for meeting mode. "declined" when the password was not given,
+/// which is the user's choice and not a failure to report.
+#[tauri::command]
+async fn install_blackhole() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use virtual_mic::blackhole::{install, InstallError};
+        return install().await.map_err(|e| match e {
+            InstallError::Declined => "declined".to_string(),
+            other => other.to_string(),
+        });
+    }
+    #[cfg(not(target_os = "macos"))]
+    Err("BlackHole is a Mac driver".to_string())
+}
+
 /// What the switch asks for and what the cable is doing about it, which differ when
 /// the route did not start or failed since.
 #[derive(serde::Serialize)]
@@ -1356,6 +1372,7 @@ pub fn run() {
             set_companion_shortcuts,
             simulate_keystroke_cmd,
             get_vbcable_status,
+            install_blackhole,
             get_meeting_mode,
             set_meeting_mode,
             list_input_devices,
