@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useWindowControls } from "@/lib/use-window-controls";
+import { isMac } from "@/lib/platform";
 
 const BUTTON =
   "grid h-8 w-[42px] place-items-center text-muted-foreground transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
@@ -29,14 +30,27 @@ function Glyph({ children, width = 1.6 }: { children: ReactNode; width?: number 
  * between the two: the page is what carries the edge, see the frame around it in App.
  * It carries the window controls and nothing else; everything around them drags the window.
  */
-export function CaptionStrip({
-  bare = false,
-  className,
-}: {
+interface CaptionStripProps {
   /** Draws no surface of its own, for a window whose own background shows through. */
   bare?: boolean;
   className?: string;
-}) {
+}
+
+export function CaptionStrip(props: CaptionStripProps) {
+  return isMac ? <MacCaptionStrip {...props} /> : <WindowsCaptionStrip {...props} />;
+}
+
+/**
+ * On a Mac the window keeps its own title bar, transparent over the content, so the system draws
+ * the three buttons at the top left and handles the double click. The strip only keeps the height
+ * and the surface, and drags the window. It asks nothing of the window either: asking a Mac
+ * window whether it is maximized changes its style, which resizes it, which asked again.
+ */
+function MacCaptionStrip({ bare = false, className }: CaptionStripProps) {
+  return <div data-tauri-drag-region className={cn("h-8 shrink-0 select-none", !bare && "bg-surface-inset", className)} />;
+}
+
+function WindowsCaptionStrip({ bare = false, className }: CaptionStripProps) {
   const { t } = useTranslation();
   const { isMaximized, minimize, toggleMaximize, close } = useWindowControls();
 
