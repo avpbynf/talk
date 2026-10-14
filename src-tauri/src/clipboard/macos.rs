@@ -117,13 +117,6 @@ fn wait_for_modifiers(enigo: &mut Enigo) {
 }
 
 fn simulate_paste() -> Result<(), ClipboardError> {
-    if !crate::macos_access::accessibility_granted(false) {
-        return Err(ClipboardError::SimulateInput(
-            "Talk is not allowed to control the computer (System Settings, Privacy & Security, Accessibility)"
-                .to_string(),
-        ));
-    }
-
     let mut enigo = Enigo::new(&Settings::default())
         .map_err(|e| ClipboardError::SimulateInput(e.to_string()))?;
 
@@ -156,6 +149,17 @@ fn copy_and_paste(text: &str) -> Result<(), ClipboardError> {
 
 /// Copy text to the pasteboard and paste, optionally putting back what the pasteboard held.
 pub fn type_text(text: &str, preserve_clipboard: bool) -> Result<(), ClipboardError> {
+    // Without the permission no paste can go out. The text is left on the pasteboard, where
+    // Cmd+V by hand still finds it, and macOS is asked to show its dialog: a rebuilt or
+    // moved application is a new one to it, and loses the permission it had.
+    if !crate::macos_access::accessibility_granted(true) {
+        set_clipboard(text)?;
+        return Err(ClipboardError::SimulateInput(
+            "Talk is not allowed to control the computer (System Settings, Privacy & Security, Accessibility); the text is on the clipboard"
+                .to_string(),
+        ));
+    }
+
     if !preserve_clipboard {
         return copy_and_paste(text);
     }
