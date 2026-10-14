@@ -1,5 +1,7 @@
 mod config;
 mod ending;
+#[cfg(target_os = "macos")]
+mod modifier_key;
 mod paste_line;
 mod phase;
 mod press_line;
@@ -154,6 +156,12 @@ pub fn setup_shortcuts(app: &tauri::App) -> Result<(), Box<dyn std::error::Error
     if let Ok(main) = parse_shortcut(&config.shortcut) {
         *state.main_shortcut.lock() = Some(main);
     }
+    // A modifier held alone is watched by a tap of its own rather than registered.
+    #[cfg(target_os = "macos")]
+    {
+        modifier_key::set(&config.shortcut);
+        modifier_key::start(app.handle());
+    }
     if let Ok(cancel) = parse_shortcut(&config.cancel_shortcut) {
         *state.cancel_shortcut.lock() = Some(cancel);
     }
@@ -207,6 +215,8 @@ pub fn disable_shortcuts(app: &AppHandle) {
         crate::wayland::suspend();
         return;
     }
+    #[cfg(target_os = "macos")]
+    modifier_key::set_enabled(false);
     let global_shortcut = app.global_shortcut();
     if let Err(e) = global_shortcut.unregister_all() {
         eprintln!("Warning: failed to unregister shortcuts: {}", e);
@@ -214,6 +224,8 @@ pub fn disable_shortcuts(app: &AppHandle) {
 }
 
 pub fn enable_shortcuts(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    modifier_key::set_enabled(true);
     register_stored(app);
 }
 
@@ -221,9 +233,19 @@ pub fn enable_shortcuts(app: &AppHandle) {
 /// register it with the system only once it is written. One that cannot be parsed
 /// or cannot be written is an error and changes nothing.
 pub fn update_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "macos")]
+    if modifier_key::parse(new_shortcut).is_some() {
+        update_config(|config| config.shortcut = new_shortcut.to_string())?;
+        *app.state::<AppState>().main_shortcut.lock() = None;
+        modifier_key::set(new_shortcut);
+        register_stored(app);
+        return Ok(());
+    }
     let parsed = parse_shortcut(new_shortcut)?;
     update_config(|config| config.shortcut = new_shortcut.to_string())?;
     *app.state::<AppState>().main_shortcut.lock() = Some(parsed);
+    #[cfg(target_os = "macos")]
+    modifier_key::set(new_shortcut);
     register_stored(app);
     Ok(())
 }

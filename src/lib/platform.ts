@@ -1,3 +1,5 @@
+import i18n from "@/i18n";
+
 /**
  * Whether the application runs on a Mac. Read once from the webview, which on a Mac is WebKit
  * and says so: nothing about the platform changes while the application runs.
@@ -18,10 +20,21 @@ const MAC_KEY_LABELS: Record<string, string> = {
   Win: "⌘",
 };
 
+/** The right-hand modifiers that can be a shortcut on their own, and the symbol each one has. */
+const MAC_RIGHT_KEYS: Record<string, string> = {
+  RightCmd: "⌘",
+  RightOption: "⌥",
+  RightShift: "⇧",
+  RightCtrl: "⌃",
+};
+
 /**
  * How one part of a saved shortcut is shown. The saved form stays the same on every platform,
  * "Win" for the Command key included, since that is what the backend reads.
  */
 export function keyLabel(part: string): string {
-  return isMac ? (MAC_KEY_LABELS[part] ?? part) : part;
+  if (!isMac) return part;
+  const right = MAC_RIGHT_KEYS[part];
+  if (right) return i18n.t("keys.right", { key: right });
+  return MAC_KEY_LABELS[part] ?? part;
 }

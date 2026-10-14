@@ -32,8 +32,26 @@ function macKey(code: string | undefined): string | null {
   return null;
 }
 
+/**
+ * On a Mac a modifier on the right of the keyboard can be the shortcut on its own, held while
+ * one talks: the right Command key is what the Mac's dictation tools use.
+ */
+const MAC_RIGHT_MODIFIERS: Record<string, string> = {
+  MetaRight: "RightCmd",
+  AltRight: "RightOption",
+  ShiftRight: "RightShift",
+  ControlRight: "RightCtrl",
+};
+
+/** The shortcuts that are one modifier held alone. */
+export const SOLE_MODIFIERS = Object.values(MAC_RIGHT_MODIFIERS);
+
 /** The shortcut parts a key event stands for, modifiers first: ["Ctrl", "Shift", "M"]. */
 export function parseKeyEvent(e: KeyEventLike): string[] {
+  const sole = isMac && e.code ? MAC_RIGHT_MODIFIERS[e.code] : undefined;
+  const held = [e.ctrlKey, e.shiftKey, e.altKey, e.metaKey].filter(Boolean).length;
+  if (sole && held === 1) return [sole];
+
   const keys: string[] = [];
   if (e.ctrlKey) keys.push("Ctrl");
   if (e.shiftKey) keys.push("Shift");
@@ -59,6 +77,7 @@ export function parseKeyEvent(e: KeyEventLike): string[] {
 
 /** A shortcut needs at least one modifier and one other key. */
 export function hasValidCombo(keys: string[]): boolean {
+  if (isMac && keys.length === 1 && SOLE_MODIFIERS.includes(keys[0])) return true;
   const hasModifier = keys.some((k) => MODIFIER_NAMES.includes(k));
   const hasKey = keys.some((k) => !MODIFIER_NAMES.includes(k));
   return keys.length >= 2 && hasModifier && hasKey;

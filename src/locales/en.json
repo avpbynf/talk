@@ -964,6 +964,9 @@
       "prompt": "Sign in to find your settings on another PC"
     }
   },
+  "keys": {
+    "right": "Right {{key}}"
+  },
   "updates": {
     "title": "Updates",
     "checkNow": "Check now",
