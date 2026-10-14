@@ -8,6 +8,7 @@ import { captureAction, hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
+import { isMac } from "@/lib/platform";
 
 interface ShortcutsSectionProps {
   shortcut: string;
@@ -206,6 +207,16 @@ export default function ShortcutsSection({
         cancelShortcut,
         t("preferences.shortcuts.cancel.label"),
         t("preferences.shortcuts.cancel.description")
+      )}
+      {/* On a Mac, Escape pressed twice cancels too. It is built in rather than chosen, and
+          said here so that it is not a gesture nobody knows about. */}
+      {isMac && (
+        <SettingRow label={t("preferences.shortcuts.escape.label")} hint={t("preferences.shortcuts.escape.description")}>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <kbd>esc</kbd>
+            {t("preferences.shortcuts.escape.twice")}
+          </span>
+        </SettingRow>
       )}
       {renderShortcutRow(
         "paste",

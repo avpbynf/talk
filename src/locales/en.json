@@ -413,6 +413,11 @@
         "label": "Cancel",
         "description": "Throws the recording away, or a dictation not pasted yet"
       },
+      "escape": {
+        "label": "Cancel with Escape",
+        "description": "During a dictation: the first asks to confirm, the second cancels",
+        "twice": "twice"
+      },
       "paste": {
         "label": "Paste the last one",
         "description": "Wherever you are typing"

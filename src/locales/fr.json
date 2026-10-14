@@ -413,6 +413,11 @@
         "label": "Annuler",
         "description": "Jette l'enregistrement, ou une dictée pas encore collée"
       },
+      "escape": {
+        "label": "Annuler avec Échap",
+        "description": "Pendant une dictée : le premier demande confirmation, le second annule",
+        "twice": "deux fois"
+      },
       "paste": {
         "label": "Coller la dernière",
         "description": "Là où vous écrivez"
