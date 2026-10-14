@@ -137,11 +137,18 @@ export default function ShortcutsSection({
             <div className="mt-3 flex flex-col gap-3" data-shortcut-edit onBlur={leaveEdit}>
               {shortcutError && <p className="text-xs text-[var(--color-destructive)]">{shortcutError}</p>}
               <div className="flex gap-2">
-                <Button onClick={saveShortcut} disabled={pendingShortcut.length === 0}>
+                {/* WebKit does not focus a button on click, so the field's blur would name no
+                    target and end the edit before the click arrived: the mouse down leaves the
+                    focus where it is. */}
+                <Button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={saveShortcut}
+                  disabled={pendingShortcut.length === 0}
+                >
                   <Check />
                   {t("preferences.shortcuts.save")}
                 </Button>
-                <Button variant="outline" onClick={() => cancelEdit(true)}>
+                <Button variant="outline" onMouseDown={(e) => e.preventDefault()} onClick={() => cancelEdit(true)}>
                   <X />
                   {t("common.cancel")}
                 </Button>
