@@ -17,6 +17,7 @@ pub enum TranscriptionError {
 #[serde(rename_all = "snake_case")]
 pub enum GpuVendor {
     Vulkan, // AMD, Intel, or NVIDIA
+    Metal,  // Apple silicon and the Macs' own GPUs
     #[serde(other)]
     Cpu,    // Fallback
 }
@@ -31,6 +32,7 @@ impl std::fmt::Display for GpuVendor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             GpuVendor::Vulkan => write!(f, "Vulkan (AMD/Intel)"),
+            GpuVendor::Metal => write!(f, "Metal"),
             GpuVendor::Cpu => write!(f, "CPU"),
         }
     }
@@ -41,6 +43,7 @@ impl std::fmt::Display for GpuVendor {
 #[serde(rename_all = "snake_case")]
 pub enum AcceleratorBackend {
     Vulkan,
+    Metal,
     #[serde(other)]
     Cpu,
 }
@@ -56,6 +59,7 @@ impl AcceleratorBackend {
     pub fn from_vendor(vendor: GpuVendor) -> Self {
         match vendor {
             GpuVendor::Vulkan => AcceleratorBackend::Vulkan,
+            GpuVendor::Metal => AcceleratorBackend::Metal,
             GpuVendor::Cpu => AcceleratorBackend::Cpu,
         }
     }
@@ -66,6 +70,7 @@ impl std::fmt::Display for AcceleratorBackend {
         match self {
             AcceleratorBackend::Cpu => write!(f, "CPU"),
             AcceleratorBackend::Vulkan => write!(f, "GPU (Vulkan)"),
+            AcceleratorBackend::Metal => write!(f, "GPU (Metal)"),
         }
     }
 }
@@ -102,7 +107,19 @@ pub fn detect_available_gpus() -> Vec<GpuInfo> {
         });
     }
 
-    #[cfg(not(feature = "vulkan"))]
+    // Metal is the only GPU backend a Mac has, so a build carrying it lists no Vulkan
+    // at all rather than a Vulkan that could never be picked.
+    #[cfg(feature = "metal")]
+    {
+        gpus.push(GpuInfo {
+            vendor: GpuVendor::Metal,
+            name: "Metal".to_string(),
+            available: true,
+            description: "The Mac's own GPU".to_string(),
+        });
+    }
+
+    #[cfg(not(any(feature = "vulkan", feature = "metal")))]
     {
         gpus.push(GpuInfo {
             vendor: GpuVendor::Vulkan,
@@ -141,7 +158,10 @@ pub fn get_best_accelerator() -> AcceleratorBackend {
     #[cfg(feature = "vulkan")]
     { return AcceleratorBackend::Vulkan; }
 
-    #[cfg(not(feature = "vulkan"))]
+    #[cfg(all(feature = "metal", not(feature = "vulkan")))]
+    { return AcceleratorBackend::Metal; }
+
+    #[cfg(not(any(feature = "vulkan", feature = "metal")))]
     { AcceleratorBackend::Cpu }
 }
 
@@ -168,7 +188,7 @@ pub struct GpuDevicePreference {
 }
 
 /// Enumerate the GPUs in the order whisper indexes them.
-#[cfg(feature = "vulkan")]
+#[cfg(any(feature = "vulkan", feature = "metal"))]
 pub fn list_gpu_devices() -> Vec<GpuDevice> {
     use std::ffi::CStr;
     use whisper_rs::whisper_rs_sys as sys;
@@ -221,7 +241,7 @@ pub fn list_gpu_devices() -> Vec<GpuDevice> {
     devices
 }
 
-#[cfg(not(feature = "vulkan"))]
+#[cfg(not(any(feature = "vulkan", feature = "metal")))]
 pub fn list_gpu_devices() -> Vec<GpuDevice> {
     Vec::new()
 }
@@ -298,15 +318,15 @@ impl WhisperEngine {
 
         // Configure backend-specific settings
         match backend {
-            AcceleratorBackend::Vulkan => {
-                #[cfg(feature = "vulkan")]
+            AcceleratorBackend::Vulkan | AcceleratorBackend::Metal => {
+                #[cfg(any(feature = "vulkan", feature = "metal"))]
                 {
                     params.use_gpu(true);
                     params.gpu_device(gpu_device as std::os::raw::c_int);
                 }
-                #[cfg(not(feature = "vulkan"))]
+                #[cfg(not(any(feature = "vulkan", feature = "metal")))]
                 {
-                    // Vulkan not compiled - CPU fallback will be used
+                    // No GPU backend compiled - CPU fallback will be used
                     let _ = gpu_device;
                 }
             }

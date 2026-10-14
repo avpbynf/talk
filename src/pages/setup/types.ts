@@ -20,10 +20,12 @@ export interface DownloadProgress {
 }
 
 export type TranscriptionMode = "local" | "server";
-export type GpuVendor = "vulkan" | "cpu";
+export type GpuVendor = "vulkan" | "metal" | "cpu";
 export type ModelFamily = "standard" | "quantized";
 
 /** The name the wizard gives an acceleration, here and in the summary. */
 export function gpuLabel(vendor: GpuVendor): string {
-  return vendor === "vulkan" ? "AMD/Intel Vulkan" : "CPU";
+  if (vendor === "vulkan") return "AMD/Intel Vulkan";
+  if (vendor === "metal") return "Apple Metal";
+  return "CPU";
 }

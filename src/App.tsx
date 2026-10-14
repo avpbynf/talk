@@ -63,8 +63,8 @@ export interface Transcription {
 }
 
 export type RecordingMode = "push_to_talk" | "toggle";
-export type AcceleratorBackend = "cpu" | "vulkan";
-export type GpuVendor = "vulkan" | "cpu";
+export type AcceleratorBackend = "cpu" | "vulkan" | "metal";
+export type GpuVendor = "vulkan" | "metal" | "cpu";
 export type OverlaySize = "small" | "medium" | "large";
 export type TranscriptionMode = "local" | "server";
 
@@ -321,10 +321,10 @@ function App() {
     };
   }, []);
 
-  // Listing the cards brings the Vulkan instance up, so a machine running on the CPU
+  // Listing the cards brings the GPU backend up, so a machine running on the CPU
   // is never asked for it.
   async function loadGpuDevices(vendor: GpuVendor) {
-    if (vendor !== "vulkan") {
+    if (vendor === "cpu") {
       setGpuDevices([]);
       return;
     }

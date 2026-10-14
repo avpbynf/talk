@@ -297,6 +297,7 @@
       "switch": "Switch",
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
+        "metal": "The Mac's own GPU",
         "cpu": "Anywhere, slower"
       },
       "note": "Switching engine or card always asks for confirmation."
@@ -819,6 +820,7 @@
       "title": "Your hardware",
       "subtitle": "Here is what was found",
       "vulkanFound": "Vulkan acceleration available",
+      "metalFound": "Metal acceleration available",
       "noGpu": "No GPU acceleration found",
       "slowWarning": "Without a GPU this will be slow. Server mode is the way around that.",
       "others": "Other options available:"

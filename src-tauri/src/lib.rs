@@ -353,7 +353,7 @@ fn chosen_gpu() -> Option<GpuDevicePreference> {
 /// machine running on the CPU has no reason to pay for that.
 fn current_gpu_device_index(preference: Option<&GpuDevicePreference>, backend: AcceleratorBackend) -> u32 {
     match backend {
-        AcceleratorBackend::Vulkan => {
+        AcceleratorBackend::Vulkan | AcceleratorBackend::Metal => {
             transcription::resolve_gpu_device(preference, &transcription::list_gpu_devices())
         }
         AcceleratorBackend::Cpu => 0,

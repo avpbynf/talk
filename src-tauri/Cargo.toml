@@ -113,6 +113,8 @@ tower = { version = "0.5", features = ["util"] }
 [features]
 default = ["vulkan"]
 vulkan = ["whisper-rs/vulkan"]
+# The Mac's GPU. Built with --no-default-features --features metal, Vulkan being the default.
+metal = ["whisper-rs/metal"]
 
 [profile.release]
 opt-level = 3

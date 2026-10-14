@@ -297,6 +297,7 @@
       "switch": "Changer",
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
+        "metal": "La carte graphique du Mac",
         "cpu": "Partout, plus lent"
       },
       "note": "Changer de moteur ou de carte demande toujours confirmation."
@@ -819,6 +820,7 @@
       "title": "Votre matériel",
       "subtitle": "Voici ce qui a été trouvé",
       "vulkanFound": "Accélération Vulkan disponible",
+      "metalFound": "Accélération Metal disponible",
       "noGpu": "Aucune accélération GPU trouvée",
       "slowWarning": "Sans GPU, ce sera lent. Le mode serveur permet de contourner cela.",
       "others": "Autres options disponibles :"

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (repo) Talk runs on a Mac, with Metal
+
+Talk builds for macOS and transcribes on the Mac's GPU. It keeps the system's title bar and its
+three buttons, returns from the Dock, pastes the dictation into the window in front once it has
+the Accessibility permission, and shows the overlay over full screen applications on every space.
+Shortcuts are shown the Mac way, a right-hand modifier held alone can start a dictation, and Escape
+pressed twice cancels one. Meeting mode routes into BlackHole, which Talk can install from its card.
+Nothing changes on Windows or Linux. There is no installer for the Mac yet: it is built from source.
+
 - (repo) Talk runs on Linux in beta, with Vulkan
 
 Talk now runs on Debian and Ubuntu under X11 and can use Vulkan GPUs for local transcription. A

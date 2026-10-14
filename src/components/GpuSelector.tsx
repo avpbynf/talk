@@ -22,12 +22,14 @@ interface GpuSelectorProps {
 /** Translation keys: what each backend is, in a few words. */
 const GPU_ABOUT: Record<GpuVendor, string> = {
   vulkan: "transcription.gpu.about.vulkan",
+  metal: "transcription.gpu.about.metal",
   cpu: "transcription.gpu.about.cpu",
 };
 
 const ALL_GPU_OPTIONS: GpuInfo[] = [
   { vendor: "cpu", name: "CPU", available: true, description: "No acceleration" },
   { vendor: "vulkan", name: "Vulkan", available: true, description: "Any GPU, through Vulkan" },
+  { vendor: "metal", name: "Metal", available: true, description: "The Mac's own GPU" },
 ];
 
 // An integrated chip reports the shared system memory as its own, so the figure would
@@ -53,12 +55,17 @@ export function GpuSelector({
   onDeviceChange,
 }: GpuSelectorProps) {
   const { t } = useTranslation();
-  const mergedGpus = ALL_GPU_OPTIONS.map((defaultGpu) => {
+  // A build carries one GPU backend, Vulkan on Windows and Metal on a Mac, and only the
+  // ones the backend lists are shown. Until it has answered, Windows' pair stands in.
+  const offered = ALL_GPU_OPTIONS.filter((option) =>
+    gpus.length === 0 ? option.vendor !== "metal" : gpus.some((g) => g.vendor === option.vendor),
+  );
+  const mergedGpus = offered.map((defaultGpu) => {
     const backendGpu = gpus.find((g) => g.vendor === defaultGpu.vendor);
     return backendGpu || defaultGpu;
   });
 
-  const showDevices = currentVendor === "vulkan" && devices.length > 0;
+  const showDevices = currentVendor !== "cpu" && devices.length > 0;
   const current = devices.find((d) => d.index === currentDevice);
 
   // Changing card reloads the model, which is a reason to refuse a change of
