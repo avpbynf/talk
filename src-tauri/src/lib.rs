@@ -1535,6 +1535,31 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(on_run_event);
 }
+
+#[cfg(target_os = "macos")]
+fn on_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
+    match event {
+        // A Mac reopens an application from its Dock icon, and expects its window back
+        // whether it was closed to the tray or never shown because Talk started minimised.
+        tauri::RunEvent::Reopen { .. } => {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+        // The model goes before the process does. On a Mac the GPU device is freed by
+        // a static destructor at exit, and ggml aborts when a model is still on it:
+        // every quit was reported as a crash.
+        tauri::RunEvent::Exit => {
+            *app.state::<AppState>().whisper_engine.lock() = None;
+        }
+        _ => {}
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn on_run_event(_app: &tauri::AppHandle, _event: tauri::RunEvent) {}
