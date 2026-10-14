@@ -27,6 +27,11 @@ fn default_cancel_shortcut() -> String {
     "Ctrl+F1".to_string()
 }
 
+/// Ctrl+Space switches the input source on a Mac, so Option+Space stands in there.
+fn default_shortcut() -> String {
+    if cfg!(target_os = "macos") { "Alt+Space" } else { "Ctrl+Space" }.to_string()
+}
+
 fn default_paste_shortcut() -> String {
     "Ctrl+Shift+Space".to_string()
 }
@@ -34,7 +39,7 @@ fn default_paste_shortcut() -> String {
 impl Default for HotkeyConfig {
     fn default() -> Self {
         Self {
-            shortcut: "Ctrl+Space".to_string(),
+            shortcut: default_shortcut(),
             cancel_shortcut: default_cancel_shortcut(),
             paste_shortcut: default_paste_shortcut(),
             mode: RecordingMode::Toggle,

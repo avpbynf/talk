@@ -38,6 +38,7 @@ import { NoticeStrip } from "@/components/NoticeStrip";
 import { useGoogleInvite } from "@/lib/use-google-invite";
 import { GoogleInviteBanner } from "@/components/GoogleInviteBanner";
 import { PairingBanner } from "@/components/PairingBanner";
+import { defaultShortcut } from "@/lib/platform";
 
 export interface ModelInfo {
   id: string;
@@ -119,7 +120,7 @@ function App() {
   const [recordingMode, setRecordingMode] = useState<RecordingMode>("push_to_talk");
   const [transcriptions, updateHistory] = useHistoryList();
   const [, setIsRecording] = useState(false);
-  const [shortcut, setShortcut] = useState("Ctrl+Space");
+  const [shortcut, setShortcut] = useState(defaultShortcut);
   const [cancelShortcut, setCancelShortcut] = useState("Ctrl+F1");
   const [pasteShortcut, setPasteShortcut] = useState("Ctrl+Shift+Space");
   const [gpus, setGpus] = useState<GpuInfo[]>([]);

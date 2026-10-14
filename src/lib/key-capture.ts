@@ -1,3 +1,5 @@
+import { isMac } from "@/lib/platform";
+
 const KEY_MAP: Record<string, string> = {
   " ": "Space",
   Enter: "Enter",
@@ -14,7 +16,21 @@ const KEY_MAP: Record<string, string> = {
 const MODIFIER_KEYS = ["Control", "Shift", "Alt", "Meta"];
 const MODIFIER_NAMES = ["Ctrl", "Shift", "Alt", "Win"];
 
-type KeyEventLike = Pick<KeyboardEvent, "key" | "ctrlKey" | "shiftKey" | "altKey" | "metaKey">;
+type KeyEventLike = Pick<KeyboardEvent, "key" | "ctrlKey" | "shiftKey" | "altKey" | "metaKey"> &
+  Partial<Pick<KeyboardEvent, "code">>;
+
+/**
+ * On a Mac, Option turns a letter into another character (Option+V is ◊, Option+Space a
+ * non-breaking space), so the key is read from where it sits rather than from what it types.
+ * The shortcut is registered by that same position, so the two agree.
+ */
+function macKey(code: string | undefined): string | null {
+  if (!code) return null;
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+  if (code === "Space") return "Space";
+  return null;
+}
 
 /** The shortcut parts a key event stands for, modifiers first: ["Ctrl", "Shift", "M"]. */
 export function parseKeyEvent(e: KeyEventLike): string[] {
@@ -25,8 +41,11 @@ export function parseKeyEvent(e: KeyEventLike): string[] {
   if (e.metaKey) keys.push("Win");
 
   const key = e.key;
+  const physical = isMac ? macKey(e.code) : null;
   if (!MODIFIER_KEYS.includes(key)) {
-    if (KEY_MAP[key]) {
+    if (physical) {
+      keys.push(physical);
+    } else if (KEY_MAP[key]) {
       keys.push(KEY_MAP[key]);
     } else if (key.startsWith("F") && key.length <= 3) {
       keys.push(key);

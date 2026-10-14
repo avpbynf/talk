@@ -18,6 +18,7 @@ import { PageShell } from "@/components/PageShell";
 import { Check, Search, Sparkles, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { keyLabel } from "@/lib/platform";
 
 /** How many rows are mounted at first, and how many more each press of Show more adds. */
 const PAGE_SIZE = 50;
@@ -246,7 +247,7 @@ export default function HistoryView({
           <span className="mx-2 inline-flex items-center gap-1">
             {shortcut.split("+").map((key, i, arr) => (
               <span key={key} className="inline-flex items-center">
-                <kbd>{key}</kbd>
+                <kbd>{keyLabel(key)}</kbd>
                 {i < arr.length - 1 && (
                   <span className="text-muted-foreground/60 mx-0.5">+</span>
                 )}
