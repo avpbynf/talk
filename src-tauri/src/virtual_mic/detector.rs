@@ -8,8 +8,8 @@ pub struct VBCableStatus {
 }
 
 /// The virtual cable meeting mode plays into, by the name its maker gives it. Windows has
-/// VB-Cable, which the installer brings along; a Mac has BlackHole, which the user installs
-/// himself since its licence keeps it out of the bundle.
+/// VB-Cable, which the installer brings along; a Mac has BlackHole, fetched from its maker
+/// when the user asks, since its licence keeps it out of the bundle.
 #[cfg(not(target_os = "macos"))]
 pub const DRIVER: &str = "VB-Cable";
 #[cfg(target_os = "macos")]
