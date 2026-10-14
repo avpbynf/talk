@@ -1,11 +1,11 @@
 use thiserror::Error;
 
-use super::detector::detect_vbcable;
+use super::detector::{detect_vbcable, DRIVER};
 use super::router::{AudioRouter, AudioRouterError, RouteEnd};
 
 #[derive(Error, Debug)]
 pub enum VirtualMicError {
-    #[error("VB-Cable is not installed")]
+    #[error("{} is not installed", DRIVER)]
     VBCableNotInstalled,
     #[error("Router error: {0}")]
     Router(#[from] AudioRouterError),
@@ -26,9 +26,9 @@ impl VirtualMicController {
     }
 
     /// Enable meeting mode: start routing the named microphone, or the system
-    /// default, to VB-Cable, in place of whatever was routed before, and silent from
-    /// the start when `muted`, which is what a route opened during a dictation has
-    /// to be. `on_end` is called if the route stops doing that later on.
+    /// default, to the virtual cable, in place of whatever was routed before, and
+    /// silent from the start when `muted`, which is what a route opened during a
+    /// dictation has to be. `on_end` is called if the route stops doing that later on.
     pub fn enable(
         &mut self,
         microphone: Option<&str>,
@@ -67,7 +67,7 @@ impl VirtualMicController {
         }
     }
 
-    /// Mute the virtual mic (write silence to VB-Cable).
+    /// Mute the virtual mic (write silence to the cable).
     pub fn mute(&self) {
         if let Some(ref router) = self.router {
             router.mute();
@@ -86,7 +86,7 @@ impl VirtualMicController {
         self.router.as_ref().is_some_and(|r| !r.is_lost())
     }
 
-    /// The microphone being routed, by the name Windows gives it.
+    /// The microphone being routed, by the name the system gives it.
     pub fn microphone(&self) -> Option<String> {
         self.router.as_ref().map(|r| r.microphone().to_string())
     }
@@ -134,6 +134,16 @@ mod tests {
         let mut ctrl = VirtualMicController::new();
         ctrl.disable();
         assert!(!ctrl.is_active());
+    }
+
+    #[test]
+    fn names_the_cable_this_system_expects() {
+        let expected = if cfg!(target_os = "macos") {
+            "BlackHole is not installed"
+        } else {
+            "VB-Cable is not installed"
+        };
+        assert_eq!(VirtualMicError::VBCableNotInstalled.to_string(), expected);
     }
 
     #[test]
