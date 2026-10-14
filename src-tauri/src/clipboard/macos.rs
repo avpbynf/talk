@@ -75,6 +75,9 @@ fn set_clipboard(text: &str) -> Result<(), ClipboardError> {
     }
 }
 
+/// kVK_ANSI_V, from Events.h.
+const ANSI_V: u32 = 9;
+
 // The modifier bits of a CGEventFlags, as CGEventTypes.h names them.
 const SHIFT: u64 = 0x0002_0000;
 const CONTROL: u64 = 0x0004_0000;
@@ -129,8 +132,11 @@ fn simulate_paste() -> Result<(), ClipboardError> {
     enigo
         .key(Key::Meta, Direction::Press)
         .map_err(|e| ClipboardError::SimulateInput(e.to_string()))?;
+    // The V by its key code. Naming it by its letter has enigo ask the keyboard layout for it,
+    // which macOS allows on the main thread only and answers anywhere else by stopping the
+    // process. Code 9 is the V on QWERTY and AZERTY alike.
     let pressed = enigo
-        .key(Key::Unicode('v'), Direction::Click)
+        .key(Key::Other(ANSI_V), Direction::Click)
         .map_err(|e| ClipboardError::SimulateInput(e.to_string()));
     // Command comes back up even when the V did not go out, or it would stay held.
     enigo
