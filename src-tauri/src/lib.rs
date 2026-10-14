@@ -14,6 +14,8 @@ mod file_store;
 mod hotkeys;
 mod lenient;
 mod keystroke;
+#[cfg(target_os = "macos")]
+mod macos_access;
 mod models;
 mod name_migration;
 mod overlay;
@@ -1434,6 +1436,15 @@ pub fn run() {
             // Setup global shortcuts
             if let Err(e) = hotkeys::setup_shortcuts(app) {
                 eprintln!("Failed to setup shortcuts: {}", e);
+            }
+
+            // The paste is a Cmd+V posted to the window in front, which macOS allows only
+            // once Talk is ticked under Accessibility. Asked at launch, where the system's
+            // dialog has a reason to appear, rather than at the first dictation, whose
+            // text would be lost while the user goes to grant it.
+            #[cfg(target_os = "macos")]
+            if !macos_access::accessibility_granted(true) {
+                eprintln!("Accessibility not granted: the dictation cannot be pasted until it is");
             }
 
             // Check if app should start minimized (via command line arg or setting)

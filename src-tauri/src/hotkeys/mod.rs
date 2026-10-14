@@ -1085,7 +1085,7 @@ fn emit_to_overlay(app: &AppHandle, processing_state: &'static str) {
 fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
     let state = app.state::<AppState>();
 
-    #[cfg(any(windows, target_os = "linux"))]
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     {
         let preserve = crate::settings::read(|s| s.preserve_clipboard);
         let (mut words, mut failures, mut refused) = (0usize, 0usize, false);

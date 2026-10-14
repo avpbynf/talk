@@ -77,9 +77,6 @@ enigo = { version = "0.2", default-features = false, features = ["x11rb"] }
 # through the desktop portals.
 ashpd = { version = "0.13", default-features = false, features = ["tokio", "global_shortcuts", "remote_desktop", "clipboard", "screencast"] }
 keyring = { version = "3", features = ["linux-native-sync-persistent"] }
-# The Google refresh token lives in the Keychain on macOS.
-[target.'cfg(target_os = "macos")'.dependencies]
-keyring = { version = "3", features = ["apple-native"] }
 
 # Windows clipboard/input
 [target.'cfg(windows)'.dependencies]
@@ -105,6 +102,16 @@ windows = { version = "0.62", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
 ] }
+
+# macOS pasteboard, the modifiers held, and the Accessibility permission the paste needs
+[target.'cfg(target_os = "macos")'.dependencies]
+# The Google refresh token lives in the Keychain on macOS.
+keyring = { version = "3", features = ["apple-native"] }
+enigo = "0.2"
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSArray", "NSData", "NSString"] }
+objc2-app-kit = { version = "0.3", features = ["NSPasteboard", "NSPasteboardItem"] }
+core-foundation = "0.10"
 
 [dev-dependencies]
 tempfile = "3"
