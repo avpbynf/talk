@@ -17,7 +17,7 @@ const MODIFIER_KEYS = ["Control", "Shift", "Alt", "Meta"];
 const MODIFIER_NAMES = ["Ctrl", "Shift", "Alt", "Win"];
 
 type KeyEventLike = Pick<KeyboardEvent, "key" | "ctrlKey" | "shiftKey" | "altKey" | "metaKey"> &
-  Partial<Pick<KeyboardEvent, "code">>;
+  Partial<Pick<KeyboardEvent, "code" | "location">>;
 
 /**
  * On a Mac, Option turns a letter into another character (Option+V is ◊, Option+Space a
@@ -38,17 +38,32 @@ function macKey(code: string | undefined): string | null {
  */
 const MAC_RIGHT_MODIFIERS: Record<string, string> = {
   MetaRight: "RightCmd",
+  // WebKit's older name for the same key, which the Mac's webview still gives.
+  OSRight: "RightCmd",
   AltRight: "RightOption",
   ShiftRight: "RightShift",
   ControlRight: "RightCtrl",
 };
 
+/** The same keys by what they are, for a webview that names their code otherwise. */
+const MAC_RIGHT_BY_KEY: Record<string, string> = {
+  Meta: "RightCmd",
+  Alt: "RightOption",
+  Shift: "RightShift",
+  Control: "RightCtrl",
+};
+
+/** KeyboardEvent.DOM_KEY_LOCATION_RIGHT */
+const RIGHT = 2;
+
 /** The shortcuts that are one modifier held alone. */
-export const SOLE_MODIFIERS = Object.values(MAC_RIGHT_MODIFIERS);
+export const SOLE_MODIFIERS = [...new Set(Object.values(MAC_RIGHT_MODIFIERS))];
 
 /** The shortcut parts a key event stands for, modifiers first: ["Ctrl", "Shift", "M"]. */
 export function parseKeyEvent(e: KeyEventLike): string[] {
-  const sole = isMac && e.code ? MAC_RIGHT_MODIFIERS[e.code] : undefined;
+  const sole = !isMac
+    ? undefined
+    : ((e.code && MAC_RIGHT_MODIFIERS[e.code]) ?? (e.location === RIGHT ? MAC_RIGHT_BY_KEY[e.key] : undefined));
   const held = [e.ctrlKey, e.shiftKey, e.altKey, e.metaKey].filter(Boolean).length;
   if (sole && held === 1) return [sole];
 
