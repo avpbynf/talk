@@ -449,12 +449,18 @@
     "meeting": {
       "title": "Mode réunion",
       "detected": "VB-Cable détecté ({{device}}).",
+      "detected_mac": "BlackHole détecté ({{device}}).",
       "notInstalled": "VB-Cable non installé.",
+      "notInstalled_mac": "BlackHole non installé.",
+      "installMac": "Installez-le avec <cmd>brew install blackhole-2ch</cmd> dans le Terminal, ou avec l'installeur d'existential.audio/blackhole, puis revenez dans Talk.",
       "hint": "Fait passer votre micro par VB-Cable pour qu'une réunion n'entende rien pendant que vous dictez.",
+      "hint_mac": "Fait passer votre micro par BlackHole pour qu'une réunion n'entende rien pendant que vous dictez.",
       "routing": "{{microphone}} est envoyé vers le câble. Il suit le micro choisi dans les Paramètres.",
       "silent": "Le mode réunion est activé mais votre micro n'arrive pas jusqu'à VB-Cable, une réunion qui l'écoute n'entend donc rien du tout.",
+      "silent_mac": "Le mode réunion est activé mais votre micro n'arrive pas jusqu'à BlackHole, une réunion qui l'écoute n'entend donc rien du tout.",
       "refused": "Le mode réunion n'a pas pu être basculé.",
-      "setup": "Réglez Teams ou Discord sur « CABLE Output » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien."
+      "setup": "Réglez Teams ou Discord sur « CABLE Output » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien.",
+      "setup_mac": "Dans Zoom, Teams ou Meet, choisissez « {{device}} » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien."
     },
     "system": {
       "title": "Système",
