@@ -796,7 +796,8 @@
       "capture_failed": "Micro indisponible",
       "capture_lost": "Micro perdu",
       "input_refused": "Saisie refusée",
-      "shortcut_refused": "Raccourci refusé"
+      "shortcut_refused": "Raccourci refusé",
+      "confirm_cancel": "Échap encore pour annuler"
     },
     "queued_one": "{{count}} en cours de transcription",
     "queued_other": "{{count}} en cours de transcription"

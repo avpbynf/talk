@@ -8,7 +8,8 @@ export type Reason =
   | "capture_failed"
   | "capture_lost"
   | "input_refused"
-  | "shortcut_refused";
+  | "shortcut_refused"
+  | "confirm_cancel";
 
 const REASONS: readonly string[] = [
   "no_model",
@@ -18,6 +19,7 @@ const REASONS: readonly string[] = [
   "capture_lost",
   "input_refused",
   "shortcut_refused",
+  "confirm_cancel",
 ];
 
 export interface OverlayState {

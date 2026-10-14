@@ -160,6 +160,7 @@ pub fn setup_shortcuts(app: &tauri::App) -> Result<(), Box<dyn std::error::Error
     #[cfg(target_os = "macos")]
     {
         modifier_key::set(&config.shortcut);
+        modifier_key::set_paste(&config.paste_shortcut);
         modifier_key::start(app.handle());
     }
     if let Ok(cancel) = parse_shortcut(&config.cancel_shortcut) {
@@ -259,9 +260,19 @@ pub fn update_cancel_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(),
 }
 
 pub fn update_paste_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "macos")]
+    if modifier_key::parse(new_shortcut).is_some() {
+        update_config(|config| config.paste_shortcut = new_shortcut.to_string())?;
+        *app.state::<AppState>().paste_shortcut.lock() = None;
+        modifier_key::set_paste(new_shortcut);
+        register_stored(app);
+        return Ok(());
+    }
     let parsed = parse_shortcut(new_shortcut)?;
     update_config(|config| config.paste_shortcut = new_shortcut.to_string())?;
     *app.state::<AppState>().paste_shortcut.lock() = Some(parsed);
+    #[cfg(target_os = "macos")]
+    modifier_key::set_paste(new_shortcut);
     register_stored(app);
     Ok(())
 }
@@ -748,6 +759,13 @@ fn refuse_without_model(app: &AppHandle) -> bool {
 
     ending::end_dictation(app, Ending::Refused(reason));
     true
+}
+
+/// The first Escape of a dictation on a Mac: the overlay asks for a second one, with the
+/// refusal's sound and colour, then goes back to what is in flight.
+#[cfg(target_os = "macos")]
+fn ask_to_confirm_cancel(app: &AppHandle) {
+    refuse(app, "confirm_cancel");
 }
 
 /// Turn a dictation away: the refusal sound, and the overlay in the danger colour saying why.

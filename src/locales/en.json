@@ -796,7 +796,8 @@
       "capture_failed": "No microphone",
       "capture_lost": "Microphone lost",
       "input_refused": "Typing not allowed",
-      "shortcut_refused": "Shortcut not allowed"
+      "shortcut_refused": "Shortcut not allowed",
+      "confirm_cancel": "Escape again to cancel"
     },
     "queued_one": "{{count}} still transcribing",
     "queued_other": "{{count}} still transcribing"
