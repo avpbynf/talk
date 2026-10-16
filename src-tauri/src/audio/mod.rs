@@ -191,6 +191,10 @@ fn offered(name: &str) -> bool {
 
 /// The name Windows reports for the default input, when there is one.
 pub fn default_input_device_name() -> Option<String> {
+    #[cfg(target_os = "macos")]
+    if let Some(name) = crate::virtual_mic::system_default::stands_in_for() {
+        return Some(name);
+    }
     cpal::default_host().default_input_device()?.name().ok()
 }
 
@@ -229,6 +233,14 @@ pub fn find_output_device(device_name: Option<&str>) -> Option<(cpal::Device, St
 /// Find an input device by name, or fall back to the system default.
 pub(crate) fn find_input_device(device_name: Option<&str>) -> Result<cpal::Device, AudioError> {
     let host = cpal::default_host();
+
+    // While meeting mode has made BlackHole the Mac's default microphone, "the default" for
+    // Talk is still the microphone it stands in for: recording the cable would be recording
+    // Talk's own route.
+    #[cfg(target_os = "macos")]
+    let standing_in = crate::virtual_mic::system_default::stands_in_for();
+    #[cfg(target_os = "macos")]
+    let device_name = device_name.or(standing_in.as_deref());
 
     if let Some(name) = device_name {
         if let Some(device) = host.input_devices().ok().and_then(|mut devices| {

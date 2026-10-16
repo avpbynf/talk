@@ -1115,6 +1115,11 @@ fn route_meeting_mode(app: &tauri::AppHandle, state: &AppState) -> Result<(), St
             });
         }
     };
+    // Applications left on the default microphone hear the cable from here on.
+    #[cfg(target_os = "macos")]
+    if let Err(e) = virtual_mic::system_default::take_over() {
+        eprintln!("BlackHole could not be made the default microphone: {}", e);
+    }
     let mut vm = state.virtual_mic.lock();
     // Read under the same lock the press path mutes under: a route opened while a
     // dictation is under way starts silent, and one opened just before is muted by it.
@@ -1129,6 +1134,8 @@ fn apply_meeting_mode(app: &tauri::AppHandle, state: &AppState, enabled: bool) -
         route_meeting_mode(app, state)?;
     } else {
         state.virtual_mic.lock().disable();
+        #[cfg(target_os = "macos")]
+        virtual_mic::system_default::give_back();
     }
     let _ = app.emit("meeting-mode-changed", ());
     Ok(())
@@ -1444,6 +1451,10 @@ pub fn run() {
                 // put it back, so this is the only chance.
                 hotkeys::restore_audio_now();
 
+                // A default microphone left on the cable by a crash goes back first.
+                #[cfg(target_os = "macos")]
+                virtual_mic::system_default::give_back();
+
                 // Auto-start meeting mode if previously enabled
                 if app_settings.meeting_mode_enabled {
                     if let Err(e) = route_meeting_mode(app.handle(), &state) {
@@ -1580,6 +1591,8 @@ fn on_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
         // every quit was reported as a crash.
         tauri::RunEvent::Exit => {
             *app.state::<AppState>().whisper_engine.lock() = None;
+            // Nothing feeds the cable once Talk is gone.
+            virtual_mic::system_default::give_back();
         }
         _ => {}
     }
