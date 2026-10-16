@@ -230,8 +230,15 @@ impl AudioRouter {
                     let mut checked = std::time::Instant::now();
                     while !stop_clone.load(Ordering::SeqCst) {
                         std::thread::sleep(std::time::Duration::from_millis(50));
-                        if watches_default && checked.elapsed() >= DEFAULT_CHECK {
-                            checked = std::time::Instant::now();
+                        if checked.elapsed() < DEFAULT_CHECK {
+                            continue;
+                        }
+                        // A Mac moves its default microphone by itself, to headphones as they
+                        // connect: the new one is taken in and BlackHole put back in front.
+                        #[cfg(target_os = "macos")]
+                        super::system_default::follow_moves();
+                        checked = std::time::Instant::now();
+                        if watches_default {
                             let moved = crate::audio::default_input_device_name()
                                 .is_some_and(|name| name != routed);
                             if moved {

@@ -200,6 +200,33 @@ pub fn take_over() -> Result<(), String> {
     Ok(())
 }
 
+/// While BlackHole stands in: when the default has been moved off it, by macOS to headphones
+/// as they connect or by the user, the microphone it went to becomes the one BlackHole stands
+/// in for, and BlackHole takes the default back. Talk then records from that one, as it would
+/// have without meeting mode.
+pub fn follow_moves() {
+    let mut standing = STANDING_IN_FOR.lock();
+    if standing.is_none() {
+        return;
+    }
+    let Some(device) = default_input() else {
+        return;
+    };
+    let Some(name) = name_of(device) else {
+        return;
+    };
+    if super::detector::is_recording_side(&name) {
+        return;
+    }
+    let Some(cable) = find_input(super::detector::is_recording_side) else {
+        return;
+    };
+    if crate::atomic_file::write(&marker(), name.as_bytes()).is_err() || !set_default_input(cable) {
+        return;
+    }
+    *standing = Some(name);
+}
+
 /// Put back the microphone BlackHole stood in for, from memory or else from the marker a crash
 /// left behind. Leaves the default alone when someone has moved it off BlackHole meanwhile.
 pub fn give_back() {
