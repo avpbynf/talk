@@ -29,6 +29,7 @@ mod startup_text;
 mod sync;
 mod theme;
 mod transcription;
+mod tray;
 mod virtual_mic;
 
 use audio::{AudioBuffer, AudioCaptureHandle};
@@ -36,8 +37,6 @@ use parking_lot::Mutex;
 use settings::TranscriptionMode;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
-use tauri::menu::{MenuBuilder, MenuItemBuilder};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
 
@@ -691,20 +690,7 @@ fn set_language(app: tauri::AppHandle, language: Option<String>) -> Result<(), S
 /// read, and reports it here so the tray speaks the same one.
 #[tauri::command]
 fn sync_tray_language(app: tauri::AppHandle, resolved: String) {
-    if let Some(labels) = app.try_state::<TrayLabels>() {
-        let _ = labels.quit.set_text(tray_quit_label(&resolved));
-    }
-}
-
-fn tray_quit_label(language: &str) -> &'static str {
-    match language {
-        "fr" => "Quitter",
-        _ => "Quit",
-    }
-}
-
-struct TrayLabels {
-    quit: tauri::menu::MenuItem<tauri::Wry>,
+    tray::set_language(&app, &resolved);
 }
 
 #[tauri::command]
@@ -1466,48 +1452,7 @@ pub fn run() {
                 });
             }
 
-            // Setup tray menu
-            let quit_item = MenuItemBuilder::with_id(
-                "quit",
-                tray_quit_label(app_settings.language.as_deref().unwrap_or("en")),
-            )
-            .build(app)?;
-            app.manage(TrayLabels { quit: quit_item.clone() });
-            let menu = MenuBuilder::new(app)
-                .item(&quit_item)
-                .build()?;
-
-            // Setup tray icon
-            let app_handle = app.handle().clone();
-            let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().expect("window icon missing from bundle").clone())
-                .tooltip("Talk")
-                .menu(&menu)
-                .on_menu_event(move |app, event| {
-                    match event.id().as_ref() {
-                        "quit" => {
-                            // A dictation in flight has lowered the volume, and
-                            // nothing runs after the exit to put it back.
-                            hotkeys::restore_audio_now();
-                            app.exit(0);
-                        }
-                        _ => {}
-                    }
-                })
-                .on_tray_icon_event(move |_tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        if let Some(window) = app_handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                })
-                .build(app)?;
+            tray::build(app, app_settings.language.as_deref().unwrap_or("en"))?;
 
             // Handle window close -> minimize to tray
             if let Some(window) = app.get_webview_window("main") {
