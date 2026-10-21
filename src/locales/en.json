@@ -793,7 +793,9 @@
       "model_loading": "Model loading",
       "paste_failed": "Paste failed",
       "capture_failed": "No microphone",
-      "capture_lost": "Microphone lost"
+      "capture_lost": "Microphone lost",
+      "input_refused": "Typing not allowed",
+      "shortcut_refused": "Shortcut not allowed"
     },
     "queued_one": "{{count}} still transcribing",
     "queued_other": "{{count}} still transcribing"

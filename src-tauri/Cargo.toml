@@ -71,6 +71,9 @@ uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"
 [target.'cfg(target_os = "linux")'.dependencies]
 enigo = { version = "0.2", default-features = false, features = ["x11rb"] }
+# Wayland has no global key grab and no way to type into another window: both go
+# through the desktop portals.
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "global_shortcuts", "remote_desktop", "clipboard", "screencast"] }
 keyring = { version = "3", features = ["linux-native-sync-persistent"] }
 # Windows clipboard/input
 [target.'cfg(windows)'.dependencies]

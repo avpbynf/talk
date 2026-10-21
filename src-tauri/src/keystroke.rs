@@ -4,6 +4,11 @@ use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 /// Parse a shortcut string like "Ctrl+Shift+M" and simulate the keypress.
 #[cfg(any(windows, target_os = "linux"))]
 pub fn simulate_keystroke(keys: &str) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    if crate::wayland::active() {
+        return crate::wayland::press_keys(keys);
+    }
+
     let mut enigo = Enigo::new(&Settings::default())
         .map_err(|e| format!("Failed to create enigo instance: {e}"))?;
 

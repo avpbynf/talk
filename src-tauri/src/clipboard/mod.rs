@@ -17,6 +17,19 @@ pub enum ClipboardError {
     SetClipboard(String),
     #[error("Failed to simulate input: {0}")]
     SimulateInput(String),
+    #[cfg(target_os = "linux")]
+    #[error("The desktop did not allow typing into other windows")]
+    Refused,
+}
+
+impl ClipboardError {
+    /// Whether the desktop turned the text entry down, rather than it failing.
+    pub fn refused(&self) -> bool {
+        #[cfg(target_os = "linux")]
+        return matches!(self, Self::Refused);
+        #[cfg(not(target_os = "linux"))]
+        false
+    }
 }
 
 #[cfg(windows)]
@@ -186,7 +199,10 @@ pub fn copy_and_paste(text: &str) -> Result<(), ClipboardError> {
 }
 
 #[cfg(target_os = "linux")]
-pub fn type_text(text: &str, _preserve_clipboard: bool) -> Result<(), ClipboardError> {
+pub fn type_text(text: &str, preserve_clipboard: bool) -> Result<(), ClipboardError> {
+    if crate::wayland::active() {
+        return crate::wayland::type_text(text, preserve_clipboard);
+    }
     copy_and_paste(text)
 }
 

@@ -1,9 +1,24 @@
 import type { OverlayPhase } from "@/lib/overlay";
 
 /** Why a dictation was turned away, as the native side names it. */
-export type Reason = "no_model" | "model_loading" | "paste_failed" | "capture_failed" | "capture_lost";
+export type Reason =
+  | "no_model"
+  | "model_loading"
+  | "paste_failed"
+  | "capture_failed"
+  | "capture_lost"
+  | "input_refused"
+  | "shortcut_refused";
 
-const REASONS: readonly string[] = ["no_model", "model_loading", "paste_failed", "capture_failed", "capture_lost"];
+const REASONS: readonly string[] = [
+  "no_model",
+  "model_loading",
+  "paste_failed",
+  "capture_failed",
+  "capture_lost",
+  "input_refused",
+  "shortcut_refused",
+];
 
 export interface OverlayState {
   visible: boolean;

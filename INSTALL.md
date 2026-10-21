@@ -26,12 +26,18 @@ them, unless "Delete the application data" is ticked in the uninstaller, which r
 
 ## Linux
 
-Talk runs on Debian and Ubuntu in an X11 session, which global shortcuts and typing into the
-focused window need: a Wayland session is not supported yet. There is no package on the
-releases page: build the `.deb` with `bun run tauri:build:linux` as
-[docs/building.md](docs/building.md#debian-and-ubuntu-x11) describes, and install a newer one
-the same way.
+Linux is in beta. Talk runs on Debian and Ubuntu with GNOME, under X11 and under Wayland
+(GNOME 48 or later); another Wayland desktop needs the GlobalShortcuts and RemoteDesktop
+portals, which not all of them have. There is no package on the releases page: build the
+`.deb` with `bun run tauri:build:linux` as [docs/building.md](docs/building.md#debian-and-ubuntu)
+describes, and install a newer one the same way.
 
-On Linux the text is typed directly, so the setting that preserves the clipboard has no effect,
-and meeting mode, which needs the Windows VB-Cable driver, is unavailable. The model runs on
+Under Wayland the desktop asks two things, each once: to allow Talk's shortcuts, at the first
+launch, and to allow it to type into other windows, at the first paste. It remembers both
+answers, and a shortcut changed in the settings is asked about again. A refusal shows on the
+overlay.
+
+Under X11 the text is typed directly, so the setting that preserves the clipboard has no effect.
+Under Wayland it is pasted through the clipboard, and preserving the clipboard puts back its text
+only. Meeting mode, which needs the Windows VB-Cable driver, is unavailable. The model runs on
 Vulkan and picks the discrete GPU; the driver must be visible to `vulkaninfo`.

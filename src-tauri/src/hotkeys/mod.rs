@@ -172,20 +172,26 @@ pub fn setup_shortcuts(app: &tauri::App) -> Result<(), Box<dyn std::error::Error
 /// just replaced one of the three, so the lot goes down and the lot comes back
 /// rather than each path remembering to re-register the two it did not touch.
 /// A combination another application already holds is reported and skipped,
-/// leaving the other two working.
+/// leaving the other two working. On Wayland the desktop's portal binds them.
 fn register_stored(app: &AppHandle) {
     let global_shortcut = app.global_shortcut();
     let state = app.state::<AppState>();
-
-    if let Err(e) = global_shortcut.unregister_all() {
-        eprintln!("Warning: failed to unregister shortcuts: {}", e);
-    }
 
     let stored = [
         ("Main", *state.main_shortcut.lock()),
         ("Cancel", *state.cancel_shortcut.lock()),
         ("Paste", *state.paste_shortcut.lock()),
     ];
+
+    #[cfg(target_os = "linux")]
+    if crate::wayland::active() {
+        crate::wayland::bind(app, &stored);
+        return;
+    }
+
+    if let Err(e) = global_shortcut.unregister_all() {
+        eprintln!("Warning: failed to unregister shortcuts: {}", e);
+    }
 
     for (name, shortcut) in stored {
         let Some(shortcut) = shortcut else { continue };
@@ -196,6 +202,11 @@ fn register_stored(app: &AppHandle) {
 }
 
 pub fn disable_shortcuts(app: &AppHandle) {
+    #[cfg(target_os = "linux")]
+    if crate::wayland::active() {
+        crate::wayland::suspend();
+        return;
+    }
     let global_shortcut = app.global_shortcut();
     if let Err(e) = global_shortcut.unregister_all() {
         eprintln!("Warning: failed to unregister shortcuts: {}", e);
@@ -720,8 +731,8 @@ fn refuse_without_model(app: &AppHandle) -> bool {
 /// Turn a dictation away: the refusal sound, and the overlay in the danger colour saying why.
 ///
 /// The reasons the overlay words itself: `no_model`, `model_loading`, `capture_failed`,
-/// `capture_lost`, `paste_failed`.
-fn refuse(app: &AppHandle, reason: &str) {
+/// `capture_lost`, `paste_failed`, and on Wayland `input_refused` and `shortcut_refused`.
+pub(crate) fn refuse(app: &AppHandle, reason: &str) {
     play_sound_feedback(app, "refused");
     crate::overlay::show(app);
     let _ = app.emit_to(EventTarget::webview_window("overlay"), "processing-state", reason);
@@ -1077,7 +1088,7 @@ fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
     #[cfg(any(windows, target_os = "linux"))]
     {
         let preserve = crate::settings::read(|s| s.preserve_clipboard);
-        let (mut words, mut failures) = (0usize, 0usize);
+        let (mut words, mut failures, mut refused) = (0usize, 0usize, false);
         for text in &release.paste {
             // Read before each paste: a cancel since the turn was taken voids what has not
             // started, and the paste in the middle of its keystrokes finishes.
@@ -1089,6 +1100,7 @@ fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
                 Err(e) => {
                     eprintln!("Failed to paste the transcription: {}", e);
                     failures += 1;
+                    refused |= e.refused();
                 }
             }
         }
@@ -1109,7 +1121,9 @@ fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
             }
             // A refusal like any other: the state and the sound together, once. Over a recording
             // or a transcription it is brief, and the overlay then returns to what is in flight.
-            overlay_feedback::Confirmation::Failed => refuse(app, "paste_failed"),
+            overlay_feedback::Confirmation::Failed => {
+                refuse(app, if refused { "input_refused" } else { "paste_failed" })
+            }
             overlay_feedback::Confirmation::Nothing => {}
         }
     }
