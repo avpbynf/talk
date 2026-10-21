@@ -359,7 +359,7 @@
     },
     "share": {
       "title": "Share this PC",
-      "subtitle": "Lets other computers dictate through the model loaded here, with no Docker or Python. Turn it on to pick the port and pair machines.",
+      "subtitle": "Lets other computers dictate through this PC, on the model loaded here or, in Server mode, on its server. No Docker or Python. Turn it on to pick the port and pair machines.",
       "port": "Port",
       "portRange": "Enter a port between 1 and 65535",
       "portFailed": "Could not change the port",
@@ -372,6 +372,7 @@
       "error": "Could not start",
       "loadModel": "Load a model below, other machines get an error until one is loaded.",
       "reachAt": "Other machines reach it at <address>{{address}}</address>",
+      "relayed": "Their requests are relayed to <server>{{server}}</server> and use this PC's key.",
       "locked": "Too many wrong codes were entered. Pairing is off until Talk restarts.",
       "paired": "Paired machines",
       "noneYet": "None yet. On the other machine, pick this PC in Server mode and enter the code shown here.",

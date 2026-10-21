@@ -119,8 +119,6 @@ export default function TranscriptionView({
         />
       )}
 
-      {transcriptionMode === "local" && <SharePanel currentModel={currentModel} />}
-
       {transcriptionMode === "server" && (
         <>
           <ServerTab
@@ -170,6 +168,8 @@ export default function TranscriptionView({
           )}
         </>
       )}
+
+      <SharePanel currentModel={currentModel} />
     </PageShell>
   );
 }

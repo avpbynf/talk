@@ -248,7 +248,8 @@ test.describe("engine page", () => {
 
     await page.getByRole("radio", { name: "On a server", exact: true }).click();
     await expect(page.getByPlaceholder("http://localhost:8000")).toBeVisible();
-    await expect(page.getByText("Share this PC")).toHaveCount(0);
+    // In Server mode this PC relays what it is shared for to its server
+    await expect(page.getByText("Share this PC")).toBeVisible();
     expect((await app.calls("set_transcription_mode")).at(-1)?.args).toEqual({ mode: "server" });
     await expect(page.getByText("Connected")).toBeVisible();
 

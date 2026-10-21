@@ -16,6 +16,8 @@ export interface ShareInfo {
   message: string | null;
   announceError: string | null;
   model: string | null;
+  /** The server requests are relayed to, with this PC's key, in Server mode. */
+  relay: string | null;
   pairingLocked: boolean;
 }
 

@@ -1,5 +1,5 @@
-//! Share this PC: the local whisper engine, served to other machines over the
-//! same HTTP API as Talk-Server.
+//! Share this PC: the local whisper engine, or the server this PC dictates
+//! through, served to other machines over the same HTTP API as Talk-Server.
 
 mod announce;
 mod api;
@@ -7,6 +7,7 @@ mod audio;
 mod formats;
 mod pairing;
 mod priority;
+mod relay;
 mod tokens;
 
 use crate::database::{Database, ShareDevice};
@@ -18,6 +19,7 @@ use announce::Announcement;
 use api::{ApiState, ShareBackend, TranscribeError};
 use pairing::{PairingStore, PendingPairing};
 use parking_lot::Mutex;
+use relay::Route;
 use serde::Serialize;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -47,6 +49,8 @@ pub struct ShareInfo {
     /// Why other machines will not find this one on their own
     pub announce_error: Option<String>,
     pub model: Option<String>,
+    /// The server requests are passed on to, with this PC's key, in server mode
+    pub relay: Option<String>,
     pub pairing_locked: bool,
 }
 
@@ -100,7 +104,7 @@ struct AppBackend {
 
 impl ShareBackend for AppBackend {
     fn model_id(&self) -> Option<String> {
-        self.app.state::<AppState>().current_model.lock().clone()
+        served_model(&self.app)
     }
 
     fn device(&self) -> String {
@@ -116,7 +120,15 @@ impl ShareBackend for AppBackend {
         language: Option<&str>,
         prompt: Option<&str>,
     ) -> Result<Transcript, TranscribeError> {
-        self.transcribe_locally(audio, language, prompt)
+        let (route, fallback) = settings::read(|s| (relay::route(s), s.server_fallback));
+        match route {
+            Route::Local => self.transcribe_locally(audio, language, prompt),
+            Route::Relay(relay) => relay.transcribe(audio, language, prompt).or_else(|error| {
+                relay::after_failure(error, fallback, || {
+                    self.transcribe_locally(audio, language, prompt)
+                })
+            }),
+        }
     }
 
     fn local_busy(&self) -> bool {
@@ -199,8 +211,21 @@ fn local_busy(app: &AppHandle) -> bool {
     priority::local_is_busy(recording, state.jobs_in_flight.load(Ordering::SeqCst))
 }
 
-fn current_model(app: &AppHandle) -> Option<String> {
-    app.state::<AppState>().current_model.lock().clone()
+/// What other machines are served: the model loaded here, or in server mode
+/// the model this PC sends its server
+fn served_model(app: &AppHandle) -> Option<String> {
+    match settings::read(relay::route) {
+        Route::Relay(relay) => Some(relay.model_id()),
+        Route::Local => app.state::<AppState>().current_model.lock().clone(),
+    }
+}
+
+/// The server requests are relayed to, in server mode
+fn relay_server() -> Option<String> {
+    match settings::read(relay::route) {
+        Route::Relay(relay) => Some(relay.server()),
+        Route::Local => None,
+    }
 }
 
 fn bind_failure(port: u16, error: &std::io::Error) -> (ShareState, String) {
@@ -228,7 +253,8 @@ impl ShareManager {
             address: status.address.clone(),
             message: status.message.clone(),
             announce_error: status.announce_error.clone(),
-            model: current_model(app),
+            model: served_model(app),
+            relay: relay_server(),
             pairing_locked: self.pairing.lock().locked(),
         }
     }
@@ -276,7 +302,7 @@ impl ShareManager {
         });
 
         let addresses = announce::local_addresses();
-        let model = current_model(app);
+        let model = served_model(app);
         let announcement = match Announcement::start(
             port,
             model.as_deref(),
@@ -348,7 +374,7 @@ impl ShareManager {
             if let Some(announcement) = &server.announcement {
                 let result = announcement.update(
                     server.port,
-                    current_model(app).as_deref(),
+                    served_model(app).as_deref(),
                     !self.pairing.lock().locked(),
                     &announce::local_addresses(),
                 );
@@ -369,7 +395,8 @@ fn refresh_in_background(app: &AppHandle) {
     });
 }
 
-/// Tell the network, and the page, that the loaded model changed
+/// Tell the network, and the page, that what is served changed: the model
+/// loaded here, the mode, or the server and model of server mode
 pub fn model_changed(app: &AppHandle) {
     refresh_in_background(app);
 }

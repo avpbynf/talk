@@ -228,6 +228,7 @@ export function defaultState() {
       message: null as string | null,
       announceError: null as string | null,
       model: "large-v3-turbo-q5_0" as string | null,
+      relay: null as string | null,
       pairingLocked: false,
     },
     shareDevices: [] as unknown[],
