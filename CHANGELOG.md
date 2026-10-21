@@ -15,6 +15,13 @@ The switch that starts Talk when the session opens read "Start with Windows", in
 in the preferences alike, which was wrong on any other system. It now reads "Launch at startup",
 and the reduced animations follow "the system setting" rather than Windows'.
 
+- (server) Mistral's transcription API works as a server
+
+With `https://api.mistral.ai` as the server and a Mistral key, dictation now goes through Voxtral:
+the vocabulary reaches it as the terms it biases the spelling towards (the first 100, a phrase
+written with underscores between its words), and no field it does not know is sent. With the
+model left empty, `voxtral-mini-latest` is used.
+
 - (server) The full endpoint can be pasted as the server URL
 
 An address ending in `/v1/audio/transcriptions`, as a provider's docs give it, used to have the

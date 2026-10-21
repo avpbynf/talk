@@ -965,12 +965,7 @@ async fn transcribe(
     let server_url = settings.server_url.clone();
     let server_fallback = settings.server_fallback;
 
-    // Build vocabulary prompt from custom words only (comma-separated, no prefix)
-    let vocabulary_prompt = if settings.vocabulary.is_empty() {
-        None
-    } else {
-        Some(settings.vocabulary.join(", "))
-    };
+    let vocabulary_prompt = server_transcription::vocabulary_prompt(&settings.vocabulary);
 
     match transcription_mode {
         TranscriptionMode::Server => {
@@ -1001,7 +996,7 @@ async fn transcribe(
                 Some(&settings.server_token),
                 settings.server_model.as_deref(),
                 None,
-                vocabulary_prompt.as_deref(),
+                &settings.vocabulary,
                 on_segment,
                 |_| {},
             );
