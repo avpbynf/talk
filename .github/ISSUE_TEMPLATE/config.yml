@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
   - name: Dictation comes out wrong, or nothing comes out at all
-    url: https://github.com/avpbynf/Talk-Client/blob/main/README.md
-    about: Start from which mode you are in. A machine dictating badly is either in server mode falling back to the local engine, or in local mode on a model that is too small, and the Transcription page says which.
+    url: https://github.com/avpbynf/talk/blob/main/README.md
+    about: Start from which mode you are in. A machine dictating badly is either in server mode falling back to the local engine, or in local mode on a model that is too small, and the Engine page says which.
   - name: The build will not start
-    url: https://github.com/avpbynf/Talk-Client/blob/main/README.md#building
+    url: https://github.com/avpbynf/talk/blob/main/docs/building.md
     about: What the native side needs, and the three failures that name something other than themselves, a missing LLVM, a path that is too long, and the MSVC environment.
   - name: Meeting mode says VB-Cable is missing
     url: https://vb-audio.com/Cable/
