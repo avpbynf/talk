@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (server) The server URL and the model are suggested
+
+The server URL opens a list: the Talk servers found on the network, which used to have a card of
+their own, then Mistral, OpenAI and Groq. The model opens the models of the provider chosen, the
+most accurate first, each with a word on what it is worth, as the provider lists them once the
+key is in; a Talk server offers the models it has. A model the provider does not offer is shown
+in red before the first dictation fails on it, the key field says where the provider's keys are
+made, and pairing is only offered for a Talk server. The setup wizard suggests the same servers.
+Groq, like OpenAI and Mistral, transcribes with its default model when the field is empty.
+
 - (window) The tray menu shows Talk and starts or stops a dictation
 
 The icon's menu held nothing but Quit. It now opens the window, which is the only way to it on

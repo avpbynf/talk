@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import { ServerTab } from "./ServerTab";
@@ -42,68 +42,120 @@ beforeEach(() => {
   invoked.mockReset();
 });
 
-describe("ServerTab discovery", () => {
-  it("says so when nothing was found", async () => {
-    invoked.mockResolvedValue([]);
-    renderTab();
+/** Answer each command the tab calls: the servers found, the models listed, and pairing. */
+function answer(found: DiscoveredServer[], models: string[] = [], pair?: (cmd: string) => unknown) {
+  invoked.mockImplementation(async (cmd: string) => {
+    if (cmd === "list_discovered_servers") return found;
+    if (cmd === "list_server_models") return models;
+    return pair?.(cmd);
+  });
+}
 
-    expect(await screen.findByText("No server found yet.")).toBeInTheDocument();
+const urlField = () => screen.getByPlaceholderText("http://localhost:8000");
+
+describe("ServerTab suggestions", () => {
+  it("offers the servers found on the network and the providers under the URL", async () => {
+    answer([office]);
+    const { user } = renderTab();
+
+    await user.click(screen.getByRole("button", { name: "Known servers" }));
+
+    const list = await screen.findByRole("listbox");
+    expect(within(list).getByText("On this network")).toBeInTheDocument();
+    expect(within(list).getByText("office-pc")).toBeInTheDocument();
+    expect(within(list).getByText(/large-v3-turbo, http:\/\/192\.168\.1\.20:4060/)).toBeInTheDocument();
+    expect(within(list).getByText("Mistral")).toBeInTheDocument();
+    expect(within(list).getByText("https://api.groq.com/openai")).toBeInTheDocument();
   });
 
-  it("lists a server with its model and address", async () => {
-    invoked.mockResolvedValue([office]);
-    renderTab();
-
-    expect(await screen.findByText("office-pc")).toBeInTheDocument();
-    expect(screen.getByText(/192\.168\.1\.20:4060/)).toBeInTheDocument();
-    expect(screen.getByText(/large-v3-turbo/)).toBeInTheDocument();
-  });
-
-  it("fills the server URL when a server is picked", async () => {
-    invoked.mockResolvedValue([office]);
+  it("fills and saves the URL when a suggestion is picked", async () => {
+    answer([office]);
     const { onServerUrlChange, user } = renderTab();
 
-    await user.click(await screen.findByRole("button", { name: "Use" }));
+    await user.click(screen.getByRole("button", { name: "Known servers" }));
+    await user.click(await screen.findByText("office-pc"));
 
     expect(onServerUrlChange).toHaveBeenCalledWith(office.url);
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText("http://localhost:8000")).toHaveValue(office.url)
-    );
+    expect(urlField()).toHaveValue(office.url);
   });
 
-  it("marks the server already in use", async () => {
-    invoked.mockResolvedValue([office]);
-    renderTab(office.url);
+  it("narrows the suggestions to what is typed", async () => {
+    answer([office]);
+    const { user } = renderTab();
 
-    expect(await screen.findByRole("button", { name: "In use" })).toBeDisabled();
+    await user.type(urlField(), "groq");
+
+    const list = await screen.findByRole("listbox");
+    expect(within(list).getByText("Groq")).toBeInTheDocument();
+    expect(within(list).queryByText("Mistral")).not.toBeInTheDocument();
+  });
+
+  it("ranks a provider's models the strongest first, with what each is worth", async () => {
+    answer([], ["voxtral-mini-latest", "mistral-large-latest", "voxtral-mini-transcribe-3-0", "voxtral-small-transcribe-3-0"]);
+    const { user } = renderTab("https://api.mistral.ai");
+
+    await waitFor(() => expect(invoked).toHaveBeenCalledWith("list_server_models"));
+    await user.click(screen.getByRole("button", { name: "Known models" }));
+
+    const options = within(await screen.findByRole("listbox")).getAllByRole("option");
+    expect(options.map((o) => o.querySelector("b")?.textContent)).toEqual([
+      "voxtral-small-transcribe-3-0",
+      "voxtral-mini-transcribe-3-0",
+      "voxtral-mini-latest",
+    ]);
+    expect(within(options[0]).getByText("The most accurate, the dearest")).toBeInTheDocument();
+    expect(within(options[2]).getByText("default")).toBeInTheDocument();
+  });
+
+  it("says where a provider's key is made and drops pairing", async () => {
+    answer([]);
+    renderTab("https://api.mistral.ai/v1/audio/transcriptions");
+
+    expect(screen.getByText("Your key is made on console.mistral.ai.")).toBeInTheDocument();
+    expect(screen.getByText("Empty, Mistral transcribes with voxtral-mini-latest.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pair with this server" })).not.toBeInTheDocument();
+  });
+
+  it("says so when the provider does not offer the model typed", async () => {
+    answer([], ["voxtral-mini-transcribe-3-0"]);
+    const { user } = renderTab("https://api.mistral.ai");
+
+    await waitFor(() => expect(invoked).toHaveBeenCalledWith("list_server_models"));
+    await user.type(screen.getByPlaceholderText("voxtral-mini-latest"), "voxtral-maxi");
+
+    expect(screen.getByPlaceholderText("voxtral-mini-latest")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Mistral does not offer this model.")).toBeInTheDocument();
+  });
+
+  it("offers what a Talk server lists, as it lists it", async () => {
+    answer([], ["large-v3-turbo", "small"]);
+    const { user } = renderTab("http://10.0.0.9:8000");
+
+    await waitFor(() => expect(invoked).toHaveBeenCalledWith("list_server_models"));
+    await user.click(screen.getByRole("button", { name: "Known models" }));
+
+    const list = await screen.findByRole("listbox");
+    expect(within(list).getByText("Offered by the server")).toBeInTheDocument();
+    expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["large-v3-turbo", "small"]);
   });
 });
 
 describe("ServerTab pairing", () => {
   const pairable = { ...office, pairing: true };
 
-  function answer(confirm: () => Promise<unknown>) {
-    invoked.mockImplementation(async (cmd: string) => {
-      if (cmd === "list_discovered_servers") return [pairable];
+  function pairing(confirm: () => Promise<unknown>) {
+    answer([pairable], [], (cmd) => {
       if (cmd === "pair_request") return { request_id: "r1", expires_in: 300 };
       if (cmd === "pair_confirm") return confirm();
       return undefined;
     });
   }
 
-  it("offers Pair only on a server that has pairing", async () => {
-    invoked.mockResolvedValue([office]);
-    renderTab();
-
-    await screen.findByText("office-pc");
-    expect(screen.queryByRole("button", { name: "Pair" })).not.toBeInTheDocument();
-  });
-
   it("fills the token and tests the connection once paired", async () => {
-    answer(async () => ({ token: "tk-1", name: "office-pc" }));
-    const { onServerUrlChange, onServerTokenChange, checkServerHealth, user } = renderTab();
+    pairing(async () => ({ token: "tk-1", name: "office-pc" }));
+    const { onServerUrlChange, onServerTokenChange, checkServerHealth, user } = renderTab(office.url);
 
-    await user.click(await screen.findByRole("button", { name: "Pair" }));
+    await user.click(screen.getByRole("button", { name: "Pair with this server" }));
     await user.type(await screen.findByLabelText("Pairing code"), "123456");
     await user.click(screen.getByRole("button", { name: "Confirm" }));
 
@@ -119,10 +171,10 @@ describe("ServerTab pairing", () => {
   });
 
   it("keeps the field open on a wrong code", async () => {
-    answer(() => Promise.reject("wrong_code"));
-    const { user } = renderTab();
+    pairing(() => Promise.reject("wrong_code"));
+    const { user } = renderTab(office.url);
 
-    await user.click(await screen.findByRole("button", { name: "Pair" }));
+    await user.click(screen.getByRole("button", { name: "Pair with this server" }));
     await user.type(await screen.findByLabelText("Pairing code"), "000000");
     await user.click(screen.getByRole("button", { name: "Confirm" }));
 
@@ -131,10 +183,10 @@ describe("ServerTab pairing", () => {
   });
 
   it("offers to start again when the code expired", async () => {
-    answer(() => Promise.reject("expired"));
-    const { user } = renderTab();
+    pairing(() => Promise.reject("expired"));
+    const { user } = renderTab(office.url);
 
-    await user.click(await screen.findByRole("button", { name: "Pair" }));
+    await user.click(screen.getByRole("button", { name: "Pair with this server" }));
     await user.type(await screen.findByLabelText("Pairing code"), "123456");
     await user.click(screen.getByRole("button", { name: "Confirm" }));
 
@@ -143,11 +195,7 @@ describe("ServerTab pairing", () => {
   });
 
   it("pairs with a typed URL", async () => {
-    invoked.mockImplementation(async (cmd: string) => {
-      if (cmd === "list_discovered_servers") return [];
-      if (cmd === "pair_request") return { request_id: "r2", expires_in: 60 };
-      return undefined;
-    });
+    answer([], [], (cmd) => (cmd === "pair_request" ? { request_id: "r2", expires_in: 60 } : undefined));
     const { user } = renderTab("http://10.0.0.9:8000");
 
     await user.click(screen.getByRole("button", { name: "Pair with this server" }));
@@ -196,7 +244,7 @@ describe("ServerTab drafts", () => {
     invoked.mockResolvedValue([]);
     const user = userEvent.setup();
     const { rerender } = tabWith("http://old:1", "tok", "m1");
-    const model = screen.getByPlaceholderText(/whisper-1, gpt-4o-transcribe/);
+    const model = screen.getByPlaceholderText("The server chooses");
 
     rerender("http://old:1", "tok", "m2");
     expect(model).toHaveValue("m2");
@@ -213,7 +261,7 @@ describe("ServerTab model", () => {
     invoked.mockResolvedValue([]);
     const { onServerModelChange, user } = renderTab("https://api.openai.com/v1");
 
-    const field = screen.getByPlaceholderText(/whisper-1, gpt-4o-transcribe/);
+    const field = screen.getByPlaceholderText("whisper-1");
     await user.type(field, " gpt-4o-mini-transcribe ");
     await user.tab();
 

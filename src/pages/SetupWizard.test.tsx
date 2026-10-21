@@ -50,7 +50,7 @@ function answer(status: GoogleStatus) {
 
 async function toTheStepAfterOptions() {
   await userEvent.click(screen.getByRole("button", { name: /Next/ }));
-  await userEvent.type(screen.getAllByRole("textbox")[0], "http://office:4060");
+  await userEvent.type(screen.getByRole("combobox", { name: "Server URL" }), "http://office:4060");
   await userEvent.click(screen.getByRole("button", { name: /Next/ }));
   await userEvent.click(screen.getByRole("button", { name: /Next/ }));
 }
@@ -159,7 +159,7 @@ describe("SetupWizard startup options", () => {
     await userEvent.click(screen.getByText("Server"));
     await waitFor(() => expect(screen.getByText("Step 1 of 5")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: /Next/ }));
-    await userEvent.type(screen.getAllByRole("textbox")[0], "http://office:4060");
+    await userEvent.type(screen.getByRole("combobox", { name: "Server URL" }), "http://office:4060");
     await userEvent.click(screen.getByRole("button", { name: /Next/ }));
   }
 

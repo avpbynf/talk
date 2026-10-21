@@ -3,6 +3,9 @@ import { AlertCircle, Loader2, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
+import { providerOf } from "@/lib/providers";
+import { useServerSuggestions } from "@/lib/use-server-suggestions";
 import type { ServerStatus } from "@/lib/server";
 import { cn } from "@/lib/utils";
 import { Card } from "./Card";
@@ -36,6 +39,8 @@ export function ServerStep({ url, token, status, onUrlChange, onTokenChange, onT
   const tokenId = useId();
   const look = STATUS_LOOK[status];
   const canRetry = status === "offline" || status === "unauthorized";
+  const { groups } = useServerSuggestions();
+  const provider = providerOf(url);
 
   return (
     <StepPage>
@@ -45,13 +50,15 @@ export function ServerStep({ url, token, status, onUrlChange, onTokenChange, onT
         <label htmlFor={urlId} className="text-[13px] font-medium">
           {t("setup.server.url")}
         </label>
-        <Input
+        <Combobox
           id={urlId}
           type="url"
           value={url}
-          onChange={(e) => onUrlChange(e.target.value)}
+          onChange={onUrlChange}
+          onPick={onUrlChange}
+          groups={groups}
+          toggleLabel={t("transcription.server.knownServers")}
           placeholder={t("setup.server.placeholder")}
-          autoComplete="off"
           className={cn(
             FIELD,
             status === "offline" && "border-[color-mix(in_oklch,var(--color-destructive)_70%,var(--color-input))]",
@@ -76,6 +83,11 @@ export function ServerStep({ url, token, status, onUrlChange, onTokenChange, onT
             status === "unauthorized" && "border-[color-mix(in_oklch,var(--color-destructive)_70%,var(--color-input))]",
           )}
         />
+        {provider && (
+          <p className="text-xs text-muted-foreground">
+            {t("transcription.server.keyPage", { page: provider.keyPage })}
+          </p>
+        )}
       </div>
 
       <Card>

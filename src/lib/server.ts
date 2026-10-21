@@ -14,6 +14,18 @@ export function statusFromCheck(check: ServerCheck): ServerStatus {
   }
 }
 
+/**
+ * The server a URL names, the way the backend reads it (`normalize_base_url`): the full
+ * transcription endpoint and a trailing `/v1` name the same server as the bare address.
+ */
+export function normalizeServerUrl(url: string): string {
+  let base = url.trim().replace(/\/+$/, "");
+  for (const suffix of ["/audio/transcriptions", "/v1"]) {
+    if (base.toLowerCase().endsWith(suffix)) base = base.slice(0, -suffix.length).replace(/\/+$/, "");
+  }
+  return base.toLowerCase();
+}
+
 /** A Talk-Server announcing itself on the local network. */
 export interface DiscoveredServer {
   id: string;

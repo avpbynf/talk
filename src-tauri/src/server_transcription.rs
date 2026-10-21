@@ -102,6 +102,43 @@ pub async fn check_server(base_url: &str, token: Option<&str>) -> ServerCheck {
     classify_status(models, health)
 }
 
+/// The model ids the server lists on `/v1/models`, in the order it gives them.
+///
+/// Empty when the server cannot be reached, refuses the token or answers
+/// something else than the OpenAI list: the interface then falls back on the
+/// models it knows for that provider. Which of them transcribe is decided there.
+pub async fn list_models(base_url: &str, token: Option<&str>) -> Vec<String> {
+    let Ok(client) = reqwest::Client::builder().timeout(CONNECT_TIMEOUT).build() else {
+        return Vec::new();
+    };
+    let mut request = client.get(format!("{}/v1/models", normalize_base_url(base_url)));
+    if let Some(token) = token.filter(|t| !t.is_empty()) {
+        request = request.bearer_auth(token);
+    }
+    match request.send().await {
+        Ok(response) if response.status().is_success() => {
+            parse_model_ids(&response.text().await.unwrap_or_default())
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// Read the ids out of an OpenAI `{"data": [{"id": ...}]}` list, and nothing
+/// out of anything else.
+fn parse_model_ids(body: &str) -> Vec<String> {
+    #[derive(Deserialize)]
+    struct Model {
+        id: String,
+    }
+    #[derive(Deserialize)]
+    struct List {
+        data: Vec<Model>,
+    }
+    serde_json::from_str::<List>(body)
+        .map(|list| list.data.into_iter().map(|model| model.id).collect())
+        .unwrap_or_default()
+}
+
 /// Why a pairing step did not go through, worded by the UI
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -250,13 +287,19 @@ fn is_mistral(base_url: &str) -> bool {
     has_host(base_url, "api.mistral.ai")
 }
 
-/// The model to send, if any. OpenAI and Mistral refuse a request without one,
-/// while a Talk server picks its own, so an empty setting only defaults on them.
+fn is_groq(base_url: &str) -> bool {
+    has_host(base_url, "api.groq.com")
+}
+
+/// The model to send, if any. OpenAI, Mistral and Groq refuse a request without
+/// one, while a Talk server picks its own, so an empty setting only defaults on
+/// them. `src/lib/providers.ts` names the same defaults to the user.
 pub fn effective_model(base_url: &str, configured: Option<&str>) -> Option<String> {
     match configured.map(str::trim).filter(|m| !m.is_empty()) {
         Some(model) => Some(model.to_string()),
         None if is_openai(base_url) => Some("whisper-1".to_string()),
         None if is_mistral(base_url) => Some("voxtral-mini-latest".to_string()),
+        None if is_groq(base_url) => Some("whisper-large-v3-turbo".to_string()),
         None => None,
     }
 }
@@ -819,6 +862,14 @@ mod tests {
     }
 
     #[test]
+    fn groq_gets_a_model_when_none_is_set() {
+        assert_eq!(
+            effective_model("https://api.groq.com/openai", None).as_deref(),
+            Some("whisper-large-v3-turbo")
+        );
+    }
+
+    #[test]
     fn only_a_404_or_405_on_the_stream_route_means_it_is_not_offered() {
         assert!(is_missing_stream_route(404));
         assert!(is_missing_stream_route(405));
@@ -873,5 +924,13 @@ mod tests {
     fn an_answer_without_text_is_an_error() {
         assert!(parse_standard_text(r#"{"error": "nope"}"#).is_err());
         assert!(parse_standard_text("not json").is_err());
+    }
+
+    #[test]
+    fn model_ids_come_from_an_openai_list_and_from_nothing_else() {
+        let body = r#"{"object": "list", "data": [{"id": "whisper-1", "object": "model"}, {"id": "gpt-4o-transcribe"}]}"#;
+        assert_eq!(parse_model_ids(body), ["whisper-1", "gpt-4o-transcribe"]);
+        assert!(parse_model_ids(r#"{"models": ["a"]}"#).is_empty());
+        assert!(parse_model_ids("<html>").is_empty());
     }
 }
