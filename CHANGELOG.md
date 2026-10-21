@@ -21,6 +21,11 @@ An address ending in `/v1/audio/transcriptions`, as a provider's docs give it, u
 route appended a second time and every dictation failed. It now names the same server as the
 bare address.
 
+- (server) A wrong server URL no longer shows "Connected"
+
+An address that answered "not found" was taken for an older Talk server and shown as connected.
+It now shows as unreachable unless it really is a Talk server.
+
 ## [0.12.0] - 2026-10-08
 
 ### Fixes

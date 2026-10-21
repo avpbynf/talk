@@ -50,14 +50,15 @@ pub enum ServerCheck {
 
 /// Turn the status of the `/v1/models` answer into what the user is told.
 ///
-/// A 404 is a server released before the route existed. It answered, and its
-/// transcriptions work, so it reads as reachable even though the token could
-/// not be checked. Anything else that is neither a success nor a refusal (a
-/// proxy error page, a server falling over) reads as unreachable.
-pub fn classify_status(status: u16) -> ServerCheck {
-    match status {
-        200..=299 | 404 => ServerCheck::Ok,
-        401 | 403 => ServerCheck::Unauthorized,
+/// A 404 is either a Talk server released before the route existed, or a URL
+/// that points at no transcription server at all. Only the first answers
+/// `/health`, so `health` is the status of that route, asked after a 404. Anything
+/// else that is neither a success nor a refusal (a proxy error page, a server
+/// falling over) reads as unreachable.
+pub fn classify_status(models: u16, health: Option<u16>) -> ServerCheck {
+    match (models, health) {
+        (200..=299, _) | (404, Some(200..=299)) => ServerCheck::Ok,
+        (401 | 403, _) => ServerCheck::Unauthorized,
         _ => ServerCheck::Unreachable,
     }
 }
@@ -78,16 +79,27 @@ pub async fn check_server(base_url: &str, token: Option<&str>) -> ServerCheck {
         Err(_) => return ServerCheck::Unreachable,
     };
 
-    let url = format!("{}/v1/models", normalize_base_url(base_url));
-    let mut request = client.get(&url);
+    let base = normalize_base_url(base_url);
+    let mut request = client.get(format!("{}/v1/models", base));
     if let Some(token) = token.filter(|t| !t.is_empty()) {
         request = request.bearer_auth(token);
     }
 
-    match request.send().await {
-        Ok(response) => classify_status(response.status().as_u16()),
-        Err(_) => ServerCheck::Unreachable,
-    }
+    let models = match request.send().await {
+        Ok(response) => response.status().as_u16(),
+        Err(_) => return ServerCheck::Unreachable,
+    };
+    let health = if models == 404 {
+        client
+            .get(format!("{}/health", base))
+            .send()
+            .await
+            .ok()
+            .map(|response| response.status().as_u16())
+    } else {
+        None
+    };
+    classify_status(models, health)
 }
 
 /// Why a pairing step did not go through, worded by the UI
@@ -585,25 +597,32 @@ mod tests {
 
     #[test]
     fn a_server_older_than_the_route_still_reads_as_reachable() {
-        assert_eq!(classify_status(404), ServerCheck::Ok);
+        assert_eq!(classify_status(404, Some(200)), ServerCheck::Ok);
+    }
+
+    #[test]
+    fn a_404_without_a_talk_health_route_is_a_wrong_url() {
+        assert_eq!(classify_status(404, Some(404)), ServerCheck::Unreachable);
+        assert_eq!(classify_status(404, Some(500)), ServerCheck::Unreachable);
+        assert_eq!(classify_status(404, None), ServerCheck::Unreachable);
     }
 
     #[test]
     fn a_success_is_ok() {
-        assert_eq!(classify_status(200), ServerCheck::Ok);
-        assert_eq!(classify_status(204), ServerCheck::Ok);
+        assert_eq!(classify_status(200, None), ServerCheck::Ok);
+        assert_eq!(classify_status(204, None), ServerCheck::Ok);
     }
 
     #[test]
     fn a_refused_token_is_unauthorized() {
-        assert_eq!(classify_status(401), ServerCheck::Unauthorized);
-        assert_eq!(classify_status(403), ServerCheck::Unauthorized);
+        assert_eq!(classify_status(401, None), ServerCheck::Unauthorized);
+        assert_eq!(classify_status(403, None), ServerCheck::Unauthorized);
     }
 
     #[test]
     fn any_other_answer_is_unreachable() {
         for status in [301, 500, 502, 503] {
-            assert_eq!(classify_status(status), ServerCheck::Unreachable, "{}", status);
+            assert_eq!(classify_status(status, None), ServerCheck::Unreachable, "{}", status);
         }
     }
 
