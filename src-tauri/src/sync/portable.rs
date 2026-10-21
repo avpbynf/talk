@@ -865,7 +865,7 @@ mod tests {
     fn a_copy_from_a_machine_still_on_the_old_theme_names_leaves_this_machines_theme_alone() {
         let mut local = SyncedSettings::default();
         local.theme = ThemeSettings { preset: "nord".to_string(), custom: None, ..Default::default() };
-        for old in ["t4lk-light", "dracula", "zed", "from-the-future"] {
+        for old in ["dracula", "zed", "from-the-future"] {
             let body = format!(r#"{{"updated_at": 50, "settings": {{"app_theme": "{old}", "start_sound": "ding"}}}}"#);
             let parsed = SettingsFile::parse(&body, &local).expect("should parse");
             assert_eq!(parsed.settings.theme.preset, "nord", "{old}");

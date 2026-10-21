@@ -198,14 +198,8 @@ impl ThemeSettings {
     }
 
     /// The preset a settings file written before themes were values points to.
-    /// The two `t4lk` names carry settings written before the rename to Talk.
     /// A name nobody knows leaves the default, rather than failing the file.
     pub fn from_legacy(name: &str) -> Self {
-        let name = match name {
-            "t4lk-dark" => "talk-dark",
-            "t4lk-light" => "talk-light",
-            other => other,
-        };
         match LEGACY_NAMES.iter().find(|known| **known == name) {
             Some(known) => Self { preset: known.to_string(), custom: None, extra: Default::default() },
             None => Self::default(),
@@ -548,8 +542,6 @@ mod tests {
         ] {
             assert_eq!(ThemeSettings::from_legacy(name).preset, name);
         }
-        assert_eq!(ThemeSettings::from_legacy("t4lk-dark").preset, "talk-dark");
-        assert_eq!(ThemeSettings::from_legacy("t4lk-light").preset, "talk-light");
     }
 
     #[test]

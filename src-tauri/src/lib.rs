@@ -1195,8 +1195,6 @@ fn set_output_device(device_name: Option<String>, state: tauri::State<'_, AppSta
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    paths::init();
-
     tauri::Builder::default()
         // First in the chain, as the plugin asks: a second launch has to be turned away
         // before anything else in the application has started building itself.
@@ -1386,7 +1384,7 @@ pub fn run() {
             let _ = dotenvy::dotenv();
 
             // Initialize SQLite database
-            let db_path = database::default_db_path();
+            let db_path = paths::database();
             let db = match database::Database::open(&db_path) {
                 Ok(db) => db,
                 Err(error) => {

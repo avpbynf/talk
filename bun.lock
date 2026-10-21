@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "t4lk-client",
+      "name": "talk-client",
       "dependencies": {
         "@blobatar/react": "2.7.0",
         "@dnd-kit/core": "^6.3.1",
