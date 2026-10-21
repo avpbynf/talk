@@ -200,18 +200,25 @@ pub async fn pair_confirm(
     pairing_post(base_url, "confirm", &Body { request_id, code }, confirm_outcome).await
 }
 
-/// The server address without a trailing slash or a trailing `/v1`, so that
-/// `https://api.openai.com/v1` and `https://api.openai.com` name the same
-/// server and every route can be appended as `/v1/...`.
+/// The server address without a trailing slash, a trailing
+/// `/audio/transcriptions` or a trailing `/v1`, so that `https://api.openai.com`,
+/// `https://api.openai.com/v1` and the full endpoint pasted from a provider's
+/// docs name the same server and every route can be appended as `/v1/...`.
 pub fn normalize_base_url(url: &str) -> String {
-    let trimmed = url.trim().trim_end_matches('/');
-    let without_v1 = match trimmed.len().checked_sub(3) {
-        Some(at) if trimmed.is_char_boundary(at) && trimmed[at..].eq_ignore_ascii_case("/v1") => {
-            &trimmed[..at]
+    let mut base = url.trim().trim_end_matches('/');
+    for suffix in ["/audio/transcriptions", "/v1"] {
+        base = strip_suffix_ignore_case(base, suffix).trim_end_matches('/');
+    }
+    base.to_string()
+}
+
+fn strip_suffix_ignore_case<'a>(text: &'a str, suffix: &str) -> &'a str {
+    match text.len().checked_sub(suffix.len()) {
+        Some(at) if text.is_char_boundary(at) && text[at..].eq_ignore_ascii_case(suffix) => {
+            &text[..at]
         }
-        _ => trimmed,
-    };
-    without_v1.trim_end_matches('/').to_string()
+        _ => text,
+    }
 }
 
 fn is_openai(base_url: &str) -> bool {
@@ -650,6 +657,22 @@ mod tests {
         assert_eq!(normalize_base_url("http://localhost:4060/"), "http://localhost:4060");
         assert_eq!(normalize_base_url("http://host/proxy/v1"), "http://host/proxy");
         assert_eq!(normalize_base_url("http://host/v10"), "http://host/v10");
+    }
+
+    #[test]
+    fn a_pasted_endpoint_reads_as_its_server() {
+        for url in [
+            "https://api.mistral.ai/v1/audio/transcriptions",
+            "https://api.mistral.ai/v1/audio/transcriptions/",
+            "https://api.mistral.ai/V1/Audio/Transcriptions",
+            "https://api.mistral.ai/audio/transcriptions",
+        ] {
+            assert_eq!(normalize_base_url(url), "https://api.mistral.ai", "{}", url);
+        }
+        assert_eq!(
+            normalize_base_url("http://host/proxy/v1/audio/transcriptions"),
+            "http://host/proxy"
+        );
     }
 
     #[test]

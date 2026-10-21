@@ -15,6 +15,12 @@ The switch that starts Talk when the session opens read "Start with Windows", in
 in the preferences alike, which was wrong on any other system. It now reads "Launch at startup",
 and the reduced animations follow "the system setting" rather than Windows'.
 
+- (server) The full endpoint can be pasted as the server URL
+
+An address ending in `/v1/audio/transcriptions`, as a provider's docs give it, used to have the
+route appended a second time and every dictation failed. It now names the same server as the
+bare address.
+
 ## [0.12.0] - 2026-10-08
 
 ### Fixes
