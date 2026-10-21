@@ -39,6 +39,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   // Server config
   const [serverUrl, setServerUrl] = useState(DEFAULT_SERVER_URL);
   const [serverToken, setServerToken] = useState("");
+  const [serverModel, setServerModel] = useState("");
+  // The URL the settings hold since the last test, which is the one the server is asked about.
+  const [testedUrl, setTestedUrl] = useState("");
   const [serverStatus, setServerStatus] = useState<ServerStatus>("unknown");
 
   // Model config
@@ -120,6 +123,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       // Temporarily set the server URL to check
       await invoke("set_server_url", { url: serverUrl });
       await invoke("set_server_token", { token: serverToken });
+      setTestedUrl(serverUrl);
       const check = await invoke<ServerCheck>("test_server_connection");
       setServerStatus(statusFromCheck(check));
     } catch {
@@ -143,6 +147,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       } else {
         await invoke("set_server_url", { url: serverUrl });
         await invoke("set_server_token", { token: serverToken });
+        await invoke("set_server_model", { model: serverModel.trim() });
       }
 
       // Save startup options (autostart plugin is handled in set_autostart_enabled).
@@ -207,6 +212,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           <ServerStep
             url={serverUrl}
             token={serverToken}
+            model={serverModel}
+            testedUrl={testedUrl}
             status={serverStatus}
             onUrlChange={(url) => {
               setServerUrl(url);
@@ -216,6 +223,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               setServerToken(token);
               setServerStatus("unknown");
             }}
+            onModelChange={setServerModel}
             onTest={checkServerHealth}
           />
         );
