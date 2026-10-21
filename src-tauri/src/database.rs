@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 use rusqlite::{params, Connection, OptionalExtension, Result};
 use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const SCHEMA_V1: &str = "
 CREATE TABLE IF NOT EXISTS transcriptions (
@@ -290,12 +290,6 @@ pub struct AnalyticsSummary {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-pub fn default_db_path() -> PathBuf {
-    crate::paths::config_dir()
-        .map(|dir| dir.join(crate::paths::DB_FILE))
-        .unwrap_or_else(|| PathBuf::from(crate::paths::DB_FILE))
-}
 
 /// The tables an analytics query reads: this machine's own, or those with the
 /// other devices' rows added.

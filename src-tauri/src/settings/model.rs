@@ -460,12 +460,9 @@ mod tests {
 
     #[test]
     fn every_theme_name_from_before_themes_were_values_loads_as_its_preset() {
-        // Settings written while the product was called T4lk carry t4lk-dark and
-        // t4lk-light. Whatever the old name, the file must load whole: a parse
-        // error here would take the server URL and the shortcuts down with it.
+        // Whatever the old name, the file must load whole: a parse error here
+        // would take the server URL and the shortcuts down with it.
         for (old, preset) in [
-            ("t4lk-dark", "talk-dark"),
-            ("t4lk-light", "talk-light"),
             ("talk-dark", "talk-dark"),
             ("talk-light", "talk-light"),
             ("zed", "zed"),
@@ -532,8 +529,6 @@ mod tests {
     fn a_null_theme_leaves_the_old_name_to_decide() {
         let s = parse(r#"{"theme": null, "app_theme": "dracula"}"#);
         assert_eq!(s.theme.preset, "dracula");
-        let s = parse(r#"{"theme": null, "app_theme": "t4lk-light"}"#);
-        assert_eq!(s.theme.preset, "talk-light");
         assert_eq!(parse(r#"{"theme": null}"#).theme, ThemeSettings::default());
     }
 

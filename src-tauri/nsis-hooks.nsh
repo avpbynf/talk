@@ -1,33 +1,8 @@
 ; Talk NSIS installer hooks
-; Retires the installation the old name left, and reclaims the model cache on
-; uninstall while leaving the settings and the history alone.
+; Installs VB-Cable, and reclaims the model cache on uninstall while leaving the
+; settings and the history alone.
 
 !macro NSIS_HOOK_PREINSTALL
-  ; Retire the installation left by the old name.
-  ;
-  ; Tauri builds UNINSTKEY from the product name, not from the bundle identifier,
-  ; so the entry T4lk wrote is invisible to this installer. Left alone, Windows
-  ; lists two applications, keeps two Start Menu shortcuts, and leaves the old
-  ; binary on disk forever.
-  ;
-  ; Never do this by running the old uninstaller. Its own POSTUNINSTALL hook wipes
-  ; com.avpbynf.t4lk, which is where the settings, the history and the downloaded
-  ; model live, and preserving those is the entire reason the identifier did not
-  ; change with the name. Delete the old files and keys directly instead.
-  Push $9
-  ReadRegStr $9 SHCTX "Software\${MANUFACTURER}\T4lk" ""
-  StrCmp "$9" "" legacy_files_done 0
-    DetailPrint "Removing the previous installation, which was named T4lk."
-    RMDir /r "$9"
-  legacy_files_done:
-  Pop $9
-  DeleteRegKey SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\T4lk"
-  DeleteRegKey SHCTX "Software\${MANUFACTURER}\T4lk"
-  DeleteRegValue SHCTX "Software\Microsoft\Windows\CurrentVersion\Run" "T4lk"
-  Delete "$SMPROGRAMS\T4lk.lnk"
-  Delete "$SMPROGRAMS\$AppStartMenuFolder\T4lk.lnk"
-  Delete "$DESKTOP\T4lk.lnk"
-
   ; Install VB-Audio Virtual Cable silently, when its payload is vendored.
   ; The setup exe needs its driver files (.sys, .inf, .cat) in the same directory,
   ; so extract the whole VBCABLE_Driver folder to $TEMP, run setup, then clean up.
@@ -61,13 +36,10 @@
   ; Tauri's own handling of that box deletes %APPDATA%\com.avpbynf.t4lk, which
   ; nothing writes to: the directories crate drops the qualifier, so
   ; ProjectDirs::from("com", "avpbynf", "Talk") keeps only the last argument and
-  ; settings, history and models all live under %APPDATA%\avpbynf\Talk. The old
-  ; t4lk folder goes too: the application moves it on its first start, but one
-  ; that never ran after the update still has its data there.
+  ; settings, history and models all live under %APPDATA%\avpbynf\Talk.
   ${If} $DeleteAppDataCheckboxState = 1
   ${AndIf} $UpdateMode <> 1
     RMDir /r "$APPDATA\avpbynf\Talk"
-    RMDir /r "$APPDATA\avpbynf\t4lk"
     RMDir "$APPDATA\avpbynf"
 
     ; The WebView2 profile, which Tauri does name after the bundle identifier.

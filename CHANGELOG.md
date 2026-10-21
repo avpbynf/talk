@@ -75,6 +75,14 @@ bare address.
 An address that answered "not found" was taken for an older Talk server and shown as connected.
 It now shows as unreachable unless it really is a Talk server.
 
+### Refactoring
+
+- (installer) An installation still named T4lk is no longer taken over
+
+The installer and the first start no longer look for what a version named T4lk left. Coming from
+one, install 0.12.0 over it first and start it once, then update: the settings, the history and
+the models then carry over as they always did.
+
 ## [0.12.0] - 2026-10-08
 
 ### Fixes
