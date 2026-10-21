@@ -9,7 +9,29 @@ use parking_lot::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::menu::{MenuBuilder, MenuItem, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{App, AppHandle, Listener, Manager, Wry};
+use tauri::image::Image;
+use tauri::{include_image, App, AppHandle, Listener, Manager, Wry};
+
+/// The icon at the pixel sizes the notification area draws it at, the two
+/// smallest in the heavier drawing that stays legible there.
+const ICON_16: Image<'static> = include_image!("icons/tray-16.png");
+const ICON_24: Image<'static> = include_image!("icons/tray-24.png");
+const ICON_32: Image<'static> = include_image!("icons/tray-32.png");
+
+/// The bitmap matching the notification area of the primary screen, which on
+/// Windows draws at 16 pixels scaled by the screen. An AppIndicator scales the
+/// image itself, so it gets the largest one.
+fn icon(app: &App) -> Image<'static> {
+    if !cfg!(windows) {
+        return ICON_32;
+    }
+    let scale = app.primary_monitor().ok().flatten().map_or(1.0, |m| m.scale_factor());
+    match 16.0 * scale {
+        p if p <= 16.0 => ICON_16,
+        p if p <= 24.0 => ICON_24,
+        _ => ICON_32,
+    }
+}
 
 /// Put the icon in the notification area, its menu written in `language`.
 pub fn build(app: &App, language: &str) -> tauri::Result<()> {
@@ -45,7 +67,7 @@ pub fn build(app: &App, language: &str) -> tauri::Result<()> {
     }
 
     TrayIconBuilder::new()
-        .icon(app.default_window_icon().expect("window icon missing from bundle").clone())
+        .icon(icon(app))
         .tooltip("Talk")
         .menu(&menu)
         .show_menu_on_left_click(false)
