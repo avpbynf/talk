@@ -15,6 +15,7 @@ mod hotkeys;
 mod lenient;
 mod keystroke;
 mod models;
+mod name_migration;
 mod overlay;
 mod overlay_feedback;
 mod overlay_settings;
@@ -1195,6 +1196,8 @@ fn set_output_device(device_name: Option<String>, state: tauri::State<'_, AppSta
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    paths::init();
+
     tauri::Builder::default()
         // First in the chain, as the plugin asks: a second launch has to be turned away
         // before anything else in the application has started building itself.

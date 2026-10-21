@@ -3,6 +3,13 @@
 ; settings and the history alone.
 
 !macro NSIS_HOOK_PREINSTALL
+  ; The WebView2 profile of the former identifier, once the application has a
+  ; current one: the application renames the former when it is alone, and only
+  ; here is nothing running on it. Can go once the release after 0.13.0 is out.
+  ${If} ${FileExists} "$LOCALAPPDATA\com.avpbynf.talk\*.*"
+    RMDir /r "$LOCALAPPDATA\com.avpbynf.t4lk"
+  ${EndIf}
+
   ; Install VB-Audio Virtual Cable silently, when its payload is vendored.
   ; The setup exe needs its driver files (.sys, .inf, .cat) in the same directory,
   ; so extract the whole VBCABLE_Driver folder to $TEMP, run setup, then clean up.
@@ -33,7 +40,7 @@
   ; again. The box is unticked unless someone ticks it, and Tauri's updater
   ; skips the uninstaller altogether.
   ;
-  ; Tauri's own handling of that box deletes %APPDATA%\com.avpbynf.t4lk, which
+  ; Tauri's own handling of that box deletes %APPDATA%\com.avpbynf.talk, which
   ; nothing writes to: the directories crate drops the qualifier, so
   ; ProjectDirs::from("com", "avpbynf", "Talk") keeps only the last argument and
   ; settings, history and models all live under %APPDATA%\avpbynf\Talk.
@@ -43,6 +50,6 @@
     RMDir "$APPDATA\avpbynf"
 
     ; The WebView2 profile, which Tauri does name after the bundle identifier.
-    RMDir /r "$LOCALAPPDATA\com.avpbynf.t4lk"
+    RMDir /r "$LOCALAPPDATA\com.avpbynf.talk"
   ${EndIf}
 !macroend
