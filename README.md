@@ -1,283 +1,83 @@
 <p align="center">
-  <img src="src-tauri/icons/128x128@2x.png" width="128" alt="">
+  <img src="src-tauri/icons/128x128@2x.png" width="128" alt="Talk">
 </p>
-
-<h1 align="center">Talk</h1>
 
 <p align="center">
   Hold a key, say the sentence, and it is typed where you were already working.
 </p>
 
 <p align="center">
-  <a href="https://github.com/avpbynf/Talk-Client/releases"><img src="https://img.shields.io/github/v/release/avpbynf/Talk-Client?style=flat-square&label=download&color=6366f1" alt="Latest release"></a>
-  <img src="https://img.shields.io/badge/platform-Windows-6366f1?style=flat-square" alt="Windows">
+  <a href="https://github.com/avpbynf/talk/releases"><img src="https://img.shields.io/github/v/release/avpbynf/talk?style=flat-square&label=download&color=6366f1" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-6366f1?style=flat-square" alt="MIT"></a>
 </p>
 
----
+Talk is a desktop dictation app for Windows and Linux. A global shortcut records your voice,
+a Whisper model turns it into text, and the text lands in the window that already had focus.
+The model runs on your own graphics card through whisper.cpp on Vulkan, with no account and
+no upload, or on any server that speaks the OpenAI transcription API when this machine has no
+card to spare.
 
-Dictation is faster than typing, and it goes mostly unused because the good engines send
-your voice to a company and the ones that run locally mishear every proper noun you care
-about. Talk is the third option: your own machine records, your own GPU transcribes, and
-the text lands in the window that already had focus. No account, no upload, no tab to
-switch to.
-
-<p align="center">
-  <img src="docs/images/home.png" alt="The Talk home page: a ready indicator, the shortcut to hold, and what dictating has cost and saved" width="900">
-</p>
-<p align="center">
-  <sub>What it opens on: whether the shortcut will work right now, and what it has saved you so far.</sub>
-</p>
-
-**Two ways to run it, and the wizard asks on its first screen.** Local loads a Whisper
-model on this machine, through whisper.cpp on Vulkan, and needs nothing else: no
-network, no server, no account. Server points the app at a
-[Talk-Server](https://github.com/avpbynf/Talk-Server) instance instead, which is what
-makes a machine with no GPU usable and what lets one card serve several machines from
-a single loaded model. Server mode also works with any OpenAI-compatible transcription
-endpoint, OpenAI, Mistral and Groq included: pick one from the URL field's suggestions or
-give it the URL (bare, with `/v1`, or the full `/v1/audio/transcriptions` endpoint), the API
-key, and optionally a model, which the field suggests from what the provider lists, the most
-accurate first (`whisper-1`, `voxtral-mini-latest` and `whisper-large-v3-turbo` are used when
-it is empty). The servers found on the network are suggested first. Mistral gets the
-vocabulary as its `context_bias` terms, the first 100 of them. A server without
-the streaming route is detected on the first dictation and the standard route is used from
-then on, so the overlay shows its state without live segments. Local is the default, and
-either mode can be changed later on the Engine page.
-
-**Server mode carries a fallback**, on unless you turn it off: when the server does not
-answer, the local engine takes over mid-shortcut and you keep dictating. Its price is
-that a real bug and an unreachable server look identical from the outside, since both
-end in the same quiet switch. When transcriptions get worse for no reason, the
-Engine page and the server URL on it are the first place to look.
+![The Talk dashboard: time won at the keyboard, dictations, speaking speed, a year of activity, and what the same audio would have cost elsewhere](docs/images/dashboard.png)
 
 ## Quick start
 
-Take the installer from the [releases](https://github.com/avpbynf/Talk-Client/releases)
-page and run it. It asks for no elevation and installs for the current user only.
+- Take the Windows installer from the [releases](https://github.com/avpbynf/talk/releases) page
+  and run it. It installs for the current user and asks for no elevation.
+- The first launch opens a short setup: **Local** downloads a Whisper model for your graphics
+  card, **Server** asks for a URL, a key and optionally a model, and can test the connection.
+- Hold **Ctrl+Space** in any window, talk, let go. The text is typed where the caret was.
 
-Coming from a version called T4lk, install straight over it. Windows keys its
-uninstall entry on the product name, so a rename would otherwise leave two
-applications listed instead of one, and the installer retires the old entry itself.
-Settings, history and downloaded models carry over untouched, because the directory
-holding them never changed name.
-
-The first launch opens a wizard. It asks for the mode first: local detects the GPU and
-downloads a model, server asks for a URL and a token and checks the connection before
-moving on. The GGML model is not bundled, so local mode fetches it from HuggingFace on
-first use and caches it in AppData, which keeps the installer itself down to a few
-megabytes.
-
-Then hold the shortcut and talk.
+[INSTALL.md](INSTALL.md) covers updates, uninstalling, and Linux.
 
 ## What it does
 
-**Recording is a global shortcut**, push-to-talk or toggle, from any window. A small
-overlay shows what is being heard, then that the text was pasted, or that the dictation
-was turned away. It comes in four styles (Halo, Capsule, Orb and Flyout), appears on the screen
-where you are typing, and can be pinned to one of six spots or dragged wherever it is
-not in the way. All of it is on the Recording overlay tab of the Appearance page.
+- **Two engines.** Local runs a Whisper model on this machine, the GPU picked by name when
+  there are two. Server mode points at a [Talk-Server](https://github.com/avpbynf/Talk-Server)
+  or at any OpenAI-compatible endpoint: the URL field suggests the Talk servers found on the
+  network and Mistral, OpenAI and Groq, and the model field lists what the provider offers,
+  the most accurate first. When the server does not answer, the local model takes over
+  mid-dictation unless that fallback is turned off.
+- **Share this PC.** The model loaded here answers other machines on the network over the same
+  API, paired with a code read off the screen. In server mode this PC relays their requests to
+  its own server, key and model included. Your own dictation always goes first.
+- **Dictation that stays out of the way.** Push-to-talk or toggle, text typed by keystroke or
+  pasted through the clipboard, dictations queued while the previous one transcribes, the last
+  one pasted again with Ctrl+Shift+Space, and a cancel shortcut.
+- **An overlay in four styles**, Halo, Capsule, Orb and Windows, shown by default on the
+  screen you are typing on, pinned to one of six spots or dragged anywhere.
+- **A vocabulary** of the names and terms Whisper would otherwise mishear, handed to the model
+  with every dictation.
+- **A searchable history** with a size you choose, and a dashboard of what dictating saved you.
+- **An optional Google account** that syncs settings, vocabulary, history and statistics
+  across your machines through your own Google Drive.
+- **A tray menu** to open the window, start or stop a dictation, and quit; launch at startup,
+  gradient themes, an interface in English and French, and updates installed from the
+  releases page.
 
-**The text goes in by keystroke or through the clipboard.** Typing it straight into the
-focused window is the default and needs no paste. The clipboard route is there for the
-applications that refuse synthetic input.
+![The Engine page in server mode on Mistral, the model field listing its Voxtral models with the most accurate first](docs/images/engine.png)
 
-**The last transcription goes back in on a shortcut.** Dictating into the wrong window used to
-mean coming back to Talk to copy the card. Ctrl+Shift+Space pastes it wherever the caret is,
-whether it was dictated a minute ago or before the last restart.
+![The Recording overlay tab of the Appearance page: the four styles, Capsule picked and previewed while recording](docs/images/appearance.png)
 
-**Dictations chain without waiting for each other.** Recording again while a long one is still
-transcribing puts the new one in line, and the texts come out in the order they were spoken,
-either one by one or held and pasted as a single paragraph. The cancel shortcut drops the
-recording in progress, and once there is none, what is still transcribing.
+![The History page: dictations with their time, model and engine, and a search field](docs/images/history.png)
 
-**Servers on the network are found for you.** A Talk-Server announces itself, and the
-Engine page lists the ones it hears with their model and address, so pointing Talk at
-one is a click. The first time a new server shows up while dictation runs locally, a strip under
-the window buttons offers to switch to it. A server that requires a token can be paired instead of
-copied from: Talk asks for a code, you read it off the server, and the token fills itself in.
+What it does not do: Linux needs an X11 session, since a Wayland session is not supported
+yet, and is built from source rather than updated from the releases page. Meeting mode, which
+routes the microphone through VB-Cable for a call, is Windows only.
 
-**This PC can be the server.** With Share this PC on, the model loaded here answers other
-machines over the same HTTP API as Talk-Server, so a laptop in Server mode, or anything that
-speaks the OpenAI transcription API, can use the graphics card of the desktop. This PC accepts WAV
-uploads only, which is what Talk clients send, so another OpenAI client has to send WAV to it.
-Nothing besides Talk has to be installed. Pairing works the way it does against Talk-Server: the other machine
-asks, a code appears in Talk's window, and you read it out. Dictating here always goes first: a
-request from another machine waits for your dictation to finish, is stopped if you start
-recording while it runs, and the other machine is told to retry shortly. In Server mode
-this PC passes the requests on to its own server instead, with its address, key and model,
-so a machine paired with a PC on Mistral dictates with Voxtral on that PC's key; the Share
-card says where they go. Such a request still waits for your dictation, and is not stopped
-by one since it does not use the engine here. When that server fails, the local model answers if the fallback is
-on and one is loaded, and the other machine is told the server failed otherwise.
+## Read more
 
-**A vocabulary biases the model toward your words.** Product names, colleagues,
-libraries, anything Whisper would otherwise turn into the nearest common word. It is a
-plain list, typed once.
+| If you want to | Read |
+| --- | --- |
+| Install, update, or uninstall | [INSTALL.md](INSTALL.md) |
+| Build from source on Windows, Debian or Ubuntu | [docs/building.md](docs/building.md) |
+| Know what changed between versions | [CHANGELOG.md](CHANGELOG.md) |
 
-**History is local and searchable**, capped so it does not grow forever, and the
-statistics page reads from it: how much you dictated, how much time that saved against
-typing it, and where it went.
+## Contributing
 
-**On a machine with two graphics cards, you say which one works.** Which card comes
-first depends on the driver and on what Windows was told to prefer, so Talk takes the
-discrete one rather than the first one, and the Engine page lists them by name to
-change that. Memory alone would not decide it: an integrated chip reports the shared
-system memory as its own and comes out ahead of a discrete card carrying half as much of
-its own. The model reloads on the card you pick, without restarting the app.
-
-**Meeting mode routes the microphone you chose through VB-Cable**, so a call listening to
-the cable hears you until you dictate and nothing while you do. Everything the machine plays can be turned down for
-the length of a recording, to a share of where it already was, and put back at the stop
-rather than after the transcription.
-
-**The interface is in English and French**, follows the language of the system, and can be
-set to either one on the Settings page.
-
-**It updates itself from the releases page.** Shortly after launch, then once an hour
-for a window left open, it asks GitHub what the newest release is. A strip under the
-window buttons offers to install it, and installing runs the same installer you would have
-downloaded by hand, closes the window and opens it again. The Settings page carries
-the version that is running and a button that asks straight away. Nothing installs
-unless it was signed by the key the release was built with, and a version installed
-before any of this existed has to be replaced by hand once.
-
-It starts with Windows and lives in the tray, if you want it to.
-
-## Building
-
-The native side compiles whisper.cpp from source, so budget a long first build.
-
-### Debian and Ubuntu (X11)
-
-Install [Tauri's Linux development dependencies](https://v2.tauri.app/start/prerequisites/)
-and the audio, keyboard, and secret-service headers used by Talk:
-
-```bash
-sudo apt update
-sudo apt install build-essential curl wget file libssl-dev libgtk-3-dev \
-  libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
-  patchelf libasound2-dev libxkbcommon-dev libdbus-1-dev \
-  cmake ninja-build clang libclang-dev libvulkan-dev vulkan-tools spirv-headers glslc
-```
-
-Install [Rust](https://rustup.rs/) and [Bun](https://bun.sh/), then from the repository root:
-
-```bash
-bun install
-bun run tauri:dev:linux
-```
-
-The Linux command builds against the newest Vulkan SDK it finds under `~/vulkan`,
-`/opt/vulkan`, or `/usr/local/vulkan`, and without one against the distribution's own
-headers and `glslc`, which is enough on Ubuntu 26.04. An SDK installed elsewhere can be
-selected by sourcing its `setup-env.sh` first. The launcher also refreshes an old
-whisper.cpp CMake cache when it points at different Vulkan headers, and runs cargo with
-the Rust version `src-tauri/rust-toolchain.toml` pins.
-
-To make a local `.deb`, run `bun run tauri:build:linux`. The Linux configuration
-selects the Debian bundle and does not create updater artifacts. The app needs an
-X11 session for global shortcuts and typing into the focused window; a Wayland
-session is not supported yet. On Linux, text is entered directly, so the preserve
-clipboard setting has no effect. Meeting mode still requires the Windows VB-Cable
-driver and is unavailable on Linux. Linux builds are not in the release feed yet;
-updates need to be installed from a new package.
-
-Linux builds use Vulkan by default and select the discrete GPU automatically. The
-Vulkan driver must be visible to `vulkaninfo`. Debian 12's Vulkan headers may be
-too old for the current whisper.cpp backend; if the build reports missing
-`LayerSettingEXT` types, install the current [Vulkan SDK](https://vulkan.lunarg.com/sdk/home).
-Extracting it under `~/vulkan/<version>` is enough for the launcher to find it;
-for example, `<version>` can be `1.4.363.0`. For any other location, source its
-`setup-env.sh` before starting Talk.
-
-### Windows
-
-| Requirement | Why | Get it |
-|---|---|---|
-| Rust 1.90 | pinned by `src-tauri/rust-toolchain.toml` | [rustup.rs](https://rustup.rs) |
-| Bun | frontend package manager and task runner | [bun.sh](https://bun.sh) |
-| Visual Studio 2022 | the "Desktop development with C++" workload, Community or Build Tools | [visualstudio.microsoft.com](https://visualstudio.microsoft.com/downloads/) |
-| CMake | whisper.cpp is a CMake project | [cmake.org](https://cmake.org/download/) |
-| Ninja | the CMake generator used by `scripts/vcenv.bat` | [ninja-build.org](https://ninja-build.org) |
-| LLVM | `whisper-rs-sys` generates its bindings with bindgen, which loads `libclang.dll` | [releases.llvm.org](https://releases.llvm.org) |
-| Vulkan SDK | only for the default `vulkan` feature | [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home) |
-
-All but Visual Studio come from winget, which is quicker than seven download pages:
-
-```bash
-winget install Rustlang.Rustup Oven-sh.Bun Kitware.CMake Ninja-build.Ninja LLVM.LLVM KhronosGroup.VulkanSDK
-```
-
-```bash
-bun install
-bun run tauri:dev
-```
-
-`bun run tauri:build` produces the installer, and `bun run tauri:check` runs `cargo
-check` without a full build. Use the `tauri:` scripts rather than calling `tauri`
-directly: they go through `scripts/vcenv.bat`, which loads the MSVC environment CMake
-needs.
-
-To build without a GPU backend, disable the default `vulkan` feature:
-
-```bash
-cargo build --manifest-path src-tauri/Cargo.toml --no-default-features
-```
-
-### When the build fails
-
-- **`cl.exe` not found.** The MSVC environment was not loaded. Run the `bun run tauri:`
-  scripts rather than calling `tauri` directly.
-- **A bindgen panic about `libclang`.** LLVM is not installed, or not where bindgen
-  looks. Install it, or point `LIBCLANG_PATH` at the directory holding `libclang.dll`.
-  The panic names no file of this project, which makes it read like a broken dependency.
-  It is not one.
-- **A path that is too long.** `vulkan-shaders-gen` nests its own build tree around 220
-  characters deep, and the default target directory sits under the checkout, so the two
-  together cross the Windows limit. MSBuild says so plainly, as `MSB4184` naming a path
-  it cannot normalise. CMake, reached the same way, instead claims the C compiler cannot
-  build a trivial program. Point the build somewhere short, which is what CI does:
-
-  ```bash
-  CARGO_TARGET_DIR=C:\rust-target bun run tauri:build
-  ```
-
-  The deepest file the build writes sits 219 characters below that directory, so
-  anything up to about 40 characters works and a path under `Documents` does not.
-  Moving the checkout helps too, but the target directory is the half that grows.
-- **Meeting mode reports VB-Cable missing.** The app detects
-  [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) by enumerating audio devices,
-  and the NSIS installer is what installs the driver. A source build, or a declined
-  prompt, leaves you without it: install it by hand and restart the app.
-
-### Building the installer
-
-`bun run tauri:build` runs `src-tauri/nsis-hooks.nsh`, which ships the contents of
-`src-tauri/resources/VBCABLE_Driver/` and runs `VBCABLE_Setup_x64.exe` at install time.
-Those driver binaries are not in the repository, since VB-Audio redistributes them under
-its own terms: fetch the package from [vb-audio.com](https://vb-audio.com/Cable/) and
-unpack it there before building an installer. Everything else builds without them.
-
-The two bitmaps the wizard displays are committed next to the icons, and rebuilt by
-`python scripts/make-installer-images.py` whenever the mark or the wordmark changes.
-
-Uninstalling leaves the models, `settings.json` and the history where they are, so a
-reinstall or a newer version finds them, unless "Delete the application data" is ticked in the
-uninstaller, which then removes all three.
-
-### The signing key
-
-Every installer is signed, since an installation only accepts an update signed by the
-private half of the key whose public half is in `tauri.conf.json`. `tauri build` reads
-that key from `TAURI_SIGNING_PRIVATE_KEY`, either the key itself or the path to the
-file holding it, and its password from `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Both are
-repository secrets on CI; a local build needs them in the environment, and fails
-without them rather than producing an installer nobody could update to.
-
-Keep the key: signing with a new one strands every installation out there, since none
-of them would accept it and every user would have to install by hand again.
+A branch off `dev`, conventional commits and a pull request against `dev`.
+[CONTRIBUTING.md](CONTRIBUTING.md) opens on the short version, what refuses a first push, and
+carries the rest.
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE).
+MIT, in [LICENSE](LICENSE).
