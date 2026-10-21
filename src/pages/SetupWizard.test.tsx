@@ -148,7 +148,7 @@ describe("SetupWizard startup options", () => {
   it("shows both startup choices in the summary", async () => {
     await toTheEnd("Skip");
 
-    expect(screen.getByText("Start with Windows")).toBeInTheDocument();
+    expect(screen.getByText("Launch at startup")).toBeInTheDocument();
     expect(screen.getByText("Start minimised")).toBeInTheDocument();
     expect(screen.getAllByText("No")).toHaveLength(2);
   });
