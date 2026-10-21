@@ -98,6 +98,19 @@
   html {
     line-height: normal;
   }
+
+  /*
+   * The corners of the main window on Linux (index.html). The background moves from the body
+   * to the root so that nothing paints the canvas behind the clip, and the clip is a clip-path
+   * because it also cuts what is fixed to the viewport, the ambient lights among them.
+   */
+  html[data-corners="drawn"] body {
+    background: transparent;
+  }
+  html[data-corners="drawn"] #root {
+    @apply bg-background;
+    clip-path: inset(0 round 12px);
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Geist Variable', 'Segoe UI', system-ui, sans-serif;
