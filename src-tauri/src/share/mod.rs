@@ -116,35 +116,7 @@ impl ShareBackend for AppBackend {
         language: Option<&str>,
         prompt: Option<&str>,
     ) -> Result<Transcript, TranscribeError> {
-        // The same lock a dictation on this PC takes. The request already
-        // waited for a quiet moment, but a dictation can start while it sat
-        // on the lock or while whisper runs, and that one wins.
-        let state = self.app.state::<AppState>();
-        let engine = state.whisper_engine.lock();
-        let Some(engine) = engine.as_ref() else {
-            return Err(TranscribeError::NoModel);
-        };
-        if local_busy(&self.app) {
-            return Err(TranscribeError::Busy);
-        }
-
-        let aborted = Arc::new(AtomicBool::new(false));
-        let should_abort: Box<dyn FnMut() -> bool> = {
-            let app = self.app.clone();
-            let aborted = aborted.clone();
-            Box::new(move || {
-                let busy = local_busy(&app);
-                if busy {
-                    aborted.store(true, Ordering::SeqCst);
-                }
-                busy
-            })
-        };
-        let result = engine.transcribe_segments(audio, language, prompt, should_abort);
-        if aborted.load(Ordering::SeqCst) {
-            return Err(TranscribeError::Busy);
-        }
-        result.map_err(|e| TranscribeError::Failed(e.to_string()))
+        self.transcribe_locally(audio, language, prompt)
     }
 
     fn local_busy(&self) -> bool {
@@ -178,6 +150,46 @@ impl ShareBackend for AppBackend {
 
     fn pairing_locked(&self) {
         refresh_in_background(&self.app);
+    }
+}
+
+impl AppBackend {
+    /// On the engine loaded here
+    fn transcribe_locally(
+        &self,
+        audio: &[f32],
+        language: Option<&str>,
+        prompt: Option<&str>,
+    ) -> Result<Transcript, TranscribeError> {
+        // The same lock a dictation on this PC takes. The request already
+        // waited for a quiet moment, but a dictation can start while it sat
+        // on the lock or while whisper runs, and that one wins.
+        let state = self.app.state::<AppState>();
+        let engine = state.whisper_engine.lock();
+        let Some(engine) = engine.as_ref() else {
+            return Err(TranscribeError::NoModel);
+        };
+        if local_busy(&self.app) {
+            return Err(TranscribeError::Busy);
+        }
+
+        let aborted = Arc::new(AtomicBool::new(false));
+        let should_abort: Box<dyn FnMut() -> bool> = {
+            let app = self.app.clone();
+            let aborted = aborted.clone();
+            Box::new(move || {
+                let busy = local_busy(&app);
+                if busy {
+                    aborted.store(true, Ordering::SeqCst);
+                }
+                busy
+            })
+        };
+        let result = engine.transcribe_segments(audio, language, prompt, should_abort);
+        if aborted.load(Ordering::SeqCst) {
+            return Err(TranscribeError::Busy);
+        }
+        result.map_err(|e| TranscribeError::Failed(e.to_string()))
     }
 }
 
