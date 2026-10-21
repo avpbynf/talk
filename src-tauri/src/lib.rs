@@ -752,8 +752,10 @@ fn get_transcription_mode() -> TranscriptionMode {
 }
 
 #[tauri::command]
-fn set_transcription_mode(mode: TranscriptionMode) -> Result<(), String> {
-    settings::update(|s| s.transcription_mode = mode).map(drop)
+fn set_transcription_mode(mode: TranscriptionMode, app: tauri::AppHandle) -> Result<(), String> {
+    settings::update(|s| s.transcription_mode = mode)?;
+    share::model_changed(&app);
+    Ok(())
 }
 
 #[tauri::command]
@@ -762,7 +764,7 @@ fn get_server_url() -> String {
 }
 
 #[tauri::command]
-fn set_server_url(url: String) -> Result<(), String> {
+fn set_server_url(url: String, app: tauri::AppHandle) -> Result<(), String> {
     if url.is_empty() {
         return Err("Server URL cannot be empty".to_string());
     }
@@ -771,7 +773,9 @@ fn set_server_url(url: String) -> Result<(), String> {
         "http" | "https" => {}
         scheme => return Err(format!("Invalid URL scheme '{}': only http and https are allowed", scheme)),
     }
-    settings::update(|s| s.server_url = url).map(drop)
+    settings::update(|s| s.server_url = url)?;
+    share::model_changed(&app);
+    Ok(())
 }
 
 #[tauri::command]
@@ -823,9 +827,10 @@ async fn pair_confirm(
     url: String,
     request_id: String,
     code: String,
+    app: tauri::AppHandle,
 ) -> Result<server_transcription::PairGrant, server_transcription::PairError> {
     let grant = server_transcription::pair_confirm(&url, &request_id, &code).await?;
-    set_server_url(url).map_err(|_| server_transcription::PairError::Unreachable)?;
+    set_server_url(url, app).map_err(|_| server_transcription::PairError::Unreachable)?;
     set_server_token(grant.token.clone())
         .map_err(|_| server_transcription::PairError::Unreachable)?;
     Ok(grant)
@@ -1011,9 +1016,11 @@ fn get_server_model() -> String {
 }
 
 #[tauri::command]
-fn set_server_model(model: String) -> Result<(), String> {
+fn set_server_model(model: String, app: tauri::AppHandle) -> Result<(), String> {
     let model = model.trim();
-    settings::update(|s| s.server_model = (!model.is_empty()).then(|| model.to_string())).map(drop)
+    settings::update(|s| s.server_model = (!model.is_empty()).then(|| model.to_string()))?;
+    share::model_changed(&app);
+    Ok(())
 }
 
 #[tauri::command]

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (share) Share this PC relays to this PC's server in Server mode
+
+A machine paired with this PC used to get the model loaded here whatever the mode. When this PC
+dictates through a server, Mistral, OpenAI, Groq or a Talk server, the requests of paired machines
+now go to that same server with this PC's key and model, and the Share card, now shown in both
+modes, says where they go and that they use this PC's key. Your own dictation still goes first. When the
+server fails, the local model answers if the fallback is on and one is loaded; otherwise the other
+machine is told the server this PC relays to failed.
+
 - (server) The server URL and the model are suggested
 
 The server URL opens a list: the Talk servers found on the network, which used to have a card of

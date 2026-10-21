@@ -23,7 +23,7 @@ function formatWhen(iso: string | null, t: TFunction): string {
     : t("transcription.share.lastUsed", { when: date.toLocaleString(locale()) });
 }
 
-/** Serve the local engine to other machines, which pair with a code. */
+/** Serve this PC to other machines, which pair with a code: its engine, or its server in Server mode. */
 export function SharePanel({ currentModel }: SharePanelProps) {
   const { t } = useTranslation();
   const { info, devices, setEnabled, setPort, revoke } = useShare(currentModel);
@@ -110,6 +110,15 @@ export function SharePanel({ currentModel }: SharePanelProps) {
                 i18nKey="transcription.share.reachAt"
                 values={{ address: info.address }}
                 components={{ address: <span className="tabular-nums text-foreground" /> }}
+              />
+            </p>
+          )}
+          {serving && info.relay && (
+            <p className="text-muted-foreground">
+              <Trans
+                i18nKey="transcription.share.relayed"
+                values={{ server: info.relay }}
+                components={{ server: <span className="text-foreground" /> }}
               />
             </p>
           )}

@@ -17,6 +17,7 @@ const off: ShareInfo = {
   message: null,
   announceError: null,
   model: "ggml-small-q5_1",
+  relay: null,
   pairingLocked: false,
 };
 
@@ -67,6 +68,24 @@ describe("SharePanel", () => {
     render(<SharePanel currentModel={null} />);
 
     expect(await screen.findByText("Waiting for a model")).toBeInTheDocument();
+  });
+
+  it("says where requests are relayed in Server mode, and whose key they use", async () => {
+    answer({ ...serving, model: "voxtral-mini-latest", relay: "api.mistral.ai" });
+    render(<SharePanel currentModel={null} />);
+
+    expect(await screen.findByText("Serving")).toBeInTheDocument();
+    expect(screen.getByText("api.mistral.ai")).toBeInTheDocument();
+    expect(screen.getByText(/use this PC's key/)).toBeInTheDocument();
+    expect(screen.queryByText(/Load a model below/)).not.toBeInTheDocument();
+  });
+
+  it("says nothing about a relay in Local mode", async () => {
+    answer(serving);
+    render(<SharePanel currentModel="ggml-small-q5_1" />);
+
+    expect(await screen.findByText("Serving")).toBeInTheDocument();
+    expect(screen.queryByText(/relayed/)).not.toBeInTheDocument();
   });
 
   it("shows a port that is already taken, and why", async () => {

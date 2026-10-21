@@ -104,7 +104,12 @@ uploads only, which is what Talk clients send, so another OpenAI client has to s
 Nothing besides Talk has to be installed. Pairing works the way it does against Talk-Server: the other machine
 asks, a code appears in Talk's window, and you read it out. Dictating here always goes first: a
 request from another machine waits for your dictation to finish, is stopped if you start
-recording while it runs, and the other machine is told to retry shortly.
+recording while it runs, and the other machine is told to retry shortly. In Server mode
+this PC passes the requests on to its own server instead, with its address, key and model,
+so a machine paired with a PC on Mistral dictates with Voxtral on that PC's key; the Share
+card says where they go. Such a request still waits for your dictation, and is not stopped
+by one since it does not use the engine here. When that server fails, the local model answers if the fallback is
+on and one is loaded, and the other machine is told the server failed otherwise.
 
 **A vocabulary biases the model toward your words.** Product names, colleagues,
 libraries, anything Whisper would otherwise turn into the nearest common word. It is a

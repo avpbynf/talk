@@ -37,6 +37,8 @@ pub enum TranscribeError {
     /// A dictation on this PC needs the engine
     Busy,
     Failed(String),
+    /// The server this PC relays to did not transcribe
+    Relay(String),
 }
 
 /// Longest vocabulary hint taken, in characters
@@ -159,6 +161,14 @@ impl ApiError {
 
     fn internal(message: impl Into<String>) -> Self {
         Self::new(StatusCode::INTERNAL_SERVER_ERROR, message, "TranscriptionError")
+    }
+
+    fn relay(message: &str) -> Self {
+        Self::new(
+            StatusCode::BAD_GATEWAY,
+            format!("The server this PC relays to failed: {}", message),
+            "RelayError",
+        )
     }
 
     fn no_model() -> Self {
@@ -306,7 +316,7 @@ async fn read_upload(mut multipart: Multipart) -> Result<Upload, ApiError> {
             }
             "prompt" => upload.prompt = Some(field.text().await.map_err(multipart_error)?),
             // model and temperature are accepted and ignored: the engine is
-            // whatever is loaded here, and decodes greedily
+            // whatever this PC serves, and decodes greedily
             _ => {}
         }
     }
@@ -454,6 +464,7 @@ impl From<RunError> for ApiError {
             RunError::Transcribe(TranscribeError::NoModel) => ApiError::no_model(),
             RunError::Transcribe(TranscribeError::Busy) => ApiError::busy(),
             RunError::Transcribe(TranscribeError::Failed(message)) => ApiError::internal(message),
+            RunError::Transcribe(TranscribeError::Relay(message)) => ApiError::relay(&message),
         }
     }
 }
@@ -560,6 +571,9 @@ async fn create_transcription_stream(
         )],
         Err(RunError::Transcribe(TranscribeError::Failed(message))) => {
             vec![formats::error_event(&message, "TranscriptionError")]
+        }
+        Err(RunError::Transcribe(TranscribeError::Relay(message))) => {
+            vec![formats::error_event(&message, "RelayError")]
         }
     };
 
