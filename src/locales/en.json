@@ -440,8 +440,8 @@
     "system": {
       "title": "System",
       "autostart": {
-        "label": "Start with Windows",
-        "hint": "Launch when the session opens"
+        "label": "Launch at startup",
+        "hint": "When you sign in"
       },
       "minimized": {
         "label": "Start minimised",
@@ -764,7 +764,7 @@
       },
       "motion": {
         "label": "Animations",
-        "hint": "Reduced also follows the Windows setting",
+        "hint": "Reduced also follows the system setting",
         "lively": "Lively",
         "gentle": "Gentle",
         "reduced": "Reduced"
@@ -850,7 +850,7 @@
       "acceleration": "Acceleration",
       "model": "Model",
       "server": "Server",
-      "autostart": "Start with Windows",
+      "autostart": "Launch at startup",
       "minimized": "Start minimised",
       "yes": "Yes",
       "no": "No"

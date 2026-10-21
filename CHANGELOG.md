@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixes
+
+- (preferences) The start-up option no longer names Windows
+
+The switch that starts Talk when the session opens read "Start with Windows", in the setup and
+in the preferences alike, which was wrong on any other system. It now reads "Launch at startup",
+and the reduced animations follow "the system setting" rather than Windows'.
+
 ## [0.12.0] - 2026-10-08
 
 ### Fixes

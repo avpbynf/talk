@@ -2,8 +2,8 @@ import { useSyncExternalStore } from "react";
 
 /*
  * The one answer to "should this move". The theme engine writes it on the root element,
- * combining the Windows setting with the application's own, and the stylesheet reads the same
- * attribute. Before any theme has been written, the Windows setting alone decides.
+ * combining the system setting with the application's own, and the stylesheet reads the same
+ * attribute. Before any theme has been written, the system setting alone decides.
  */
 
 export function reducedMotion(): boolean {
