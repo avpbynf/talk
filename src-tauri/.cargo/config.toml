@@ -3,7 +3,8 @@
 # because it is faster and keeps the nested build paths shorter, which matters for
 # vulkan-shaders-gen. The release workflow builds with these too, without vcenv.bat.
 # Cargo does not override a variable the environment already sets, so
-# scripts/tauri-linux.sh sets the Linux compilers before cargo reads these.
+# scripts/tauri-linux.sh sets the Linux compilers before cargo reads these, and on macOS
+# the :mac scripts of package.json and the CI job export CC=cc CXX=c++ and a Makefiles generator.
 [env]
 CC = "cl.exe"
 CXX = "cl.exe"

@@ -14,7 +14,9 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 # Tauri core
-tauri = { version = "2", features = ["tray-icon"] }
+# macos-private-api is what lets the overlay window be transparent on a Mac; it does
+# nothing anywhere else.
+tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
 tauri-plugin-opener = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"
@@ -75,6 +77,10 @@ enigo = { version = "0.2", default-features = false, features = ["x11rb"] }
 # through the desktop portals.
 ashpd = { version = "0.13", default-features = false, features = ["tokio", "global_shortcuts", "remote_desktop", "clipboard", "screencast"] }
 keyring = { version = "3", features = ["linux-native-sync-persistent"] }
+# The Google refresh token lives in the Keychain on macOS.
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", features = ["apple-native"] }
+
 # Windows clipboard/input
 [target.'cfg(windows)'.dependencies]
 enigo = "0.2"
