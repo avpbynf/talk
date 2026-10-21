@@ -84,6 +84,14 @@ pub fn set_language(app: &AppHandle, language: &str) {
 
 fn show_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        // GNOME refuses a background application the focus, so asking for it leaves a
+        // window that is already open behind the others. A window mapped anew is put in
+        // front, so one that is open and not focused is hidden first.
+        #[cfg(target_os = "linux")]
+        if window.is_visible().unwrap_or(false) && !window.is_focused().unwrap_or(false) {
+            let _ = window.hide();
+        }
         let _ = window.show();
         let _ = window.set_focus();
     }
