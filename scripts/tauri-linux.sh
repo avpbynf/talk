@@ -11,6 +11,15 @@ if [[ -x "${HOME:-}/.cargo/bin/cargo" ]]; then
   export PATH="${HOME}/.cargo/bin:$PATH"
 fi
 
+# rustup reads rust-toolchain.toml from the directory cargo runs in, and the cargo
+# commands below run from the repository root, so the pinned version is named here.
+RUSTUP_TOOLCHAIN="$(sed -n 's/^channel *= *"\(.*\)"/\1/p' "$repo_dir/src-tauri/rust-toolchain.toml")"
+export RUSTUP_TOOLCHAIN
+
+# src-tauri/.cargo/config.toml names the MSVC compilers for Windows. Cargo leaves a
+# variable the environment already sets alone, so these win on Linux.
+export CC="${CC:-cc}" CXX="${CXX:-c++}" CMAKE_GENERATOR="${CMAKE_GENERATOR:-Ninja}"
+
 # A caller may already have selected an SDK. Otherwise discover the standard
 # per-user install used by LunarG, plus the common system locations.
 if [[ -n "${VULKAN_SDK:-}" && -f "${VULKAN_SDK%/}/../setup-env.sh" ]]; then
@@ -25,10 +34,17 @@ if [[ -n "$setup_script" ]]; then
   source "$setup_script"
 fi
 
+# Without an SDK, a distribution recent enough ships the headers and glslc itself
+# (Ubuntu 26.04 does), and the build uses those.
+if [[ -z "${VULKAN_SDK:-}" ]] && pkg-config --exists vulkan 2>/dev/null && command -v glslc >/dev/null; then
+  export VULKAN_SDK=/usr CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH:-/usr}"
+fi
+
 if [[ -z "${VULKAN_SDK:-}" || -z "${CMAKE_PREFIX_PATH:-}" ]]; then
   cat >&2 <<'EOF'
-Talk's Linux Vulkan build needs the Vulkan SDK.
-Install it under ~/vulkan, or source its setup-env.sh before running this command.
+Talk's Linux Vulkan build needs the Vulkan headers and glslc: the distribution's
+(libvulkan-dev and glslc), or the Vulkan SDK under ~/vulkan, or its setup-env.sh
+sourced before running this command.
 EOF
   exit 1
 fi
