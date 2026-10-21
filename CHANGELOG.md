@@ -83,6 +83,12 @@ The installer and the first start no longer look for what a version named T4lk l
 one, install 0.12.0 over it first and start it once, then update: the settings, the history and
 the models then carry over as they always did.
 
+- (repo) The history file and the window's storage take the name Talk
+
+They still carried the name the application had before. Both are renamed on the first start after
+the update, with the history, the theme and the folded sidebar carried over, and nothing changes
+on screen.
+
 ## [0.12.0] - 2026-10-08
 
 ### Fixes
