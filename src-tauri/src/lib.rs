@@ -837,6 +837,13 @@ async fn test_server_connection() -> Result<server_transcription::ServerCheck, S
     Ok(server_transcription::check_server(&url, Some(&token)).await)
 }
 
+/// The models the configured server lists, for the suggestions of the model field.
+#[tauri::command]
+async fn list_server_models() -> Vec<String> {
+    let (url, token) = settings::read(|s| (s.server_url.clone(), s.server_token.clone()));
+    server_transcription::list_models(&url, Some(&token)).await
+}
+
 
 // ============================================================================
 // Setup Wizard Commands
@@ -1293,6 +1300,7 @@ pub fn run() {
             get_server_fallback,
             set_server_fallback,
             test_server_connection,
+            list_server_models,
             list_discovered_servers,
             pair_request,
             pair_confirm,

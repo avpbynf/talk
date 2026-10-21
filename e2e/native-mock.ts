@@ -189,6 +189,7 @@ export function installNativeMock(init: MockInit): void {
     },
     test_server_connection: () => s.serverCheck,
     list_discovered_servers: () => s.discovered,
+    list_server_models: () => [],
     next_server_offer: () => {
       const offer = s.serverOffer;
       s.serverOffer = null;

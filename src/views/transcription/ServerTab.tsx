@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Cloud, RefreshCw } from "lucide-react";
@@ -6,11 +7,13 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Combobox, type ComboboxGroup } from "@/components/ui/combobox";
 import { SERVER_DEFAULTS, resetTo } from "@/lib/factory-defaults";
 import { SettingRow } from "@/components/SettingRow";
 import { SectionCard } from "@/components/SectionCard";
-import { useDiscoveredServers } from "@/lib/use-discovered-servers";
-import type { DiscoveredServer, PairGrant } from "@/lib/server";
+import { useServerSuggestions } from "@/lib/use-server-suggestions";
+import { providerOf, suggestModels } from "@/lib/providers";
+import { normalizeServerUrl, type PairGrant } from "@/lib/server";
 import { PairPanel } from "./PairPanel";
 import type { ServerStatus } from "./TranscriptionView";
 
@@ -26,6 +29,8 @@ interface ServerTabProps {
   serverFallback: boolean;
   onServerFallbackChange: (value: boolean) => void;
 }
+
+const NONE: string[] = [];
 
 const STATUS_TONE: Record<ServerStatus, string> = {
   checking: "text-server",
@@ -90,13 +95,56 @@ export function ServerTab({
 
   const [pairTarget, setPairTarget] = useState<{ url: string; label: string } | null>(null);
 
-  const discovered = useDiscoveredServers();
+  const { groups: urlGroups, discovered } = useServerSuggestions();
+  const provider = providerOf(urlInput);
+
+  // What the server lists, asked again whenever the server or the key it is asked with changes.
+  const [listed, setListed] = useState<string[]>([]);
+  useEffect(() => {
+    let current = true;
+    setListed([]);
+    invoke<string[]>("list_server_models")
+      .then((ids) => {
+        if (current && Array.isArray(ids)) setListed(ids);
+      })
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [serverUrl, serverToken]);
+
+  // The list only speaks for the server that was asked, and not for one still being typed.
+  const asked = normalizeServerUrl(serverUrl) === normalizeServerUrl(urlInput) ? listed : NONE;
+  const models = useMemo(() => suggestModels(provider, asked), [provider, asked]);
+  // A model the provider does not offer is refused at the first dictation, so it is said here.
+  // What the provider listed is the authority, a family Talk does not rank yet included.
+  const typed = modelInput.trim();
+  const unknownModel =
+    !!provider && typed !== "" && !(asked.length > 0 ? asked.includes(typed) : models.some((model) => model.id === typed));
+  const modelGroups = useMemo<ComboboxGroup[]>(
+    () => [
+      {
+        label: provider
+          ? t("transcription.server.modelsOf", { name: provider.name })
+          : t("transcription.server.modelsOfServer"),
+        items: models.map((model) => ({
+          value: model.id,
+          label: model.id,
+          detail: model.note && t(`transcription.server.models.${model.note}`),
+          tag: model.id === provider?.defaultModel ? t("transcription.server.defaultModel") : undefined,
+        })),
+      },
+    ],
+    [provider, models, t],
+  );
 
   const pairTyped = () => {
     try {
       new URL(urlInput);
       setUrlError(null);
-      setPairTarget({ url: urlInput, label: urlInput });
+      // A server found on the network is named as it announces itself.
+      const found = discovered.find((server) => normalizeServerUrl(server.url) === normalizeServerUrl(urlInput));
+      setPairTarget({ url: urlInput, label: found?.name ?? urlInput });
     } catch {
       setUrlError(t("transcription.server.invalidUrl"));
     }
@@ -112,10 +160,9 @@ export function ServerTab({
     checkServerHealth(false);
   };
 
-  const pickServer = (server: DiscoveredServer) => {
-    setUrlInput(server.url);
+  const pickServer = (url: string) => {
     setUrlError(null);
-    onServerUrlChange(server.url);
+    onServerUrlChange(url);
   };
 
   const saveServerUrl = () => {
@@ -130,48 +177,6 @@ export function ServerTab({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Servers on this network */}
-      <SectionCard
-        icon={Cloud}
-        title={t("transcription.server.network")}
-        description={t("transcription.server.networkHint")}
-      >
-        {discovered.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{t("transcription.server.noneFound")}</p>
-        ) : (
-          discovered.map((server) => (
-            <div key={server.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-[3px]">
-                <b className="truncate text-[13px] font-medium">{server.name}</b>
-                <small className="truncate text-xs tabular-nums text-muted-foreground">
-                  {server.model ? `${server.model}, ` : ""}
-                  {server.url}
-                </small>
-              </div>
-              <div className="ml-auto flex shrink-0 gap-2">
-                {server.pairing && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPairTarget({ url: server.url, label: server.name })}
-                  >
-                    {t("transcription.server.pair")}
-                  </Button>
-                )}
-                <Button
-                  variant={server.url === serverUrl ? "outline" : "default"}
-                  size="sm"
-                  onClick={() => pickServer(server)}
-                  disabled={server.url === serverUrl}
-                >
-                  {server.url === serverUrl ? t("transcription.server.inUse") : t("transcription.server.use")}
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
-      </SectionCard>
-
       {pairTarget && (
         <PairPanel
           key={pairTarget.url}
@@ -192,9 +197,12 @@ export function ServerTab({
         <div className="flex flex-col gap-2">
           <label className="text-xs text-muted-foreground">{t("transcription.server.url")}</label>
           <div className="flex gap-2">
-            <Input
+            <Combobox
               value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
+              onChange={setUrlInput}
+              onPick={pickServer}
+              groups={urlGroups}
+              toggleLabel={t("transcription.server.knownServers")}
               onFocus={urlField.onFocus}
               onBlur={() => {
                 urlField.onBlur();
@@ -202,7 +210,7 @@ export function ServerTab({
               }}
               onKeyDown={(e) => e.key === "Enter" && saveServerUrl()}
               placeholder="http://localhost:8000"
-              className="flex-1 text-xs tabular-nums"
+              className="text-xs tabular-nums"
             />
             <Button
               variant="outline"
@@ -235,10 +243,15 @@ export function ServerTab({
             <label htmlFor="server-token">
               {t("transcription.server.token")} {t("transcription.server.optional")}
             </label>
-            <span aria-hidden="true">·</span>
-            <Button variant="link" onClick={pairTyped} className="h-auto p-0 text-xs">
-              {t("transcription.server.pairWith")}
-            </Button>
+            {/* Pairing is a Talk server's, and means nothing to a provider. */}
+            {!provider && (
+              <>
+                <span aria-hidden="true">·</span>
+                <Button variant="link" onClick={pairTyped} className="h-auto p-0 text-xs">
+                  {t("transcription.server.pairWith")}
+                </Button>
+              </>
+            )}
           </div>
           <Input
             id="server-token"
@@ -253,7 +266,11 @@ export function ServerTab({
             placeholder={t("transcription.server.tokenPlaceholder")}
             className="w-full text-xs tabular-nums"
           />
-          <p className="text-xs text-muted-foreground">{t("transcription.server.tokenHint")}</p>
+          <p className="text-xs text-muted-foreground">
+            {provider
+              ? t("transcription.server.keyPage", { page: provider.keyPage })
+              : t("transcription.server.tokenHint")}
+          </p>
         </div>
 
         {/* Model */}
@@ -261,18 +278,32 @@ export function ServerTab({
           <label className="text-xs text-muted-foreground">
             {t("transcription.server.model")} {t("transcription.server.optional")}
           </label>
-          <Input
+          <Combobox
             value={modelInput}
-            onChange={(e) => setModelInput(e.target.value)}
+            onChange={setModelInput}
+            onPick={onServerModelChange}
+            groups={modelGroups}
+            toggleLabel={t("transcription.server.knownModels")}
             onFocus={modelField.onFocus}
             onBlur={() => {
               modelField.onBlur();
               if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim());
             }}
-            placeholder="whisper-1, gpt-4o-transcribe, voxtral-mini-transcribe-3-0..."
-            className="w-full text-xs tabular-nums"
+            placeholder={provider?.defaultModel ?? t("transcription.server.serverChooses")}
+            aria-invalid={unknownModel}
+            className={cn(
+              "text-xs tabular-nums",
+              unknownModel &&
+                "border-[color-mix(in_oklch,var(--color-destructive)_70%,var(--color-input))] focus:border-[var(--color-destructive)] focus:ring-[color-mix(in_oklch,var(--color-destructive)_18%,transparent)]",
+            )}
           />
-          <p className="text-xs text-muted-foreground">{t("transcription.server.modelHint")}</p>
+          <p className={cn("text-xs", unknownModel ? "text-[var(--color-destructive)]" : "text-muted-foreground")}>
+            {unknownModel
+              ? t("transcription.server.modelUnknown", { name: provider.name })
+              : provider
+                ? t("transcription.server.modelDefault", { name: provider.name, model: provider.defaultModel })
+                : t("transcription.server.modelHint")}
+          </p>
         </div>
 
         {/* Local fallback */}
