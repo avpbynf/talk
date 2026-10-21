@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { providerOf } from "@/lib/providers";
 import { useServerSuggestions } from "@/lib/use-server-suggestions";
+import { useModelSuggestions } from "@/lib/use-model-suggestions";
 import type { ServerStatus } from "@/lib/server";
 import { cn } from "@/lib/utils";
 import { Card } from "./Card";
@@ -17,9 +18,13 @@ import { Tile } from "./Tile";
 interface ServerStepProps {
   url: string;
   token: string;
+  model: string;
+  /** The URL the settings hold since the last test, which the server's models are asked for. */
+  testedUrl: string;
   status: ServerStatus;
   onUrlChange: (url: string) => void;
   onTokenChange: (token: string) => void;
+  onModelChange: (model: string) => void;
   onTest: () => void;
 }
 
@@ -33,14 +38,26 @@ const STATUS_LOOK = {
 
 const FIELD = "h-[42px] w-full px-3.5 text-sm";
 
-export function ServerStep({ url, token, status, onUrlChange, onTokenChange, onTest }: ServerStepProps) {
+export function ServerStep({
+  url,
+  token,
+  model,
+  testedUrl,
+  status,
+  onUrlChange,
+  onTokenChange,
+  onModelChange,
+  onTest,
+}: ServerStepProps) {
   const { t } = useTranslation();
   const urlId = useId();
   const tokenId = useId();
+  const modelId = useId();
   const look = STATUS_LOOK[status];
   const canRetry = status === "offline" || status === "unauthorized";
   const { groups } = useServerSuggestions();
   const provider = providerOf(url);
+  const models = useModelSuggestions(url, testedUrl, status, model);
 
   return (
     <StepPage>
@@ -88,6 +105,29 @@ export function ServerStep({ url, token, status, onUrlChange, onTokenChange, onT
             {t("transcription.server.keyPage", { page: provider.keyPage })}
           </p>
         )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor={modelId} className="text-[13px] font-medium">
+          {t("transcription.server.model")} {t("transcription.server.optional")}
+        </label>
+        <Combobox
+          id={modelId}
+          value={model}
+          onChange={onModelChange}
+          onPick={onModelChange}
+          groups={models.groups}
+          toggleLabel={t("transcription.server.knownModels")}
+          placeholder={models.placeholder}
+          aria-invalid={models.unknown}
+          className={cn(
+            FIELD,
+            models.unknown && "border-[color-mix(in_oklch,var(--color-destructive)_70%,var(--color-input))]",
+          )}
+        />
+        <p className={cn("text-xs", models.unknown ? "text-[var(--color-destructive)]" : "text-muted-foreground")}>
+          {models.hint}
+        </p>
       </div>
 
       <Card>

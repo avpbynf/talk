@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Cloud, RefreshCw } from "lucide-react";
@@ -7,12 +6,13 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Combobox, type ComboboxGroup } from "@/components/ui/combobox";
+import { Combobox } from "@/components/ui/combobox";
 import { SERVER_DEFAULTS, resetTo } from "@/lib/factory-defaults";
 import { SettingRow } from "@/components/SettingRow";
 import { SectionCard } from "@/components/SectionCard";
 import { useServerSuggestions } from "@/lib/use-server-suggestions";
-import { providerOf, suggestModels } from "@/lib/providers";
+import { providerOf } from "@/lib/providers";
+import { useModelSuggestions } from "@/lib/use-model-suggestions";
 import { normalizeServerUrl, type PairGrant } from "@/lib/server";
 import { PairPanel } from "./PairPanel";
 import type { ServerStatus } from "./TranscriptionView";
@@ -29,8 +29,6 @@ interface ServerTabProps {
   serverFallback: boolean;
   onServerFallbackChange: (value: boolean) => void;
 }
-
-const NONE: string[] = [];
 
 const STATUS_TONE: Record<ServerStatus, string> = {
   checking: "text-server",
@@ -98,45 +96,7 @@ export function ServerTab({
   const { groups: urlGroups, discovered } = useServerSuggestions();
   const provider = providerOf(urlInput);
 
-  // What the server lists, asked again whenever the server or the key it is asked with changes.
-  const [listed, setListed] = useState<string[]>([]);
-  useEffect(() => {
-    let current = true;
-    setListed([]);
-    invoke<string[]>("list_server_models")
-      .then((ids) => {
-        if (current && Array.isArray(ids)) setListed(ids);
-      })
-      .catch(() => {});
-    return () => {
-      current = false;
-    };
-  }, [serverUrl, serverToken]);
-
-  // The list only speaks for the server that was asked, and not for one still being typed.
-  const asked = normalizeServerUrl(serverUrl) === normalizeServerUrl(urlInput) ? listed : NONE;
-  const models = useMemo(() => suggestModels(provider, asked), [provider, asked]);
-  // A model the provider does not offer is refused at the first dictation, so it is said here.
-  // What the provider listed is the authority, a family Talk does not rank yet included.
-  const typed = modelInput.trim();
-  const unknownModel =
-    !!provider && typed !== "" && !(asked.length > 0 ? asked.includes(typed) : models.some((model) => model.id === typed));
-  const modelGroups = useMemo<ComboboxGroup[]>(
-    () => [
-      {
-        label: provider
-          ? t("transcription.server.modelsOf", { name: provider.name })
-          : t("transcription.server.modelsOfServer"),
-        items: models.map((model) => ({
-          value: model.id,
-          label: model.id,
-          detail: model.note && t(`transcription.server.models.${model.note}`),
-          tag: model.id === provider?.defaultModel ? t("transcription.server.defaultModel") : undefined,
-        })),
-      },
-    ],
-    [provider, models, t],
-  );
+  const model = useModelSuggestions(urlInput, serverUrl, serverToken, modelInput);
 
   const pairTyped = () => {
     try {
@@ -282,27 +242,23 @@ export function ServerTab({
             value={modelInput}
             onChange={setModelInput}
             onPick={onServerModelChange}
-            groups={modelGroups}
+            groups={model.groups}
             toggleLabel={t("transcription.server.knownModels")}
             onFocus={modelField.onFocus}
             onBlur={() => {
               modelField.onBlur();
               if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim());
             }}
-            placeholder={provider?.defaultModel ?? t("transcription.server.serverChooses")}
-            aria-invalid={unknownModel}
+            placeholder={model.placeholder}
+            aria-invalid={model.unknown}
             className={cn(
               "text-xs tabular-nums",
-              unknownModel &&
+              model.unknown &&
                 "border-[color-mix(in_oklch,var(--color-destructive)_70%,var(--color-input))] focus:border-[var(--color-destructive)] focus:ring-[color-mix(in_oklch,var(--color-destructive)_18%,transparent)]",
             )}
           />
-          <p className={cn("text-xs", unknownModel ? "text-[var(--color-destructive)]" : "text-muted-foreground")}>
-            {unknownModel
-              ? t("transcription.server.modelUnknown", { name: provider.name })
-              : provider
-                ? t("transcription.server.modelDefault", { name: provider.name, model: provider.defaultModel })
-                : t("transcription.server.modelHint")}
+          <p className={cn("text-xs", model.unknown ? "text-[var(--color-destructive)]" : "text-muted-foreground")}>
+            {model.hint}
           </p>
         </div>
 

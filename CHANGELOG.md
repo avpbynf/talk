@@ -16,8 +16,9 @@ their own, then Mistral, OpenAI and Groq. The model opens the models of the prov
 most accurate first, each with a word on what it is worth, as the provider lists them once the
 key is in; a Talk server offers the models it has. A model the provider does not offer is shown
 in red before the first dictation fails on it, the key field says where the provider's keys are
-made, and pairing is only offered for a Talk server. The setup wizard suggests the same servers.
-Groq, like OpenAI and Mistral, transcribes with its default model when the field is empty.
+made, and pairing is only offered for a Talk server. The setup wizard suggests the same servers,
+and now asks for the model too, with the same list. Groq, like OpenAI and Mistral, transcribes
+with its default model when the field is empty.
 
 - (window) The tray menu shows Talk and starts or stops a dictation
 
