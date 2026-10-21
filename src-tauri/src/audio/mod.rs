@@ -172,9 +172,21 @@ pub fn list_input_devices() -> Vec<String> {
         .map(|devices| {
             devices
                 .filter_map(|d| d.name().ok())
+                .filter(|name| offered(name))
                 .collect()
         })
         .unwrap_or_default()
+}
+
+/// Whether a device is worth offering in the pickers.
+///
+/// On Linux cpal lists every ALSA PCM: each card again as `hw:`, `plughw:`,
+/// `front:`, `surround51:` and the rest, dozens of names that open the hardware
+/// behind the sound server's back. What is left is the sound server itself, and
+/// `default`, which the system default entry already stands for. The device is
+/// picked in the system's sound settings.
+fn offered(name: &str) -> bool {
+    !cfg!(target_os = "linux") || !(name.contains(':') || name == "default")
 }
 
 /// The name Windows reports for the default input, when there is one.
@@ -186,7 +198,7 @@ pub fn default_input_device_name() -> Option<String> {
 pub fn list_output_devices() -> Vec<String> {
     let host = cpal::default_host();
     host.output_devices()
-        .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+        .map(|devices| devices.filter_map(|d| d.name().ok()).filter(|name| offered(name)).collect())
         .unwrap_or_default()
 }
 

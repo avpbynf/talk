@@ -59,6 +59,12 @@ drawing keeps the word readable instead of shrinking the large one.
 
 ### Fixes
 
+- (audio) The device pickers on Linux no longer list every sound card a dozen times
+
+Linux listed each card under all its raw ALSA names, which open the hardware behind the sound
+server's back. The pickers now offer the sound server, and the device is chosen in the system's
+sound settings.
+
 - (preferences) The start-up option no longer names Windows
 
 The switch that starts Talk when the session opens read "Start with Windows", in the setup and

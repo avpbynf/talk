@@ -40,4 +40,5 @@ overlay.
 Under X11 the text is typed directly, so the setting that preserves the clipboard has no effect.
 Under Wayland it is pasted through the clipboard, and preserving the clipboard puts back its text
 only. Meeting mode, which needs the Windows VB-Cable driver, is unavailable. The model runs on
-Vulkan and picks the discrete GPU; the driver must be visible to `vulkaninfo`.
+Vulkan and picks the discrete GPU; the driver must be visible to `vulkaninfo`. The microphone
+and the output are chosen in the system's sound settings, which Talk follows.

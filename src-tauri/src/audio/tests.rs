@@ -188,3 +188,12 @@ fn a_stream_that_failed_after_capturing_something_is_cut_and_not_lost() {
     assert_eq!(Capture::of(true, 16_000), Capture::Cut, "what came before the failure is kept");
     assert_eq!(Capture::of(true, 0), Capture::Empty, "nothing came before it");
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn only_the_sound_server_is_offered_on_linux() {
+    assert!(offered("pipewire"));
+    assert!(!offered("default"));
+    assert!(!offered("plughw:CARD=PCH,DEV=0"));
+    assert!(!offered("surround51:CARD=PCH,DEV=0"));
+}
