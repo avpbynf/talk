@@ -42,8 +42,4 @@ if errorlevel 1 (
   exit /b 1
 )
 
-set "CC=cl.exe"
-set "CXX=cl.exe"
-set "CMAKE_GENERATOR=Ninja"
-
 %*

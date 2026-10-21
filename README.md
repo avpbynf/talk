@@ -148,7 +148,7 @@ It starts with Windows and lives in the tray, if you want it to.
 
 The native side compiles whisper.cpp from source, so budget a long first build.
 
-### Debian (X11)
+### Debian and Ubuntu (X11)
 
 Install [Tauri's Linux development dependencies](https://v2.tauri.app/start/prerequisites/)
 and the audio, keyboard, and secret-service headers used by Talk:
@@ -158,7 +158,7 @@ sudo apt update
 sudo apt install build-essential curl wget file libssl-dev libgtk-3-dev \
   libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
   patchelf libasound2-dev libxkbcommon-dev libdbus-1-dev \
-  cmake ninja-build libvulkan-dev vulkan-tools spirv-headers glslc
+  cmake ninja-build clang libclang-dev libvulkan-dev vulkan-tools spirv-headers glslc
 ```
 
 Install [Rust](https://rustup.rs/) and [Bun](https://bun.sh/), then from the repository root:
@@ -168,10 +168,12 @@ bun install
 bun run tauri:dev:linux
 ```
 
-The Linux command automatically loads the newest Vulkan SDK it finds under
-`~/vulkan`, `/opt/vulkan`, or `/usr/local/vulkan`. An SDK installed elsewhere can
-be selected by sourcing its `setup-env.sh` first. The launcher also refreshes an
-old whisper.cpp CMake cache when it points at different Vulkan headers.
+The Linux command builds against the newest Vulkan SDK it finds under `~/vulkan`,
+`/opt/vulkan`, or `/usr/local/vulkan`, and without one against the distribution's own
+headers and `glslc`, which is enough on Ubuntu 26.04. An SDK installed elsewhere can be
+selected by sourcing its `setup-env.sh` first. The launcher also refreshes an old
+whisper.cpp CMake cache when it points at different Vulkan headers, and runs cargo with
+the Rust version `src-tauri/rust-toolchain.toml` pins.
 
 To make a local `.deb`, run `bun run tauri:build:linux`. The Linux configuration
 selects the Debian bundle and does not create updater artifacts. The app needs an
