@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 Talk now runs on Debian and Ubuntu under X11 and can use Vulkan GPUs for local transcription. A
 Debian package can be built locally; global shortcuts and text entry require an X11 session.
+The window has the rounded corners it has on Windows 11, which GNOME does not draw by itself.
 
 - (share) Share this PC relays to this PC's server in Server mode
 

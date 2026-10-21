@@ -12,6 +12,10 @@
         var s = document.createElement('style');
         s.textContent = 'html,body,#root{background:transparent!important}';
         document.head.appendChild(s);
+      } else if (/Linux/.test(navigator.userAgent)) {
+        // GNOME rounds no undecorated window, so on Linux the window is transparent and the
+        // page draws the corners Windows 11 draws itself.
+        document.documentElement.dataset.corners = 'drawn';
       }
     </script>
   </head>
