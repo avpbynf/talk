@@ -68,13 +68,8 @@ fn texts(page: Page, french: bool) -> Texts {
 const MARK_OK: &str = "<path d=\"M6 12.5l4 4 8-9\"/>";
 const MARK_FAIL: &str = "<path d=\"M7 7l10 10M17 7L7 17\"/>";
 
-/// Talk's mark, the same drawing as the application icon.
-const LOGO: &str = "<svg class=\"logo\" viewBox=\"0 0 512 512\" aria-hidden=\"true\">\
-<defs><linearGradient id=\"lb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6366f1\"/><stop offset=\"1\" stop-color=\"#8b5cf6\"/></linearGradient></defs>\
-<circle cx=\"256\" cy=\"256\" r=\"240\" fill=\"url(#lb)\"/>\
-<path d=\"M100 256C140 200 180 180 220 200C260 220 280 280 320 256C360 232 380 180 412 256\" fill=\"none\" stroke=\"#fff\" stroke-width=\"36\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\
-<path d=\"M120 300C160 340 200 360 256 340C312 320 352 280 392 300\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".5\" stroke-width=\"24\" stroke-linecap=\"round\"/>\
-<circle cx=\"100\" cy=\"256\" r=\"18\" fill=\"#fff\"/></svg>";
+/// Talk's mark, the application icon itself.
+const LOGO: &str = include_str!("../../icons/app-icon.svg");
 
 // The page cannot reach the application's assets, so the typeface travels inside it.
 const GEIST: &[u8] = include_bytes!("../../assets/fonts/geist-latin-wght-normal.woff2");
@@ -102,13 +97,13 @@ pub fn render(page: Page, french: bool) -> String {
 *{{box-sizing:border-box}}\
 body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);color:var(--fg);font:400 16px/1.5 Geist,system-ui,sans-serif}}\
 .card{{width:100%;max-width:420px;padding:48px 40px 44px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:12px}}\
-.logo{{display:block;width:40px;height:40px;margin:0 auto 32px}}\
+.logo{{width:40px;height:40px;margin:0 auto 32px}}.logo svg{{display:block;width:100%;height:100%}}\
 .mark{{width:56px;height:56px;margin:0 auto 24px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid currentColor}}\
 .mark svg{{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}}\
 .ok{{color:var(--ok)}}.fail{{color:var(--bad)}}\
 h1{{margin:0 0 12px;font-size:22px;font-weight:600}}\
 p{{margin:0;font-size:15px;color:var(--muted)}}\
-</style></head><body><main class=\"card\">{logo}\
+</style></head><body><main class=\"card\"><div class=\"logo\" aria-hidden=\"true\">{logo}</div>\
 <div class=\"mark {tone}\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\">{mark}</svg></div>\
 <h1>{title}</h1><p>{message}</p></main></body></html>",
         lang = if french { "fr" } else { "en" },

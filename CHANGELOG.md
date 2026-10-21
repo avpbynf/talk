@@ -42,6 +42,13 @@ Linux, where a click on the icon opens the menu and nothing else, and it starts 
 stops the one running, for a moment when the shortcut cannot be pressed. A left click on the
 icon on Windows opens the window without the menu, which stays on the right click.
 
+- (window) A new icon: the word Talk on a dark square
+
+The purple disc with a wave gives way to the word Talk, in the typeface the window writes it in,
+light on a dark rounded square. The taskbar, the tray, the installer, the sign-in page and the
+shortcuts all carry it, and at the smallest sizes, the tray at 16 pixels for one, a heavier
+drawing keeps the word readable instead of shrinking the large one.
+
 ### Fixes
 
 - (preferences) The start-up option no longer names Windows

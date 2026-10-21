@@ -2,12 +2,13 @@
 
 NSIS reads them as plain 24-bit BMP at fixed sizes, so they cannot be produced by
 the build: they are committed next to the icons and rebuilt by hand whenever the
-mark or the wordmark changes.
+mark changes. The mark is the word Talk itself, so the name is not written again
+beside it.
 
     python scripts/make-installer-images.py
 
-Needs Pillow, and the Outfit font that `bun install` puts in node_modules, which
-is the same face the application draws its own headings with.
+Needs Pillow, and draws its text in Geist, the face the application writes its
+name in, from the variable font the sign-in page already carries.
 """
 
 from __future__ import annotations
@@ -18,9 +19,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 ICONS = ROOT / "src-tauri" / "icons"
-FONTS = ROOT / "node_modules" / "@fontsource" / "outfit" / "files"
+GEIST = ROOT / "src-tauri" / "assets" / "fonts" / "geist-latin-wght-normal.woff2"
 
-WORDMARK = "Talk"
 TAGLINE = "Speech-to-Text"
 
 # The dark theme tokens of the application, so the installer and the window it
@@ -29,7 +29,6 @@ TAGLINE = "Speech-to-Text"
 TOP = (22, 23, 28)
 BOTTOM = (27, 28, 35)
 BORDER = (11, 12, 14)
-FOREGROUND = (238, 239, 244)
 MUTED = (138, 140, 152)
 
 
@@ -54,8 +53,10 @@ def mark(size: int) -> Image.Image:
     )
 
 
-def font(weight: str, size: int) -> ImageFont.FreeTypeFont:
-    return ImageFont.truetype(str(FONTS / f"outfit-latin-{weight}-normal.woff"), size)
+def font(weight: int, size: int) -> ImageFont.FreeTypeFont:
+    face = ImageFont.truetype(str(GEIST), size)
+    face.set_variation_by_axes([weight])
+    return face
 
 
 def centered(draw: ImageDraw.ImageDraw, text, y, face, fill, width) -> None:
@@ -67,11 +68,10 @@ def sidebar() -> Image.Image:
     """164x314, shown on the welcome and finish pages."""
     width, height = 164, 314
     image = canvas(width, height)
-    icon = mark(84)
-    image.paste(icon, ((width - 84) // 2, 56), icon)
+    icon = mark(96)
+    image.paste(icon, ((width - 96) // 2, 82), icon)
     draw = ImageDraw.Draw(image)
-    centered(draw, WORDMARK, 163, font("600", 30), FOREGROUND, width)
-    centered(draw, TAGLINE, 202, font("400", 11), MUTED, width)
+    centered(draw, TAGLINE, 196, font(400, 11), MUTED, width)
     return image
 
 
@@ -79,12 +79,12 @@ def header() -> Image.Image:
     """150x57, shown on every other page of the wizard."""
     width, height = 150, 57
     image = canvas(width, height)
-    icon = mark(30)
-    image.paste(icon, (14, (height - 30) // 2), icon)
+    icon = mark(36)
+    image.paste(icon, (12, (height - 36) // 2), icon)
     draw = ImageDraw.Draw(image)
-    face = font("600", 20)
-    _, top, _, bottom = draw.textbbox((0, 0), WORDMARK, font=face)
-    draw.text((54, (height - (bottom - top)) / 2 - top), WORDMARK, font=face, fill=FOREGROUND)
+    face = font(400, 11)
+    _, top, _, bottom = draw.textbbox((0, 0), TAGLINE, font=face)
+    draw.text((60, (height - (bottom - top)) / 2 - top), TAGLINE, font=face, fill=MUTED)
     return image
 
 
