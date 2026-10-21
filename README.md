@@ -11,7 +11,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-6366f1?style=flat-square" alt="MIT"></a>
 </p>
 
-Talk is a desktop dictation app for Windows and Linux. A global shortcut records your voice,
+Talk is a desktop dictation app for Windows, and for Linux in beta. A global shortcut records your voice,
 a Whisper model turns it into text, and the text lands in the window that already had focus.
 The model runs on your own graphics card through whisper.cpp on Vulkan, with no account and
 no upload, or on any server that speaks the OpenAI transcription API when this machine has no
@@ -60,8 +60,8 @@ card to spare.
 
 ![The History page: dictations with their time, model and engine, and a search field](docs/images/history.png)
 
-What it does not do: Linux needs an X11 session, since a Wayland session is not supported
-yet, and is built from source rather than updated from the releases page. Meeting mode, which
+What it does not do: Linux is in beta, tried on GNOME under X11 and Wayland, and is built
+from source rather than updated from the releases page. Meeting mode, which
 routes the microphone through VB-Cable for a call, is Windows only.
 
 ## Read more

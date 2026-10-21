@@ -32,6 +32,8 @@ mod theme;
 mod transcription;
 mod tray;
 mod virtual_mic;
+#[cfg(target_os = "linux")]
+mod wayland;
 
 use audio::{AudioBuffer, AudioCaptureHandle};
 use parking_lot::Mutex;

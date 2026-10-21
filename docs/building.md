@@ -2,7 +2,7 @@
 
 The native side compiles whisper.cpp from source, so budget a long first build.
 
-## Debian and Ubuntu (X11)
+## Debian and Ubuntu
 
 Install [Tauri's Linux development dependencies](https://v2.tauri.app/start/prerequisites/)
 and the audio, keyboard, and secret-service headers used by Talk:
@@ -31,7 +31,7 @@ the Rust version `src-tauri/rust-toolchain.toml` pins.
 
 To make a local `.deb`, run `bun run tauri:build:linux`. The Linux configuration
 selects the Debian bundle and does not create updater artifacts. What the package
-needs to run, an X11 session first, is in [INSTALL.md](../INSTALL.md#linux).
+needs to run is in [INSTALL.md](../INSTALL.md#linux).
 
 Linux builds use Vulkan by default and select the discrete GPU automatically. The
 Vulkan driver must be visible to `vulkaninfo`. Debian 12's Vulkan headers may be

@@ -793,7 +793,9 @@
       "model_loading": "Modèle en chargement",
       "paste_failed": "Collage impossible",
       "capture_failed": "Micro indisponible",
-      "capture_lost": "Micro perdu"
+      "capture_lost": "Micro perdu",
+      "input_refused": "Saisie refusée",
+      "shortcut_refused": "Raccourci refusé"
     },
     "queued_one": "{{count}} en cours de transcription",
     "queued_other": "{{count}} en cours de transcription"

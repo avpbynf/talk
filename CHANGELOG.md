@@ -9,11 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
-- (repo) Talk runs on Linux, with Vulkan
+- (repo) Talk runs on Linux in beta, with Vulkan
 
 Talk now runs on Debian and Ubuntu under X11 and can use Vulkan GPUs for local transcription. A
-Debian package can be built locally; global shortcuts and text entry require an X11 session.
-The window has the rounded corners it has on Windows 11, which GNOME does not draw by itself.
+Debian package can be built locally. The window has the rounded corners it has on Windows 11,
+which GNOME does not draw by itself.
+
+- (repo) Dictate on a Linux Wayland desktop
+
+Under Wayland, as on GNOME 48 and later, the shortcuts and the text entry go through the desktop's
+portals. The desktop asks once to allow Talk's shortcuts and once to allow it to type into other
+windows, and remembers both answers; a shortcut changed in the settings is asked about again. The
+text is pasted through the clipboard, and keeping the clipboard puts back its text only. A refusal
+shows on the overlay.
 
 - (share) Share this PC relays to this PC's server in Server mode
 
