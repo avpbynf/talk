@@ -233,21 +233,52 @@ fn strip_suffix_ignore_case<'a>(text: &'a str, suffix: &str) -> &'a str {
     }
 }
 
-fn is_openai(base_url: &str) -> bool {
+fn has_host(base_url: &str, host: &str) -> bool {
     url::Url::parse(&normalize_base_url(base_url))
         .ok()
-        .and_then(|u| u.host_str().map(|h| h.eq_ignore_ascii_case("api.openai.com")))
+        .and_then(|u| u.host_str().map(|h| h.eq_ignore_ascii_case(host)))
         .unwrap_or(false)
 }
 
-/// The model to send, if any. OpenAI refuses a request without one, while a
-/// Talk server picks its own, so an empty setting only defaults on OpenAI.
+fn is_openai(base_url: &str) -> bool {
+    has_host(base_url, "api.openai.com")
+}
+
+/// Mistral takes the vocabulary as `context_bias` rather than `prompt`, knows
+/// no `response_format`, and streams on the standard route in its own events.
+fn is_mistral(base_url: &str) -> bool {
+    has_host(base_url, "api.mistral.ai")
+}
+
+/// The model to send, if any. OpenAI and Mistral refuse a request without one,
+/// while a Talk server picks its own, so an empty setting only defaults on them.
 pub fn effective_model(base_url: &str, configured: Option<&str>) -> Option<String> {
     match configured.map(str::trim).filter(|m| !m.is_empty()) {
         Some(model) => Some(model.to_string()),
         None if is_openai(base_url) => Some("whisper-1".to_string()),
+        None if is_mistral(base_url) => Some("voxtral-mini-latest".to_string()),
         None => None,
     }
+}
+
+/// The vocabulary as one prompt, the way Whisper reads it.
+pub fn vocabulary_prompt(vocabulary: &[String]) -> Option<String> {
+    (!vocabulary.is_empty()).then(|| vocabulary.join(", "))
+}
+
+/// Mistral reads at most this many `context_bias` terms.
+const CONTEXT_BIAS_LIMIT: usize = 100;
+
+/// The vocabulary as Mistral's `context_bias` terms: one term per entry, the
+/// spaces of a phrase joined by underscores as its docs write them, and no more
+/// than it reads.
+pub fn context_bias(vocabulary: &[String]) -> Vec<String> {
+    vocabulary
+        .iter()
+        .map(|term| term.split_whitespace().collect::<Vec<_>>().join("_"))
+        .filter(|term| !term.is_empty())
+        .take(CONTEXT_BIAS_LIMIT)
+        .collect()
 }
 
 /// A server without the `/stream` extension answers 404 or 405 on it.
@@ -303,29 +334,51 @@ fn map_send_error(e: reqwest::Error) -> ServerError {
     }
 }
 
-fn build_form(
-    wav_data: &[u8],
+/// The text fields posted beside the audio. A name repeats for a list, which is
+/// how a multipart form carries one.
+pub fn form_fields(
+    base_url: &str,
     language: Option<&str>,
-    prompt: Option<&str>,
+    vocabulary: &[String],
     model: Option<&str>,
     response_format: Option<&str>,
+) -> Vec<(&'static str, String)> {
+    let mistral = is_mistral(base_url);
+    let mut fields = Vec::new();
+    fields.extend(language.map(|v| ("language", v.to_string())));
+    if mistral {
+        fields.extend(context_bias(vocabulary).into_iter().map(|t| ("context_bias", t)));
+    } else {
+        fields.extend(vocabulary_prompt(vocabulary).map(|v| ("prompt", v)));
+    }
+    fields.extend(model.map(|v| ("model", v.to_string())));
+    fields.extend(
+        response_format
+            .filter(|_| !mistral)
+            .map(|v| ("response_format", v.to_string())),
+    );
+    fields
+}
+
+fn build_form(
+    wav_data: &[u8],
+    fields: Vec<(&'static str, String)>,
 ) -> Result<reqwest::multipart::Form, ServerError> {
     let part = reqwest::multipart::Part::bytes(wav_data.to_vec())
         .file_name("audio.wav")
         .mime_str("audio/wav")
         .map_err(|e| ServerError::ConnectionFailed(e.to_string()))?;
     let mut form = reqwest::multipart::Form::new().part("file", part);
-    for (name, value) in [
-        ("language", language),
-        ("prompt", prompt),
-        ("model", model),
-        ("response_format", response_format),
-    ] {
-        if let Some(value) = value {
-            form = form.text(name, value.to_string());
-        }
+    for (name, value) in fields {
+        form = form.text(name, value);
     }
     Ok(form)
+}
+
+/// Whether to try the streaming route first. Mistral streams on the standard
+/// route, in events of its own, so the probe would only cost it a round trip.
+pub fn tries_stream_route(base_url: &str, memory: &StreamMemory) -> bool {
+    !is_mistral(base_url) && !memory.is_unavailable(base_url)
 }
 
 /// Transcribe through the streaming route, and when the server turns out not
@@ -337,7 +390,7 @@ pub async fn transcribe<F, S>(
     token: Option<&str>,
     model: Option<&str>,
     language: Option<&str>,
-    prompt: Option<&str>,
+    vocabulary: &[String],
     on_segment: F,
     on_step: S,
 ) -> Result<String, ServerError>
@@ -347,14 +400,14 @@ where
 {
     let model = effective_model(base_url, model);
     let memory = stream_memory();
-    if !memory.is_unavailable(base_url) {
+    if tries_stream_route(base_url, memory) {
         match transcribe_stream(
             base_url,
             wav_data,
             token,
             model.as_deref(),
             language,
-            prompt,
+            vocabulary,
             on_segment,
             on_step,
         )
@@ -364,7 +417,7 @@ where
             other => return other,
         }
     }
-    transcribe_standard(base_url, wav_data, token, model.as_deref(), language, prompt)
+    transcribe_standard(base_url, wav_data, token, model.as_deref(), language, vocabulary)
         .await
 }
 
@@ -386,10 +439,11 @@ pub async fn transcribe_standard(
     token: Option<&str>,
     model: Option<&str>,
     language: Option<&str>,
-    prompt: Option<&str>,
+    vocabulary: &[String],
 ) -> Result<String, ServerError> {
     let url = format!("{}/v1/audio/transcriptions", normalize_base_url(base_url));
-    let form = build_form(wav_data, language, prompt, model, Some("json"))?;
+    let fields = form_fields(base_url, language, vocabulary, model, Some("json"));
+    let form = build_form(wav_data, fields)?;
     let client = reqwest::Client::builder()
         .connect_timeout(CONNECT_TIMEOUT)
         .timeout(standard_request_timeout(wav_data.len()))
@@ -424,7 +478,7 @@ pub async fn transcribe_standard(
 /// * `token` - Bearer token the server minted for this client, if any
 /// * `model` - Model name to send, if any
 /// * `language` - Optional language code (e.g., "fr", "en")
-/// * `prompt` - Optional initial prompt for context/vocabulary
+/// * `vocabulary` - Terms the transcription should spell as given
 /// * `on_segment` - Callback for each transcription segment
 /// * `on_step` - Callback for processing step changes
 ///
@@ -436,7 +490,7 @@ pub async fn transcribe_stream<F, S>(
     token: Option<&str>,
     model: Option<&str>,
     language: Option<&str>,
-    prompt: Option<&str>,
+    vocabulary: &[String],
     mut on_segment: F,
     mut on_step: S,
 ) -> Result<String, ServerError>
@@ -449,7 +503,7 @@ where
         normalize_base_url(base_url)
     );
 
-    let form = build_form(wav_data, language, prompt, model, None)?;
+    let form = build_form(wav_data, form_fields(base_url, language, vocabulary, model, None))?;
 
     // Create client - no global timeout for streaming (we handle it per-chunk)
     let client = reqwest::Client::builder()
@@ -691,6 +745,76 @@ mod tests {
         assert_eq!(
             normalize_base_url("http://host/proxy/v1/audio/transcriptions"),
             "http://host/proxy"
+        );
+    }
+
+    fn words(terms: &[&str]) -> Vec<String> {
+        terms.iter().map(|t| t.to_string()).collect()
+    }
+
+    #[test]
+    fn mistral_gets_the_vocabulary_as_context_bias_and_no_response_format() {
+        let fields = form_fields(
+            "https://api.mistral.ai/v1",
+            None,
+            &words(&["Tauri", "Claude Code"]),
+            Some("voxtral-mini-transcribe-3-0"),
+            Some("json"),
+        );
+        assert_eq!(
+            fields,
+            vec![
+                ("context_bias", "Tauri".to_string()),
+                ("context_bias", "Claude_Code".to_string()),
+                ("model", "voxtral-mini-transcribe-3-0".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn other_servers_get_the_vocabulary_as_a_prompt() {
+        let fields = form_fields(
+            "http://localhost:4060",
+            Some("fr"),
+            &words(&["Tauri", "Claude Code"]),
+            None,
+            Some("json"),
+        );
+        assert_eq!(
+            fields,
+            vec![
+                ("language", "fr".to_string()),
+                ("prompt", "Tauri, Claude Code".to_string()),
+                ("response_format", "json".to_string()),
+            ]
+        );
+        assert!(form_fields("http://localhost:4060", None, &[], None, None).is_empty());
+    }
+
+    #[test]
+    fn context_bias_drops_blank_terms_and_stops_at_mistral_s_limit() {
+        assert_eq!(
+            context_bias(&words(&["  ", " Neo  Forge ", "Talk"])),
+            words(&["Neo_Forge", "Talk"])
+        );
+        let many: Vec<String> = (0..150).map(|i| format!("term{}", i)).collect();
+        assert_eq!(context_bias(&many).len(), CONTEXT_BIAS_LIMIT);
+    }
+
+    #[test]
+    fn mistral_skips_the_stream_probe() {
+        let memory = StreamMemory::default();
+        assert!(!tries_stream_route("https://api.mistral.ai/v1", &memory));
+        assert!(tries_stream_route("http://localhost:4060", &memory));
+        memory.mark_unavailable("http://localhost:4060");
+        assert!(!tries_stream_route("http://localhost:4060", &memory));
+    }
+
+    #[test]
+    fn mistral_gets_a_model_when_none_is_set() {
+        assert_eq!(
+            effective_model("https://api.mistral.ai/v1/audio/transcriptions", None).as_deref(),
+            Some("voxtral-mini-latest")
         );
     }
 

@@ -35,8 +35,10 @@ network, no server, no account. Server points the app at a
 [Talk-Server](https://github.com/avpbynf/Talk-Server) instance instead, which is what
 makes a machine with no GPU usable and what lets one card serve several machines from
 a single loaded model. Server mode also works with any OpenAI-compatible transcription
-endpoint, OpenAI included: give it the URL (with or without `/v1`), the API key, and
-optionally a model name (`whisper-1` is used for OpenAI when it is empty). A server without
+endpoint, OpenAI and Mistral included: give it the URL (bare, with `/v1`, or the full
+`/v1/audio/transcriptions` endpoint), the API key, and optionally a model name (`whisper-1`
+is used for OpenAI and `voxtral-mini-latest` for Mistral when it is empty). Mistral gets the
+vocabulary as its `context_bias` terms, the first 100 of them. A server without
 the streaming route is detected on the first dictation and the standard route is used from
 then on, so the overlay shows its state without live segments. Local is the default, and
 either mode can be changed later on the Engine page.

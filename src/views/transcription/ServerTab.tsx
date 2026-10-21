@@ -269,7 +269,7 @@ export function ServerTab({
               modelField.onBlur();
               if (modelInput.trim() !== serverModel) onServerModelChange(modelInput.trim());
             }}
-            placeholder="whisper-1, gpt-4o-transcribe..."
+            placeholder="whisper-1, gpt-4o-transcribe, voxtral-mini-transcribe-3-0..."
             className="w-full text-xs tabular-nums"
           />
           <p className="text-xs text-muted-foreground">{t("transcription.server.modelHint")}</p>
