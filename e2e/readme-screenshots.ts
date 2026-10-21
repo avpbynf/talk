@@ -6,12 +6,12 @@ import { FIGURES, FIGURES_NOW, FIGURES_YEAR } from "./readme-figures";
 
 /**
  * The pictures of the README, drawn from the real interface on the mocked machine of the suite,
- * in a window opened large and the default dark theme. Run with `bun run docs:screenshots`; each
+ * in a 1200x800 window and the default dark theme. Run with `bun run docs:screenshots`; each
  * test writes one file under `docs/images/`. The overlay preview draws a live wave, so the
  * Appearance picture differs by a few pixels from one run to the next: keep the committed one
  * unless the page itself moved. The dashboard shows real figures, kept in `readme-figures.ts`.
  */
-test.use({ viewport: { width: 1600, height: 1000 } });
+test.use({ viewport: { width: 1200, height: 800 } });
 
 const IMAGES = fileURLToPath(new URL("../docs/images/", import.meta.url));
 

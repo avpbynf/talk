@@ -6,7 +6,7 @@ import base from "./playwright.config";
 // one after the other on a machine doing nothing else.
 export default defineConfig({
   ...base,
-  testMatch: "readme-screenshots.ts",
+  testMatch: ["readme-screenshots.ts", "readme-animation.ts"],
   fullyParallel: false,
   workers: 1,
   reporter: [["list"]],

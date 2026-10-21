@@ -146,8 +146,9 @@ to be installed on the machine. The native mock lives in `e2e/` and nothing unde
 it.
 
 The pictures in the README are drawn by the same harness, in a window opened large and the default
-dark theme, and are not part of any check. A change to a page they show takes them again, and the
-new files are reviewed in the diff:
+dark theme, and are not part of any check; the dictation at the top is the real overlay, encoded by
+`ffmpeg`, which has to be on the path. A change to a page or an overlay they show takes them again,
+and the new files are reviewed in the diff:
 
     bun run docs:screenshots
 
