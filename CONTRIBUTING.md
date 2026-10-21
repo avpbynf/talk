@@ -145,6 +145,12 @@ Playwright needs a real Node, which `node-win-x64` provides inside `node_modules
 to be installed on the machine. The native mock lives in `e2e/` and nothing under `src/` may import
 it.
 
+The pictures in the README are drawn by the same harness, in a window opened large and the default
+dark theme, and are not part of any check. A change to a page they show takes them again, and the
+new files are reviewed in the diff:
+
+    bun run docs:screenshots
+
 Call cargo through those scripts and not directly: `cargo test` on its own inherits whatever
 environment the shell has, and without the MSVC one loaded the native build fails in ways that read
 like a Rust error.
