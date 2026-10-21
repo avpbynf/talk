@@ -49,8 +49,8 @@ export interface OpenOptions {
   path?: string;
   /** Skip the wait for the shell, for the routes that do not have one. */
   bare?: boolean;
-  /** Pin the clock to the day the fixtures are written against. */
-  frozen?: boolean;
+  /** Pin the clock to the day the fixtures are written against, or to the ISO date given. */
+  frozen?: boolean | string;
 }
 
 /**
@@ -96,7 +96,10 @@ export class App {
     for (const [cmd, message] of Object.entries(options.failing ?? {})) answers[cmd] = { __reject: message };
     for (const cmd of options.pending ?? []) answers[cmd] = { __pending: true };
 
-    if (options.frozen) await this.page.addInitScript(pinDate, Date.parse(FIXED_NOW));
+    if (options.frozen) {
+      const pinned = typeof options.frozen === "string" ? options.frozen : FIXED_NOW;
+      await this.page.addInitScript(pinDate, Date.parse(pinned));
+    }
     await this.page.addInitScript(installNativeMock, { state: state as unknown as NativeState, answers });
     await this.page.goto(options.path ?? "/");
     if (!options.bare) await this.ready();

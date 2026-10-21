@@ -22,6 +22,7 @@
     "test:ui": "playwright test -c e2e/playwright.config.ts",
     "test:ui:update": "playwright test -c e2e/playwright.config.ts --update-snapshots=changed",
     "test:ui:ci": "CI=1 E2E_SOFTWARE=1 playwright test -c e2e/playwright.config.ts",
+    "docs:screenshots": "playwright test -c e2e/readme.config.ts",
     "test:rust": "cmd /c \"cd src-tauri && ..\\scripts\\vcenv.bat cargo test\"",
     "test:rust:linux": "bash scripts/tauri-linux.sh cargo test --manifest-path src-tauri/Cargo.toml"
   },
