@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Features
+
+- (window) The tray menu shows Talk and starts or stops a dictation
+
+The icon's menu held nothing but Quit. It now opens the window, which is the only way to it on
+Linux, where a click on the icon opens the menu and nothing else, and it starts a dictation or
+stops the one running, for a moment when the shortcut cannot be pressed. A left click on the
+icon on Windows opens the window without the menu, which stays on the right click.
+
 ### Fixes
 
 - (preferences) The start-up option no longer names Windows

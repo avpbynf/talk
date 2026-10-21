@@ -509,13 +509,22 @@ pub fn handle_shortcut_event(app: &AppHandle, state: ShortcutState) {
         ShortcutState::Pressed => Edge::Pressed,
         ShortcutState::Released => Edge::Released,
     };
-    PRESSES
-        .get_or_init(|| {
-            let app = app.clone();
-            let for_recovery = app.clone();
-            PressLine::spawn(move |(mode, edge)| act_on(&app, mode, edge), move || reset_after_panic(&for_recovery))
-        })
-        .push((mode, edge));
+    presses(app).push((mode, edge));
+}
+
+/// Start a dictation, or stop the one running, without the shortcut: the tray menu's
+/// way in, for a keyboard that cannot press it. It goes down the shortcut's own line
+/// as a toggle press, so it stops a push-to-talk recording as well.
+pub fn toggle_dictation(app: &AppHandle) {
+    presses(app).push((RecordingMode::Toggle, Edge::Pressed));
+}
+
+fn presses(app: &AppHandle) -> &'static PressLine {
+    PRESSES.get_or_init(|| {
+        let app = app.clone();
+        let for_recovery = app.clone();
+        PressLine::spawn(move |(mode, edge)| act_on(&app, mode, edge), move || reset_after_panic(&for_recovery))
+    })
 }
 
 /// A handler that panicked may have left a capture open, the machine turned down and the

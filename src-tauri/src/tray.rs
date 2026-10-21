@@ -1,44 +1,73 @@
 //! The icon in the notification area and its menu.
+//!
+//! The menu carries everything a click on the icon does, because on Linux the
+//! icon is an AppIndicator, which opens the menu on any click and reports no
+//! click of its own. It also starts and stops a dictation, for a keyboard whose
+//! shortcut cannot be pressed.
 
+use parking_lot::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::menu::{MenuBuilder, MenuItem, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{App, AppHandle, Manager, Wry};
-
-/// The menu items whose text follows the interface language.
-struct Labels {
-    quit: MenuItem<Wry>,
-}
+use tauri::{App, AppHandle, Listener, Manager, Wry};
 
 /// Put the icon in the notification area, its menu written in `language`.
 pub fn build(app: &App, language: &str) -> tauri::Result<()> {
-    let quit = MenuItemBuilder::with_id("quit", quit_label(language)).build(app)?;
-    app.manage(Labels { quit: quit.clone() });
-    let menu = MenuBuilder::new(app).item(&quit).build()?;
+    let show = MenuItemBuilder::with_id("show", Label::Show.text(language)).build(app)?;
+    let dictation = MenuItemBuilder::with_id("dictation", Label::Start.text(language)).build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", Label::Quit.text(language)).build(app)?;
+    let menu = MenuBuilder::new(app)
+        .item(&show)
+        .item(&dictation)
+        .separator()
+        .item(&quit)
+        .build()?;
+    app.manage(Menu {
+        show,
+        dictation,
+        quit,
+        language: Mutex::new(language.to_string()),
+        recording: AtomicBool::new(false),
+    });
 
-    let app_handle = app.handle().clone();
+    // The label of the dictation item follows the dictation, whatever started it.
+    for (event, recording) in [
+        ("recording-started", true),
+        ("recording-stopped", false),
+        ("recording-cancelled", false),
+    ] {
+        let handle = app.handle().clone();
+        app.listen(event, move |_| {
+            let menu = handle.state::<Menu>();
+            menu.recording.store(recording, Ordering::SeqCst);
+            menu.relabel();
+        });
+    }
+
     TrayIconBuilder::new()
         .icon(app.default_window_icon().expect("window icon missing from bundle").clone())
         .tooltip("Talk")
         .menu(&menu)
-        .on_menu_event(move |app, event| {
-            if event.id().as_ref() == "quit" {
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => show_window(app),
+            "dictation" => crate::hotkeys::toggle_dictation(app),
+            "quit" => {
                 // A dictation in flight has lowered the volume, and
                 // nothing runs after the exit to put it back.
                 crate::hotkeys::restore_audio_now();
                 app.exit(0);
             }
+            _ => {}
         })
-        .on_tray_icon_event(move |_tray, event| {
+        .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
                 ..
             } = event
             {
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+                show_window(tray.app_handle());
             }
         })
         .build(app)?;
@@ -47,14 +76,62 @@ pub fn build(app: &App, language: &str) -> tauri::Result<()> {
 
 /// Write the menu again in `language`, once the webview has resolved which one it speaks.
 pub fn set_language(app: &AppHandle, language: &str) {
-    if let Some(labels) = app.try_state::<Labels>() {
-        let _ = labels.quit.set_text(quit_label(language));
+    if let Some(menu) = app.try_state::<Menu>() {
+        *menu.language.lock() = language.to_string();
+        menu.relabel();
     }
 }
 
-fn quit_label(language: &str) -> &'static str {
-    match language {
-        "fr" => "Quitter",
-        _ => "Quit",
+fn show_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// The items whose text changes, with what decides it.
+struct Menu {
+    show: MenuItem<Wry>,
+    dictation: MenuItem<Wry>,
+    quit: MenuItem<Wry>,
+    language: Mutex<String>,
+    recording: AtomicBool,
+}
+
+impl Menu {
+    fn relabel(&self) {
+        let language = self.language.lock();
+        let dictation = if self.recording.load(Ordering::SeqCst) {
+            Label::Stop
+        } else {
+            Label::Start
+        };
+        let _ = self.show.set_text(Label::Show.text(&language));
+        let _ = self.dictation.set_text(dictation.text(&language));
+        let _ = self.quit.set_text(Label::Quit.text(&language));
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Label {
+    Show,
+    Start,
+    Stop,
+    Quit,
+}
+
+impl Label {
+    fn text(self, language: &str) -> &'static str {
+        let french = language == "fr";
+        match self {
+            Label::Show if french => "Afficher Talk",
+            Label::Show => "Show Talk",
+            Label::Start if french => "Démarrer une dictée",
+            Label::Start => "Start dictating",
+            Label::Stop if french => "Arrêter la dictée",
+            Label::Stop => "Stop dictating",
+            Label::Quit if french => "Quitter",
+            Label::Quit => "Quit",
+        }
     }
 }
