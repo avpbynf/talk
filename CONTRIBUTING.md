@@ -114,10 +114,13 @@ The two feedback loops are not symmetric, and it is worth knowing which one a ch
     bun run test:rust  # cargo test, the same environment
     bun run tauri:check:linux # cargo check with the Vulkan SDK loaded
     bun run test:rust:linux  # cargo test with the same environment
+    bun run test:rust:mac    # cargo test on a Mac, on Metal rather than Vulkan
 
 `build` and `test` are what the `build` workflow runs, and `test:ui` is what the `interface`
 workflow runs, on Windows. The Linux scripts load the Vulkan SDK before Cargo runs; use them for
-Linux Rust checks and tests. **The Rust side is not compiled in CI**: `whisper-rs` builds
+Linux Rust checks and tests. **The Rust side is compiled in CI on macOS only**, by the `macos` job
+of the `build` workflow when a pull request touches `src-tauri/`: no desk here runs it, and it has
+to build and pass its tests without the Vulkan feature. On Windows and Linux `whisper-rs` builds
 whisper.cpp from its build script, so even `cargo check` pays a compile measured in tens of minutes.
 A change to `src-tauri/` is checked locally with `tauri:check` and read carefully, or it is answered
 only by the release build.

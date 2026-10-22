@@ -22,6 +22,9 @@ function statusLine(updater: Updater, t: TFunction): string {
     case "ready":
       return t("updates.status.ready", { version });
     case "error":
+      // The feed answered but carries no build for this system: the releases are Windows only
+      // until one is published for the Mac. Not a failure to read out to the user.
+      if (updater.error && /fallback platforms/.test(updater.error)) return t("updates.status.unpublished", { version });
       return updater.error ? t("updates.status.error", { version, error: updater.error }) : t("updates.status.failed", { version });
     case "idle":
       if (!updater.lastCheckedAt) return t("updates.status.schedule", { version });
@@ -51,7 +54,7 @@ export default function UpdatesSection({ updater }: UpdatesSectionProps) {
       }
     >
       <p
-        className={`max-w-[64ch] text-[13px] leading-[1.55] ${updater.status === "error" ? "text-destructive" : "text-muted-foreground"}`}
+        className={`max-w-[64ch] text-[13px] leading-[1.55] ${updater.status === "error" && !/fallback platforms/.test(updater.error ?? "") ? "text-destructive" : "text-muted-foreground"}`}
       >
         {statusLine(updater, t)}
       </p>

@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { captureAction, hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
+import { keyLabel } from "@/lib/platform";
 
 interface KeyCaptureFieldProps {
   /** Current shortcut string, e.g. "Ctrl+Shift+M" */
@@ -107,7 +108,7 @@ export default function KeyCaptureField({
           {displayKeys.length > 0 ? (
             displayKeys.map((key, i) => (
               <kbd key={i}>
-                {key}
+                {keyLabel(key)}
               </kbd>
             ))
           ) : (
@@ -147,7 +148,7 @@ export default function KeyCaptureField({
       {displayKeys.length > 0 ? (
         displayKeys.map((key, i) => (
           <kbd key={i} className="text-[11px] px-1.5 py-0.5">
-            {key}
+            {keyLabel(key)}
           </kbd>
         ))
       ) : (

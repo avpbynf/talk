@@ -1,5 +1,7 @@
 mod config;
 mod ending;
+#[cfg(target_os = "macos")]
+mod modifier_key;
 mod paste_line;
 mod phase;
 mod press_line;
@@ -154,6 +156,13 @@ pub fn setup_shortcuts(app: &tauri::App) -> Result<(), Box<dyn std::error::Error
     if let Ok(main) = parse_shortcut(&config.shortcut) {
         *state.main_shortcut.lock() = Some(main);
     }
+    // A modifier held alone is watched by a tap of its own rather than registered.
+    #[cfg(target_os = "macos")]
+    {
+        modifier_key::set(&config.shortcut);
+        modifier_key::set_paste(&config.paste_shortcut);
+        modifier_key::start(app.handle());
+    }
     if let Ok(cancel) = parse_shortcut(&config.cancel_shortcut) {
         *state.cancel_shortcut.lock() = Some(cancel);
     }
@@ -207,6 +216,8 @@ pub fn disable_shortcuts(app: &AppHandle) {
         crate::wayland::suspend();
         return;
     }
+    #[cfg(target_os = "macos")]
+    modifier_key::set_enabled(false);
     let global_shortcut = app.global_shortcut();
     if let Err(e) = global_shortcut.unregister_all() {
         eprintln!("Warning: failed to unregister shortcuts: {}", e);
@@ -214,6 +225,8 @@ pub fn disable_shortcuts(app: &AppHandle) {
 }
 
 pub fn enable_shortcuts(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    modifier_key::set_enabled(true);
     register_stored(app);
 }
 
@@ -221,9 +234,19 @@ pub fn enable_shortcuts(app: &AppHandle) {
 /// register it with the system only once it is written. One that cannot be parsed
 /// or cannot be written is an error and changes nothing.
 pub fn update_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "macos")]
+    if modifier_key::parse(new_shortcut).is_some() {
+        update_config(|config| config.shortcut = new_shortcut.to_string())?;
+        *app.state::<AppState>().main_shortcut.lock() = None;
+        modifier_key::set(new_shortcut);
+        register_stored(app);
+        return Ok(());
+    }
     let parsed = parse_shortcut(new_shortcut)?;
     update_config(|config| config.shortcut = new_shortcut.to_string())?;
     *app.state::<AppState>().main_shortcut.lock() = Some(parsed);
+    #[cfg(target_os = "macos")]
+    modifier_key::set(new_shortcut);
     register_stored(app);
     Ok(())
 }
@@ -237,9 +260,19 @@ pub fn update_cancel_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(),
 }
 
 pub fn update_paste_shortcut(app: &AppHandle, new_shortcut: &str) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "macos")]
+    if modifier_key::parse(new_shortcut).is_some() {
+        update_config(|config| config.paste_shortcut = new_shortcut.to_string())?;
+        *app.state::<AppState>().paste_shortcut.lock() = None;
+        modifier_key::set_paste(new_shortcut);
+        register_stored(app);
+        return Ok(());
+    }
     let parsed = parse_shortcut(new_shortcut)?;
     update_config(|config| config.paste_shortcut = new_shortcut.to_string())?;
     *app.state::<AppState>().paste_shortcut.lock() = Some(parsed);
+    #[cfg(target_os = "macos")]
+    modifier_key::set_paste(new_shortcut);
     register_stored(app);
     Ok(())
 }
@@ -728,6 +761,13 @@ fn refuse_without_model(app: &AppHandle) -> bool {
     true
 }
 
+/// The first Escape of a dictation on a Mac: the overlay asks for a second one, with the
+/// refusal's sound and colour, then goes back to what is in flight.
+#[cfg(target_os = "macos")]
+fn ask_to_confirm_cancel(app: &AppHandle) {
+    refuse(app, "confirm_cancel");
+}
+
 /// Turn a dictation away: the refusal sound, and the overlay in the danger colour saying why.
 ///
 /// The reasons the overlay words itself: `no_model`, `model_loading`, `capture_failed`,
@@ -1085,7 +1125,7 @@ fn emit_to_overlay(app: &AppHandle, processing_state: &'static str) {
 fn hand_out(app: &AppHandle, release: Release, cancelled: &AtomicBool) {
     let state = app.state::<AppState>();
 
-    #[cfg(any(windows, target_os = "linux"))]
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     {
         let preserve = crate::settings::read(|s| s.preserve_clipboard);
         let (mut words, mut failures, mut refused) = (0usize, 0usize, false);

@@ -297,6 +297,7 @@
       "switch": "Switch",
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
+        "metal": "The Mac's own GPU",
         "cpu": "Anywhere, slower"
       },
       "note": "Switching engine or card always asks for confirmation."
@@ -412,6 +413,11 @@
         "label": "Cancel",
         "description": "Throws the recording away, or a dictation not pasted yet"
       },
+      "escape": {
+        "label": "Cancel with Escape",
+        "description": "During a dictation: the first asks to confirm, the second cancels",
+        "twice": "twice"
+      },
       "paste": {
         "label": "Paste the last one",
         "description": "Wherever you are typing"
@@ -443,12 +449,22 @@
     "meeting": {
       "title": "Meeting mode",
       "detected": "VB-Cable detected ({{device}}).",
+      "detected_mac": "BlackHole detected ({{device}}).",
       "notInstalled": "VB-Cable not installed.",
+      "notInstalled_mac": "BlackHole not installed.",
+      "install": "Install BlackHole",
+      "installing": "Installing…",
+      "installNote": "Downloaded from its maker; macOS asks for your password.",
+      "installFailed": "The installation did not go through: {{error}}",
+      "installMac": "Otherwise: <cmd>brew install blackhole-2ch</cmd> in Terminal, or the installer from existential.audio/blackhole, then come back to Talk.",
       "hint": "Routes your microphone through VB-Cable so a meeting hears nothing while you dictate.",
+      "hint_mac": "Routes your microphone through BlackHole so a meeting hears nothing while you dictate.",
       "routing": "Sending {{microphone}} to the cable. It follows the microphone chosen in Settings.",
       "silent": "Meeting mode is on but your microphone is not reaching VB-Cable, so a meeting listening to it hears nothing at all.",
+      "silent_mac": "Meeting mode is on but your microphone is not reaching BlackHole, so a meeting listening to it hears nothing at all.",
       "refused": "Meeting mode could not be switched.",
-      "setup": "Set Teams or Discord to use \"CABLE Output\" as their microphone. While you dictate, the other participants hear nothing."
+      "setup": "Set Teams or Discord to use \"CABLE Output\" as their microphone. While you dictate, the other participants hear nothing.",
+      "setup_mac": "In Zoom, Teams or Meet, choose \"{{device}}\" as the microphone. While you dictate, the other participants hear nothing."
     },
     "system": {
       "title": "System",
@@ -795,7 +811,8 @@
       "capture_failed": "No microphone",
       "capture_lost": "Microphone lost",
       "input_refused": "Typing not allowed",
-      "shortcut_refused": "Shortcut not allowed"
+      "shortcut_refused": "Shortcut not allowed",
+      "confirm_cancel": "Escape again to cancel"
     },
     "queued_one": "{{count}} still transcribing",
     "queued_other": "{{count}} still transcribing"
@@ -819,6 +836,7 @@
       "title": "Your hardware",
       "subtitle": "Here is what was found",
       "vulkanFound": "Vulkan acceleration available",
+      "metalFound": "Metal acceleration available",
       "noGpu": "No GPU acceleration found",
       "slowWarning": "Without a GPU this will be slow. Server mode is the way around that.",
       "others": "Other options available:"
@@ -962,6 +980,9 @@
       "prompt": "Sign in to find your settings on another PC"
     }
   },
+  "keys": {
+    "right": "Right {{key}}"
+  },
   "updates": {
     "title": "Updates",
     "checkNow": "Check now",
@@ -970,6 +991,7 @@
       "available": "Version {{version}}. Talk {{next}} is out.",
       "downloading": "Version {{version}}. Downloading, {{progress}}%.",
       "ready": "Version {{version}}. Installing, the window closes and comes back.",
+      "unpublished": "Version {{version}}. No release has been published for this system yet.",
       "failed": "Version {{version}}. The check failed.",
       "schedule": "Version {{version}}. Checked at every launch, and every hour after.",
       "upToDate": "Version {{version}}. Up to date, checked at {{time}}.",

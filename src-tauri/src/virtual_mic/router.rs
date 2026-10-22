@@ -4,13 +4,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use thiserror::Error;
 
-use super::detector::find_vbcable_device;
+use super::detector::{find_vbcable_device, is_recording_side, DRIVER};
 
 #[derive(Error, Debug)]
 pub enum AudioRouterError {
     #[error("No input device available")]
     NoInputDevice,
-    #[error("VB-Cable device not found")]
+    #[error("{} device not found", DRIVER)]
     VBCableNotFound,
     #[error("The microphone is the virtual cable itself")]
     MicrophoneIsCable,
@@ -22,7 +22,7 @@ pub enum AudioRouterError {
     StartStream(String),
 }
 
-/// How often a route on the system default asks Windows which microphone that is.
+/// How often a route on the system default asks the system which microphone that is.
 const DEFAULT_CHECK: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Why a route no longer does what it was started for.
@@ -30,13 +30,13 @@ const DEFAULT_CHECK: std::time::Duration = std::time::Duration::from_secs(2);
 pub enum RouteEnd {
     /// A stream failed: nothing reaches the cable any more.
     Lost,
-    /// The route is on the system default, and Windows now names another microphone.
+    /// The route is on the system default, and the system now names another microphone.
     /// A stream stays on the endpoint it was opened on, so the route has to be opened again.
     DefaultMoved,
 }
 
 /// Audio routing engine. Captures from the microphone Talk records from
-/// and plays to the VB-Cable Input device.
+/// and plays to the cable's playback side (VB-Cable Input, or BlackHole on a Mac).
 pub struct AudioRouter {
     stop_signal: Arc<AtomicBool>,
     muted: Arc<AtomicBool>,
@@ -45,7 +45,7 @@ pub struct AudioRouter {
 }
 
 impl AudioRouter {
-    /// Start routing real mic -> VB-Cable Input, from the named microphone or the
+    /// Start routing real mic -> cable, from the named microphone or the
     /// system default, which is the choice a dictation makes too, and silent from the
     /// first sample when `muted`. `on_end` is called from one of the router's own
     /// threads, at most once for each reason, when the route stops doing that.
@@ -71,7 +71,7 @@ impl AudioRouter {
             .name()
             .map_err(|e| AudioRouterError::DeviceConfig(e.to_string()))?;
         // The cable's own recording side fed back into the cable is a loop.
-        if microphone.contains("CABLE Output") {
+        if is_recording_side(&microphone) {
             return Err(AudioRouterError::MicrophoneIsCable);
         }
         let output_device =
@@ -195,7 +195,7 @@ impl AudioRouter {
                     )
                     .map_err(|e| AudioRouterError::BuildStream(e.to_string()))?;
 
-                // Build output stream - play to VB-Cable Input
+                // Build output stream - play into the cable
                 let output_stream = output_device
                     .build_output_stream(
                         &output_config.into(),
@@ -230,8 +230,15 @@ impl AudioRouter {
                     let mut checked = std::time::Instant::now();
                     while !stop_clone.load(Ordering::SeqCst) {
                         std::thread::sleep(std::time::Duration::from_millis(50));
-                        if watches_default && checked.elapsed() >= DEFAULT_CHECK {
-                            checked = std::time::Instant::now();
+                        if checked.elapsed() < DEFAULT_CHECK {
+                            continue;
+                        }
+                        // A Mac moves its default microphone by itself, to headphones as they
+                        // connect: the new one is taken in and BlackHole put back in front.
+                        #[cfg(target_os = "macos")]
+                        super::system_default::follow_moves();
+                        checked = std::time::Instant::now();
+                        if watches_default {
                             let moved = crate::audio::default_input_device_name()
                                 .is_some_and(|name| name != routed);
                             if moved {
@@ -255,7 +262,7 @@ impl AudioRouter {
         Ok(Self { stop_signal, muted, lost, microphone })
     }
 
-    /// The microphone being routed, by the name Windows gives it.
+    /// The microphone being routed, by the name the system gives it.
     pub fn microphone(&self) -> &str {
         &self.microphone
     }
@@ -265,7 +272,7 @@ impl AudioRouter {
         self.lost.load(Ordering::SeqCst)
     }
 
-    /// Mute: write silence to VB-Cable instead of real audio.
+    /// Mute: write silence to the cable instead of real audio.
     pub fn mute(&self) {
         self.muted.store(true, Ordering::SeqCst);
     }

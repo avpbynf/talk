@@ -8,6 +8,7 @@ import { captureAction, hasValidCombo, parseKeyEvent } from "@/lib/key-capture";
 import { SectionCard } from "@/components/SectionCard";
 import { SettingRow } from "@/components/SettingRow";
 import { Button } from "@/components/ui/button";
+import { isMac } from "@/lib/platform";
 
 interface ShortcutsSectionProps {
   shortcut: string;
@@ -137,11 +138,18 @@ export default function ShortcutsSection({
             <div className="mt-3 flex flex-col gap-3" data-shortcut-edit onBlur={leaveEdit}>
               {shortcutError && <p className="text-xs text-[var(--color-destructive)]">{shortcutError}</p>}
               <div className="flex gap-2">
-                <Button onClick={saveShortcut} disabled={pendingShortcut.length === 0}>
+                {/* WebKit does not focus a button on click, so the field's blur would name no
+                    target and end the edit before the click arrived: the mouse down leaves the
+                    focus where it is. */}
+                <Button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={saveShortcut}
+                  disabled={pendingShortcut.length === 0}
+                >
                   <Check />
                   {t("preferences.shortcuts.save")}
                 </Button>
-                <Button variant="outline" onClick={() => cancelEdit(true)}>
+                <Button variant="outline" onMouseDown={(e) => e.preventDefault()} onClick={() => cancelEdit(true)}>
                   <X />
                   {t("common.cancel")}
                 </Button>
@@ -199,6 +207,16 @@ export default function ShortcutsSection({
         cancelShortcut,
         t("preferences.shortcuts.cancel.label"),
         t("preferences.shortcuts.cancel.description")
+      )}
+      {/* On a Mac, Escape pressed twice cancels too. It is built in rather than chosen, and
+          said here so that it is not a gesture nobody knows about. */}
+      {isMac && (
+        <SettingRow label={t("preferences.shortcuts.escape.label")} hint={t("preferences.shortcuts.escape.description")}>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <kbd>esc</kbd>
+            {t("preferences.shortcuts.escape.twice")}
+          </span>
+        </SettingRow>
       )}
       {renderShortcutRow(
         "paste",

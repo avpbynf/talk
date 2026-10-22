@@ -38,6 +38,7 @@ import { NoticeStrip } from "@/components/NoticeStrip";
 import { useGoogleInvite } from "@/lib/use-google-invite";
 import { GoogleInviteBanner } from "@/components/GoogleInviteBanner";
 import { PairingBanner } from "@/components/PairingBanner";
+import { defaultShortcut } from "@/lib/platform";
 
 export interface ModelInfo {
   id: string;
@@ -63,8 +64,8 @@ export interface Transcription {
 }
 
 export type RecordingMode = "push_to_talk" | "toggle";
-export type AcceleratorBackend = "cpu" | "vulkan";
-export type GpuVendor = "vulkan" | "cpu";
+export type AcceleratorBackend = "cpu" | "vulkan" | "metal";
+export type GpuVendor = "vulkan" | "metal" | "cpu";
 export type OverlaySize = "small" | "medium" | "large";
 export type TranscriptionMode = "local" | "server";
 
@@ -119,7 +120,7 @@ function App() {
   const [recordingMode, setRecordingMode] = useState<RecordingMode>("push_to_talk");
   const [transcriptions, updateHistory] = useHistoryList();
   const [, setIsRecording] = useState(false);
-  const [shortcut, setShortcut] = useState("Ctrl+Space");
+  const [shortcut, setShortcut] = useState(defaultShortcut);
   const [cancelShortcut, setCancelShortcut] = useState("Ctrl+F1");
   const [pasteShortcut, setPasteShortcut] = useState("Ctrl+Shift+Space");
   const [gpus, setGpus] = useState<GpuInfo[]>([]);
@@ -321,10 +322,10 @@ function App() {
     };
   }, []);
 
-  // Listing the cards brings the Vulkan instance up, so a machine running on the CPU
+  // Listing the cards brings the GPU backend up, so a machine running on the CPU
   // is never asked for it.
   async function loadGpuDevices(vendor: GpuVendor) {
-    if (vendor !== "vulkan") {
+    if (vendor === "cpu") {
       setGpuDevices([]);
       return;
     }

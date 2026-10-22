@@ -78,7 +78,7 @@ export function LocalTab({
     let choice: string;
     let cost: string;
     if ("vendor" in change) {
-      choice = change.vendor === "cpu" ? "CPU" : "Vulkan";
+      choice = { cpu: "CPU", vulkan: "Vulkan", metal: "Metal" }[change.vendor];
       cost = t(change.vendor === "cpu" ? "transcription.gpu.switchCost.cpu" : "transcription.gpu.switchCost.vulkan");
     } else {
       choice = gpuDevices.find((d) => d.index === change.device)?.name ?? "";

@@ -26,7 +26,9 @@ export function HardwareStep({ detectedGpu, gpus, onPick }: HardwareStepProps) {
           <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
             <h3 className="text-[17px] font-semibold">{gpuLabel(detectedGpu)}</h3>
             <p className="text-sm text-muted-foreground">
-              {cpu ? t("setup.hardware.noGpu") : t("setup.hardware.vulkanFound")}
+              {cpu
+                ? t("setup.hardware.noGpu")
+                : t(detectedGpu === "metal" ? "setup.hardware.metalFound" : "setup.hardware.vulkanFound")}
             </p>
           </div>
         </div>

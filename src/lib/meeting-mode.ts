@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import i18n from "@/i18n";
+import { isMac } from "@/lib/platform";
 import { reportFailure, reportSuccess } from "@/lib/save-setting";
 
 /** What the switch asks for and what the cable is doing about it. */
@@ -18,6 +19,12 @@ export interface MeetingMode {
 export const MEETING_MODE_CHANGED = "meeting-mode-changed";
 
 export const readMeetingMode = () => invoke<MeetingMode>("get_meeting_mode");
+
+/**
+ * The cable is VB-Cable on Windows and BlackHole on a Mac, so the text that names it takes this
+ * as its i18next context: on a Mac a key reads its `_mac` variant, and on Windows the plain one.
+ */
+export const CABLE_CONTEXT = isMac ? "mac" : undefined;
 
 /** Meeting mode is asked for and nothing reaches the cable: a meeting listening to it hears silence. */
 export function isSilent(mode: MeetingMode): boolean {
@@ -36,7 +43,7 @@ export function useMeetingModeWatch(): void {
       readMeetingMode()
         .then((mode) => {
           if (!isSilent(mode)) reportSuccess("meeting_route");
-          else if (document.hasFocus()) reportFailure("meeting_route", i18n.t("preferences.meeting.silent"));
+          else if (document.hasFocus()) reportFailure("meeting_route", i18n.t("preferences.meeting.silent", { context: CABLE_CONTEXT }));
         })
         .catch((error) => console.error("Failed to read meeting mode:", error));
     };

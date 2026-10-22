@@ -297,6 +297,7 @@
       "switch": "Changer",
       "about": {
         "vulkan": "AMD, NVIDIA, Intel",
+        "metal": "La carte graphique du Mac",
         "cpu": "Partout, plus lent"
       },
       "note": "Changer de moteur ou de carte demande toujours confirmation."
@@ -412,6 +413,11 @@
         "label": "Annuler",
         "description": "Jette l'enregistrement, ou une dictée pas encore collée"
       },
+      "escape": {
+        "label": "Annuler avec Échap",
+        "description": "Pendant une dictée : le premier demande confirmation, le second annule",
+        "twice": "deux fois"
+      },
       "paste": {
         "label": "Coller la dernière",
         "description": "Là où vous écrivez"
@@ -443,12 +449,22 @@
     "meeting": {
       "title": "Mode réunion",
       "detected": "VB-Cable détecté ({{device}}).",
+      "detected_mac": "BlackHole détecté ({{device}}).",
       "notInstalled": "VB-Cable non installé.",
+      "notInstalled_mac": "BlackHole non installé.",
+      "install": "Installer BlackHole",
+      "installing": "Installation…",
+      "installNote": "Téléchargé chez son éditeur ; macOS demande votre mot de passe.",
+      "installFailed": "L'installation n'a pas abouti : {{error}}",
+      "installMac": "Autrement : <cmd>brew install blackhole-2ch</cmd> dans le Terminal, ou l'installeur d'existential.audio/blackhole, puis revenez dans Talk.",
       "hint": "Fait passer votre micro par VB-Cable pour qu'une réunion n'entende rien pendant que vous dictez.",
+      "hint_mac": "Fait passer votre micro par BlackHole pour qu'une réunion n'entende rien pendant que vous dictez.",
       "routing": "{{microphone}} est envoyé vers le câble. Il suit le micro choisi dans les Paramètres.",
       "silent": "Le mode réunion est activé mais votre micro n'arrive pas jusqu'à VB-Cable, une réunion qui l'écoute n'entend donc rien du tout.",
+      "silent_mac": "Le mode réunion est activé mais votre micro n'arrive pas jusqu'à BlackHole, une réunion qui l'écoute n'entend donc rien du tout.",
       "refused": "Le mode réunion n'a pas pu être basculé.",
-      "setup": "Réglez Teams ou Discord sur « CABLE Output » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien."
+      "setup": "Réglez Teams ou Discord sur « CABLE Output » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien.",
+      "setup_mac": "Dans Zoom, Teams ou Meet, choisissez « {{device}} » comme microphone. Pendant que vous dictez, les autres participants n'entendent rien."
     },
     "system": {
       "title": "Système",
@@ -795,7 +811,8 @@
       "capture_failed": "Micro indisponible",
       "capture_lost": "Micro perdu",
       "input_refused": "Saisie refusée",
-      "shortcut_refused": "Raccourci refusé"
+      "shortcut_refused": "Raccourci refusé",
+      "confirm_cancel": "Échap encore pour annuler"
     },
     "queued_one": "{{count}} en cours de transcription",
     "queued_other": "{{count}} en cours de transcription"
@@ -819,6 +836,7 @@
       "title": "Votre matériel",
       "subtitle": "Voici ce qui a été trouvé",
       "vulkanFound": "Accélération Vulkan disponible",
+      "metalFound": "Accélération Metal disponible",
       "noGpu": "Aucune accélération GPU trouvée",
       "slowWarning": "Sans GPU, ce sera lent. Le mode serveur permet de contourner cela.",
       "others": "Autres options disponibles :"
@@ -962,6 +980,9 @@
       "prompt": "Connectez-vous pour retrouver vos réglages sur un autre PC"
     }
   },
+  "keys": {
+    "right": "{{key}} droite"
+  },
   "updates": {
     "title": "Mises à jour",
     "checkNow": "Vérifier maintenant",
@@ -971,6 +992,7 @@
       "downloading": "Version {{version}}. Téléchargement, {{progress}} %.",
       "ready": "Version {{version}}. Installation en cours, la fenêtre se ferme puis revient.",
       "failed": "Version {{version}}. La vérification a échoué.",
+      "unpublished": "Version {{version}}. Aucune version n'est encore publiée pour ce système.",
       "schedule": "Version {{version}}. Vérifiée à chaque lancement, puis toutes les heures.",
       "upToDate": "Version {{version}}. À jour, vérifiée à {{time}}.",
       "error": "Version {{version}}. {{error}}"

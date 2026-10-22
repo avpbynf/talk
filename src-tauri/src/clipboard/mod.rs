@@ -10,9 +10,14 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
 };
 
+#[cfg(target_os = "macos")]
+mod macos;
+#[cfg(target_os = "macos")]
+pub use macos::type_text;
+
 #[derive(Error, Debug)]
 pub enum ClipboardError {
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     #[error("Failed to set clipboard: {0}")]
     SetClipboard(String),
     #[error("Failed to simulate input: {0}")]
@@ -206,12 +211,12 @@ pub fn type_text(text: &str, preserve_clipboard: bool) -> Result<(), ClipboardEr
     copy_and_paste(text)
 }
 
-#[cfg(not(any(windows, target_os = "linux")))]
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 pub fn copy_and_paste(_text: &str) -> Result<(), ClipboardError> {
     Err(ClipboardError::SimulateInput("Text entry is unavailable on this platform".into()))
 }
 
-#[cfg(not(any(windows, target_os = "linux")))]
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 pub fn type_text(_text: &str, _preserve_clipboard: bool) -> Result<(), ClipboardError> {
     Err(ClipboardError::SimulateInput("Text entry is unavailable on this platform".into()))
 }

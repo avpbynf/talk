@@ -110,6 +110,7 @@ impl ShareBackend for AppBackend {
     fn device(&self) -> String {
         match settings::read(|s| s.accelerator_backend) {
             AcceleratorBackend::Vulkan => "vulkan".to_string(),
+            AcceleratorBackend::Metal => "metal".to_string(),
             AcceleratorBackend::Cpu => "cpu".to_string(),
         }
     }

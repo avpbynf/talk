@@ -27,6 +27,11 @@ fn default_cancel_shortcut() -> String {
     "Ctrl+F1".to_string()
 }
 
+/// Ctrl+Space switches the input source on a Mac, so Option+Space stands in there.
+fn default_shortcut() -> String {
+    if cfg!(target_os = "macos") { "Alt+Space" } else { "Ctrl+Space" }.to_string()
+}
+
 fn default_paste_shortcut() -> String {
     "Ctrl+Shift+Space".to_string()
 }
@@ -34,7 +39,7 @@ fn default_paste_shortcut() -> String {
 impl Default for HotkeyConfig {
     fn default() -> Self {
         Self {
-            shortcut: "Ctrl+Space".to_string(),
+            shortcut: default_shortcut(),
             cancel_shortcut: default_cancel_shortcut(),
             paste_shortcut: default_paste_shortcut(),
             mode: RecordingMode::Toggle,
@@ -143,7 +148,7 @@ mod tests {
         let store = open(&dir.path().join(FILE_NAME));
 
         assert!(!store.suspends_sync());
-        assert_eq!(store.get().shortcut, "Ctrl+Space");
+        assert_eq!(store.get().shortcut, default_shortcut());
         assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
     }
 
@@ -197,7 +202,7 @@ mod tests {
 
         assert!(store.suspends_sync());
         assert_eq!(std::fs::read_to_string(aside_of(&path)).unwrap(), damaged);
-        assert_eq!(on_disk(&path)["shortcut"], "Ctrl+Space");
+        assert_eq!(on_disk(&path)["shortcut"], default_shortcut().as_str());
         assert!(!open(&path).suspends_sync());
         assert!(dir.path().join("hotkeys.unreadable.json.untold").exists());
     }
@@ -276,7 +281,7 @@ mod tests {
             thread.join().unwrap();
         }
 
-        let expected = format!("Ctrl+Space{}", "x".repeat(30));
+        let expected = format!("{}{}", default_shortcut(), "x".repeat(30));
         assert_eq!(store.get().shortcut, expected);
         assert_eq!(on_disk(&path)["shortcut"], expected.as_str());
     }
@@ -299,7 +304,7 @@ mod tests {
 
         assert!(store.update(|c| c.shortcut = "Ctrl+F6".to_string()).is_err());
 
-        assert_eq!(store.get().shortcut, "Ctrl+Space");
+        assert_eq!(store.get().shortcut, default_shortcut());
         assert_eq!(HOOKS.load(std::sync::atomic::Ordering::SeqCst), 0);
     }
 }

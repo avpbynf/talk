@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { keyLabel } from "@/lib/platform";
 
 /** A shortcut as its keys, a plus between them. */
 export function Keys({ parts }: { parts: string[] }) {
@@ -7,7 +8,7 @@ export function Keys({ parts }: { parts: string[] }) {
       {parts.map((key, i) => (
         <Fragment key={i}>
           {i > 0 && "+"}
-          <kbd>{key}</kbd>
+          <kbd>{keyLabel(key)}</kbd>
         </Fragment>
       ))}
     </span>

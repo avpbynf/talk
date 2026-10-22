@@ -201,7 +201,7 @@ pub struct AppSettings {
     /// Companion shortcuts to simulate on recording start/stop
     #[serde(default)]
     pub companion_shortcuts: Vec<CompanionShortcut>,
-    /// Enable meeting mode (route audio through VB-Cable)
+    /// Enable meeting mode (route audio through VB-Cable, or BlackHole on a Mac)
     #[serde(default)]
     pub meeting_mode_enabled: bool,
     /// Selected input device name (None = system default)

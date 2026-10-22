@@ -1,0 +1,19 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "Talk",
+        "width": 801,
+        "height": 854,
+        "minWidth": 801,
+        "minHeight": 854,
+        "resizable": true,
+        "center": true,
+        "decorations": true,
+        "visible": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ]
+  }
+}

@@ -14,6 +14,10 @@ mod file_store;
 mod hotkeys;
 mod lenient;
 mod keystroke;
+#[cfg(target_os = "macos")]
+mod macos_access;
+#[cfg(target_os = "macos")]
+mod macos_window;
 mod models;
 mod name_migration;
 mod overlay;
@@ -353,7 +357,7 @@ fn chosen_gpu() -> Option<GpuDevicePreference> {
 /// machine running on the CPU has no reason to pay for that.
 fn current_gpu_device_index(preference: Option<&GpuDevicePreference>, backend: AcceleratorBackend) -> u32 {
     match backend {
-        AcceleratorBackend::Vulkan => {
+        AcceleratorBackend::Vulkan | AcceleratorBackend::Metal => {
             transcription::resolve_gpu_device(preference, &transcription::list_gpu_devices())
         }
         AcceleratorBackend::Cpu => 0,
@@ -1050,6 +1054,22 @@ fn get_vbcable_status() -> virtual_mic::VBCableStatus {
     virtual_mic::detect_vbcable()
 }
 
+/// Install BlackHole on a Mac, for meeting mode. "declined" when the password was not given,
+/// which is the user's choice and not a failure to report.
+#[tauri::command]
+async fn install_blackhole() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use virtual_mic::blackhole::{install, InstallError};
+        return install().await.map_err(|e| match e {
+            InstallError::Declined => "declined".to_string(),
+            other => other.to_string(),
+        });
+    }
+    #[cfg(not(target_os = "macos"))]
+    Err("BlackHole is a Mac driver".to_string())
+}
+
 /// What the switch asks for and what the cable is doing about it, which differ when
 /// the route did not start or failed since.
 #[derive(serde::Serialize)]
@@ -1095,6 +1115,11 @@ fn route_meeting_mode(app: &tauri::AppHandle, state: &AppState) -> Result<(), St
             });
         }
     };
+    // Applications left on the default microphone hear the cable from here on.
+    #[cfg(target_os = "macos")]
+    if let Err(e) = virtual_mic::system_default::take_over() {
+        eprintln!("BlackHole could not be made the default microphone: {}", e);
+    }
     let mut vm = state.virtual_mic.lock();
     // Read under the same lock the press path mutes under: a route opened while a
     // dictation is under way starts silent, and one opened just before is muted by it.
@@ -1109,6 +1134,8 @@ fn apply_meeting_mode(app: &tauri::AppHandle, state: &AppState, enabled: bool) -
         route_meeting_mode(app, state)?;
     } else {
         state.virtual_mic.lock().disable();
+        #[cfg(target_os = "macos")]
+        virtual_mic::system_default::give_back();
     }
     let _ = app.emit("meeting-mode-changed", ());
     Ok(())
@@ -1354,6 +1381,7 @@ pub fn run() {
             set_companion_shortcuts,
             simulate_keystroke_cmd,
             get_vbcable_status,
+            install_blackhole,
             get_meeting_mode,
             set_meeting_mode,
             list_input_devices,
@@ -1423,6 +1451,10 @@ pub fn run() {
                 // put it back, so this is the only chance.
                 hotkeys::restore_audio_now();
 
+                // A default microphone left on the cable by a crash goes back first.
+                #[cfg(target_os = "macos")]
+                virtual_mic::system_default::give_back();
+
                 // Auto-start meeting mode if previously enabled
                 if app_settings.meeting_mode_enabled {
                     if let Err(e) = route_meeting_mode(app.handle(), &state) {
@@ -1434,6 +1466,15 @@ pub fn run() {
             // Setup global shortcuts
             if let Err(e) = hotkeys::setup_shortcuts(app) {
                 eprintln!("Failed to setup shortcuts: {}", e);
+            }
+
+            // The paste is a Cmd+V posted to the window in front, which macOS allows only
+            // once Talk is ticked under Accessibility. Asked at launch, where the system's
+            // dialog has a reason to appear, rather than at the first dictation, whose
+            // text would be lost while the user goes to grant it.
+            #[cfg(target_os = "macos")]
+            if !macos_access::accessibility_granted(true) {
+                eprintln!("Accessibility not granted: the dictation cannot be pasted until it is");
             }
 
             // Check if app should start minimized (via command line arg or setting)
@@ -1513,6 +1554,8 @@ pub fn run() {
                 .focusable(false);
 
             if let Ok(overlay_window) = overlay_builder.build() {
+                #[cfg(target_os = "macos")]
+                macos_window::float_everywhere(&overlay_window);
                 overlay::place(app.handle(), &overlay_window);
                 let w = overlay_window.clone();
                 std::thread::spawn(move || {
@@ -1522,8 +1565,38 @@ pub fn run() {
                 });
             }
 
+            #[cfg(target_os = "macos")]
+            macos_window::show_main_on_activation(app.handle());
+
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(on_run_event);
 }
+
+#[cfg(target_os = "macos")]
+fn on_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
+    match event {
+        // A Mac reopens an application from its Dock icon, and expects its window back
+        // whether it was closed to the tray or never shown because Talk started minimised.
+        tauri::RunEvent::Reopen { .. } => {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+        // The model goes before the process does. On a Mac the GPU device is freed by
+        // a static destructor at exit, and ggml aborts when a model is still on it:
+        // every quit was reported as a crash.
+        tauri::RunEvent::Exit => {
+            *app.state::<AppState>().whisper_engine.lock() = None;
+            // Nothing feeds the cable once Talk is gone.
+            virtual_mic::system_default::give_back();
+        }
+        _ => {}
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn on_run_event(_app: &tauri::AppHandle, _event: tauri::RunEvent) {}

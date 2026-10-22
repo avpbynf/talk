@@ -1,11 +1,11 @@
 # What every batch owes before it enters dev: the tsc pass the release build runs as its
 # beforeBuildCommand, and the frontend suite. Linux, because neither needs Windows.
 #
-# The Rust side is deliberately not compiled here. whisper-rs builds whisper.cpp from its build
-# script, so even `cargo check` pays a compile measured in tens of minutes, which is what the
-# release workflow is for. What that costs is written down rather than hidden: a Rust change is
-# read carefully and checked locally with `bun run tauri:check`, and CI answers for the frontend
-# alone.
+# The Rust side is deliberately not compiled on Linux or Windows here. whisper-rs builds
+# whisper.cpp from its build script, so even `cargo check` pays a compile measured in tens of
+# minutes, which is what the release workflow is for. What that costs is written down rather than
+# hidden: a Rust change is read carefully and checked locally with `bun run tauri:check`, and CI
+# answers for the frontend alone, plus the macOS compile below, which no desk here can run.
 
 name: build
 
@@ -41,3 +41,55 @@ jobs:
 
       - name: The frontend suite
         run: bun run test
+
+  # The one place the Rust side is compiled before a release, and only for macOS, whose code
+  # nothing else here can reach. Windows and Linux are checked on a desk with `tauri:check`.
+  # A pull request that leaves src-tauri/ alone skips the compile, which is the long part;
+  # a push to main or dev always pays it, so the cache stays warm for the next request.
+  macos:
+    runs-on: macos-latest
+
+    env:
+      CC: cc
+      CXX: c++
+      CMAKE_GENERATOR: Unix Makefiles
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether the Rust side changed
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] \
+            && git diff --quiet "origin/${{ github.base_ref }}...HEAD" -- src-tauri .github/workflows/build.yml; then
+            echo "rust=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install the pinned Rust toolchain
+        if: steps.scope.outputs.rust == 'true'
+        working-directory: src-tauri
+        run: rustup show
+
+      - uses: Swatinem/rust-cache@v2
+        if: steps.scope.outputs.rust == 'true'
+        with:
+          workspaces: src-tauri
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.scope.outputs.rust == 'true'
+
+      # The context macro reads the built frontend.
+      - name: Build the frontend
+        if: steps.scope.outputs.rust == 'true'
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: The Rust suite on Metal
+        if: steps.scope.outputs.rust == 'true'
+        working-directory: src-tauri
+        run: cargo test --no-default-features --features metal
