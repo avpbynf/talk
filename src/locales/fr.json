@@ -359,7 +359,7 @@
     },
     "share": {
       "title": "Partager ce PC",
-      "subtitle": "Laisse d'autres ordinateurs dicter à travers ce PC, avec le modèle chargé ici ou, en mode Serveur, avec son serveur. Sans Docker ni Python. Allumez pour choisir le port et appairer des machines.",
+      "subtitle": "Vos autres ordinateurs dictent à travers ce PC : avec le modèle chargé ici, ou en mode Serveur avec son serveur. Activez pour choisir le port et appairer des machines.",
       "port": "Port",
       "portRange": "Saisissez un port entre 1 et 65535",
       "portFailed": "Impossible de changer le port",
@@ -540,7 +540,7 @@
         "label": "Style du bandeau",
         "halo": {
           "name": "Halo",
-          "text": "Le bandeau d'aujourd'hui, affiné. Trois arcs de lumière tournent sur le bord, plus vite quand vous parlez."
+          "text": "Trois arcs de lumière tournent sur le bord, plus vite quand vous parlez."
         },
         "capsule": {
           "name": "Capsule",
@@ -548,7 +548,7 @@
         },
         "orb": {
           "name": "Orbe",
-          "text": "Votre blobatar en personne. Il gonfle avec la voix et lance des ondes, suit votre souris du regard, réfléchit pendant la transcription, sourit quand c'est collé."
+          "text": "Votre avatar en personne. Il gonfle avec la voix et lance des ondes, suit votre souris du regard, réfléchit pendant la transcription, sourit quand c'est collé."
         },
         "flyout": {
           "name": "Windows",
@@ -572,7 +572,7 @@
       "own": { "subtitle": "Propre à ce style" },
       "colors": {
         "palette": "Palette",
-        "paletteHint": "Celle de l'application, une des six que le bandeau avait déjà, ou trois des vôtres",
+        "paletteHint": "Celle de l'application, une des six proposées, ou trois des vôtres",
         "accent": "Application",
         "system": "Windows",
         "custom": "À vous",

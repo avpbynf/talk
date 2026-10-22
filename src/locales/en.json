@@ -359,7 +359,7 @@
     },
     "share": {
       "title": "Share this PC",
-      "subtitle": "Lets other computers dictate through this PC, on the model loaded here or, in Server mode, on its server. No Docker or Python. Turn it on to pick the port and pair machines.",
+      "subtitle": "Your other computers dictate through this PC: on the model loaded here, or in Server mode on its server. Turn it on to pick the port and pair machines.",
       "port": "Port",
       "portRange": "Enter a port between 1 and 65535",
       "portFailed": "Could not change the port",
@@ -540,7 +540,7 @@
         "label": "Overlay style",
         "halo": {
           "name": "Halo",
-          "text": "Today's overlay, refined. Three arcs of light turn on the border, faster when you speak."
+          "text": "Three arcs of light turn on the border, faster when you speak."
         },
         "capsule": {
           "name": "Capsule",
@@ -548,7 +548,7 @@
         },
         "orb": {
           "name": "Orb",
-          "text": "Your own blobatar. It swells with your voice and sends out ripples, watches your pointer, thinks while it transcribes, smiles when it is pasted."
+          "text": "Your own avatar. It swells with your voice and sends out ripples, watches your pointer, thinks while it transcribes, smiles when it is pasted."
         },
         "flyout": {
           "name": "Windows",
@@ -572,7 +572,7 @@
       "own": { "subtitle": "Proper to this style" },
       "colors": {
         "palette": "Palette",
-        "paletteHint": "The application's own, one of the six the overlay already had, or three of yours",
+        "paletteHint": "The application's own, one of the six offered, or three of yours",
         "accent": "Application",
         "custom": "Your own",
         "system": "Windows",
