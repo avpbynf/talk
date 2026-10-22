@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - (repo) Talk runs on Linux in beta, with Vulkan
 
 Talk now runs on Debian and Ubuntu under X11 and can use Vulkan GPUs for local transcription. A
-Debian package can be built locally. The window has the rounded corners it has on Windows 11,
+Debian package is attached to each release, signed like the Windows installer so an installed Talk
+offers the next one by itself, and can also be built locally. The window has the rounded corners it has on Windows 11,
 which GNOME does not draw by itself.
 
 - (repo) Dictate on a Linux Wayland desktop

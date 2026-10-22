@@ -28,9 +28,35 @@ them, unless "Delete the application data" is ticked in the uninstaller, which r
 
 Linux is in beta. Talk runs on Debian and Ubuntu with GNOME, under X11 and under Wayland
 (GNOME 48 or later); another Wayland desktop needs the GlobalShortcuts and RemoteDesktop
-portals, which not all of them have. There is no package on the releases page: build the
-`.deb` with `bun run tauri:build:linux` as [docs/building.md](docs/building.md#debian-and-ubuntu)
-describes, and install a newer one the same way.
+portals, which not all of them have.
+
+### Installing
+
+Download the `.deb` under Assets on the latest release and install it:
+
+    sudo apt install ./Talk_<version>_amd64.deb
+
+### Updating
+
+An installed Talk looks for a newer release by itself and offers it, as on Windows. Accepting
+installs the new `.deb` through the system's administrator prompt (`pkexec`), so the session needs
+a polkit agent, which every desktop session has. Without one, install the new `.deb` by hand the
+same way as above.
+
+### Uninstalling
+
+    sudo apt remove talk
+
+This leaves the models, `settings.json` and the history in your home folder, so a reinstall finds
+them.
+
+### Building from source
+
+To build the `.deb` yourself, run `bun run tauri:build:linux` as
+[docs/building.md](docs/building.md#debian-and-ubuntu) describes. A local build is not signed, so
+it never updates itself: install the next one the same way.
+
+### What to expect
 
 Under Wayland the desktop asks two things, each once: to allow Talk's shortcuts, at the first
 launch, and to allow it to type into other windows, at the first paste. It remembers both

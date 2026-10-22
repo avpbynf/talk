@@ -1,6 +1,7 @@
 name: Release
 
-# Build the Windows installer and publish it on the release for the pushed tag.
+# Build the Windows installer and publish it on the release for the pushed tag, then build the
+# Debian package and attach it to that same release.
 # Run it by hand first (workflow_dispatch) to check a build before tagging.
 on:
   push:
@@ -157,4 +158,109 @@ jobs:
         with:
           name: talk-installer
           path: D:\t\release\bundle\nsis\*.exe
+          if-no-files-found: error
+
+  # The Debian package rides on the release the windows job created, and never on the updater:
+  # latest.json stays the Windows manifest, and the Linux configuration writes no updater
+  # artifacts. It waits for the windows job so the release exists and nothing races its notes
+  # edit; `gh release upload` then adds one asset to it.
+  linux:
+    needs: windows
+    runs-on: ubuntu-24.04
+
+    env:
+      # Same reason as the windows job: keep whisper.cpp's CMake scratch directories short.
+      CARGO_TARGET_DIR: /tmp/t
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tauri's Linux dependencies plus the audio, keyboard and D-Bus headers, as
+      # docs/building.md lists them. The distribution's Vulkan headers are too old for the
+      # current whisper.cpp on 24.04, so the SDK is unpacked below instead of libvulkan-dev.
+      - name: Install the system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential curl wget file libssl-dev libgtk-3-dev \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            patchelf libasound2-dev libxkbcommon-dev libdbus-1-dev \
+            cmake ninja-build clang libclang-dev libvulkan1 xz-utils
+
+      # scripts/tauri-linux.sh finds the newest setup-env.sh under ~/vulkan and loads it.
+      - name: Install the Vulkan SDK
+        run: |
+          mkdir -p "$HOME/vulkan"
+          curl -fsSL https://sdk.lunarg.com/sdk/download/latest/linux/vulkan_sdk.tar.xz \
+            | tar -xJ -C "$HOME/vulkan"
+          setup="$(find "$HOME/vulkan" -maxdepth 4 -name setup-env.sh | sort -V | tail -n 1)"
+          test -n "$setup"
+          # The final link needs libvulkan.so, which libvulkan1 does not carry and the
+          # distribution's -dev package would bring older headers along with. A link to the
+          # runtime library, on the linker's search path, is all it asks for.
+          mkdir -p "$HOME/vulkan-link"
+          ln -s /usr/lib/x86_64-linux-gnu/libvulkan.so.1 "$HOME/vulkan-link/libvulkan.so"
+          test -e "$HOME/vulkan-link/libvulkan.so"
+          echo "LIBRARY_PATH=$HOME/vulkan-link" >> "$GITHUB_ENV"
+
+      # rust-toolchain.toml pins the version; rustup installs it on first use.
+      - name: Install the pinned Rust toolchain
+        working-directory: src-tauri
+        run: rustup show
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      # The signature is asked for here and not in tauri.linux.conf.json, so a local
+      # `bun run tauri:build:linux` still works without the private key.
+      - name: Build the signed Debian package
+        env:
+          # Same key as the Windows installer: the installed application accepts an
+          # update only if it is signed by the public half in tauri.conf.json.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Read at compile time, as in the windows job.
+          TALK_GOOGLE_CLIENT_ID: ${{ secrets.TALK_GOOGLE_CLIENT_ID }}
+          TALK_GOOGLE_CLIENT_SECRET: ${{ secrets.TALK_GOOGLE_CLIENT_SECRET }}
+        run: |
+          bun run tauri:build:linux --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          ls -l "$CARGO_TARGET_DIR"/release/bundle/deb/
+          test -f "$CARGO_TARGET_DIR"/release/bundle/deb/*.deb.sig
+
+      # The updater reads one latest.json, so the Linux entry goes into the manifest the
+      # windows job already published instead of replacing it. Windows keeps its own keys,
+      # and an installed .deb looks for `linux-x86_64-deb`.
+      - name: Attach the package and its update entry to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          deb="$(ls "$CARGO_TARGET_DIR"/release/bundle/deb/*.deb)"
+          gh release upload "${{ github.ref_name }}" "$deb" "$deb.sig" --clobber
+          url="$(gh release view "${{ github.ref_name }}" --json assets \
+            --jq ".assets[] | select(.name == \"$(basename "$deb")\") | .url")"
+          test -n "$url"
+          gh release download "${{ github.ref_name }}" --pattern latest.json --dir "$RUNNER_TEMP" --clobber
+          jq --arg url "$url" --arg sig "$(cat "$deb.sig")" \
+            '.platforms["linux-x86_64-deb"] = {signature: $sig, url: $url}' \
+            "$RUNNER_TEMP/latest.json" > "$RUNNER_TEMP/merged.json"
+          jq -e '.platforms | has("windows-x86_64") and has("linux-x86_64-deb")' "$RUNNER_TEMP/merged.json"
+          mv "$RUNNER_TEMP/merged.json" "$RUNNER_TEMP/latest.json"
+          gh release upload "${{ github.ref_name }}" "$RUNNER_TEMP/latest.json" --clobber
+
+      # A manual run publishes nothing, so keep the package reachable for testing.
+      - name: Upload the package as a build artifact
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: talk-deb
+          path: |
+            /tmp/t/release/bundle/deb/*.deb
+            /tmp/t/release/bundle/deb/*.deb.sig
           if-no-files-found: error
