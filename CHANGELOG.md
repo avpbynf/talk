@@ -65,6 +65,11 @@ drawing keeps the word readable instead of shrinking the large one.
 An update kept the shortcut showing the icon Windows had cached for the former version. The
 installer now tells Windows the icons changed.
 
+- (ui) The interface no longer speaks of its own internals
+
+The Share this PC card no longer mentions Docker or Python, the overlay styles no longer compare
+themselves with an earlier overlay, and the Orb is described as your avatar.
+
 - (audio) The device pickers on Linux no longer list every sound card a dozen times
 
 Linux listed each card under all its raw ALSA names, which open the hardware behind the sound
