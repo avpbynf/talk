@@ -80,6 +80,19 @@ A branch off `dev`, conventional commits and a pull request against `dev`.
 [CONTRIBUTING.md](CONTRIBUTING.md) carries the rest, and [CHANGELOG.md](CHANGELOG.md) what
 changed between versions.
 
+## Credits
+
+Talk stands on other people's work:
+
+- [Blobatar](https://github.com/Alain00/blobatar), by Alain (MIT), draws the avatars and the Orb
+- [whisper.cpp](https://github.com/ggml-org/whisper.cpp), by ggml-org (MIT), does the local
+  transcription
+- [Tauri](https://tauri.app) (MIT or Apache-2.0) is the shell around the Rust backend and the
+  React interface
+
+The notice of every component is in [third-party-notices.txt](src/assets/third-party-notices.txt),
+and in the application under Preferences, Updates.
+
 ## Licence
 
 MIT, in [LICENSE](LICENSE).

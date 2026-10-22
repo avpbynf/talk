@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import AudioDevicesSection from "./preferences/AudioDevicesSection";
 import SystemSection from "./preferences/SystemSection";
+import { LicencesDialog } from "./preferences/LicencesDialog";
 import UpdatesSection from "./preferences/UpdatesSection";
 import type { Updater } from "@/lib/use-updater";
 
@@ -31,8 +33,9 @@ export default function PreferencesView({
   onPreserveClipboardChange,
   updater,
 }: PreferencesViewProps) {
+  const [licencesOpen, setLicencesOpen] = useState(false);
   return (
-    <PageShell>
+    <PageShell overlay={<LicencesDialog open={licencesOpen} onClose={() => setLicencesOpen(false)} />}>
       <AudioDevicesSection />
       <SystemSection
         autostartEnabled={autostartEnabled}
@@ -47,7 +50,7 @@ export default function PreferencesView({
         onPreserveClipboardChange={onPreserveClipboardChange}
       />
       {/* Last on the page, whatever is added above it */}
-      <UpdatesSection updater={updater} />
+      <UpdatesSection updater={updater} onShowLicences={() => setLicencesOpen(true)} />
     </PageShell>
   );
 }

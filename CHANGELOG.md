@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Features
 
+- (preferences) The libraries Talk is built on are credited
+
+The Updates card names Blobatar, by Alain, for the avatars, and opens the licence notices of every
+component Talk ships.
+
 - (repo) Talk runs on Linux in beta, with Vulkan
 
 Talk now runs on Debian and Ubuntu under X11 and can use Vulkan GPUs for local transcription. A
