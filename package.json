@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "notices": "bun scripts/third-party-notices.mjs",
     "tauri:dev": "cmd /c \"scripts\\vcenv.bat tauri dev\"",
     "tauri:dev:linux": "bash scripts/tauri-linux.sh dev",
     "tauri:build": "cmd /c \"scripts\\vcenv.bat tauri build\"",
