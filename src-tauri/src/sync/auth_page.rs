@@ -134,7 +134,9 @@ mod tests {
         assert!(html.contains("Vous pouvez fermer cet onglet"));
         assert!(html.contains("font-family:Geist") && html.contains("data:font/woff2;base64,"));
         assert!(!html.contains("<script") && !html.contains("setInterval"));
-        assert!(!html.contains("http://") && !html.contains("https://") && !html.contains("src="));
+        // The logo's xmlns names a namespace and fetches nothing.
+        let fetched = html.replace("xmlns=\"http://www.w3.org/2000/svg\"", "");
+        assert!(!fetched.contains("http://") && !fetched.contains("https://") && !fetched.contains("src="));
         let refused = render(Page::Refused, false);
         assert!(refused.contains("Sign-in was refused"));
         assert!(!refused.contains("<script"));
