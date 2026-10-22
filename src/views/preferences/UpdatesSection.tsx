@@ -1,4 +1,5 @@
 import { RefreshCw } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { formatTime } from "@/i18n";
@@ -8,7 +9,10 @@ import type { Updater } from "@/lib/use-updater";
 
 interface UpdatesSectionProps {
   updater: Updater;
+  onShowLicences: () => void;
 }
+
+const BLOBATAR_URL = "https://github.com/Alain00/blobatar";
 
 function statusLine(updater: Updater, t: TFunction): string {
   const version = updater.currentVersion || "...";
@@ -29,7 +33,7 @@ function statusLine(updater: Updater, t: TFunction): string {
   }
 }
 
-export default function UpdatesSection({ updater }: UpdatesSectionProps) {
+export default function UpdatesSection({ updater, onShowLicences }: UpdatesSectionProps) {
   const { t } = useTranslation();
   const busy = updater.status === "checking" || updater.status === "downloading" || updater.status === "ready";
 
@@ -54,6 +58,28 @@ export default function UpdatesSection({ updater }: UpdatesSectionProps) {
         className={`max-w-[64ch] text-[13px] leading-[1.55] ${updater.status === "error" ? "text-destructive" : "text-muted-foreground"}`}
       >
         {statusLine(updater, t)}
+      </p>
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>
+          {t("updates.credits.avatars")}{" "}
+          <a
+            href={BLOBATAR_URL}
+            className="underline underline-offset-2 hover:text-foreground"
+            onClick={(event) => {
+              event.preventDefault();
+              void openUrl(BLOBATAR_URL);
+            }}
+          >
+            {t("updates.credits.blobatar")}
+          </a>
+        </span>
+        <button
+          type="button"
+          onClick={onShowLicences}
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          {t("updates.credits.licences")}
+        </button>
       </p>
     </SectionCard>
   );

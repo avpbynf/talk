@@ -965,6 +965,16 @@
   "updates": {
     "title": "Updates",
     "checkNow": "Check now",
+    "credits": {
+      "avatars": "Avatars:",
+      "blobatar": "Blobatar, by Alain",
+      "licences": "Component licences"
+    },
+    "licences": {
+      "title": "Component licences",
+      "intro": "Talk is built on open-source projects. Their notices are below.",
+      "close": "Close"
+    },
     "status": {
       "checking": "Version {{version}}. Asking GitHub...",
       "available": "Version {{version}}. Talk {{next}} is out.",

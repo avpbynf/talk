@@ -965,6 +965,16 @@
   "updates": {
     "title": "Mises à jour",
     "checkNow": "Vérifier maintenant",
+    "credits": {
+      "avatars": "Avatars :",
+      "blobatar": "Blobatar, par Alain",
+      "licences": "Licences des composants"
+    },
+    "licences": {
+      "title": "Licences des composants",
+      "intro": "Talk repose sur des projets libres. Leurs mentions figurent ci-dessous.",
+      "close": "Fermer"
+    },
     "status": {
       "checking": "Version {{version}}. Interrogation de GitHub...",
       "available": "Version {{version}}. Talk {{next}} est disponible.",
