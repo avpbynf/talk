@@ -60,6 +60,11 @@ drawing keeps the word readable instead of shrinking the large one.
 
 ### Fixes
 
+- (installer) The desktop shortcut shows the new icon after an update
+
+An update kept the shortcut showing the icon Windows had cached for the former version. The
+installer now tells Windows the icons changed.
+
 - (audio) The device pickers on Linux no longer list every sound card a dozen times
 
 Linux listed each card under all its raw ALSA names, which open the hardware behind the sound
