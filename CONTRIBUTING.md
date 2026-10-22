@@ -156,6 +156,16 @@ Call cargo through those scripts and not directly: `cargo test` on its own inher
 environment the shell has, and without the MSVC one loaded the native build fails in ways that read
 like a Rust error.
 
+## Third-party notices
+
+`src/assets/third-party-notices.txt` carries the licence notice of every production dependency,
+npm and Rust, and the application shows it under Preferences. It is generated, never edited:
+
+    bun run notices
+
+Run it in the same commit as any change to `package.json` dependencies, `bun.lock`, `Cargo.toml` or
+`Cargo.lock`, and before a release. `bun run notices --check` fails when the file is out of date.
+
 ## Versions and releasing
 
 A released version is three numbers, and after them either `-alpha`, or `-beta`, or nothing at
