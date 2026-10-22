@@ -53,3 +53,12 @@
     RMDir /r "$LOCALAPPDATA\com.avpbynf.talk"
   ${EndIf}
 !macroend
+
+!macro NSIS_HOOK_POSTINSTALL
+  ; An upgrade keeps the desktop and Start menu shortcuts, which take their
+  ; picture from talk.exe, and Explorer goes on drawing the one it cached for
+  ; the former executable until it is told the icons changed: after the new
+  ; wordmark, the desktop still showed the old icon while the tray had the new
+  ; one. SHCNE_ASSOCCHANGED makes the shell drop its cached icons.
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+!macroend
