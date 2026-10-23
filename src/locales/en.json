@@ -463,9 +463,9 @@
       "duck": {
         "label": "Turn the volume down",
         "hint": "While you speak, then it comes back",
-        "downTo": "Down to",
+        "downTo": "Keep at",
         "ariaLabel": "How much of the volume to keep while recording",
-        "percent": "{{percent}}% of it"
+        "percent": "{{percent}}% of current volume"
       },
       "clipboard": {
         "label": "Preserve the clipboard",

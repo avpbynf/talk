@@ -463,9 +463,9 @@
       "duck": {
         "label": "Baisser le volume",
         "hint": "Pendant que vous parlez, puis revient",
-        "downTo": "Descendre à",
+        "downTo": "Conserver à",
         "ariaLabel": "Part du volume à conserver pendant l'enregistrement",
-        "percent": "{{percent}} % du volume"
+        "percent": "{{percent}} % du volume actuel"
       },
       "clipboard": {
         "label": "Préserver le presse-papiers",
