@@ -14,6 +14,8 @@
 use std::path::PathBuf;
 
 const MARKER_FILE: &str = "volume-before-duck.txt";
+#[cfg(target_os = "linux")]
+const LINUX_MAX_VOLUME: f32 = 2.0;
 
 /// The level taken before ducking, on disk for as long as the volume is lowered.
 pub struct DuckMarker {
@@ -37,7 +39,14 @@ impl DuckMarker {
     /// The level to restore, or nothing when there is no marker or it is not a level.
     pub fn read(&self) -> Option<f32> {
         let level: f32 = std::fs::read_to_string(&self.path).ok()?.trim().parse().ok()?;
-        (0.0..=1.0).contains(&level).then_some(level)
+        #[cfg(target_os = "linux")]
+        {
+            return (0.0..=LINUX_MAX_VOLUME).contains(&level).then_some(level);
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            (0.0..=1.0).contains(&level).then_some(level)
+        }
     }
 
     /// The volume is back: the marker goes. A missing one is already gone.
@@ -148,9 +157,9 @@ pub const FADE_DOWN_MS: u64 = 140;
 pub const FADE_UP_MS: u64 = 320;
 
 /// How many levels a slide is cut into. Twelve steps over a tenth of a second
-/// is below what an ear hears as separate, and each one is a call across COM,
-/// so more would cost without being heard.
-#[cfg(windows)]
+/// is below what an ear hears as separate. Each step calls the system audio
+/// service, so more would cost without being heard.
+#[cfg(any(windows, target_os = "linux"))]
 const FADE_STEPS: u32 = 12;
 
 /// The slide currently allowed to move the volume.
@@ -158,14 +167,14 @@ const FADE_STEPS: u32 = 12;
 /// A recording stopped as fast as it started leaves two slides running at once,
 /// pulling in opposite directions. Each takes a ticket on the way in and stops
 /// as soon as a newer one exists, so the last order given is the one that wins.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 static FADE_TICKET: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// Take the right to move the volume, ahead of the slide itself. Whoever takes a
 /// newer ticket stops every slide holding an older one, so a caller that has to
 /// decide in what order two slides start takes its ticket at that moment, and
 /// slides later.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub fn take_fade_ticket() -> u64 {
     FADE_TICKET.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1
 }
@@ -206,12 +215,12 @@ pub fn fade_volume_with(ticket: u64, level: f32, millis: u64) -> bool {
     .is_some()
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn take_fade_ticket() -> u64 {
     0
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn fade_volume_with(_ticket: u64, _level: f32, _millis: u64) -> bool {
     false
 }
@@ -241,12 +250,132 @@ fn with_endpoint<T>(
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+fn parse_wpctl_level(output: &[u8]) -> Option<f32> {
+    String::from_utf8_lossy(output)
+        .split_whitespace()
+        .find_map(|word| word.parse::<f32>().ok())
+        .filter(|level| (0.0..=LINUX_MAX_VOLUME).contains(level))
+}
+
+#[cfg(target_os = "linux")]
+fn parse_pactl_percent(output: &[u8]) -> Option<f32> {
+    String::from_utf8_lossy(output)
+        .split_whitespace()
+        .find_map(|word| word.strip_suffix('%').and_then(|value| value.parse::<f32>().ok()))
+        .map(|percent| (percent / 100.0).clamp(0.0, LINUX_MAX_VOLUME))
+}
+
+#[cfg(target_os = "linux")]
+fn pactl_default_sink() -> Option<String> {
+    use std::process::Command;
+
+    let output = Command::new("pactl").args(["get-default-sink"]).output().ok()?;
+    if output.status.success() {
+        let sink = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !sink.is_empty() {
+            return Some(sink);
+        }
+    }
+
+    // Older PulseAudio builds do not have get-default-sink.
+    let output = Command::new("pactl").args(["info"]).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .find_map(|line| line.strip_prefix("Default Sink:").map(str::trim))
+        .filter(|sink| !sink.is_empty())
+        .map(str::to_string)
+}
+
+#[cfg(target_os = "linux")]
+fn pactl_get_volume(target: &str) -> Option<f32> {
+    use std::process::Command;
+
+    let output = Command::new("pactl").args(["get-sink-volume", target]).output().ok()?;
+    output.status.success().then(|| parse_pactl_percent(&output.stdout)).flatten()
+}
+
+#[cfg(target_os = "linux")]
+fn pactl_set_volume(target: &str, level: f32) -> bool {
+    use std::process::Command;
+
+    Command::new("pactl")
+        .args(["set-sink-volume", target, &format!("{}%", (level * 100.0).round() as u32)])
+        .output()
+        .map_or(false, |output| output.status.success())
+}
+
+#[cfg(target_os = "linux")]
+pub fn current_volume() -> Option<f32> {
+    use std::process::Command;
+
+    // wpctl works with PipeWire; pactl covers PulseAudio installations.
+    for target in ["@DEFAULT_AUDIO_SINK@", "@DEFAULT_SINK@"] {
+        if let Ok(output) = Command::new("wpctl").args(["get-volume", target]).output() {
+            if output.status.success() {
+                if let Some(level) = parse_wpctl_level(&output.stdout) {
+                    return Some(level);
+                }
+            }
+        }
+    }
+
+    pactl_get_volume("@DEFAULT_SINK@").or_else(|| pactl_default_sink().and_then(|sink| pactl_get_volume(&sink)))
+}
+
+#[cfg(target_os = "linux")]
+pub fn set_volume(level: f32) -> bool {
+    use std::process::Command;
+
+    let level = level.clamp(0.0, LINUX_MAX_VOLUME);
+    for target in ["@DEFAULT_AUDIO_SINK@", "@DEFAULT_SINK@"] {
+        if let Ok(output) = Command::new("wpctl")
+            .args(["set-volume", target, &format!("{level:.4}")])
+            .output()
+        {
+            if output.status.success() {
+                return true;
+            }
+        }
+    }
+
+    pactl_set_volume("@DEFAULT_SINK@", level)
+        || pactl_default_sink()
+            .map(|sink| pactl_set_volume(&sink, level))
+            .unwrap_or(false)
+}
+
+#[cfg(target_os = "linux")]
+pub fn fade_volume_with(ticket: u64, level: f32, millis: u64) -> bool {
+    use std::sync::atomic::Ordering;
+
+    let Some(from) = current_volume() else { return false };
+    if millis == 0 {
+        return FADE_TICKET.load(Ordering::SeqCst) != ticket || set_volume(level);
+    }
+    let step_millis = (millis / FADE_STEPS as u64).max(1);
+    for step in 1..=FADE_STEPS {
+        if FADE_TICKET.load(Ordering::SeqCst) != ticket {
+            return true;
+        }
+        let progress = step as f32 / FADE_STEPS as f32;
+        if !set_volume(from + (level - from) * progress) {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(step_millis));
+    }
+    true
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn current_volume() -> Option<f32> {
     None
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub fn set_volume(_level: f32) -> bool {
     false
 }
@@ -263,7 +392,7 @@ pub fn set_volume(_level: f32) -> bool {
 /// a person can edit, and a percentage above a hundred would raise the volume
 /// on somebody who asked for the opposite.
 pub fn duck_level(current: f32, percent: u8) -> f32 {
-    current.clamp(0.0, 1.0) * (percent.min(100) as f32) / 100.0
+    current.max(0.0) * (percent.min(100) as f32) / 100.0
 }
 
 #[cfg(test)]
@@ -302,6 +431,29 @@ mod tests {
     #[test]
     fn a_percentage_over_a_hundred_does_not_turn_the_volume_up() {
         assert!(close(duck_level(0.4, 255), 0.4));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn wpctl_level_is_read_from_output() {
+        assert!(close(parse_wpctl_level(b"Volume: 0.37\n").unwrap(), 0.37));
+        assert!(close(parse_wpctl_level(b"Volume: 0.20 [MUTED]\n").unwrap(), 0.20));
+        assert!(close(parse_wpctl_level(b"Volume: 1.23\n").unwrap(), 1.23));
+        assert_eq!(parse_wpctl_level(b"Volume: 2.5\n"), None);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn pactl_percent_is_read_from_output() {
+        assert!(close(
+            parse_pactl_percent(b"Volume: front-left: 33849 / 52% / -17.00 dB\n").unwrap(),
+            0.52
+        ));
+        assert!(close(
+            parse_pactl_percent(b"Volume: front-left: 84500 / 130% / -2.00 dB\n").unwrap(),
+            1.3
+        ));
+        assert_eq!(parse_pactl_percent(b"Volume: none"), None);
     }
 
     #[test]
@@ -369,7 +521,7 @@ mod tests {
     fn a_marker_that_is_not_a_level_restores_nothing() {
         let dir = tempfile::tempdir().unwrap();
         let marker = marker(&dir);
-        for content in ["", "loud", "1.5", "-0.2", "NaN"] {
+        for content in ["", "loud", "2.5", "-0.2", "NaN"] {
             std::fs::write(dir.path().join(MARKER_FILE), content).unwrap();
             assert_eq!(marker.read(), None, "{:?}", content);
         }

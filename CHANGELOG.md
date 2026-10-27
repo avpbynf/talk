@@ -105,6 +105,13 @@ bare address.
 An address that answered "not found" was taken for an older Talk server and shown as connected.
 It now shows as unreachable unless it really is a Talk server.
 
+- (recording) Linux ducking follows more audio servers, and the slider text says what it keeps
+
+On Linux, ducking now finds the output sink across more PipeWire and PulseAudio setups, including
+those where the default sink has to be resolved by name and those that report levels above 100
+percent. The settings wording now states the slider keeps a share of the current volume, so "85%"
+is read as "keep 85%" and not "remove 85%".
+
 ### Refactoring
 
 - (installer) An installation still named T4lk is no longer taken over
